@@ -1,0 +1,179 @@
+<?php
+
+namespace App\Http\Controllers\Sales;
+
+use App\Http\Controllers\Controller;
+use App\Models\Customer;
+use App\Models\Product;
+use App\Models\Quotation;
+use App\Models\Warehouse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class QuotationController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        $query = Quotation::with(['customer', 'createdBy'])
+            ->withCount('items')
+            ->when($request->search, function ($q, $search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('number', 'like', "%{$search}%")
+                      ->orWhereHas('customer', function ($cq) use ($search) {
+                          $cq->where('name', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->when($request->status, function ($q, $status) {
+                $q->where('status', $status);
+            });
+
+        $quotations = $query->orderByDesc('created_at')
+            ->paginate(10)
+            ->withQueryString();
+
+        return Inertia::render('Sales/Quotations/Index', [
+            'quotations' => $quotations,
+            'filters' => $request->only(['search', 'status']),
+            'statuses' => [
+                ['value' => 'draft', 'label' => 'Draft'],
+                ['value' => 'sent', 'label' => 'Sent'],
+                ['value' => 'accepted', 'label' => 'Accepted'],
+                ['value' => 'rejected', 'label' => 'Rejected'],
+                ['value' => 'expired', 'label' => 'Expired'],
+            ],
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('Sales/Quotations/Create', [
+            'customers' => Customer::active()->orderBy('name')->get(),
+            'products' => Product::active()->where('is_sold', true)->orderBy('name')->get(),
+            'quotationNumber' => Quotation::generateNumber(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'quotation_date' => 'required|date',
+            'valid_until' => 'required|date|after:quotation_date',
+            'notes' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty' => 'required|numeric|min:0.0001',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            $quotation = Quotation::create([
+                'number' => Quotation::generateNumber(),
+                'customer_id' => $validated['customer_id'],
+                'quotation_date' => $validated['quotation_date'],
+                'valid_until' => $validated['valid_until'],
+                'notes' => $validated['notes'] ?? null,
+                'status' => 'draft',
+                'created_by' => auth()->id(),
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                $quotation->items()->create([
+                    'product_id' => $item['product_id'],
+                    'qty' => $item['qty'],
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $item['qty'] * $item['unit_price'],
+                ]);
+            }
+
+            $quotation->calculateTotal();
+        });
+
+        return redirect()->route('sales.quotations.index')
+            ->with('success', 'Quotation created successfully.');
+    }
+
+    public function show(Quotation $quotation): Response
+    {
+        $quotation->load(['customer', 'items.product', 'createdBy']);
+
+        return Inertia::render('Sales/Quotations/Show', [
+            'quotation' => $quotation,
+        ]);
+    }
+
+    public function send(Quotation $quotation)
+    {
+        $quotation->update(['status' => 'sent']);
+        return back()->with('success', 'Quotation sent to customer.');
+    }
+
+    public function accept(Quotation $quotation)
+    {
+        $quotation->update(['status' => 'accepted']);
+        return back()->with('success', 'Quotation accepted.');
+    }
+
+    public function reject(Quotation $quotation)
+    {
+        $quotation->update(['status' => 'rejected']);
+        return back()->with('success', 'Quotation rejected.');
+    }
+
+    public function convertToSO(Quotation $quotation)
+    {
+        if ($quotation->status !== 'accepted') {
+            return back()->with('error', 'Only accepted quotations can be converted to Sales Order.');
+        }
+
+        return DB::transaction(function () use ($quotation) {
+            $so = \App\Models\SalesOrder::create([
+                'company_id' => $quotation->customer->company_id ?? 1,
+                'so_number' => \App\Models\SalesOrder::generateSoNumber(),
+                'customer_id' => $quotation->customer_id,
+                'warehouse_id' => \App\Models\Warehouse::first()->id ?? 1,
+                'order_date' => now(),
+                'status' => 'draft',
+                'subtotal' => $quotation->subtotal,
+                'tax_amount' => $quotation->tax,
+                'tax_percent' => 11,
+                'total' => $quotation->total,
+                'notes' => "Converted from Quotation #{$quotation->number}",
+            ]);
+
+            foreach ($quotation->items as $item) {
+                $so->items()->create([
+                    'product_id' => $item->product_id,
+                    'qty' => $item->qty,
+                    'unit_id' => $item->product->unit_id,
+                    'unit_price' => $item->unit_price,
+                    'subtotal' => $item->total_price,
+                ]);
+            }
+
+            $quotation->update(['status' => 'converted']);
+
+            return redirect()->route('sales.orders.edit', $so->id)
+                ->with('success', 'Quotation converted to Sales Order successfully.');
+        });
+    }
+
+    public function print(Quotation $quotation)
+    {
+        $quotation->load(['customer', 'items.product', 'createdBy']);
+        return view('print.quotation', ['quotation' => $quotation]);
+    }
+
+    public function publicValidate($id)
+    {
+        $quotation = Quotation::with(['customer', 'items.product'])
+            ->findOrFail($id);
+
+        return view('print.public-quotation-validation', [
+            'quotation' => $quotation
+        ]);
+    }
+}

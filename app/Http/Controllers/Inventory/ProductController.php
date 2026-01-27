@@ -1,0 +1,224 @@
+<?php
+
+namespace App\Http\Controllers\Inventory;
+
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\Category;
+use App\Models\Unit;
+use App\Models\Warehouse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\ProductExport;
+use App\Imports\ProductImport;
+
+use App\Exports\Template\ProductTemplateExport;
+
+class ProductController extends Controller
+{
+    /**
+     * Display a listing of products.
+     */
+    public function index(Request $request): Response
+    {
+        $query = Product::with(['category', 'unit', 'stocks.warehouse'])
+            ->when($request->search, function ($q, $search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('sku', 'like', "%{$search}%")
+                      ->orWhere('name', 'like', "%{$search}%")
+                      ->orWhere('barcode', 'like', "%{$search}%");
+                });
+            })
+            ->when($request->category, function ($q, $category) {
+                $q->where('category_id', $category);
+            })
+            ->when($request->product_type, function ($q, $type) {
+                $q->where('product_type', $type);
+            })
+            ->when($request->status !== null, function ($q) use ($request) {
+                $q->where('is_active', $request->status === 'active');
+            });
+
+        $products = $query->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
+
+        // Transform products to include computed stock data
+        $products->getCollection()->transform(function ($product) {
+            $product->total_stock = $product->total_stock;
+            $product->available_stock = $product->available_stock;
+            $product->is_low_stock = $product->is_low_stock;
+            return $product;
+        });
+
+        return Inertia::render('Inventory/Products/Index', [
+            'products' => $products,
+            'categories' => Category::where('type', 'product')->orderBy('name')->get(),
+            'filters' => $request->only(['search', 'category', 'product_type', 'status']),
+            'productTypes' => [
+                ['value' => 'raw_material', 'label' => 'Raw Material'],
+                ['value' => 'wip', 'label' => 'Work in Progress'],
+                ['value' => 'finished_good', 'label' => 'Finished Good'],
+                ['value' => 'spare_part', 'label' => 'Spare Part'],
+            ],
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new product.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('Inventory/Products/Form', [
+            'product' => null,
+            'categories' => Category::where('type', 'product')->orderBy('name')->get(),
+            'units' => Unit::where('is_active', true)->orderBy('name')->get(),
+            'warehouses' => Warehouse::where('is_active', true)->orderBy('name')->get(),
+        ]);
+    }
+
+    /**
+     * Store a newly created product.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'sku' => 'required|string|max:50|unique:products,sku',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'barcode' => 'nullable|string|max:50',
+            'category_id' => 'nullable|exists:categories,id',
+            'type' => 'required|in:product,service,consumable',
+            'product_type' => 'required|in:raw_material,wip,finished_good,spare_part',
+            'unit_id' => 'nullable|exists:units,id',
+            'cost_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'min_stock' => 'nullable|numeric|min:0',
+            'reorder_point' => 'nullable|numeric|min:0',
+            'reorder_qty' => 'nullable|numeric|min:0',
+            'is_manufactured' => 'boolean',
+            'is_purchased' => 'boolean',
+            'is_sold' => 'boolean',
+            'track_serial' => 'boolean',
+            'track_batch' => 'boolean',
+            'is_active' => 'boolean',
+        ]);
+
+        $product = Product::create($validated);
+
+        // Create initial stock records for selected warehouses
+        if ($request->has('initial_stocks')) {
+            foreach ($request->initial_stocks as $stock) {
+                if (!empty($stock['warehouse_id'])) {
+                    $product->stocks()->create([
+                        'warehouse_id' => $stock['warehouse_id'],
+                        'qty_on_hand' => $stock['qty'] ?? 0,
+                        'avg_cost' => $validated['cost_price'] ?? 0,
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('inventory.products.index')
+            ->with('success', 'Product created successfully.');
+    }
+
+    /**
+     * Display the specified product.
+     */
+    public function show(Product $product): Response
+    {
+        $product->load(['category', 'unit', 'stocks.warehouse', 'stocks.location']);
+
+        return Inertia::render('Inventory/Products/Show', [
+            'product' => $product,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified product.
+     */
+    public function edit(Product $product): Response
+    {
+        $product->load(['stocks.warehouse']);
+
+        return Inertia::render('Inventory/Products/Form', [
+            'product' => $product,
+            'categories' => Category::where('type', 'product')->orderBy('name')->get(),
+            'units' => Unit::where('is_active', true)->orderBy('name')->get(),
+            'warehouses' => Warehouse::where('is_active', true)->orderBy('name')->get(),
+        ]);
+    }
+
+    /**
+     * Update the specified product.
+     */
+    public function update(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'sku' => 'required|string|max:50|unique:products,sku,' . $product->id,
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'barcode' => 'nullable|string|max:50',
+            'category_id' => 'nullable|exists:categories,id',
+            'type' => 'required|in:product,service,consumable',
+            'product_type' => 'required|in:raw_material,wip,finished_good,spare_part',
+            'unit_id' => 'nullable|exists:units,id',
+            'cost_price' => 'nullable|numeric|min:0',
+            'selling_price' => 'nullable|numeric|min:0',
+            'min_stock' => 'nullable|numeric|min:0',
+            'reorder_point' => 'nullable|numeric|min:0',
+            'reorder_qty' => 'nullable|numeric|min:0',
+            'is_manufactured' => 'boolean',
+            'is_purchased' => 'boolean',
+            'is_sold' => 'boolean',
+            'track_serial' => 'boolean',
+            'track_batch' => 'boolean',
+            'is_active' => 'boolean',
+        ]);
+
+        $product->update($validated);
+
+        return redirect()->route('inventory.products.index')
+            ->with('success', 'Product updated successfully.');
+    }
+
+    /**
+     * Remove the specified product.
+     */
+    public function destroy(Product $product)
+    {
+        // Check if product has stock
+        if ($product->total_stock > 0) {
+            return back()->with('error', 'Cannot delete product with existing stock.');
+        }
+
+        $product->delete();
+
+        return redirect()->route('inventory.products.index')
+            ->with('success', 'Product deleted successfully.');
+    }
+
+    public function export()
+    {
+        return Excel::download(new ProductExport, 'products_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:2048',
+        ]);
+
+        Excel::import(new ProductImport($request->boolean('overwrite')), $request->file('file'));
+
+        return back()->with('success', 'Products imported successfully.');
+    }
+
+    public function template()
+    {
+        return Excel::download(new ProductTemplateExport, 'products_template.xlsx');
+    }
+}

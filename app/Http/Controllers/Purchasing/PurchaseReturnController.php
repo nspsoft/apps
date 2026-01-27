@@ -1,0 +1,186 @@
+<?php
+
+namespace App\Http\Controllers\Purchasing;
+
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\ProductStock;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseReturn;
+use App\Models\StockMovement;
+use App\Models\Supplier;
+use App\Models\Warehouse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class PurchaseReturnController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        $returns = PurchaseReturn::with(['supplier', 'warehouse', 'creator'])
+            ->when($request->search, function($query, $search) {
+                $query->where('number', 'like', "%{$search}%");
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        return Inertia::render('Purchasing/Returns/Index', [
+            'returns' => $returns,
+            'filters' => $request->only(['search']),
+        ]);
+    }
+
+    public function create(Request $request): Response
+    {
+        $purchaseOrder = null;
+        if ($request->purchase_order_id) {
+            $purchaseOrder = PurchaseOrder::with(['items.product', 'supplier', 'warehouse'])
+                ->find($request->purchase_order_id);
+        }
+
+        return Inertia::render('Purchasing/Returns/Create', [
+            'purchaseOrder' => $purchaseOrder,
+            'purchaseOrders' => PurchaseOrder::whereIn('status', ['received', 'completed', 'partial'])->with('supplier')->orderByDesc('created_at')->get(),
+            'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
+            'warehouses' => Warehouse::orderBy('name')->get(['id', 'name']),
+            'products' => Product::orderBy('name')->get(['id', 'name', 'sku']),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'supplier_id' => 'required|exists:suppliers,id',
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'return_date' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty' => 'required|numeric|gt:0',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
+        return DB::transaction(function() use ($request) {
+            $lastReturn = PurchaseReturn::orderBy('id', 'desc')->first();
+            $number = 'PRT/' . date('Ymd') . '/' . str_pad(($lastReturn->id ?? 0) + 1, 4, '0', STR_PAD_LEFT);
+
+            $purchaseReturn = PurchaseReturn::create([
+                'number' => $number,
+                'purchase_order_id' => $request->purchase_order_id,
+                'supplier_id' => $request->supplier_id,
+                'warehouse_id' => $request->warehouse_id,
+                'return_date' => $request->return_date,
+                'reason' => $request->reason,
+                'status' => 'draft',
+                'created_by' => auth()->id(),
+            ]);
+
+            $totalAmount = 0;
+            foreach ($request->items as $item) {
+                $totalPrice = $item['qty'] * $item['unit_price'];
+                $purchaseReturn->items()->create([
+                    'product_id' => $item['product_id'],
+                    'qty' => $item['qty'],
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $totalPrice,
+                ]);
+                $totalAmount += $totalPrice;
+            }
+
+            $purchaseReturn->update(['total_amount' => $totalAmount]);
+
+            return redirect()->route('purchasing.purchase-returns.index')->with('success', 'Purchase return created successfully.');
+        });
+    }
+
+    public function show(PurchaseReturn $return): Response
+    {
+        return Inertia::render('Purchasing/Returns/Show', [
+            'purchaseReturn' => $return->load(['items.product', 'supplier', 'warehouse', 'creator', 'purchaseOrder']),
+        ]);
+    }
+
+    public function confirm(PurchaseReturn $purchaseReturn)
+    {
+        if ($purchaseReturn->status !== 'draft') {
+            return back()->with('error', 'Only draft returns can be confirmed.');
+        }
+
+        return DB::transaction(function() use ($purchaseReturn) {
+            foreach ($purchaseReturn->items as $item) {
+                $stock = ProductStock::firstOrCreate([
+                    'product_id' => $item->product_id,
+                    'warehouse_id' => $purchaseReturn->warehouse_id,
+                ], [
+                    'qty_on_hand' => 0,
+                ]);
+
+                // Reduce stock for purchase return
+                $stock->adjustStock(
+                    -$item->qty,
+                    null,
+                    StockMovement::TYPE_PURCHASE_RETURN,
+                    $purchaseReturn,
+                    "Purchase Return: {$purchaseReturn->number}"
+                );
+
+                // Update PO Item qty_returned
+                $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $purchaseReturn->purchase_order_id)
+                    ->where('product_id', $item->product_id)
+                    ->first();
+                
+                if ($poItem) {
+                    $poItem->qty_returned += $item->qty;
+                    $poItem->save();
+                }
+            }
+
+            $purchaseReturn->update(['status' => 'confirmed']);
+
+            return back()->with('success', 'Purchase return confirmed and stock updated.');
+        });
+    }
+
+    public function getReturnableItems(PurchaseOrder $order)
+    {
+        $order->load(['items.product', 'goodsReceipts.items', 'returns.items']);
+
+        $items = $order->items->map(function ($item) use ($order) {
+            // Total Received
+            $receivedQty = $order->goodsReceipts->flatMap->items
+                ->where('product_id', $item->product_id)
+                ->sum('qty_received');
+            
+            // Total Returned
+            $returnedQty = $order->returns->flatMap->items
+                ->where('product_id', $item->product_id)
+                ->sum('qty');
+
+            $returnableQty = max(0, $receivedQty - $returnedQty);
+
+            if ($returnableQty <= 0) {
+                return null;
+            }
+
+            return [
+                'po_item_id' => $item->id,
+                'product_id' => $item->product_id,
+                'name' => $item->product->name,
+                'sku' => $item->product->sku,
+                'qty_ordered' => $item->qty,
+                'qty_received' => $receivedQty,
+                'qty_returned' => $returnedQty,
+                'returnable_qty' => $returnableQty,
+                'unit_price' => $item->unit_price,
+            ];
+        })->filter()->values();
+
+        return response()->json([
+            'supplier_id' => $order->supplier_id,
+            'warehouse_id' => $order->warehouse_id,
+            'items' => $items,
+        ]);
+    }
+}

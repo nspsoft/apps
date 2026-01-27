@@ -1,0 +1,322 @@
+<script setup>
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import { ref } from 'vue';
+import {
+    ArrowLeftIcon,
+    PrinterIcon,
+    DocumentTextIcon,
+    CalendarIcon,
+    UserIcon,
+    CreditCardIcon,
+    CheckCircleIcon,
+    BanknotesIcon,
+    ArrowPathIcon,
+} from '@heroicons/vue/24/outline';
+import { formatNumber, formatCurrency } from '@/helpers';
+
+const props = defineProps({
+    invoice: Object,
+});
+
+const showPaymentModal = ref(false);
+
+const paymentForm = useForm({
+    amount: props.invoice.balance,
+    payment_date: new Date().toISOString().split('T')[0],
+    payment_method: 'Transfer',
+    reference: '',
+});
+
+const confirmInvoice = () => {
+    if (confirm('Are you sure you want to confirm and issue this invoice?')) {
+        useForm({}).post(route('sales.invoices.confirm', props.invoice.id));
+    }
+};
+
+const submitPayment = () => {
+    paymentForm.post(route('sales.invoices.pay', props.invoice.id), {
+        onSuccess: () => {
+            showPaymentModal.value = false;
+            paymentForm.reset();
+        }
+    });
+};
+
+const formatDate = (date) => {
+    if (!date) return '-';
+    return new Date(date).toLocaleDateString('id-ID', { 
+        day: '2-digit', 
+        month: 'long', 
+        year: 'numeric' 
+    });
+};
+
+
+const getStatusBadge = (status) => {
+    const badges = {
+        draft: 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30',
+        issued: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        partial: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+        paid: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+    };
+    return badges[status] || 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30';
+};
+</script>
+
+<template>
+    <Head :title="`Invoice ${invoice.invoice_number}`" />
+    
+    <AppLayout title="Invoice Details">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div class="flex items-center gap-4">
+                    <Link :href="route('sales.invoices.index')" class="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white transition-colors">
+                        <ArrowLeftIcon class="h-5 w-5" />
+                    </Link>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ invoice.invoice_number }}</h1>
+                            <span :class="['px-2.5 py-0.5 rounded-full text-xs font-medium border uppercase', getStatusBadge(invoice.status)]">
+                                {{ invoice.status }}
+                            </span>
+                        </div>
+                        <p class="text-slate-500 text-sm mt-1">
+                            Ref: 
+                            <Link :href="route('sales.orders.show', invoice.sales_order_id)" class="text-blue-400 hover:underline font-medium">
+                                {{ invoice.sales_order?.so_number }}
+                            </Link>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <Link 
+                        v-if="invoice.status !== 'draft'"
+                        :href="route('sales.returns.create', { invoice_id: invoice.id })"
+                        class="flex items-center gap-2 rounded-xl bg-rose-600 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-rose-500 transition-colors shadow-lg shadow-rose-500/20"
+                    >
+                        <ArrowPathIcon class="h-4 w-4" />
+                        CREATE RETURN
+                    </Link>
+
+                    <button 
+                        v-if="invoice.status === 'draft'"
+                        @click="confirmInvoice"
+                        class="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-500/20"
+                    >
+                        <CheckCircleIcon class="h-4 w-4" />
+                        CONFIRM INVOICE
+                    </button>
+
+                    <button 
+                        v-if="invoice.status !== 'draft' && invoice.balance > 0"
+                        @click="showPaymentModal = true"
+                        class="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+                    >
+                        <BanknotesIcon class="h-4 w-4" />
+                        RECORD PAYMENT
+                    </button>
+
+                    <a 
+                        :href="route('sales.invoices.print', invoice.id)" 
+                        target="_blank"
+                        class="flex items-center gap-2 rounded-xl bg-slate-700 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-slate-600 transition-colors shadow-lg"
+                    >
+                        <PrinterIcon class="h-4 w-4" />
+                        PRINT STANDARD
+                    </a>
+
+                    <a 
+                        :href="route('sales.invoices.print-v2', invoice.id)" 
+                        target="_blank"
+                        class="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white dark:text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+                    >
+                        <PrinterIcon class="h-4 w-4" />
+                        PRINT PROFESSIONAL (QR)
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Items -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="rounded-2xl glass-card overflow-hidden shadow-sm">
+                        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20">
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Invoice Items</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="bg-slate-50 dark:bg-slate-800/30">
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Product</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Qty</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Price</th>
+                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr v-for="item in invoice.items" :key="item.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800/10 transition-colors">
+                                        <td class="px-6 py-4">
+                                            <div class="text-sm font-medium text-slate-900 dark:text-white">{{ item.product?.name }}</div>
+                                            <div class="text-[10px] text-slate-500 uppercase font-mono">{{ item.product?.sku }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 text-center text-sm text-slate-900 dark:text-white">
+                                            {{ formatNumber(item.qty) }} {{ item.unit?.code || 'PCS' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm text-slate-500 dark:text-slate-400 font-mono">
+                                            {{ formatCurrency(item.unit_price) }}
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm text-slate-900 dark:text-white font-bold font-mono">
+                                            {{ formatCurrency(item.subtotal) }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-slate-50 dark:bg-slate-800/20">
+                                        <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-slate-500 dark:text-slate-400">Subtotal</td>
+                                        <td class="px-6 py-4 text-right text-sm font-bold text-slate-900 dark:text-white font-mono">{{ formatCurrency(invoice.subtotal) }}</td>
+                                    </tr>
+                                    <tr class="bg-slate-50 dark:bg-slate-800/20 border-t border-slate-200 dark:border-slate-800">
+                                        <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-slate-500 dark:text-slate-400">VAT 11%</td>
+                                        <td class="px-6 py-4 text-right text-sm font-bold text-slate-900 dark:text-white font-mono">{{ formatCurrency(invoice.tax_amount) }}</td>
+                                    </tr>
+                                    <tr class="bg-blue-600/10 border-t border-blue-500/30">
+                                        <td colspan="3" class="px-6 py-4 text-right text-base font-bold text-blue-400 uppercase tracking-wider">Grand Total</td>
+                                        <td class="px-6 py-4 text-right text-lg font-black text-blue-400 font-mono">{{ formatCurrency(invoice.total) }}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Details -->
+                <div class="space-y-6">
+                    <div class="rounded-2xl glass-card p-6 shadow-sm">
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Invoice Info</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-3">
+                                <UserIcon class="h-5 w-5 text-slate-500 mt-0.5" />
+                                <div>
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase">Customer</div>
+                                    <div class="text-sm text-slate-900 dark:text-white font-medium">{{ invoice.customer?.name }}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <CalendarIcon class="h-5 w-5 text-slate-500 mt-0.5" />
+                                <div>
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase">Invoice Date</div>
+                                    <div class="text-sm text-slate-900 dark:text-white font-medium">{{ formatDate(invoice.invoice_date) }}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <CalendarIcon class="h-5 w-5 text-slate-500 mt-0.5" />
+                                <div>
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase">Due Date</div>
+                                    <div class="text-sm text-orange-400 font-bold">{{ formatDate(invoice.due_date) }}</div>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+                                <CreditCardIcon class="h-5 w-5 text-slate-500 mt-0.5" />
+                                <div>
+                                    <div class="text-[10px] text-slate-500 font-bold uppercase">Payment Status</div>
+                                    <div class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                                        Paid: <span class="font-bold text-emerald-400">{{ formatCurrency(invoice.paid_amount) }}</span><br>
+                                        Balance: <span class="font-bold text-rose-400">{{ formatCurrency(invoice.balance) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bank Info -->
+                    <div class="rounded-2xl glass-card p-6 shadow-sm">
+                        <h3 class="text-sm font-bold text-blue-400 uppercase tracking-wider mb-4">Bank Account Info</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="text-slate-600 dark:text-slate-300">Bank MANDIRI</div>
+                            <div class="text-slate-600 dark:text-slate-300">KK Karawang Galuh Mas</div>
+                            <div class="text-slate-900 dark:text-white font-bold font-mono">173-00-0777778-3</div>
+                            <div class="text-blue-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">PT JIDOKA RESULT INDONESIA</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Modal -->
+        <div v-if="showPaymentModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white dark:bg-slate-950/80 backdrop-blur-sm">
+            <div class="w-full max-w-md rounded-2xl glass-card shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/20">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Record Payment</h3>
+                    <button @click="showPaymentModal = false" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor font-bold"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <form @submit.prevent="submitPayment" class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Payment Amount (IDR)</label>
+                        <input 
+                            v-model="paymentForm.amount" 
+                            type="number" 
+                            step="0.01"
+                            :max="invoice.balance"
+                            class="w-full rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-600 focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Payment Date</label>
+                        <input 
+                            v-model="paymentForm.payment_date" 
+                            type="date" 
+                            class="w-full rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-600 focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Payment Method</label>
+                        <select 
+                            v-model="paymentForm.payment_method" 
+                            class="w-full rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="Transfer">Transfer</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Reference / Notes</label>
+                        <textarea 
+                            v-model="paymentForm.reference" 
+                            rows="2"
+                            class="w-full rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-600 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Bank reference, cheque number, etc."
+                        ></textarea>
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button 
+                            type="button" 
+                            @click="showPaymentModal = false"
+                            class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                        >
+                            CANCEL
+                        </button>
+                        <button 
+                            type="submit" 
+                            :disabled="paymentForm.processing"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-sm font-bold text-white dark:text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
+                        >
+                            {{ paymentForm.processing ? 'SAVING...' : 'RECORD PAYMENT' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </AppLayout>
+</template>
+
+
+

@@ -1,0 +1,241 @@
+<?php
+
+namespace App\Http\Controllers\Purchasing;
+
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use App\Models\PurchaseRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class PurchaseRequestController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request): Response
+    {
+        $query = PurchaseRequest::with(['createdBy'])
+            ->withCount('items')
+            ->when($request->search, function ($q, $search) {
+                $q->where('pr_number', 'like', "%{$search}%")
+                  ->orWhere('requester', 'like', "%{$search}%")
+                  ->orWhere('department', 'like', "%{$search}%");
+            });
+
+        $requests = $query->orderByDesc('created_at')
+            ->paginate(10)
+            ->withQueryString();
+
+        return Inertia::render('Purchasing/Requests/Index', [
+            'requests' => $requests,
+            'filters' => $request->only(['search']),
+        ]);
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create(Request $request): Response
+    {
+        $prefill = null;
+        
+        // Handle single item
+        if ($request->product_id && $request->qty) {
+            $prefill = [
+                'items' => [[
+                    'product_id' => (int)$request->product_id,
+                    'qty' => (float)$request->qty,
+                    'description' => 'Reorder from Stock Recommendation',
+                ]]
+            ];
+        }
+        // Handle bulk items
+        elseif ($request->products && $request->qtys && is_array($request->products)) {
+            $items = [];
+            foreach ($request->products as $index => $productId) {
+                if (isset($request->qtys[$index])) {
+                    $items[] = [
+                        'product_id' => (int)$productId,
+                        'qty' => (float)$request->qtys[$index],
+                        'description' => 'Bulk Reorder from Stock',
+                    ];
+                }
+            }
+            if (count($items) > 0) {
+                $prefill = ['items' => $items];
+            }
+        }
+
+        return Inertia::render('Purchasing/Requests/Form', [
+            'products' => Product::active()->where('is_purchased', true)->with('unit')->orderBy('name')->get(),
+            'user' => auth()->user(),
+            'prefill' => $prefill,
+        ]);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'request_date' => 'required|date',
+            'department' => 'required|string',
+            'requester' => 'required|string',
+            'notes' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty' => 'required|numeric|min:0.0001',
+            'items.*.description' => 'nullable|string',
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            $pr = PurchaseRequest::create([
+                'pr_number' => PurchaseRequest::generatePrNumber(),
+                'request_date' => $validated['request_date'],
+                'department' => $validated['department'],
+                'requester' => $validated['requester'],
+                'status' => 'draft',
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => auth()->id(),
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                $pr->items()->create([
+                    'product_id' => $item['product_id'],
+                    'qty' => $item['qty'],
+                    'description' => $item['description'] ?? null,
+                ]);
+            }
+        });
+
+        return redirect()->route('purchasing.requests.index')
+            ->with('success', 'Purchase Request created successfully.');
+    }
+    /**
+     * Display the specified resource.
+     */
+    public function show(PurchaseRequest $request): Response
+    {
+        $request->load(['items.product', 'createdBy']);
+        
+        return Inertia::render('Purchasing/Requests/Show', [
+            'request' => $request,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(PurchaseRequest $request): Response
+    {
+        $request->load(['items']);
+        
+        return Inertia::render('Purchasing/Requests/Form', [
+            'request' => $request,
+            'products' => Product::active()->where('is_purchased', true)->with('unit')->orderBy('name')->get(),
+            'user' => auth()->user(),
+        ]);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, PurchaseRequest $purchaseRequest)
+    {
+        $validated = $request->validate([
+            'request_date' => 'required|date',
+            'department' => 'required|string',
+            'requester' => 'required|string',
+            'notes' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty' => 'required|numeric|min:0.0001',
+            'items.*.description' => 'nullable|string',
+        ]);
+
+        DB::transaction(function () use ($validated, $purchaseRequest) {
+            $purchaseRequest->update([
+                'request_date' => $validated['request_date'],
+                'department' => $validated['department'],
+                'requester' => $validated['requester'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Sync items
+            // 1. Delete items not in request
+            $purchaseRequest->items()->delete();
+
+            // 2. Create new items (simplest approach for full sync)
+            foreach ($validated['items'] as $item) {
+                $purchaseRequest->items()->create([
+                    'product_id' => $item['product_id'],
+                    'qty' => $item['qty'],
+                    'description' => $item['description'] ?? null,
+                ]);
+            }
+        });
+
+        return redirect()->route('purchasing.requests.index')
+            ->with('success', 'Purchase Request updated successfully.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(PurchaseRequest $request)
+    {
+        $request->delete();
+        
+        return redirect()->route('purchasing.requests.index')
+            ->with('success', 'Purchase Request deleted successfully.');
+    }
+
+    /**
+     * Approve the purchase request.
+     */
+    public function approve(PurchaseRequest $request)
+    {
+        if ($request->status !== 'draft') {
+            return back()->with('error', 'Only draft requests can be approved.');
+        }
+
+        $request->update(['status' => 'approved']);
+
+        return back()->with('success', 'Purchase Request approved.');
+    }
+
+    /**
+     * Reject the purchase request.
+     */
+    public function reject(PurchaseRequest $request)
+    {
+        if ($request->status !== 'draft') {
+            return back()->with('error', 'Only draft requests can be rejected.');
+        }
+
+        $request->update(['status' => 'rejected']);
+
+        return back()->with('success', 'Purchase Request rejected.');
+    }
+
+    public function print(PurchaseRequest $request)
+    {
+        return view('print.purchase-request', [
+            'request' => $request->load(['items.product.unit', 'createdBy'])
+        ]);
+    }
+
+    public function publicValidate($id)
+    {
+        $request = PurchaseRequest::with(['items.product.unit', 'createdBy'])
+            ->findOrFail($id);
+
+        return view('print.public-purchase-request-validation', [
+            'request' => $request
+        ]);
+    }
+}
