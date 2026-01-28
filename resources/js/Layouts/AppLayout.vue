@@ -246,6 +246,7 @@ const navigation = [
             { name: 'User Management', href: '/settings/users', permission: 'settings.user_management.view' },
             { name: 'Roles & Permissions', href: '/settings/roles', permission: 'settings.roles_&_permissions.view' },
             { name: 'Company Profile', href: '/settings/company', permission: 'settings.company_profile.view' },
+            { name: 'AI Configuration', href: '/settings/ai', permission: 'settings.company_profile.view' },
             { name: 'Document Numbering', href: '/settings/numbering', permission: 'settings.document_numbering.view' },
             { name: 'Regional & Tax', href: '/settings/regional_&_tax', permission: 'settings.regional_&_tax.view' },
             { name: 'System Preferences', href: '/settings/preferences', permission: 'settings.system_preferences.view' },
