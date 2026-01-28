@@ -1,14 +1,14 @@
 <script setup>
 import { computed } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Link } from '@inertiajs/vue3';
 import { 
     ClockIcon, 
     TruckIcon, 
     CheckCircleIcon, 
     DocumentCheckIcon,
-    MapPinIcon
+    MapPinIcon,
+    EyeIcon
 } from '@heroicons/vue/24/outline';
-import { formatDate } from '@/helpers';
 
 const props = defineProps({
     orders: Object // All orders passed from parent
@@ -55,46 +55,15 @@ const columns = [
 
 // Helper to filter orders by column
 const getOrdersByColumn = (colId, colStatuses) => {
+    if (!props.orders || !props.orders.data) return [];
     if (colStatuses) {
         return props.orders.data.filter(o => colStatuses.includes(o.status));
     }
     return props.orders.data.filter(o => o.status === colId);
 };
 
-// Drag & Drop Logic
-const onDragStart = (evt, order) => {
-    evt.dataTransfer.dropEffect = 'move';
-    evt.dataTransfer.effectAllowed = 'move';
-    evt.dataTransfer.setData('orderId', order.id);
-    evt.dataTransfer.setData('sourceStatus', order.status);
-};
-
-const onDrop = (evt, targetStatus) => {
-    const orderId = evt.dataTransfer.getData('orderId');
-    const sourceStatus = evt.dataTransfer.getData('sourceStatus');
-
-    // Prevent dropping if invalid logic
-    // Example: Can't move from Completed back to Draft directly (optional strictness)
-    
-    // Determine the actual status to set
-    // For 'processsing' column, we might default to 'packed' if moved there?
-    // Let's simplified: If dropped 'processing', set to 'picking' (start) or 'packed'?
-    // Let's assume 'processing' target -> set to 'picking' for now, or keep 'packed' if moved from picking?
-    // Simpler: If target is 'processing', set to 'picking' (start of process).
-    
-    let newStatus = targetStatus;
-    if (targetStatus === 'processing') newStatus = 'picking'; 
-
-    if (sourceStatus === newStatus) return;
-
-    if (confirm(`Pindahkan status DO ke '${targetStatus.toUpperCase()}'?`)) {
-        router.visit(route('sales.deliveries.update-status', orderId), {
-            method: 'patch',
-            data: { status: newStatus },
-            preserveScroll: true,
-            preserveState: true,
-        });
-    }
+const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
 };
 
 </script>
@@ -105,9 +74,6 @@ const onDrop = (evt, targetStatus) => {
             v-for="col in columns" 
             :key="col.id"
             class="flex-shrink-0 w-80 flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm"
-            @dragover.prevent
-            @dragenter.prevent
-            @drop="onDrop($event, col.id)"
         >
             <!-- Header -->
             <div :class="`p-4 border-b border-slate-100 dark:border-slate-800 ${col.bg} rounded-t-2xl flex items-center justify-between`">
@@ -125,37 +91,42 @@ const onDrop = (evt, targetStatus) => {
                 <div 
                     v-for="order in getOrdersByColumn(col.id, col.statuses)" 
                     :key="order.id"
-                    draggable="true"
-                    @dragstart="onDragStart($event, order)"
-                    class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 cursor-move hover:shadow-md hover:border-blue-400 transition-all group relative"
+                    class="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all group relative"
                 >
-                    <!-- Drag Handle visual -->
-                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 cursor-grab text-slate-300">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
-                    </div>
-
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">{{ order.do_number }}</span>
-                        <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border" 
-                            :class="order.status === 'completed' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-500'"
-                        >
-                            {{ order.status }}
-                        </span>
+                        <div class="flex items-center gap-1">
+                             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border" 
+                                :class="order.status === 'completed' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-500'"
+                            >
+                                {{ order.status }}
+                            </span>
+                            <Link :href="route('sales.deliveries.show', order.id)" class="p-1 rounded bg-slate-50 text-slate-400 hover:text-blue-500">
+                                <EyeIcon class="w-3 h-3" />
+                            </Link>
+                        </div>
                     </div>
 
-                    <h4 class="text-sm font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">{{ order.customer?.name }}</h4>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-1 truncate">
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">{{ order.customer?.name || order.shipping_name }}</h4>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-1 truncate">
                         <MapPinIcon class="w-3 h-3" /> {{ order.shipping_address || 'No Address' }}
                     </p>
 
-                    <div class="flex items-center gap-2 pt-3 border-t border-slate-50 dark:border-slate-700/50 mt-2">
-                        <TruckIcon class="w-3.5 h-3.5 text-slate-400" />
-                        <span class="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">
-                            {{ order.vehicle ? order.vehicle.license_plate : (order.vehicle_number || 'No Vehicle') }}
-                        </span>
-                    </div>
-                     <div class="mt-1 text-[10px] text-slate-400 pl-5.5 truncate">
-                        {{ order.driver_name || 'No Driver' }}
+                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-50 dark:border-slate-700/50">
+                        <div class="flex flex-col">
+                             <div class="flex items-center gap-1.5">
+                                <TruckIcon class="w-3 h-3 text-slate-400" />
+                                <span class="text-[10px] font-bold text-slate-600 dark:text-slate-300 truncate">
+                                    {{ order.vehicle ? order.vehicle.license_plate : (order.vehicle_number || '-') }}
+                                </span>
+                            </div>
+                            <div class="text-[9px] text-slate-400 pl-4.5 truncate">
+                                {{ order.driver_name || '-' }}
+                            </div>
+                        </div>
+                        <div class="text-[9px] text-slate-400 font-medium">
+                            {{ formatDate(order.delivery_date) }}
+                        </div>
                     </div>
                 </div>
                 
