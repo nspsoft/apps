@@ -306,6 +306,8 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::delete('/roles/{role}', [App\Http\Controllers\Settings\RoleController::class, 'destroy'])->name('roles.destroy');
     Route::get('/company', [App\Http\Controllers\Settings\CompanyController::class, 'index'])->name('company');
     Route::post('/company', [App\Http\Controllers\Settings\CompanyController::class, 'update'])->name('company.update');
+    Route::get('/ai', [App\Http\Controllers\Settings\CompanyController::class, 'aiSettings'])->name('ai.index');
+    Route::post('/ai', [App\Http\Controllers\Settings\CompanyController::class, 'updateAiSettings'])->name('ai.update');
     Route::get('/numbering', fn () => Inertia::render('Settings/DocumentNumbering'))->name('numbering');
     Route::get('/regional', fn () => Inertia::render('Settings/RegionalTax'))->name('regional');
     Route::get('/preferences', fn () => Inertia::render('Settings/SystemPreferences'))->name('preferences');

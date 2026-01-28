@@ -57,4 +57,35 @@ class CompanyController extends Controller
 
         return redirect()->back()->with('success', 'Company profile updated successfully.');
     }
+
+    public function aiSettings()
+    {
+        $company = Company::first();
+        return Inertia::render('Settings/AISettings', [
+            'settings' => $company->settings['ai'] ?? [
+                'gemini_api_key' => '',
+                'gemini_model' => 'gemini-1.5-flash'
+            ]
+        ]);
+    }
+
+    public function updateAiSettings(Request $request)
+    {
+        $request->validate([
+            'gemini_api_key' => 'required|string',
+            'gemini_model' => 'required|string'
+        ]);
+
+        $company = Company::first();
+        $settings = $company->settings ?? [];
+        $settings['ai'] = [
+            'gemini_api_key' => $request->gemini_api_key,
+            'gemini_model' => $request->gemini_model,
+        ];
+
+        $company->settings = $settings;
+        $company->save();
+
+        return redirect()->back()->with('success', 'AI Configuration updated successfully.');
+    }
 }

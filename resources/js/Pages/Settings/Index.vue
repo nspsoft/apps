@@ -42,6 +42,14 @@ const settingsSections = [
         color: 'text-red-400',
         bg: 'bg-red-500/10',
     },
+    {
+        title: 'AI Configuration',
+        description: 'Configure Gemini AI engine and API keys',
+        icon: SparklesIcon,
+        href: route('settings.ai.index'),
+        color: 'text-amber-400',
+        bg: 'bg-amber-500/10',
+    },
 ];
 </script>
 

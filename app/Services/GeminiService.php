@@ -8,11 +8,17 @@ use Illuminate\Support\Facades\Log;
 class GeminiService
 {
     protected string $apiKey;
-    protected string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+    protected string $model;
+    protected string $baseUrl;
 
     public function __construct()
     {
-        $this->apiKey = config('services.gemini.key');
+        $company = \App\Models\Company::first();
+        $aiSettings = $company->settings['ai'] ?? [];
+
+        $this->apiKey = $aiSettings['gemini_api_key'] ?? config('services.gemini.key');
+        $this->model = $aiSettings['gemini_model'] ?? 'gemini-1.5-flash';
+        $this->baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent";
     }
 
     /**
