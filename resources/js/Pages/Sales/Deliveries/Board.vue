@@ -17,14 +17,14 @@ const props = defineProps({
 const columns = [
     { 
         id: 'draft', 
-        title: 'Draft / Request', 
+        title: 'Delivery Order', 
         bg: 'bg-slate-50 dark:bg-slate-800/50',
         icon: ClockIcon,
         color: 'text-slate-500'
     },
     { 
         id: 'processing', 
-        title: 'Processing (Gudang)', 
+        title: 'Loading', 
         bg: 'bg-amber-50 dark:bg-amber-900/10',
         icon: TruckIcon,
         color: 'text-amber-500',
@@ -32,7 +32,7 @@ const columns = [
     },
     { 
         id: 'shipped', 
-        title: 'On Delivery (Logistik)', 
+        title: 'Shipping', 
         bg: 'bg-blue-50 dark:bg-blue-900/10',
         icon: MapPinIcon,
         color: 'text-blue-500'

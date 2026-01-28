@@ -115,9 +115,9 @@ const getStatusBadge = (status) => {
 };
 
 const steps = [
-    { label: 'Draft', status: 'draft', icon: ClockIcon },
-    { label: 'Gudang', status: ['picking', 'packed'], icon: CubeIcon },
-    { label: 'Pengiriman', status: 'shipped', icon: TruckIcon },
+    { label: 'Delivery Order', status: 'draft', icon: ClockIcon },
+    { label: 'Loading', status: ['picking', 'packed'], icon: CubeIcon },
+    { label: 'Shipping', status: 'shipped', icon: TruckIcon },
     { label: 'Arrived', status: 'delivered', icon: MapPinIconSolid },
     { label: 'Verified', status: 'completed', icon: CheckBadgeIcon },
 ];
