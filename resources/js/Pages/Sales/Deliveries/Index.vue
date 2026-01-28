@@ -30,7 +30,7 @@ const props = defineProps({
 const search = ref(props.filters.search || '');
 const selectedStatus = ref(props.filters.status || '');
 const showFilters = ref(false);
-const viewMode = ref('list'); // list or board
+const viewMode = ref('list'); // list or board (Trigger Update)
 
 const deleteDelivery = (id) => {
     if (confirm('Yakin ingin menghapus Draft Surat Jalan ini? Tindakan ini tidak dapat dibatalkan.')) {
