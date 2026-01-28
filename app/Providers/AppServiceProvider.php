@@ -23,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Fix for Cloudflare Tunnel / Reverse Proxy (Mixed Content Issue)
+        // Check X-Forwarded-Proto OR if the Host is the secure domain
+        if (\Illuminate\Support\Facades\Request::server('HTTP_X_FORWARDED_PROTO') === 'https' || 
+            \Illuminate\Support\Facades\Request::server('HTTP_HOST') === 'erp.nsp.my.id') {
+             \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         Event::listen(Login::class, function ($event) {
             activity('auth')
                 ->causedBy($event->user)
