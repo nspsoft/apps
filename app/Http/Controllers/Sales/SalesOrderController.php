@@ -78,6 +78,19 @@ class SalesOrderController extends Controller
         ]);
     }
 
+    public function createFromAi(Request $request): Response
+    {
+        return Inertia::render('Sales/Orders/Form', [
+            'salesOrder' => null,
+            'soNumber' => SalesOrder::generateSoNumber(),
+            'customers' => Customer::active()->orderBy('name')->get(),
+            'warehouses' => Warehouse::active()->orderBy('name')->get(),
+            'products' => Product::active()->where('is_sold', true)->with('unit')->orderBy('name')->get(),
+            'units' => Unit::where('is_active', true)->orderBy('name')->get(),
+            'aiData' => $request->input('data')
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

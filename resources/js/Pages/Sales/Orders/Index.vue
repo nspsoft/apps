@@ -17,8 +17,11 @@ import {
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import Pagination from '@/Components/Pagination.vue';
-import { ShoppingCartIcon, ClockIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
+import { ShoppingCartIcon, ClockIcon, ArrowDownTrayIcon, SparklesIcon } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
+import POImportModal from './POImportModal.vue';
+
+const showImportModal = ref(false);
 
 const props = defineProps({
     salesOrders: Object,
@@ -145,14 +148,30 @@ const formatDate = (date) => {
                 </div>
             </div>
             
-            <Link
-                href="/sales/orders/create"
-                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all shrink-0"
-            >
-                <PlusIcon class="h-5 w-5" />
-                Create SO
-            </Link>
+            <div class="flex items-center gap-2 shrink-0">
+                <button
+                    @click="showImportModal = true"
+                    class="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all group"
+                >
+                    <SparklesIcon class="h-5 w-5 text-amber-500 group-hover:scale-110 transition-transform" />
+                    Import PO (AI)
+                </button>
+                <Link
+                    href="/sales/orders/create"
+                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all"
+                >
+                    <PlusIcon class="h-5 w-5" />
+                    Create SO
+                </Link>
+            </div>
         </div>
+
+        <!-- AI Import Modal -->
+        <POImportModal 
+            :show="showImportModal" 
+            @close="showImportModal = false"
+            :customers="customers"
+        />
 
         <Transition
             enter-active-class="transition ease-out duration-200"

@@ -17,18 +17,21 @@ const props = defineProps({
     warehouses: Array,
     products: Array,
     units: Array,
+    aiData: Object,
 });
 
 const form = useForm({
     so_number: props.salesOrder?.so_number || props.soNumber,
-    customer_po_number: props.salesOrder?.customer_po_number || '',
-    customer_id: props.salesOrder?.customer_id || '',
+    customer_po_number: props.salesOrder?.customer_po_number || props.aiData?.po_number || '',
+    customer_id: props.salesOrder?.customer_id || props.aiData?.matched_customer_id || '',
     warehouse_id: props.salesOrder?.warehouse_id || '',
-    order_date: props.salesOrder?.order_date ? new Date(props.salesOrder.order_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+    order_date: props.salesOrder?.order_date 
+        ? new Date(props.salesOrder.order_date).toISOString().split('T')[0] 
+        : (props.aiData?.po_date || new Date().toISOString().split('T')[0]),
     delivery_date: props.salesOrder?.delivery_date ? new Date(props.salesOrder.delivery_date).toISOString().split('T')[0] : '',
     discount_percent: props.salesOrder?.discount_percent || 0,
     tax_percent: props.salesOrder?.tax_percent || 11,
-    notes: props.salesOrder?.notes || '',
+    notes: props.salesOrder?.notes || (props.aiData ? 'Extracted via AI Gemini' : ''),
     shipping_name: props.salesOrder?.shipping_name || '',
     shipping_address: props.salesOrder?.shipping_address || '',
     items: props.salesOrder?.items?.map(item => ({
@@ -38,6 +41,13 @@ const form = useForm({
         unit_id: item.unit_id,
         unit_price: parseFloat(item.unit_price),
         discount_percent: parseFloat(item.discount_percent),
+    })) || props.aiData?.items?.map(item => ({
+        product_id: item.matched_product_id || '',
+        qty: parseFloat(item.qty || 1),
+        unit_id: props.products?.find(p => p.id === item.matched_product_id)?.unit_id || '',
+        unit_price: parseFloat(item.unit_price || 0),
+        discount_percent: 0,
+        description: item.description // Temporary for UI reference if needed
     })) || [
         { product_id: '', qty: 1, unit_id: '', unit_price: 0, discount_percent: 0 }
     ],

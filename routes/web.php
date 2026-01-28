@@ -152,8 +152,10 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::post('/orders/{order}/cancel', [SalesOrderController::class, 'cancel'])->name('orders.cancel');
     Route::put('/orders/items/{item}/qty', [SalesOrderController::class, 'updateItemQty'])->name('orders.update-item-qty');
     Route::get('/orders/{order}/print', [SalesOrderController::class, 'print'])->name('orders.print');
+    Route::post('/orders/create-from-ai', [SalesOrderController::class, 'createFromAi'])->name('orders.create-from-ai');
     Route::post('/orders/{order}/delivery', [SalesOrderController::class, 'createDelivery'])->name('orders.create-delivery');
     Route::post('/orders/{order}/invoice', [SalesOrderController::class, 'createInvoice'])->name('orders.create-invoice');
+    Route::post('/orders/ai-extract', [App\Http\Controllers\Sales\POImportController::class, 'extract'])->name('orders.ai-extract');
 
     Route::resource('quotations', App\Http\Controllers\Sales\QuotationController::class);
     Route::post('/quotations/{quotation}/send', [App\Http\Controllers\Sales\QuotationController::class, 'send'])->name('quotations.send');
