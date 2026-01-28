@@ -34,8 +34,9 @@ const submit = () => {
 };
 
 const geminiModels = [
-    { label: 'Gemini 1.5 Flash (Recommended - Faster & Cheaper)', value: 'gemini-1.5-flash' },
-    { label: 'Gemini 1.5 Pro (Most Capable - Highly Intelligent)', value: 'gemini-1.5-pro' },
+    { label: 'Gemini 2.0 Flash (Experimental - Super Fast)', value: 'gemini-2.0-flash-exp' },
+    { label: 'Gemini 1.5 Flash (Recommended - Balanced)', value: 'gemini-1.5-flash' },
+    { label: 'Gemini 1.5 Pro (Most Capable - Deep Reasoning)', value: 'gemini-1.5-pro' },
     { label: 'Gemini 1.0 Pro (Standard)', value: 'gemini-1.0-pro' }
 ];
 </script>
