@@ -225,21 +225,33 @@ const currentStepIndex = computed(() => {
                         :key="index"
                         class="relative flex flex-col items-center group"
                     >
+                        <!-- Pulse effect for active step -->
                         <div 
-                            class="w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300 z-10 shadow-sm"
+                            v-if="index === currentStepIndex"
+                            class="absolute inset-0 w-10 h-10 m-auto rounded-full bg-blue-400 animate-ping opacity-25 z-0"
+                        ></div>
+
+                        <div 
+                            class="w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-500 z-10 shadow-sm"
                             :class="[
-                                index <= currentStepIndex 
-                                    ? 'bg-blue-500 border-white dark:border-slate-900 text-white scale-110' 
-                                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700'
+                                index < currentStepIndex 
+                                    ? 'bg-emerald-500 border-white dark:border-slate-900 text-white scale-100' 
+                                    : index === currentStepIndex
+                                        ? 'bg-blue-500 border-white dark:border-slate-900 text-white scale-125 shadow-lg shadow-blue-500/50 animate-pulse'
+                                        : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700 scale-90 opacity-60'
                             ]"
                         >
-                            <component :is="step.icon" class="w-5 h-5" />
+                            <component :is="step.icon" class="w-5 h-5 transition-transform duration-500" :class="{ 'rotate-12': index === currentStepIndex }" />
                         </div>
                         
-                        <div class="absolute -bottom-7 flex flex-col items-center whitespace-nowrap">
+                        <div class="absolute -bottom-8 flex flex-col items-center whitespace-nowrap">
                             <span 
-                                class="text-[10px] font-black uppercase tracking-widest transition-colors"
-                                :class="index <= currentStepIndex ? 'text-blue-500' : 'text-slate-400 dark:text-slate-600'"
+                                class="text-[10px] font-black uppercase tracking-widest transition-all duration-500"
+                                :class="[
+                                    index < currentStepIndex ? 'text-emerald-500' :
+                                    index === currentStepIndex ? 'text-blue-500 scale-110' : 
+                                    'text-slate-400 dark:text-slate-600'
+                                ]"
                             >
                                 {{ step.label }}
                             </span>
