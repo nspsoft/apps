@@ -35,10 +35,11 @@ class Quotation extends Model
 
     protected $casts = [
         'quotation_date' => 'date',
-        'expiry_date' => 'date',
+        'valid_until' => 'date',
         'subtotal' => 'double',
-        'tax_amount' => 'double',
-        'total_amount' => 'double',
+        'discount' => 'double',
+        'tax' => 'double',
+        'total' => 'double',
     ];
 
     public static function generateNumber(): string
