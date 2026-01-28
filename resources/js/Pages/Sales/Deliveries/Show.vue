@@ -11,6 +11,10 @@ import {
     MapPinIcon,
     DocumentTextIcon,
     TrashIcon,
+    ClockIcon,
+    CubeIcon,
+    MapPinIcon as MapPinIconSolid,
+    CheckBadgeIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 
@@ -99,13 +103,33 @@ const formatDate = (date) => {
 const getStatusBadge = (status) => {
     const badges = {
         draft: 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30',
-        confirmed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        picking: 'bg-amber-500/20 text-amber-500 border-amber-500/30',
+        packed: 'bg-blue-500/20 text-blue-500 border-blue-500/30',
         shipped: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-        delivered: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        delivered: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
+        completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
         cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
     };
     return badges[status] || 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30';
 };
+
+const steps = [
+    { label: 'Draft', status: 'draft', icon: ClockIcon },
+    { label: 'Gudang', status: ['picking', 'packed'], icon: CubeIcon },
+    { label: 'Pengiriman', status: 'shipped', icon: TruckIcon },
+    { label: 'Arrived', status: 'delivered', icon: MapPinIconSolid },
+    { label: 'Verified', status: 'completed', icon: CheckBadgeIcon },
+];
+
+const currentStepIndex = computed(() => {
+    const status = props.deliveryOrder.status;
+    if (status === 'draft') return 0;
+    if (['picking', 'packed'].includes(status)) return 1;
+    if (status === 'shipped') return 2;
+    if (status === 'delivered') return 3;
+    if (status === 'completed') return 4;
+    return -1;
+});
 </script>
 
 <template>
@@ -183,7 +207,55 @@ const getStatusBadge = (status) => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Progress Pipeline -->
+            <div class="mb-8 px-4 md:px-8">
+                <div class="relative flex items-center justify-between">
+                    <!-- Progress Line Background -->
+                    <div class="absolute left-0 top-1/2 -mt-px w-full h-0.5 bg-slate-100 dark:bg-slate-800"></div>
+                    
+                    <!-- Active Progress Line -->
+                    <div 
+                        class="absolute left-0 top-1/2 -mt-px h-0.5 bg-blue-500 transition-all duration-500"
+                        :style="{ width: `${(currentStepIndex / (steps.length - 1)) * 100}%` }"
+                    ></div>
+
+                    <!-- Steps -->
+                    <div 
+                        v-for="(step, index) in steps" 
+                        :key="index"
+                        class="relative flex flex-col items-center group"
+                    >
+                        <div 
+                            class="w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300 z-10 shadow-sm"
+                            :class="[
+                                index <= currentStepIndex 
+                                    ? 'bg-blue-500 border-white dark:border-slate-900 text-white scale-110' 
+                                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 dark:text-slate-700'
+                            ]"
+                        >
+                            <component :is="step.icon" class="w-5 h-5" />
+                        </div>
+                        
+                        <div class="absolute -bottom-7 flex flex-col items-center whitespace-nowrap">
+                            <span 
+                                class="text-[10px] font-black uppercase tracking-widest transition-colors"
+                                :class="index <= currentStepIndex ? 'text-blue-500' : 'text-slate-400 dark:text-slate-600'"
+                            >
+                                {{ step.label }}
+                            </span>
+                            <!-- Show real status below label if in multi-status step -->
+                            <span 
+                                v-if="index === 1 && ['picking', 'packed'].includes(deliveryOrder.status)"
+                                class="text-[8px] font-bold text-blue-400 italic"
+                            >
+                                ({{ deliveryOrder.status }})
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-12">
                 <!-- Info Block -->
                 <div class="lg:col-span-4 space-y-6">
                     <div class="rounded-2xl glass-card p-6 shadow-sm">
