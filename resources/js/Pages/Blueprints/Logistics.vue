@@ -18,11 +18,11 @@ defineProps({
             </div>
             <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">{{ title }}</h3>
             <p class="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
-                This Logistics module is currently in the <strong>Blueprinting Phase</strong>. It will streamline delivery planning and vehicle fleet management.
+                Logistics module has been <strong class="text-emerald-500">Activated</strong> successfully via Auto-Deployment! 🚀
             </p>
-            <div class="inline-flex items-center gap-2 text-slate-500 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-                <WrenchScrewdriverIcon class="h-4 w-4" />
-                <span class="text-xs font-bold uppercase tracking-widest">Future Capability</span>
+            <div class="inline-flex items-center gap-2 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
+                <CheckBadgeIcon class="h-4 w-4" />
+                <span class="text-xs font-bold uppercase tracking-widest">Active & Verified</span>
             </div>
         </div>
     </AppLayout>
