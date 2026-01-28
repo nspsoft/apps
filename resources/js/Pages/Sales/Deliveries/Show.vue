@@ -12,7 +12,7 @@ import {
     MapPinIcon,
     DocumentTextIcon,
     TrashIcon,
-    ClockIcon,
+    DocumentPlusIcon,
     CubeIcon,
     MapPinIcon as MapPinIconSolid,
     CheckBadgeIcon,
@@ -115,11 +115,11 @@ const getStatusBadge = (status) => {
 };
 
 const steps = [
-    { label: 'Delivery Order', status: 'draft', icon: ClockIcon },
-    { label: 'Loading', status: ['picking', 'packed'], icon: CubeIcon },
-    { label: 'Shipping', status: 'shipped', icon: TruckIcon },
-    { label: 'Arrived', status: 'delivered', icon: MapPinIconSolid },
-    { label: 'Verified', status: 'completed', icon: CheckBadgeIcon },
+    { label: 'CREATE DO', status: 'draft', icon: DocumentPlusIcon },
+    { label: 'LOADING', status: ['picking', 'packed'], icon: CubeIcon },
+    { label: 'SHIPPING', status: 'shipped', icon: TruckIcon },
+    { label: 'ARRIVED', status: 'delivered', icon: MapPinIconSolid },
+    { label: 'VERIFIED', status: 'completed', icon: CheckBadgeIcon },
 ];
 
 const currentStepIndex = computed(() => {

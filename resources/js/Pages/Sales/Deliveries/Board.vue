@@ -7,7 +7,10 @@ import {
     CheckCircleIcon, 
     DocumentCheckIcon,
     MapPinIcon,
-    EyeIcon
+    EyeIcon,
+    DocumentPlusIcon,
+    CubeIcon,
+    CheckBadgeIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -17,38 +20,38 @@ const props = defineProps({
 const columns = [
     { 
         id: 'draft', 
-        title: 'Delivery Order', 
+        title: 'CREATE DO', 
         bg: 'bg-slate-50 dark:bg-slate-800/50',
-        icon: ClockIcon,
+        icon: DocumentPlusIcon,
         color: 'text-slate-500'
     },
     { 
         id: 'processing', 
-        title: 'Loading', 
+        title: 'LOADING', 
         bg: 'bg-amber-50 dark:bg-amber-900/10',
-        icon: TruckIcon,
+        icon: CubeIcon,
         color: 'text-amber-500',
         statuses: ['picking', 'packed'] 
     },
     { 
         id: 'shipped', 
-        title: 'Shipping', 
+        title: 'SHIPPING', 
         bg: 'bg-blue-50 dark:bg-blue-900/10',
-        icon: MapPinIcon,
+        icon: TruckIcon,
         color: 'text-blue-500'
     },
     { 
         id: 'delivered', 
-        title: 'Arrived (Driver)', 
+        title: 'ARRIVED', 
         bg: 'bg-teal-50 dark:bg-teal-900/10',
-        icon: CheckCircleIcon,
+        icon: MapPinIcon,
         color: 'text-teal-500'
     },
     { 
         id: 'completed', 
-        title: 'Verified (Admin)', 
+        title: 'VERIFIED', 
         bg: 'bg-emerald-50 dark:bg-emerald-900/10',
-        icon: DocumentCheckIcon,
+        icon: CheckBadgeIcon,
         color: 'text-emerald-500'
     }
 ];
