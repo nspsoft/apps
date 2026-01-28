@@ -88,7 +88,7 @@ class GoodsReceiptController extends Controller
             foreach ($validated['items'] as $item) {
                 $poItem = $po->items->where('id', $item['po_item_id'])->first();
                 if ($poItem) {
-                    $remaining = $poItem->qty - $poItem->qty_received;
+                    $remaining = $poItem->qty - ($poItem->qty_received - $poItem->qty_returned);
                     $allowedMax = round($remaining * 1.1); // 10% tolerance rounded to whole number
                     if ($item['qty_received'] > $allowedMax + 0.0001) { 
                         return back()->with('error', "Cannot receive more than 110% of remaining quantity for product: {$poItem->product->name} (Remaining: {$remaining}, Max allowed: " . $allowedMax . ")")->withInput();
@@ -161,12 +161,16 @@ class GoodsReceiptController extends Controller
         $order->load(['items.product', 'goodsReceipts.items']);
 
         $items = $order->items->map(function ($item) use ($order) {
-            // Calculate already received qty for this specific item
+            // Total Received (Sum from GR items)
             $receivedQty = $order->goodsReceipts->flatMap->items
                 ->where('product_id', $item->product_id)
                 ->sum('qty_received');
+            
+            // Total Returned (Sum from Return items linked to PO)
+            $returnedQty = $item->qty_returned; // Using the cached field in PO Item
 
-            $remainingQty = max(0, $item->qty - $receivedQty);
+            // Effective Pending = Ordered - (Received - Returned)
+            $remainingQty = max(0, $item->qty - ($receivedQty - $returnedQty));
 
             if ($remainingQty <= 0) {
                 return null;

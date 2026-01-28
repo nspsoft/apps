@@ -14,9 +14,11 @@ import {
     DocumentCheckIcon,
     ShieldCheckIcon,
     TrashIcon,
+    ListBulletIcon,
+    Squares2X2Icon
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
-import SearchableSelect from '@/Components/SearchableSelect.vue';
+import Board from './Board.vue';
 
 const props = defineProps({
     deliveryOrders: Object,
@@ -28,8 +30,7 @@ const props = defineProps({
 const search = ref(props.filters.search || '');
 const selectedStatus = ref(props.filters.status || '');
 const showFilters = ref(false);
-const showCreateModal = ref(false);
-const selectedSoId = ref(null);
+const viewMode = ref('list'); // list or board
 
 const deleteDelivery = (id) => {
     if (confirm('Yakin ingin menghapus Draft Surat Jalan ini? Tindakan ini tidak dapat dibatalkan.')) {
@@ -38,11 +39,6 @@ const deleteDelivery = (id) => {
         });
     }
 };
-
-const soOptions = computed(() => props.pendingSalesOrders.map(so => ({
-    id: so.id,
-    label: `${so.so_number} - ${so.customer?.name}`
-})));
 
 const applyFilters = debounce(() => {
     router.get(route('sales.deliveries.index'), {
@@ -56,28 +52,15 @@ const applyFilters = debounce(() => {
 
 watch([search, selectedStatus], applyFilters);
 
-const clearFilters = () => {
-    search.value = '';
-    selectedStatus.value = '';
-};
-
-const submitCreateDelivery = () => {
-    if (!selectedSoId.value) return;
-    
-    router.post(route('sales.orders.create-delivery', selectedSoId.value), {}, {
-        onSuccess: () => {
-            showCreateModal.value = false;
-            selectedSoId.value = null;
-        }
-    });
-};
-
 const getStatusBadge = (status) => {
     const badges = {
         draft: 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30',
         confirmed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        picking: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+        packed: 'bg-blue-600/20 text-blue-500 border-blue-500/30',
         shipped: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-        delivered: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        delivered: 'bg-teal-500/20 text-teal-400 border-teal-500/30',
+        completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
         cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
     };
     return badges[status] || 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30';
@@ -103,26 +86,68 @@ const formatDate = (date) => {
                         class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
                     />
                 </div>
+                <!-- View Toggle -->
+                <div class="bg-slate-50 dark:bg-slate-900 p-1 rounded-xl flex items-center border border-slate-200 dark:border-slate-800">
+                    <button 
+                        @click="viewMode = 'list'"
+                        class="p-2 rounded-lg transition-all"
+                        :class="viewMode === 'list' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'"
+                    >
+                        <ListBulletIcon class="w-5 h-5" />
+                    </button>
+                    <button 
+                        @click="viewMode = 'board'"
+                        class="p-2 rounded-lg transition-all"
+                        :class="viewMode === 'board' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'"
+                    >
+                        <Squares2X2Icon class="w-5 h-5" />
+                    </button>
+                </div>
+
                 <button 
                     @click="showFilters = !showFilters"
                     class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
                     :class="{ 'ring-2 ring-blue-500/50': showFilters }"
                 >
                     <FunnelIcon class="h-5 w-5" />
-                    Filters
                 </button>
             </div>
 
-            <button
-                @click="showCreateModal = true"
+            <Link
+                :href="route('sales.deliveries.create')"
                 class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all"
             >
                 <PlusIcon class="h-5 w-5" />
                 Create Delivery
-            </button>
+            </Link>
         </div>
 
-        <div class="rounded-2xl glass-card overflow-hidden">
+        <!-- Filter Panel -->
+        <div v-if="showFilters" class="mb-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4">
+             <div class="relative group">
+                <label class="text-xs font-bold text-slate-500 mb-1 block">Status</label>
+                <select
+                    v-model="selectedStatus"
+                    class="w-full bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-800 rounded-xl px-4 py-2 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all shadow-sm appearance-none"
+                >
+                    <option value="">All Statuses</option>
+                    <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- BOARD VIEW -->
+        <div v-if="viewMode === 'board'" class="h-[calc(100vh-280px)] overflow-hidden">
+             <!-- Warning if filtered -->
+             <div v-if="selectedStatus" class="mb-4 bg-amber-50 text-amber-600 px-4 py-2 rounded-lg text-xs font-bold border border-amber-100 flex items-center gap-2">
+                <FunnelIcon class="w-4 h-4" />
+                Filter aktif: Board mungkin tidak menampilkan semua item.
+             </div>
+             <Board :orders="deliveryOrders" />
+        </div>
+
+        <!-- LIST VIEW -->
+        <div v-else class="rounded-2xl glass-card overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                     <thead>
@@ -286,54 +311,6 @@ const formatDate = (date) => {
                     <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                         Maintain <strong>Accountability</strong> by tracking vehicle numbers and the personnel who prepared each shipment for delivery.
                     </p>
-                </div>
-            </div>
-        </div>
-        <!-- Create Delivery Modal -->
-        <div v-if="showCreateModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-white dark:bg-slate-950/80 backdrop-blur-sm">
-            <div class="w-full max-w-lg rounded-2xl glass-card shadow-2xl overflow-hidden">
-                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-6 py-4">
-                    <div class="flex items-center gap-3">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
-                            <PlusIcon class="h-6 w-6" />
-                        </div>
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Create New Delivery</h3>
-                    </div>
-                    <button @click="showCreateModal = false" class="rounded-lg p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 hover:text-slate-900 dark:text-white transition-colors">
-                        <XMarkIcon class="h-5 w-5" />
-                    </button>
-                </div>
-
-                <div class="p-6">
-                    <p class="mb-6 text-sm text-slate-500 dark:text-slate-400">Select a confirmed Sales Order to initiate a new Delivery Order (Surat Jalan).</p>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Select Sales Order</label>
-                            <SearchableSelect 
-                                v-model="selectedSoId" 
-                                :options="soOptions" 
-                                placeholder="Search by SO Number or Customer..."
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-end gap-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30 px-6 py-4">
-                    <button 
-                        @click="showCreateModal = false"
-                        class="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        @click="submitCreateDelivery"
-                        :disabled="!selectedSoId"
-                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white dark:text-white shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <TruckIcon class="h-5 w-5" />
-                        PROCEED CREATE DO
-                    </button>
                 </div>
             </div>
         </div>

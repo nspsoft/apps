@@ -25,3 +25,22 @@ export const formatCurrency = (num) => {
         maximumFractionDigits: 0
     }).format(val);
 };
+
+/**
+ * Format date to Indonesian long format
+ * Examples: 2026-01-28 -> 28 Januari 2026
+ */
+export const formatDate = (date) => {
+    if (!date) return '-';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return date;
+        return d.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    } catch (e) {
+        return date;
+    }
+};

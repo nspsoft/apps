@@ -12,7 +12,7 @@ class LogisticsController extends Controller
 {
     public function index(Request $request)
     {
-        $deliveryOrders = DeliveryOrder::with(['customer', 'vehicle'])
+        $deliveryOrders = DeliveryOrder::with(['customer', 'vehicle', 'items.product'])
             ->whereIn('status', ['draft', 'picking', 'packed']) // Only show DOs that haven't been shipped
             ->when($request->search, function ($q, $search) {
                 $q->where('do_number', 'like', "%{$search}%")

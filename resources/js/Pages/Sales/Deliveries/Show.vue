@@ -16,9 +16,11 @@ import { formatNumber, formatCurrency } from '@/helpers';
 
 const props = defineProps({
     deliveryOrder: Object,
+    vehicles: Array
 });
 
 const form = useForm({
+    vehicle_id: props.deliveryOrder.vehicle_id || '',
     vehicle_number: props.deliveryOrder.vehicle_number || '',
     driver_name: props.deliveryOrder.driver_name || '',
     delivery_date: props.deliveryOrder.delivery_date ? new Date(props.deliveryOrder.delivery_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -28,6 +30,17 @@ const form = useForm({
         notes: item.notes || ''
     }))
 });
+
+const onVehicleChange = () => {
+    const selected = props.vehicles.find(v => v.id === form.vehicle_id);
+    if (selected) {
+        form.vehicle_number = selected.license_plate;
+        form.driver_name = selected.driver_name || '';
+    } else {
+        form.vehicle_number = '';
+        form.driver_name = '';
+    }
+};
 
 const updateDelivery = () => {
     form.put(route('sales.deliveries.update-items', props.deliveryOrder.id), {
@@ -51,17 +64,26 @@ const removeItem = (id) => {
 };
 
 const getRemainingBeforeThis = (item) => {
-    // Current SO Item Qty - Total Delivered (which includes current item IF study is already delivered)
     const soQty = parseFloat(item.sales_order_item?.qty || 0);
     const totalDeliveredSoItem = parseFloat(item.sales_order_item?.qty_delivered || 0);
+    const totalReturnedSoItem = parseFloat(item.sales_order_item?.qty_returned || 0);
+    const totalReserved = parseFloat(item.sales_order_item?.reserved_qty || 0);
     
+    // Effective Delivered = Total Delivered - Total Returned
+    const effectiveDelivered = totalDeliveredSoItem - totalReturnedSoItem;
+
     if (props.deliveryOrder.status === 'delivered') {
-        // If already delivered, total includes THIS item. We want the "before" state to know the limit.
-        return soQty - (totalDeliveredSoItem - parseFloat(item.qty_delivered));
+        // If already delivered, totalDelivered includes THIS item.
+        // Reserved doesn't include delivered items.
+        return soQty - (effectiveDelivered - parseFloat(item.qty_delivered));
     }
     
-    // If draft/shipped, totalDelivered in SO item does NOT include this item yet.
-    return soQty - totalDeliveredSoItem;
+    // If draft/active: 
+    // totalReserved includes THIS item's current qty in DB.
+    // We want sisa EXCLUDING this DO.
+    const reservedByOthers = totalReserved - parseFloat(item.qty_delivered);
+    
+    return soQty - effectiveDelivered - reservedByOthers;
 };
 
 const formatDate = (date) => {
@@ -114,41 +136,50 @@ const getStatusBadge = (status) => {
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <!-- 1. Print SJ (Informations/Documentation) -->
+                    <a 
+                        :href="route('sales.deliveries.print', deliveryOrder.id)" 
+                        target="_blank"
+                        class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+                    >
+                        <PrinterIcon class="h-4 w-4" />
+                        Print SJ
+                    </a>
+
+                    <!-- 2. Save Changes (Editable state) -->
                     <button 
-                        v-if="deliveryOrder.status === 'draft' && form.isDirty"
+                        v-if="deliveryOrder.status === 'draft'"
                         @click="updateDelivery"
-                        class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white dark:text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
+                        :disabled="!form.isDirty || form.processing"
+                        class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all shadow-lg disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                        :class="form.isDirty ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-700'"
                     >
                         Save Changes
                     </button>
+                    
+                    <!-- 3. CONFIRM DELIVERY (Final Process - Locked if unsaved changes) -->
+                    <button 
+                        v-if="deliveryOrder.status === 'draft'"
+                        @click="completeDelivery"
+                        :disabled="form.isDirty || form.processing"
+                        class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all shadow-lg disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
+                        :class="!form.isDirty ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-700'"
+                    >
+                        <CheckCircleIcon class="h-4 w-4" />
+                        CONFIRM DELIVERY
+                    </button>
+
+                    <!-- 4. Create Invoice (Post-Delivery Process) -->
                     <Link 
                         v-if="deliveryOrder.status === 'delivered'"
                         :href="route('sales.deliveries.create-invoice', deliveryOrder.id)"
                         method="post"
                         as="button"
-                        class="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-slate-900 dark:text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+                        class="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
                     >
                         <DocumentTextIcon class="h-4 w-4" />
                         Create Invoice
                     </Link>
-
-                    <a 
-                        :href="route('sales.deliveries.print', deliveryOrder.id)" 
-                        target="_blank"
-                        class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
-                    >
-                        <PrinterIcon class="h-4 w-4" />
-                        Print SJ
-                    </a>
-                    
-                    <button 
-                        v-if="deliveryOrder.status === 'draft'"
-                        @click="completeDelivery"
-                        class="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-500/20"
-                    >
-                        <CheckCircleIcon class="h-4 w-4" />
-                        CONFIRM DELIVERY
-                    </button>
                 </div>
             </div>
 
@@ -161,16 +192,31 @@ const getStatusBadge = (status) => {
                         <div class="space-y-5">
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-1.5">No Truk (Vehicle)</label>
-                                <input 
+                                <select 
                                     v-if="deliveryOrder.status === 'draft'"
+                                    v-model="form.vehicle_id"
+                                    @change="onVehicleChange"
+                                    class="w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                                >
+                                    <option value="">-- Pilih Armada --</option>
+                                    <option v-for="v in vehicles" :key="v.id" :value="v.id">
+                                        {{ v.license_plate }} - {{ v.vehicle_type }}
+                                    </option>
+                                    <option value="manual">-- Input Manual --</option>
+                                </select>
+                                <div v-else class="text-sm font-medium text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    {{ deliveryOrder.vehicle_number || '-' }}
+                                </div>
+                            </div>
+
+                            <div v-if="form.vehicle_id === 'manual'">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-1.5">Input No Truk Manual</label>
+                                <input 
                                     v-model="form.vehicle_number"
                                     type="text"
                                     placeholder="e.g. B 1234 ABC"
                                     class="w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
                                 />
-                                <div v-else class="text-sm font-medium text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
-                                    {{ deliveryOrder.vehicle_number || '-' }}
-                                </div>
                             </div>
 
                             <div>

@@ -40,6 +40,28 @@ class VehicleController extends Controller
     }
 
     /**
+     * Display the specified vehicle with delivery history.
+     */
+    public function show(Vehicle $vehicle): Response
+    {
+        $vehicle->load([
+            'deliveryOrders' => function ($query) {
+                $query->with(['customer', 'items.product'])
+                      ->latest();
+            }
+        ]);
+
+        return Inertia::render('Logistics/Vehicle/Show', [
+            'vehicle' => $vehicle,
+            'stats' => [
+                'total_trips' => $vehicle->deliveryOrders()->count(),
+                'completed_trips' => $vehicle->deliveryOrders()->where('status', 'delivered')->count(),
+                'pending_trips' => $vehicle->deliveryOrders()->whereNotIn('status', ['delivered', 'cancelled'])->count(),
+            ]
+        ]);
+    }
+
+    /**
      * Store a newly created vehicle.
      */
     public function store(Request $request)
@@ -54,7 +76,21 @@ class VehicleController extends Controller
             'status' => 'required|in:available,maintenance,busy',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
+            'stnk_number' => 'nullable|string|max:50',
+            'stnk_expiry' => 'nullable|date',
+            'kir_number' => 'nullable|string|max:50',
+            'kir_expiry' => 'nullable|date',
+            'driver_photo' => 'nullable|image|max:2048',
+            'vehicle_photo' => 'nullable|image|max:2048',
         ]);
+
+        if ($request->hasFile('driver_photo')) {
+            $validated['driver_photo'] = $request->file('driver_photo')->store('vehicles/drivers', 'public');
+        }
+
+        if ($request->hasFile('vehicle_photo')) {
+            $validated['vehicle_photo'] = $request->file('vehicle_photo')->store('vehicles/fleet', 'public');
+        }
 
         Vehicle::create($validated);
 
@@ -76,7 +112,29 @@ class VehicleController extends Controller
             'status' => 'required|in:available,maintenance,busy',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
+            'stnk_number' => 'nullable|string|max:50',
+            'stnk_expiry' => 'nullable|date',
+            'kir_number' => 'nullable|string|max:50',
+            'kir_expiry' => 'nullable|date',
+            'driver_photo' => 'nullable|image|max:2048',
+            'vehicle_photo' => 'nullable|image|max:2048',
         ]);
+
+        if ($request->hasFile('driver_photo')) {
+            // Delete old photo
+            if ($vehicle->driver_photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($vehicle->driver_photo);
+            }
+            $validated['driver_photo'] = $request->file('driver_photo')->store('vehicles/drivers', 'public');
+        }
+
+        if ($request->hasFile('vehicle_photo')) {
+            // Delete old photo
+            if ($vehicle->vehicle_photo) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($vehicle->vehicle_photo);
+            }
+            $validated['vehicle_photo'] = $request->file('vehicle_photo')->store('vehicles/fleet', 'public');
+        }
 
         $vehicle->update($validated);
 

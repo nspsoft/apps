@@ -306,41 +306,6 @@ class SalesOrderController extends Controller
         return back()->with('success', 'Quantity updated and logged successfully.');
     }
 
-    public function createDelivery(SalesOrder $order)
-    {
-        if (!in_array($order->status, ['confirmed', 'processing'])) {
-             return back()->with('error', 'Delivery Order can only be created for Confirmed/Processing orders.');
-        }
-
-        $do = \App\Models\DeliveryOrder::create([
-            'company_id' => $order->company_id ?? 1,
-            'do_number' => \App\Models\DeliveryOrder::generateDoNumber(),
-            'sales_order_id' => $order->id,
-            'customer_id' => $order->customer_id,
-            'warehouse_id' => $order->warehouse_id,
-            'delivery_date' => now(),
-            'status' => 'draft',
-            'vehicle_number' => 'B ' . rand(1000, 9999) . ' ' . chr(rand(65, 90)) . chr(rand(65, 90)),
-            'shipping_name' => $order->shipping_name,
-            'shipping_address' => $order->shipping_address,
-            'prepared_by' => auth()->id(),
-        ]);
-        
-        foreach($order->items as $item) {
-             $remaining = $item->qty - $item->qty_delivered;
-             if ($remaining > 0) {
-                 $do->items()->create([
-                     'sales_order_item_id' => $item->id,
-                     'product_id' => $item->product_id,
-                     'qty_ordered' => $item->qty,
-                     'qty_delivered' => $remaining,
-                     'unit_id' => $item->unit_id,
-                 ]);
-             }
-        }
-        
-        return redirect()->route('sales.deliveries.show', $do->id)->with('success', 'Delivery Order created. Please fill in vehicle and driver information.');
-    }
 
     public function createInvoice(SalesOrder $order)
     {

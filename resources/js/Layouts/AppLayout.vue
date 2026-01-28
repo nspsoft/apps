@@ -194,9 +194,10 @@ const navigation = [
         href: '#', 
         icon: TruckIcon, 
         current: false,
+        permission: 'logistics.view',
         children: [
-            { name: 'Delivery Planning', href: '/logistics/planning' },
-            { name: 'Vehicle Fleet', href: '/logistics/fleet' },
+            { name: 'Delivery Planning', href: '/logistics/planning', permission: 'logistics.delivery_planning.view' },
+            { name: 'Vehicle Fleet', href: '/logistics/fleet', permission: 'logistics.vehicle_fleet.view' },
         ]
     },
     { 

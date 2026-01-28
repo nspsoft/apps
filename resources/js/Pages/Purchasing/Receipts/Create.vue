@@ -31,7 +31,7 @@ const form = useForm({
     items: props.purchaseOrder?.items.map(item => ({
         product_id: item.product_id,
         name: item.product?.name,
-        qty_received: item.qty - (item.qty_received || 0),
+        qty_received: item.qty - ((item.qty_received || 0) - (item.qty_returned || 0)),
         unit_cost: Math.round(parseFloat(item.unit_price || 0)),
     })) || [],
 });

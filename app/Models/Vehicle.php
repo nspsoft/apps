@@ -20,8 +20,26 @@ class Vehicle extends Model
         'driver_name',
         'status',
         'notes',
-        'is_active'
+        'is_active',
+        'driver_photo',
+        'vehicle_photo',
+        'stnk_number',
+        'stnk_expiry',
+        'kir_number',
+        'kir_expiry'
     ];
+
+    protected $appends = ['driver_photo_url', 'vehicle_photo_url'];
+
+    public function getDriverPhotoUrlAttribute()
+    {
+        return $this->driver_photo ? asset('storage/' . $this->driver_photo) : null;
+    }
+
+    public function getVehiclePhotoUrlAttribute()
+    {
+        return $this->vehicle_photo ? asset('storage/' . $this->vehicle_photo) : null;
+    }
 
     public function deliveryOrders()
     {

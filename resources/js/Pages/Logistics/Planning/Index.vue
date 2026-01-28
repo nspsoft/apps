@@ -2,15 +2,19 @@
 import { ref, computed } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { formatNumber, formatDate } from '@/helpers';
 import { 
     TruckIcon, 
-    ClipboardDocumentListIcon,
-    MagnifyingGlassIcon,
-    UserIcon,
-    MapPinIcon,
-    ChevronRightIcon,
-    CheckCircleIcon,
-    XCircleIcon
+    ClipboardDocumentListIcon, 
+    MagnifyingGlassIcon, 
+    UserIcon, 
+    MapPinIcon, 
+    ChevronRightIcon, 
+    CheckCircleIcon, 
+    XCircleIcon,
+    ChevronDownIcon,
+    ChevronUpIcon,
+    Square3Stack3DIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -20,7 +24,16 @@ const props = defineProps({
 });
 
 const selectedOrders = ref([]);
+const expandedOrders = ref([]);
 const search = ref(props.filters.search || '');
+
+const toggleExpand = (id) => {
+    if (expandedOrders.value.includes(id)) {
+        expandedOrders.value = expandedOrders.value.filter(oid => oid !== id);
+    } else {
+        expandedOrders.value.push(id);
+    }
+};
 
 const form = useForm({
     delivery_order_ids: [],
@@ -77,7 +90,6 @@ const getStatusColor = (status) => {
 
     <AppLayout title="Delivery Planning">
         <div class="mb-8">
-            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Delivery Planning</h2>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest leading-none">Perencanaan Pengiriman Barang</p>
         </div>
 
@@ -112,53 +124,103 @@ const getStatusColor = (status) => {
                                         @change="toggleSelectAll"
                                     />
                                 </th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider w-10"></th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">DO Info</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Customer & Alamat</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Armada (DO)</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Status</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr 
-                                v-for="order in deliveryOrders" 
-                                :key="order.id"
-                                class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group"
-                                @click="selectedOrders.includes(order.id) ? selectedOrders.splice(selectedOrders.indexOf(order.id),1) : selectedOrders.push(order.id)"
-                            >
-                                <td class="px-6 py-4 mt-2">
-                                    <input 
-                                        v-model="selectedOrders" 
-                                        :value="order.id" 
-                                        type="checkbox" 
-                                        class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 dark:bg-slate-900" 
-                                        @click.stop
-                                    />
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors">{{ order.do_number }}</span>
-                                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{{ order.delivery_date }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col max-w-xs">
-                                        <span class="text-sm font-semibold text-slate-900 dark:text-slate-200">{{ order.customer?.name }}</span>
-                                        <span class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center gap-1">
-                                            <MapPinIcon class="h-3 w-3 shrink-0" />
-                                            {{ order.shipping_address || 'No Address' }}
+                            <template v-for="order in deliveryOrders" :key="order.id">
+                                <tr 
+                                    class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group"
+                                    :class="{ 'bg-blue-50/30 dark:bg-blue-500/5': expandedOrders.includes(order.id) }"
+                                    @click="selectedOrders.includes(order.id) ? selectedOrders.splice(selectedOrders.indexOf(order.id),1) : selectedOrders.push(order.id)"
+                                >
+                                    <td class="px-6 py-4">
+                                        <input 
+                                            v-model="selectedOrders" 
+                                            :value="order.id" 
+                                            type="checkbox" 
+                                            class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 dark:bg-slate-900" 
+                                            @click.stop
+                                        />
+                                    </td>
+                                    <td class="px-3 py-4 text-center">
+                                        <button 
+                                            @click.stop="toggleExpand(order.id)"
+                                            class="p-1 rounded-lg hover:bg-white dark:hover:bg-slate-700 shadow-sm transition-all"
+                                        >
+                                            <ChevronDownIcon v-if="!expandedOrders.includes(order.id)" class="h-4 w-4 text-slate-400" />
+                                            <ChevronUpIcon v-else class="h-4 w-4 text-blue-500" />
+                                        </button>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors">{{ order.do_number }}</span>
+                                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{{ formatDate(order.delivery_date) }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col max-w-xs">
+                                            <span class="text-sm font-semibold text-slate-900 dark:text-slate-200">{{ order.customer?.name }}</span>
+                                            <span class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center gap-1">
+                                                <MapPinIcon class="h-3 w-3 shrink-0" />
+                                                {{ order.shipping_address || 'No Address' }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div v-if="order.vehicle || order.vehicle_number" class="flex flex-col">
+                                            <span class="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                                {{ order.vehicle ? order.vehicle.license_plate : order.vehicle_number }}
+                                            </span>
+                                            <span class="text-[10px] text-slate-500 truncate" v-if="order.driver_name">
+                                                {{ order.driver_name }}
+                                            </span>
+                                        </div>
+                                        <span v-else class="text-xs text-slate-400 italic">Belum ditentukan</span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span 
+                                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] border"
+                                            :class="getStatusColor(order.status)"
+                                        >
+                                            {{ order.status }}
                                         </span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span 
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] border"
-                                        :class="getStatusColor(order.status)"
-                                    >
-                                        {{ order.status }}
-                                    </span>
-                                </td>
-                            </tr>
+                                    </td>
+                                </tr>
+                                <!-- Expandable Row for Items -->
+                                <tr v-if="expandedOrders.includes(order.id)">
+                                    <td colspan="5" class="px-12 py-4 bg-slate-50/50 dark:bg-slate-800/20">
+                                        <div class="space-y-3">
+                                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-2 flex items-center gap-2">
+                                                <Square3Stack3DIcon class="h-3.5 w-3.5" />
+                                                Detail Item Terpilih
+                                            </p>
+                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                <div v-for="item in order.items" :key="item.id" class="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3">
+                                                    <div class="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg">
+                                                        <ClipboardDocumentListIcon class="h-4 w-4 text-slate-400" />
+                                                    </div>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-xs font-black text-slate-900 dark:text-white truncate">{{ item.product?.name }}</p>
+                                                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{{ item.product?.sku }}</p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <p class="text-xs font-black text-blue-600 dark:text-blue-400">{{ formatNumber(item.qty_delivered) }} Unit</p>
+                                                        <p class="text-[9px] text-slate-400 font-bold">{{ formatNumber(item.weight || item.product?.weight || 0) }} Kg</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p v-if="!order.items || order.items.length === 0" class="text-xs text-slate-400 italic">Tidak ada item dalam pengiriman ini.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
                             <tr v-if="deliveryOrders.length === 0">
-                                <td colspan="4" class="px-6 py-12 text-center">
+                                <td colspan="5" class="px-6 py-12 text-center">
                                     <ClipboardDocumentListIcon class="mx-auto h-12 w-12 text-slate-300" />
                                     <p class="mt-2 text-sm text-slate-500 font-medium">Tidak ada pengiriman yang perlu direncanakan.</p>
                                 </td>

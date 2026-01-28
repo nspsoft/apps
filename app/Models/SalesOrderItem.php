@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
@@ -36,6 +37,8 @@ class SalesOrderItem extends Model
         'qty_invoiced',
     ];
 
+    protected $appends = ['reserved_qty', 'remaining_qty'];
+
     protected $casts = [
         'qty' => 'float',
         'unit_price' => 'double',
@@ -62,9 +65,26 @@ class SalesOrderItem extends Model
         return $this->belongsTo(Unit::class);
     }
 
+    public function deliveryOrderItems(): HasMany
+    {
+        return $this->hasMany(DeliveryOrderItem::class);
+    }
+
+    public function getReservedQtyAttribute(): float
+    {
+        return (float) $this->deliveryOrderItems()
+            ->whereHas('deliveryOrder', function ($query) {
+                // We count everything that is NOT delivered and NOT cancelled as "Reserved"
+                // Delivered is already subtracted via qty_delivered
+                $query->whereNotIn('status', ['delivered', 'cancelled']);
+            })
+            ->sum('qty_delivered'); // qty_delivered in DO Item means "planned qty"
+    }
+
     public function getRemainingQtyAttribute(): float
     {
-        return $this->qty - ($this->qty_delivered - $this->qty_returned);
+        $deliveredNet = $this->qty_delivered - $this->qty_returned;
+        return $this->qty - $deliveredNet - $this->reserved_qty;
     }
 
     public function isFullyDelivered(): bool

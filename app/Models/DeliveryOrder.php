@@ -58,7 +58,8 @@ class DeliveryOrder extends Model
     const STATUS_PICKING = 'picking';
     const STATUS_PACKED = 'packed';
     const STATUS_SHIPPED = 'shipped';
-    const STATUS_DELIVERED = 'delivered';
+    const STATUS_DELIVERED = 'delivered'; // Driver marks this
+    const STATUS_COMPLETED = 'completed'; // Admin verifies this
 
     public function company(): BelongsTo
     {
@@ -160,7 +161,8 @@ class DeliveryOrder extends Model
             self::STATUS_PICKING => 'amber',
             self::STATUS_PACKED => 'blue',
             self::STATUS_SHIPPED => 'purple',
-            self::STATUS_DELIVERED => 'emerald',
+            self::STATUS_DELIVERED => 'teal',
+            self::STATUS_COMPLETED => 'emerald',
             default => 'slate',
         };
     }

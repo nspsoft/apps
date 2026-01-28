@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { formatNumber, formatDate } from '@/helpers';
 import { 
     TruckIcon, 
     PlusIcon, 
@@ -10,7 +11,8 @@ import {
     TrashIcon,
     ChevronUpDownIcon,
     FunnelIcon,
-    TagIcon
+    TagIcon,
+    EyeIcon
 } from '@heroicons/vue/24/outline';
 import { CheckBadgeIcon } from '@heroicons/vue/20/solid';
 
@@ -35,7 +37,13 @@ const form = useForm({
     driver_name: '',
     status: 'available',
     notes: '',
-    is_active: true
+    is_active: true,
+    stnk_number: '',
+    stnk_expiry: '',
+    kir_number: '',
+    kir_expiry: '',
+    driver_photo: null,
+    vehicle_photo: null,
 });
 
 const openCreateModal = () => {
@@ -56,16 +64,30 @@ const openEditModal = (vehicle) => {
     form.status = vehicle.status;
     form.notes = vehicle.notes;
     form.is_active = vehicle.is_active;
+    form.stnk_number = vehicle.stnk_number;
+    form.stnk_expiry = vehicle.stnk_expiry;
+    form.kir_number = vehicle.kir_number;
+    form.kir_expiry = vehicle.kir_expiry;
+    form.driver_photo = null;
+    form.vehicle_photo = null;
     showModal.value = true;
 };
 
 const submit = () => {
     if (editingVehicle.value) {
-        form.put(route('logistics.fleet.update', editingVehicle.value.id), {
+        // Inertia file uploads must use POST with _method spoofing if using PUT
+        form.transform((data) => ({
+            ...data,
+            _method: 'put',
+        })).post(route('logistics.fleet.update', editingVehicle.value.id), {
+            forceFormData: true,
+            preserveScroll: true,
             onSuccess: () => closeModal(),
         });
     } else {
         form.post(route('logistics.fleet.store'), {
+            forceFormData: true,
+            preserveScroll: true,
             onSuccess: () => closeModal(),
         });
     }
@@ -90,6 +112,31 @@ const getStatusColor = (status) => {
         default: return 'bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-400';
     }
 };
+
+const isExpired = (date) => {
+    if (!date) return false;
+    return new Date(date) < new Date();
+};
+
+const isNearExpiry = (date) => {
+    if (!date) return false;
+    const expiry = new Date(date);
+    const today = new Date();
+    const diffTime = expiry - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30; // 30 days warning
+};
+
+const getDoStatusColor = (status) => {
+    switch (status) {
+        case 'delivered': return 'bg-emerald-100 text-emerald-700';
+        case 'shipped': return 'bg-blue-100 text-blue-700';
+        case 'packed': return 'bg-indigo-100 text-indigo-700';
+        case 'picking': return 'bg-amber-100 text-amber-700';
+        case 'cancelled': return 'bg-red-100 text-red-700';
+        default: return 'bg-slate-100 text-slate-700';
+    }
+};
 </script>
 
 <template>
@@ -98,7 +145,6 @@ const getStatusColor = (status) => {
     <AppLayout title="Vehicle Fleet">
         <div class="sm:flex sm:items-center sm:justify-between mb-8">
             <div>
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Vehicle Fleet</h2>
                 <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">Master Data Armada</p>
             </div>
             <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
@@ -142,47 +188,87 @@ const getStatusColor = (status) => {
                 :key="vehicle.id"
                 class="group relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-all hover:shadow-xl hover:border-blue-500/50"
             >
-                <!-- Card Header -->
-                <div class="p-6">
-                    <div class="flex items-start justify-between mb-4">
-                        <div class="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                            <TruckIcon class="h-7 w-7" />
-                        </div>
+                <!-- Card Header (Large Vehicle Photo) -->
+                <div class="relative h-48 bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                    <img 
+                        v-if="vehicle.vehicle_photo_url" 
+                        :src="vehicle.vehicle_photo_url" 
+                        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                    />
+                    <TruckIcon v-else class="h-20 w-20 text-slate-300 dark:text-slate-700" />
+                    
+                    <!-- Status Badge Floating -->
+                    <div class="absolute top-3 right-3">
                         <span 
-                            class="px-3 py-1 text-xs font-bold rounded-full uppercase tracking-widest leading-none flex items-center gap-1.5"
+                            class="px-3 py-1 text-[9px] font-black rounded-full uppercase tracking-[0.15em] leading-none flex items-center gap-1.5 shadow-2xl backdrop-blur-xl border border-white/30"
                             :class="getStatusColor(vehicle.status)"
                         >
                             {{ vehicle.status }}
                         </span>
                     </div>
-                    
-                    <h3 class="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight mb-1">{{ vehicle.license_plate }}</h3>
-                    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ vehicle.brand }} - {{ vehicle.vehicle_type }}</p>
 
-                    <div class="mt-6 space-y-3">
-                        <div class="flex items-center gap-3 text-sm">
-                            <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                <PlusIcon class="w-4 h-4" />
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Driver Name</p>
-                                <p class="text-slate-900 dark:text-white font-medium truncate">{{ vehicle.driver_name || 'No Pilot' }}</p>
+                    <!-- Driver Photo (Larger & Prominent) -->
+                    <div class="absolute bottom-3 right-3 group/driver">
+                        <div class="w-16 h-16 rounded-2xl overflow-hidden ring-4 ring-white dark:ring-slate-900 shadow-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                            <img 
+                                v-if="vehicle.driver_photo_url" 
+                                :src="vehicle.driver_photo_url" 
+                                class="w-full h-full object-cover" 
+                            />
+                            <div v-else class="w-full h-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                                <PlusIcon class="w-6 h-6 text-slate-300" />
                             </div>
                         </div>
-                        <div class="flex items-center gap-3 text-sm">
-                            <div class="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                                <TagIcon class="w-4 h-4" />
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Capacity</p>
-                                <p class="text-slate-900 dark:text-white font-medium truncate">{{ vehicle.capacity_weight }} Kg / {{ vehicle.capacity_volume }} m³</p>
-                            </div>
+                        <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center shadow-lg" v-if="vehicle.driver_name">
+                            <CheckBadgeIcon class="w-3.5 h-3.5 text-white" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compact Info Section -->
+                <div class="p-4 pt-4">
+                    <div class="mb-3">
+                        <h3 class="text-2xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">{{ vehicle.license_plate }}</h3>
+                        <p class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-1">{{ vehicle.brand }} • {{ vehicle.vehicle_type }}</p>
+                    </div>
+
+                    <!-- Tech Tags (Very Compact) -->
+                    <div class="flex flex-wrap gap-1.5 mb-4">
+                        <div 
+                            class="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black border uppercase"
+                            :class="isExpired(vehicle.stnk_expiry) ? 'bg-red-50 border-red-100 text-red-600' : (isNearExpiry(vehicle.stnk_expiry) ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-slate-50 border-slate-100 text-slate-500')"
+                        >
+                            STNK: {{ formatDate(vehicle.stnk_expiry) }}
+                        </div>
+                        <div 
+                            class="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black border uppercase"
+                            :class="isExpired(vehicle.kir_expiry) ? 'bg-red-50 border-red-100 text-red-600' : (isNearExpiry(vehicle.kir_expiry) ? 'bg-amber-50 border-amber-100 text-amber-600' : 'bg-slate-50 border-slate-100 text-slate-500')"
+                        >
+                            KIR: {{ formatDate(vehicle.kir_expiry) }}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 border-t border-slate-50 dark:border-slate-800/50 pt-3">
+                        <div class="flex flex-col">
+                            <span class="text-[8px] font-black uppercase tracking-widest text-slate-400">Driver</span>
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{{ vehicle.driver_name || 'No Assign' }}</span>
+                        </div>
+                        <div class="flex flex-col text-right">
+                            <span class="text-[8px] font-black uppercase tracking-widest text-slate-400">Capacity</span>
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-300">{{ formatNumber(vehicle.capacity_weight/1000) }} Ton / {{ formatNumber(vehicle.capacity_volume) }} m³</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card Actions -->
                 <div class="flex items-center border-t border-slate-100 dark:border-slate-800 divide-x divide-slate-100 dark:divide-slate-800">
+                    <Link 
+                        :href="route('logistics.fleet.show', vehicle.id)"
+                        class="flex-1 py-3 text-sm font-black text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all flex items-center justify-center gap-2"
+                    >
+                        <EyeIcon class="w-4 h-4" />
+                        Detail
+                    </Link>
                     <button 
                         @click="openEditModal(vehicle)"
                         class="flex-1 py-3 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-blue-500 transition-all flex items-center justify-center gap-2"
@@ -262,6 +348,45 @@ const getStatusColor = (status) => {
                                 <select v-model="form.status" class="w-full bg-slate-50 dark:bg-slate-800 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 shadow-inner focus:ring-2 focus:ring-blue-500 transition-all">
                                     <option v-for="s in vehicleStatuses" :key="s.value" :value="s.value">{{ s.label }}</option>
                                 </select>
+                            </div>
+
+                            <!-- Legal Details -->
+                            <div class="md:col-span-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-4">Legalitas & Identitas Kendaraan</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-slate-500">Nomor STNK</label>
+                                <input v-model="form.stnk_number" type="text" class="w-full bg-slate-50 dark:bg-slate-800 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 shadow-inner focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="No. Registrasi STNK" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-slate-500">STNK Berlaku S/D</label>
+                                <input v-model="form.stnk_expiry" type="date" class="w-full bg-slate-50 dark:bg-slate-800 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 shadow-inner focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-slate-500">Nomor KIR</label>
+                                <input v-model="form.kir_number" type="text" class="w-full bg-slate-50 dark:bg-slate-800 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 shadow-inner focus:ring-2 focus:ring-blue-500 transition-all font-medium" placeholder="No. Uji KIR" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-slate-500">KIR Berlaku S/D</label>
+                                <input v-model="form.kir_expiry" type="date" class="w-full bg-slate-50 dark:bg-slate-800 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-4 py-3 shadow-inner focus:ring-2 focus:ring-blue-500 transition-all font-medium" />
+                            </div>
+
+                            <!-- Photo Uploads -->
+                            <div class="md:col-span-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 mb-4">Upload Dokumentasi (Foto)</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-slate-500">Foto Kendaraan</label>
+                                <input type="file" @input="form.vehicle_photo = $event.target.files[0]" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-slate-300" />
+                                <progress v-if="form.progress" :value="form.progress.percentage" max="100" class="w-full h-1 rounded overflow-hidden">
+                                    {{ form.progress.percentage }}%
+                                </progress>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-slate-500">Foto Supir</label>
+                                <input type="file" @input="form.driver_photo = $event.target.files[0]" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-slate-300" />
                             </div>
                         </div>
 

@@ -162,11 +162,15 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::get('/quotations/{quotation}/print', [App\Http\Controllers\Sales\QuotationController::class, 'print'])->name('quotations.print');
     Route::post('/quotations/{quotation}/convert', [App\Http\Controllers\Sales\QuotationController::class, 'convertToSO'])->name('quotations.convert');
     Route::get('/deliveries', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'index'])->name('deliveries.index');
+    Route::get('/deliveries/create', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'create'])->name('deliveries.create');
+    Route::get('/deliveries/so-items/{sales_order}', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'getSoItems'])->name('deliveries.so-items');
+    Route::post('/deliveries', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'store'])->name('deliveries.store');
     Route::get('/deliveries/{delivery_order}', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'show'])->name('deliveries.show');
     Route::put('/deliveries/{delivery_order}/items', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'updateItems'])->name('deliveries.update-items');
     Route::delete('/deliveries/items/{item}', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'destroyItem'])->name('deliveries.destroy-item');
     Route::delete('/deliveries/{delivery_order}', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'destroy'])->name('deliveries.destroy');
     Route::post('/deliveries/{delivery_order}/complete', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'complete'])->name('deliveries.complete');
+    Route::patch('/deliveries/{delivery_order}/status', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'updateStatus'])->name('deliveries.update-status');
     Route::get('/deliveries/{delivery_order}/print', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'print'])->name('deliveries.print');
     Route::post('/deliveries/{delivery_order}/invoice', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'createInvoice'])->name('deliveries.create-invoice');
     Route::get('/invoices', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'index'])->name('invoices.index');
@@ -258,7 +262,12 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
 Route::middleware(['auth'])->prefix('logistics')->name('logistics.')->group(function () {
     Route::get('/planning', [App\Http\Controllers\Logistics\LogisticsController::class, 'index'])->name('planning');
     Route::post('/planning/assign', [App\Http\Controllers\Logistics\LogisticsController::class, 'assignVehicle'])->name('planning.assign');
-    Route::resource('fleet', App\Http\Controllers\Logistics\VehicleController::class);
+    
+    Route::get('/fleet', [App\Http\Controllers\Logistics\VehicleController::class, 'index'])->name('fleet.index');
+    Route::post('/fleet', [App\Http\Controllers\Logistics\VehicleController::class, 'store'])->name('fleet.store');
+    Route::get('/fleet/{vehicle}', [App\Http\Controllers\Logistics\VehicleController::class, 'show'])->name('fleet.show');
+    Route::put('/fleet/{vehicle}', [App\Http\Controllers\Logistics\VehicleController::class, 'update'])->name('fleet.update');
+    Route::delete('/fleet/{vehicle}', [App\Http\Controllers\Logistics\VehicleController::class, 'destroy'])->name('fleet.destroy');
 });
 
 // CRM
