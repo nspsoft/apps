@@ -256,8 +256,9 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
 
 // Logistics
 Route::middleware(['auth'])->prefix('logistics')->name('logistics.')->group(function () {
-    Route::get('/planning', fn () => Inertia::render('Blueprints/Logistics', ['title' => 'Delivery Planning']))->name('planning');
-    Route::get('/fleet', fn () => Inertia::render('Blueprints/Logistics', ['title' => 'Vehicle Fleet']))->name('fleet');
+    Route::get('/planning', [App\Http\Controllers\Logistics\LogisticsController::class, 'index'])->name('planning');
+    Route::post('/planning/assign', [App\Http\Controllers\Logistics\LogisticsController::class, 'assignVehicle'])->name('planning.assign');
+    Route::resource('fleet', App\Http\Controllers\Logistics\VehicleController::class);
 });
 
 // CRM

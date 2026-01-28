@@ -26,6 +26,7 @@ class DeliveryOrder extends Model
     protected $fillable = [
         'company_id',
         'do_number',
+        'vehicle_id',
         'vehicle_number',
         'driver_name',
         'sales_order_id',
@@ -42,6 +43,11 @@ class DeliveryOrder extends Model
         'delivered_by',
         'delivered_at',
     ];
+
+    public function vehicle(): BelongsTo
+    {
+        return $this->belongsTo(Vehicle::class);
+    }
 
     protected $casts = [
         'delivery_date' => 'date',
