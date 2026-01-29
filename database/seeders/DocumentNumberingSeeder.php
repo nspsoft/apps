@@ -94,6 +94,22 @@ class DocumentNumberingSeeder extends Seeder
                 'prefix' => 'PROD',
                 'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
             ],
+            // Subcontractor
+            [
+                'module' => 'manufacturing',
+                'code' => 'subcont_delivery',
+                'name' => 'Surat Jalan Subcont',
+                'prefix' => 'SUB',
+                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+            ],
+            [
+                'module' => 'manufacturing',
+                'code' => 'subcont_receipt',
+                'name' => 'Laporan Penerimaan (Subcont)',
+                'prefix' => 'LPB',
+                'format' => '{PREFIX}-{NUMBER}',
+                'padding' => 6,
+            ],
         ];
 
         foreach ($defaults as $config) {
