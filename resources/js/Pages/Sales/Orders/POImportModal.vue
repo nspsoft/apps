@@ -7,7 +7,8 @@ import {
     DocumentIcon,
     ArrowPathIcon,
     ExclamationTriangleIcon,
-    CheckCircleIcon
+    CheckCircleIcon,
+    QuestionMarkCircleIcon
 } from '@heroicons/vue/24/outline';
 import axios from 'axios';
 import { router } from '@inertiajs/vue3';
@@ -261,10 +262,20 @@ const close = () => {
                     </div>
 
                     <!-- Footer -->
-                    <div class="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 text-center">
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                            Tip: Best results come from high-resolution images or clear PDF documents.
-                        </p>
+                    <div class="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center justify-between">
+                            <a 
+                                href="/guide/ai-po-extractor.html" 
+                                target="_blank"
+                                class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold transition-colors"
+                            >
+                                <QuestionMarkCircleIcon class="h-4 w-4" />
+                                User Guide
+                            </a>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                Tip: Best results come from high-resolution images or clear PDF documents.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
