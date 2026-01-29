@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panduan Workflow Approval - JICOS ERP</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #0f172a;
+            --light: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            color: #60a5fa;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card h2::before {
+            content: attr(data-icon);
+            font-size: 1.5rem;
+        }
+
+        .step-list {
+            list-style: none;
+            counter-reset: step;
+        }
+
+        .step-list li {
+            position: relative;
+            padding-left: 3rem;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .step-list li::before {
+            counter-increment: step;
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            width: 2rem;
+            height: 2rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .highlight {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th,
+        td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        th {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .flow-step {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+        }
+
+        .flow-arrow {
+            color: #60a5fa;
+            font-size: 1.5rem;
+        }
+
+        .tip {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin-top: 1rem;
+        }
+
+        .tip::before {
+            content: "💡 TIP: ";
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin-top: 1rem;
+        }
+
+        .warning::before {
+            content: "⚠️ PENTING: ";
+            font-weight: bold;
+            color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📋 Panduan Workflow Approval</h1>
+        <p class="subtitle">Sistem persetujuan bertingkat untuk dokumen bisnis di JICOS ERP</p>
+
+        <!-- Apa itu Workflow Approval -->
+        <div class="card">
+            <h2 data-icon="🎯">Apa itu Workflow Approval?</h2>
+            <p>Workflow Approval adalah sistem yang mengatur <strong>alur persetujuan bertingkat</strong> untuk
+                dokumen-dokumen penting seperti Purchase Order, Sales Order, dll.</p>
+
+            <div class="flow-diagram">
+                <div class="flow-step">📝 Buat Dokumen</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">⏳ Pending</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">👤 Approve Level 1</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">👔 Approve Level 2</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">✅ Approved</div>
+            </div>
+        </div>
+
+        <!-- Cara Membuat Workflow -->
+        <div class="card">
+            <h2 data-icon="⚙️">Cara Membuat Workflow Baru</h2>
+            <ol class="step-list">
+                <li>Buka menu <span class="highlight">Settings → Workflow Approval</span></li>
+                <li>Klik tombol <span class="highlight">+ Add Workflow</span></li>
+                <li>Isi <strong>Nama Workflow</strong>, contoh: "PO Besar > 50 Juta"</li>
+                <li>Pilih <strong>Document Type</strong> (Purchase Order, Sales Order, dll)</li>
+                <li>Set <strong>Kondisi</strong> (opsional):
+                    <ul style="margin-top: 0.5rem; padding-left: 1rem;">
+                        <li>Field: <span class="highlight">Total</span></li>
+                        <li>Operator: <span class="highlight">></span> (lebih dari)</li>
+                        <li>Value: <span class="highlight">50000000</span></li>
+                    </ul>
+                </li>
+                <li>Tambah <strong>Step Approver</strong>:
+                    <ul style="margin-top: 0.5rem; padding-left: 1rem;">
+                        <li>Step 1: Supervisor Purchasing (Role)</li>
+                        <li>Step 2: Manager Purchasing (Role)</li>
+                        <li>Step 3: Direktur (User spesifik)</li>
+                    </ul>
+                </li>
+                <li>Klik <span class="highlight">Create</span> untuk menyimpan</li>
+            </ol>
+
+            <div class="tip">
+                Gunakan <strong>Priority</strong> yang lebih tinggi untuk workflow dengan kondisi lebih spesifik. Sistem
+                akan mencari workflow yang cocok berdasarkan priority tertinggi.
+            </div>
+        </div>
+
+        <!-- Jenis Dokumen -->
+        <div class="card">
+            <h2 data-icon="📄">Jenis Dokumen yang Didukung</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dokumen</th>
+                        <th>Field Kondisi</th>
+                        <th>Contoh Penggunaan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Purchase Order</td>
+                        <td>Total, Subtotal</td>
+                        <td>PO > Rp 100 Juta butuh Direktur</td>
+                    </tr>
+                    <tr>
+                        <td>Purchase Request</td>
+                        <td>Total</td>
+                        <td>Semua PR wajib approve Dept Head</td>
+                    </tr>
+                    <tr>
+                        <td>Sales Order</td>
+                        <td>Total, Subtotal</td>
+                        <td>SO > Rp 500 Juta butuh Sales Director</td>
+                    </tr>
+                    <tr>
+                        <td>Sales Quotation</td>
+                        <td>Total</td>
+                        <td>Quotation besar butuh review</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Status Approval -->
+        <div class="card">
+            <h2 data-icon="🏷️">Status Approval</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-pending">Pending</span></td>
+                        <td>Menunggu persetujuan dari approver</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-approved">Approved</span></td>
+                        <td>Semua level sudah menyetujui</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-rejected">Rejected</span></td>
+                        <td>Ditolak oleh salah satu approver</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cara Approve -->
+        <div class="card">
+            <h2 data-icon="✅">Cara Menyetujui Dokumen</h2>
+            <ol class="step-list">
+                <li>Login sebagai user yang memiliki hak approve</li>
+                <li>Buka dokumen yang pending approval (akan ada notifikasi)</li>
+                <li>Review detail dokumen</li>
+                <li>Klik tombol <span class="highlight">✓ Approve</span> atau <span class="highlight">✗ Reject</span>
+                </li>
+                <li>Jika reject, wajib isi alasan penolakan</li>
+            </ol>
+
+            <div class="warning">
+                Dokumen yang <strong>Pending Approval</strong> tidak bisa diproses lebih lanjut (tidak bisa dibuat Goods
+                Receipt, Delivery Order, dll) sampai statusnya Approved.
+            </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="card">
+            <h2 data-icon="💡">Tips & Best Practice</h2>
+            <ul style="list-style: disc; padding-left: 1.5rem; line-height: 1.8;">
+                <li>Buat workflow <strong>tanpa kondisi</strong> sebagai default untuk semua dokumen</li>
+                <li>Buat workflow <strong>dengan kondisi spesifik</strong> dan priority lebih tinggi untuk kasus khusus
+                </li>
+                <li>Gunakan <strong>Role</strong> sebagai approver agar fleksibel (siapa saja dengan role tersebut bisa
+                    approve)</li>
+                <li>Gunakan <strong>User spesifik</strong> hanya jika memang harus orang tertentu yang approve</li>
+                <li>Toggle <strong>Inactive</strong> untuk menonaktifkan workflow sementara tanpa menghapus</li>
+            </ul>
+        </div>
+
+        <!-- Contoh Konfigurasi -->
+        <div class="card">
+            <h2 data-icon="📋">Contoh Konfigurasi</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Workflow</th>
+                        <th>Dokumen</th>
+                        <th>Kondisi</th>
+                        <th>Approver</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>PO Standard</td>
+                        <td>Purchase Order</td>
+                        <td>-</td>
+                        <td>Supervisor → Manager</td>
+                    </tr>
+                    <tr>
+                        <td>PO Besar</td>
+                        <td>Purchase Order</td>
+                        <td>Total > 100.000.000</td>
+                        <td>Supervisor → Manager → Direktur</td>
+                    </tr>
+                    <tr>
+                        <td>SO VIP</td>
+                        <td>Sales Order</td>
+                        <td>Total > 500.000.000</td>
+                        <td>Sales Manager → Finance → CEO</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>
