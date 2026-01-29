@@ -349,6 +349,15 @@ onMounted(() => {
     document.addEventListener('fullscreenchange', () => {
         isFullscreen.value = !!document.fullscreenElement;
     });
+
+    // Handle screen resize to close mobile sidebar on desktop
+    const handleResize = () => {
+        if (window.innerWidth >= 1024) { // lg breakpoint
+            sidebarOpen.value = false;
+        }
+    };
+    window.addEventListener('resize', handleResize);
+    onUnmounted(() => window.removeEventListener('resize', handleResize));
 });
 
 const toggleNotifications = () => {
@@ -372,20 +381,11 @@ const toggleTheme = () => {
 <template>
     <div class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
         <!-- Mobile sidebar backdrop -->
-        <Transition
-            enter-active-class="transition-opacity ease-linear duration-300"
-            enter-from-class="opacity-0"
-            enter-to-class="opacity-100"
-            leave-active-class="transition-opacity ease-linear duration-300"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-        >
-            <div 
-                v-if="sidebarOpen" 
-                class="fixed inset-0 z-40 bg-slate-900/80 backdrop-blur-sm lg:hidden"
-                @click="closeSidebar"
-            />
-        </Transition>
+        <div 
+            v-if="sidebarOpen" 
+            class="fixed inset-0 z-40 bg-slate-900/80 backdrop-blur-sm lg:hidden transition-opacity duration-300"
+            @click="closeSidebar"
+        />
 
         <!-- Mobile sidebar -->
         <Transition
