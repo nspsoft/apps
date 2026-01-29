@@ -55,11 +55,13 @@ const edit = (numbering) => {
 };
 
 const updatePreview = _.debounce(async () => {
+    const now = new Date();
     let p = form.format
         .replace('{PREFIX}', form.prefix || '[PREFIX]')
-        .replace('{Y}', new Date().getFullYear())
-        .replace('{m}', String(new Date().getMonth() + 1).padStart(2, '0'))
-        .replace('{d}', String(new Date().getDate()).padStart(2, '0'))
+        .replace('{Y}', now.getFullYear())
+        .replace('{y}', String(now.getFullYear()).slice(-2))
+        .replace('{m}', String(now.getMonth() + 1).padStart(2, '0'))
+        .replace('{d}', String(now.getDate()).padStart(2, '0'))
         .replace('{NUMBER}', '0'.repeat(Math.max(0, (form.padding || 4) - 1)) + '1');
     
     preview.value = p;

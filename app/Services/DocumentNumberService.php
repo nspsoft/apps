@@ -96,10 +96,11 @@ class DocumentNumberService
         $num = $number ?? $config->current_number;
         $paddedNumber = str_pad($num, $config->padding, '0', STR_PAD_LEFT);
         
-        // Supported placeholders: {PREFIX}, {Y}, {m}, {d}, {NUMBER}
+        // Supported placeholders: {PREFIX}, {Y}, {y}, {m}, {d}, {NUMBER}
         $replacements = [
             '{PREFIX}' => $config->prefix,
-            '{Y}' => now()->format('Y'),
+            '{Y}' => now()->format('Y'),      // 4-digit year (2026)
+            '{y}' => now()->format('y'),      // 2-digit year (26)
             '{m}' => now()->format('m'),
             '{d}' => now()->format('d'),
             '{NUMBER}' => $paddedNumber,
