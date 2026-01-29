@@ -611,81 +611,240 @@ const formatDate = (dateStr) => {
             </div>
 
             <!-- MAINTENANCE TAB -->
-            <div v-if="activeTab === 'maintenance'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Sync Permissions -->
-                <div class="glass-card p-6 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                        <WrenchScrewdriverIcon class="h-5 w-5 text-indigo-500" />
-                        Sync Roles & Permissions
+            <div v-if="activeTab === 'maintenance'" class="space-y-6">
+                <!-- Tutorial Header -->
+                <div class="glass-card p-6 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800">
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                        📚 Panduan System Maintenance
                     </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                        Update roles and permissions to match the latest code. Use after system updates.
+                    <p class="text-slate-600 dark:text-slate-400 mb-4">
+                        Halaman ini memungkinkan Anda menjalankan perintah maintenance langsung dari browser 
+                        tanpa perlu akses SSH atau Terminal server. Berikut urutan yang disarankan setelah update sistem:
                     </p>
-                    <form @submit.prevent="router.post(route('settings.database.sync-permissions'), {}, { preserveScroll: true })">
-                        <button
-                            type="submit"
-                            class="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                        >
-                            🛡️ Sync Permissions
-                        </button>
-                    </form>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div class="flex items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-xl">
+                            <span class="flex items-center justify-center w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full font-bold">1</span>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Run Migrations</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-xl">
+                            <span class="flex items-center justify-center w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-full font-bold">2</span>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Sync Permissions</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-xl">
+                            <span class="flex items-center justify-center w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full font-bold">3</span>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Sync Numbering</span>
+                        </div>
+                        <div class="flex items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-xl">
+                            <span class="flex items-center justify-center w-8 h-8 bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-full font-bold">4</span>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">Clear Cache</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Sync Document Numbering -->
-                <div class="glass-card p-6 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                        <WrenchScrewdriverIcon class="h-5 w-5 text-emerald-500" />
-                        Sync Document Numbering
-                    </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                        Add default number formats for any missing document types.
-                    </p>
-                    <form @submit.prevent="router.post(route('settings.database.sync-numbering'), {}, { preserveScroll: true })">
-                        <button
-                            type="submit"
-                            class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                        >
-                            🔢 Sync Numbering
-                        </button>
-                    </form>
+                <!-- Action Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Run Migrations (FIRST) -->
+                    <div class="glass-card p-6 rounded-2xl border-2 border-amber-200 dark:border-amber-800">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <span class="inline-flex items-center justify-center w-8 h-8 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-full font-bold text-sm mb-2">1</span>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <WrenchScrewdriverIcon class="h-5 w-5 text-amber-500" />
+                                    Run Database Migrations
+                                </h3>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3 mb-4">
+                            <div class="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">🎯 Fungsi:</p>
+                                <p class="text-sm text-amber-700 dark:text-amber-300">
+                                    Membuat tabel-tabel baru di database yang diperlukan oleh fitur terbaru.
+                                </p>
+                            </div>
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">📝 Kapan digunakan:</p>
+                                <ul class="text-sm text-slate-600 dark:text-slate-400 list-disc list-inside space-y-1">
+                                    <li>Setelah melakukan <code class="bg-slate-200 dark:bg-slate-700 px-1 rounded">git pull</code></li>
+                                    <li>Jika muncul error "Table not found"</li>
+                                    <li>Setelah ada update fitur baru</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-green-700 dark:text-green-300">✅ Aman dijalankan berkali-kali (tidak akan duplikat)</p>
+                            </div>
+                        </div>
+
+                        <form @submit.prevent="router.post(route('settings.database.run-migrations'), {}, { preserveScroll: true })">
+                            <button
+                                type="submit"
+                                class="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                ⚙️ Run Migrations
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Sync Permissions (SECOND) -->
+                    <div class="glass-card p-6 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-full font-bold text-sm mb-2">2</span>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <WrenchScrewdriverIcon class="h-5 w-5 text-indigo-500" />
+                                    Sync Roles & Permissions
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 mb-4">
+                            <div class="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-indigo-800 dark:text-indigo-200 mb-1">🎯 Fungsi:</p>
+                                <p class="text-sm text-indigo-700 dark:text-indigo-300">
+                                    Mendaftarkan role dan permission baru ke database agar muncul di menu "Roles & Permissions".
+                                </p>
+                            </div>
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">📝 Kapan digunakan:</p>
+                                <ul class="text-sm text-slate-600 dark:text-slate-400 list-disc list-inside space-y-1">
+                                    <li>Menu baru tidak muncul di daftar permission</li>
+                                    <li>Role baru tidak terdaftar</li>
+                                    <li>Setelah ada update modul baru</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-green-700 dark:text-green-300">✅ Tidak menghapus permission yang sudah ada</p>
+                            </div>
+                        </div>
+
+                        <form @submit.prevent="router.post(route('settings.database.sync-permissions'), {}, { preserveScroll: true })">
+                            <button
+                                type="submit"
+                                class="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                🛡️ Sync Permissions
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Sync Document Numbering (THIRD) -->
+                    <div class="glass-card p-6 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <span class="inline-flex items-center justify-center w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full font-bold text-sm mb-2">3</span>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <WrenchScrewdriverIcon class="h-5 w-5 text-emerald-500" />
+                                    Sync Document Numbering
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 mb-4">
+                            <div class="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-emerald-800 dark:text-emerald-200 mb-1">🎯 Fungsi:</p>
+                                <p class="text-sm text-emerald-700 dark:text-emerald-300">
+                                    Menambahkan format penomoran dokumen default (SO, PO, Invoice, dll) untuk tipe dokumen yang belum ada.
+                                </p>
+                            </div>
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">📝 Kapan digunakan:</p>
+                                <ul class="text-sm text-slate-600 dark:text-slate-400 list-disc list-inside space-y-1">
+                                    <li>Menu Document Numbering kosong</li>
+                                    <li>Ada tipe dokumen baru yang perlu format nomor</li>
+                                    <li>Error saat generate nomor dokumen</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-green-700 dark:text-green-300">✅ Tidak mengubah format yang sudah Anda kustomisasi</p>
+                            </div>
+                        </div>
+
+                        <form @submit.prevent="router.post(route('settings.database.sync-numbering'), {}, { preserveScroll: true })">
+                            <button
+                                type="submit"
+                                class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                🔢 Sync Numbering
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Clear Cache (FOURTH) -->
+                    <div class="glass-card p-6 rounded-2xl border-2 border-rose-200 dark:border-rose-800">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <span class="inline-flex items-center justify-center w-8 h-8 bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-full font-bold text-sm mb-2">4</span>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <WrenchScrewdriverIcon class="h-5 w-5 text-rose-500" />
+                                    Clear System Cache
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 mb-4">
+                            <div class="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-rose-800 dark:text-rose-200 mb-1">🎯 Fungsi:</p>
+                                <p class="text-sm text-rose-700 dark:text-rose-300">
+                                    Membersihkan semua cache sistem (route, config, view, permission) agar perubahan terbaru langsung terlihat.
+                                </p>
+                            </div>
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">📝 Kapan digunakan:</p>
+                                <ul class="text-sm text-slate-600 dark:text-slate-400 list-disc list-inside space-y-1">
+                                    <li>Menu tidak berubah setelah update</li>
+                                    <li>Permission sudah di-sync tapi belum muncul</li>
+                                    <li>Tampilan tidak sesuai dengan yang seharusnya</li>
+                                    <li>Setelah mengubah konfigurasi sistem</li>
+                                </ul>
+                            </div>
+                            <div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                <p class="text-sm font-medium text-green-700 dark:text-green-300">✅ Tidak menghapus data apapun, hanya file cache sementara</p>
+                            </div>
+                        </div>
+
+                        <form @submit.prevent="router.post(route('settings.database.clear-cache'), {}, { preserveScroll: true })">
+                            <button
+                                type="submit"
+                                class="w-full py-3 px-4 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                🗑️ Clear Cache
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
-                <!-- Run Migrations -->
-                <div class="glass-card p-6 rounded-2xl border-2 border-amber-200 dark:border-amber-800">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                        <WrenchScrewdriverIcon class="h-5 w-5 text-amber-500" />
-                        Run Database Migrations
-                    </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                        Apply pending database schema changes. Use after code updates.
-                    </p>
-                    <form @submit.prevent="router.post(route('settings.database.run-migrations'), {}, { preserveScroll: true })">
-                        <button
-                            type="submit"
-                            class="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                        >
-                            ⚙️ Run Migrations
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Clear Cache -->
-                <div class="glass-card p-6 rounded-2xl border-2 border-rose-200 dark:border-rose-800">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                        <WrenchScrewdriverIcon class="h-5 w-5 text-rose-500" />
-                        Clear System Cache
-                    </h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                        Clear all application caches. Use if menus or settings are not updating.
-                    </p>
-                    <form @submit.prevent="router.post(route('settings.database.clear-cache'), {}, { preserveScroll: true })">
-                        <button
-                            type="submit"
-                            class="w-full py-3 px-4 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                        >
-                            🗑️ Clear Cache
-                        </button>
-                    </form>
+                <!-- FAQ Section -->
+                <div class="glass-card p-6 rounded-2xl">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">❓ Pertanyaan Umum (FAQ)</h3>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <p class="font-medium text-slate-900 dark:text-white mb-1">Q: Apakah aman menjalankan semua tombol ini?</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                A: Ya, sangat aman! Semua aksi di halaman ini dirancang untuk tidak menghapus data penting. 
+                                Mereka hanya menambahkan data baru atau membersihkan cache sementara.
+                            </p>
+                        </div>
+                        <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <p class="font-medium text-slate-900 dark:text-white mb-1">Q: Berapa lama prosesnya?</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                A: Biasanya hanya beberapa detik (1-5 detik). Jika lebih lama, tunggu saja sampai muncul notifikasi sukses.
+                            </p>
+                        </div>
+                        <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <p class="font-medium text-slate-900 dark:text-white mb-1">Q: Kenapa ada error "500 Server Error"?</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                A: Biasanya karena ada tabel yang belum dibuat. Jalankan "Run Migrations" terlebih dahulu, 
+                                lalu coba lagi aksi yang error.
+                            </p>
+                        </div>
+                        <div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                            <p class="font-medium text-slate-900 dark:text-white mb-1">Q: Apakah perlu menjalankan semua tombol setiap update?</p>
+                            <p class="text-sm text-slate-600 dark:text-slate-400">
+                                A: Tidak selalu. Jalankan sesuai kebutuhan. Jika tidak ada masalah setelah update, 
+                                Anda tidak perlu menjalankan apapun.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
