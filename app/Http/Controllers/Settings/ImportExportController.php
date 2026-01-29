@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Supplier;
-use App\Models\ChartOfAccount;
 use App\Models\Warehouse;
 use App\Models\ProductCategory;
 use Illuminate\Http\Request;
@@ -31,7 +30,7 @@ class ImportExportController extends Controller
                 'products' => Product::count(),
                 'customers' => Customer::count(),
                 'suppliers' => Supplier::count(),
-                'accounts' => ChartOfAccount::count(),
+
             ],
         ]);
     }
@@ -60,12 +59,7 @@ class ImportExportController extends Controller
                 'description' => 'Data supplier',
                 'columns' => ['code', 'name', 'email', 'phone', 'address', 'city', 'tax_id'],
             ],
-            'accounts' => [
-                'name' => 'Chart of Accounts',
-                'icon' => 'calculator',
-                'description' => 'Master akun',
-                'columns' => ['code', 'name', 'type', 'parent_code', 'description'],
-            ],
+
         ];
     }
 
@@ -120,7 +114,6 @@ class ImportExportController extends Controller
             'products' => ['PRD-001', 'Sample Product', 'General', 'PCS', '100000', '80000', 'Product description'],
             'customers' => ['CUST-001', 'PT Sample Customer', 'customer@email.com', '021-12345678', 'Jl. Sample No. 1', 'Jakarta', '01.234.567.8-901.000'],
             'suppliers' => ['SUP-001', 'PT Sample Supplier', 'supplier@email.com', '021-87654321', 'Jl. Supplier No. 1', 'Surabaya', '09.876.543.2-109.000'],
-            'accounts' => ['1-1001', 'Cash on Hand', 'asset', '1-1000', 'Petty cash account'],
             default => [],
         };
     }
@@ -208,15 +201,7 @@ class ImportExportController extends Controller
                 'city' => $s->city,
                 'tax_id' => $s->tax_id,
             ])->toArray(),
-            
-            'accounts' => ChartOfAccount::with('parent')->get()->map(fn($a) => [
-                'code' => $a->code,
-                'name' => $a->name,
-                'type' => $a->type,
-                'parent_code' => $a->parent?->code ?? '',
-                'description' => $a->description,
-            ])->toArray(),
-            
+                        
             default => [],
         };
     }
@@ -339,23 +324,6 @@ class ImportExportController extends Controller
                 );
                 break;
                 
-            case 'accounts':
-                $parentId = null;
-                if (!empty($data['parent_code'])) {
-                    $parent = ChartOfAccount::where('code', $data['parent_code'])->first();
-                    $parentId = $parent?->id;
-                }
-                
-                ChartOfAccount::updateOrCreate(
-                    ['code' => $data['code']],
-                    [
-                        'name' => $data['name'],
-                        'type' => $data['type'] ?? 'asset',
-                        'parent_id' => $parentId,
-                        'description' => $data['description'] ?? null,
-                    ]
-                );
-                break;
         }
     }
 
