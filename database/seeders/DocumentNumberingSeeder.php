@@ -19,14 +19,16 @@ class DocumentNumberingSeeder extends Seeder
                 'code' => 'sales_return',
                 'name' => 'Sales Return',
                 'prefix' => 'RET',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             [
                 'module' => 'purchasing',
                 'code' => 'purchase_return',
                 'name' => 'Purchase Return',
                 'prefix' => 'PRT',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             // Sales
             [
@@ -34,28 +36,32 @@ class DocumentNumberingSeeder extends Seeder
                 'code' => 'sales_order',
                 'name' => 'Sales Order',
                 'prefix' => 'SO',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             [
                 'module' => 'sales',
                 'code' => 'sales_invoice',
                 'name' => 'Sales Invoice',
                 'prefix' => 'INV',
-                'format' => '{PREFIX}/{Y}{m}-{NUMBER}', // INV/202301-0001
+                'format' => '{PREFIX}/{y}{m}-{NUMBER}',
+                'padding' => 3,
             ],
             [
                 'module' => 'sales',
                 'code' => 'delivery_order',
                 'name' => 'Delivery Order',
                 'prefix' => 'DO',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
              [
                 'module' => 'sales',
                 'code' => 'quotation',
                 'name' => 'Quotation',
                 'prefix' => 'QT',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             // Purchasing
             [
@@ -63,21 +69,24 @@ class DocumentNumberingSeeder extends Seeder
                 'code' => 'purchase_request',
                 'name' => 'Purchase Request',
                 'prefix' => 'PR',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             [
                 'module' => 'purchasing',
                 'code' => 'purchase_order',
                 'name' => 'Purchase Order',
                 'prefix' => 'PO',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             [
                 'module' => 'purchasing',
                 'code' => 'goods_receipt',
                 'name' => 'Goods Receipt',
                 'prefix' => 'GR',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             // Manufacturing
             [
@@ -85,14 +94,16 @@ class DocumentNumberingSeeder extends Seeder
                 'code' => 'work_order',
                 'name' => 'Work Order',
                 'prefix' => 'WO',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             [
                 'module' => 'manufacturing',
                 'code' => 'production_entry',
                 'name' => 'Production Entry',
                 'prefix' => 'PROD',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             // Subcontractor
             [
@@ -100,7 +111,8 @@ class DocumentNumberingSeeder extends Seeder
                 'code' => 'subcont_delivery',
                 'name' => 'Surat Jalan Subcont',
                 'prefix' => 'SUB',
-                'format' => '{PREFIX}/{Y}/{m}/{NUMBER}',
+                'format' => '{PREFIX}/{y}/{m}/{NUMBER}',
+                'padding' => 3,
             ],
             [
                 'module' => 'manufacturing',
