@@ -49,6 +49,7 @@ const sidebarOpen = ref(false);
 const collapsed = ref(false);
 const userMenuOpen = ref(false);
 const isDark = ref(false);
+const isFullscreen = ref(false);
 const isInstalled = ref(false);
 
 // PWA Install Prompt
@@ -363,6 +364,18 @@ onMounted(() => {
 const toggleNotifications = () => {
     notificationsOpen.value = !notificationsOpen.value;
     if (userMenuOpen.value) userMenuOpen.value = false;
+};
+
+const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+            isFullscreen.value = true;
+        }).catch(() => {});
+    } else {
+        document.exitFullscreen().then(() => {
+            isFullscreen.value = false;
+        }).catch(() => {});
+    }
 };
 
 const toggleTheme = () => {
