@@ -308,7 +308,11 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::post('/company', [App\Http\Controllers\Settings\CompanyController::class, 'update'])->name('company.update');
     Route::get('/ai', [App\Http\Controllers\Settings\CompanyController::class, 'aiSettings'])->name('ai.index');
     Route::post('/ai', [App\Http\Controllers\Settings\CompanyController::class, 'updateAiSettings'])->name('ai.update');
-    Route::get('/numbering', fn () => Inertia::render('Settings/DocumentNumbering'))->name('numbering');
+    // Document Numbering
+    Route::get('/numbering', [App\Http\Controllers\Settings\DocumentNumberingController::class, 'index'])->name('numbering');
+    Route::post('/numbering', [App\Http\Controllers\Settings\DocumentNumberingController::class, 'store'])->name('numbering.store');
+    Route::put('/numbering/{documentNumbering}', [App\Http\Controllers\Settings\DocumentNumberingController::class, 'update'])->name('numbering.update');
+    Route::get('/numbering/preview/{code}', [App\Http\Controllers\Settings\DocumentNumberingController::class, 'preview'])->name('numbering.preview');
     Route::get('/regional', fn () => Inertia::render('Settings/RegionalTax'))->name('regional');
     Route::get('/preferences', fn () => Inertia::render('Settings/SystemPreferences'))->name('preferences');
     Route::get('/workflow', fn () => Inertia::render('Settings/WorkflowApproval'))->name('workflow');

@@ -181,22 +181,28 @@ class PurchaseOrder extends Model
      */
     public static function generatePoNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $prefix = "PO-{$year}{$month}-";
-        
-        $lastPo = static::where('po_number', 'like', "{$prefix}%")
-            ->orderBy('po_number', 'desc')
-            ->first();
+        try {
+            return app(\App\Services\DocumentNumberService::class)->generate('purchase_order');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("Document Numbering failing for purchase_order: " . $e->getMessage());
+            
+            $year = date('Y');
+            $month = date('m');
+            $prefix = "PO-{$year}{$month}-";
+            
+            $lastPo = static::where('po_number', 'like', "{$prefix}%")
+                ->orderBy('po_number', 'desc')
+                ->first();
 
-        if ($lastPo) {
-            $lastNumber = (int) substr($lastPo->po_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
+            if ($lastPo) {
+                $lastNumber = (int) substr($lastPo->po_number, -4);
+                $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            } else {
+                $newNumber = '0001';
+            }
+
+            return $prefix . $newNumber;
         }
-
-        return $prefix . $newNumber;
     }
 
     /**

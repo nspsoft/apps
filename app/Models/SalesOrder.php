@@ -142,22 +142,29 @@ class SalesOrder extends Model
 
     public static function generateSoNumber(): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $prefix = "SO-{$year}{$month}-";
-        
-        $last = static::where('so_number', 'like', "{$prefix}%")
-            ->orderBy('so_number', 'desc')
-            ->first();
-
-        if ($last) {
-            $lastNumber = (int) substr($last->so_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-        } else {
-            $newNumber = '0001';
+        try {
+            return app(\App\Services\DocumentNumberService::class)->generate('sales_order');
+        } catch (\Exception $e) {
+            // Fallback to old method if config missing (for safety)
+            \Illuminate\Support\Facades\Log::warning("Document Numbering failing for sales_order: " . $e->getMessage());
+            
+            $year = date('Y');
+            $month = date('m');
+            $prefix = "SO-{$year}{$month}-";
+            
+            $last = static::where('so_number', 'like', "{$prefix}%")
+                ->orderBy('so_number', 'desc')
+                ->first();
+    
+            if ($last) {
+                $lastNumber = (int) substr($last->so_number, -4);
+                $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            } else {
+                $newNumber = '0001';
+            }
+    
+            return $prefix . $newNumber;
         }
-
-        return $prefix . $newNumber;
     }
 
     public function getStatusColorAttribute(): string

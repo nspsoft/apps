@@ -350,11 +350,65 @@ class DatabaseBackupService
     /**
      * Module reset - Reset specific module only
      */
+    /**
+     * Module dependencies mapping for safety checks
+     * Format: 'target_module' => ['dependent_table' => 'Dependent Module Name']
+     */
+    protected $moduleDependencies = [
+        'inventory' => [
+            'quotation_items' => 'Sales (Quotations)',
+            'sales_order_items' => 'Sales (Orders)',
+            'delivery_order_items' => 'Sales (Delivery)',
+            'sales_invoice_items' => 'Sales (Invoices)',
+            'sales_return_items' => 'Sales (Returns)',
+            'purchase_request_items' => 'Purchasing (Requests)',
+            'purchase_order_items' => 'Purchasing (Orders)',
+            'goods_receipt_items' => 'Purchasing (Receipts)',
+            'purchase_invoice_items' => 'Purchasing (Invoices)',
+            'purchase_return_items' => 'Purchasing (Returns)',
+            'bom_items' => 'Manufacturing (BOM)',
+            'work_order_items' => 'Manufacturing (Work Orders)',
+            'production_entries' => 'Manufacturing (Production)',
+            'subcontract_order_items' => 'Manufacturing (Subcontract)',
+        ],
+        'sales' => [
+            'journal_entries' => 'Finance (Journals)', // Example if sales link to finance
+        ],
+        'purchasing' => [
+            'journal_entries' => 'Finance (Journals)',
+        ],
+        // Add more dependencies as needed
+    ];
+
+    /**
+     * Module reset - Reset specific module only with safety checks
+     */
     public function moduleReset(string $module): array
     {
         try {
             if (!isset($this->moduleTables[$module])) {
                 throw new Exception("Unknown module: {$module}");
+            }
+
+            // SAFETY CHECK: Check dependencies
+            if (isset($this->moduleDependencies[$module])) {
+                $dependencies = $this->moduleDependencies[$module];
+                $blockingDependencies = [];
+
+                foreach ($dependencies as $table => $dependentModule) {
+                    if ($this->tableExists($table)) {
+                        $count = DB::table($table)->count();
+                        if ($count > 0) {
+                            $blockingDependencies[] = "{$dependentModule} ({$count} records)";
+                        }
+                    }
+                }
+
+                if (!empty($blockingDependencies)) {
+                    $errorMsg = "Cannot reset '{$module}' because data exists in dependent modules:\n" . implode("\n", $blockingDependencies);
+                    $errorMsg .= "\n\nPlease perform a Soft Reset first or clear the dependent data.";
+                    throw new Exception($errorMsg);
+                }
             }
             
             DB::statement('SET FOREIGN_KEY_CHECKS=0');
@@ -444,6 +498,34 @@ class DatabaseBackupService
             'size_human' => $this->formatBytes(Storage::size($filepath)),
             'created_at' => date('Y-m-d H:i:s', Storage::lastModified($filepath)),
         ];
+    }
+
+    /**
+     * Clean old backups based on retention days
+     */
+    public function cleanOldBackups(int $retentionDays = 30): int
+    {
+        $files = Storage::files($this->backupPath);
+        $deletedCount = 0;
+        $timestampLimit = now()->subDays($retentionDays)->timestamp;
+        
+        foreach ($files as $file) {
+            // Check if it's a backup file (starts with backup_ or uploaded_)
+            if (!str_starts_with(basename($file), 'backup_') && !str_starts_with(basename($file), 'uploaded_')) {
+                continue;
+            }
+            
+            if (Storage::lastModified($file) < $timestampLimit) {
+                Storage::delete($file);
+                $deletedCount++;
+            }
+        }
+        
+        if ($deletedCount > 0) {
+            $this->logSuccess('Cleanup completed', "Deleted {$deletedCount} old backup files (> {$retentionDays} days)");
+        }
+        
+        return $deletedCount;
     }
 
     // ========== HELPER METHODS ==========
