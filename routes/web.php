@@ -328,6 +328,12 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::post('/database/soft-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'softReset'])->name('database.soft-reset');
     Route::post('/database/hard-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'hardReset'])->name('database.hard-reset');
     Route::post('/database/module-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'moduleReset'])->name('database.module-reset');
+    Route::get('/database/backup-info/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'backupInfo'])->name('database.backup-info');
+    // System Maintenance (In-App Artisan Commands)
+    Route::post('/database/sync-permissions', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'syncPermissions'])->name('database.sync-permissions');
+    Route::post('/database/sync-numbering', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'syncDocumentNumbering'])->name('database.sync-numbering');
+    Route::post('/database/run-migrations', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'runMigrations'])->name('database.run-migrations');
+    Route::post('/database/clear-cache', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'clearCache'])->name('database.clear-cache');
     Route::get('/database/info/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'backupInfo'])->name('database.info');
 });
 

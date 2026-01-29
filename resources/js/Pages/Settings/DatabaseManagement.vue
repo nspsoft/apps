@@ -14,6 +14,7 @@ import {
     CloudArrowUpIcon,
     ShieldExclamationIcon,
     CubeIcon,
+    WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -216,7 +217,7 @@ const formatDate = (dateStr) => {
             <!-- Tab Navigation -->
             <div class="flex gap-2 border-b border-slate-200 dark:border-slate-700 pb-2">
                 <button
-                    v-for="tab in ['backup', 'restore', 'reset']"
+                    v-for="tab in ['backup', 'restore', 'reset', 'maintenance']"
                     :key="tab"
                     @click="activeTab = tab"
                     class="px-4 py-2 rounded-lg font-medium text-sm transition-all"
@@ -226,7 +227,8 @@ const formatDate = (dateStr) => {
                 >
                     <span v-if="tab === 'backup'">📦 Backup</span>
                     <span v-else-if="tab === 'restore'">📥 Restore</span>
-                    <span v-else>🔄 Reset</span>
+                    <span v-else-if="tab === 'reset'">🔄 Reset</span>
+                    <span v-else>🔧 Maintenance</span>
                 </button>
             </div>
 
@@ -603,6 +605,85 @@ const formatDate = (dateStr) => {
                             class="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-violet-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Reset Module
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MAINTENANCE TAB -->
+            <div v-if="activeTab === 'maintenance'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Sync Permissions -->
+                <div class="glass-card p-6 rounded-2xl border-2 border-indigo-200 dark:border-indigo-800">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <WrenchScrewdriverIcon class="h-5 w-5 text-indigo-500" />
+                        Sync Roles & Permissions
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        Update roles and permissions to match the latest code. Use after system updates.
+                    </p>
+                    <form @submit.prevent="router.post(route('settings.database.sync-permissions'), {}, { preserveScroll: true })">
+                        <button
+                            type="submit"
+                            class="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            🛡️ Sync Permissions
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Sync Document Numbering -->
+                <div class="glass-card p-6 rounded-2xl border-2 border-emerald-200 dark:border-emerald-800">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <WrenchScrewdriverIcon class="h-5 w-5 text-emerald-500" />
+                        Sync Document Numbering
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        Add default number formats for any missing document types.
+                    </p>
+                    <form @submit.prevent="router.post(route('settings.database.sync-numbering'), {}, { preserveScroll: true })">
+                        <button
+                            type="submit"
+                            class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            🔢 Sync Numbering
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Run Migrations -->
+                <div class="glass-card p-6 rounded-2xl border-2 border-amber-200 dark:border-amber-800">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <WrenchScrewdriverIcon class="h-5 w-5 text-amber-500" />
+                        Run Database Migrations
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        Apply pending database schema changes. Use after code updates.
+                    </p>
+                    <form @submit.prevent="router.post(route('settings.database.run-migrations'), {}, { preserveScroll: true })">
+                        <button
+                            type="submit"
+                            class="w-full py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            ⚙️ Run Migrations
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Clear Cache -->
+                <div class="glass-card p-6 rounded-2xl border-2 border-rose-200 dark:border-rose-800">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <WrenchScrewdriverIcon class="h-5 w-5 text-rose-500" />
+                        Clear System Cache
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                        Clear all application caches. Use if menus or settings are not updating.
+                    </p>
+                    <form @submit.prevent="router.post(route('settings.database.clear-cache'), {}, { preserveScroll: true })">
+                        <button
+                            type="submit"
+                            class="w-full py-3 px-4 bg-gradient-to-r from-rose-600 to-pink-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            🗑️ Clear Cache
                         </button>
                     </form>
                 </div>

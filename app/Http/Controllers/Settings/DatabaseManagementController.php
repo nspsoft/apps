@@ -222,4 +222,62 @@ class DatabaseManagementController extends Controller
 
         return response()->json($info);
     }
+
+    /**
+     * Sync Roles & Permissions from seeder
+     */
+    public function syncPermissions()
+    {
+        try {
+            \Artisan::call('db:seed', ['--class' => 'RoleSeeder', '--force' => true]);
+            $output = \Artisan::output();
+            
+            return back()->with('success', 'Roles & Permissions synced successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Sync failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Document Numbering defaults
+     */
+    public function syncDocumentNumbering()
+    {
+        try {
+            \Artisan::call('db:seed', ['--class' => 'DocumentNumberingSeeder', '--force' => true]);
+            
+            return back()->with('success', 'Document Numbering formats synced successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Sync failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Run pending migrations
+     */
+    public function runMigrations()
+    {
+        try {
+            \Artisan::call('migrate', ['--force' => true]);
+            $output = \Artisan::output();
+            
+            return back()->with('success', 'Migrations executed successfully! Output: ' . $output);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Migration failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Clear all caches
+     */
+    public function clearCache()
+    {
+        try {
+            \Artisan::call('optimize:clear');
+            
+            return back()->with('success', 'All caches cleared successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Cache clear failed: ' . $e->getMessage());
+        }
+    }
 }
