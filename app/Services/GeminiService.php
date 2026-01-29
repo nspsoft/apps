@@ -40,11 +40,14 @@ class GeminiService
         $prompt = "Extract the following information from this Purchase Order document and return ONLY a valid JSON object:
         - po_number (The Purchase Order number from the customer)
         - po_date (The date of the PO, format YYYY-MM-DD or null if not found)
-        - customer_name (The name of the customer sending the PO)
+        - customer_name (The name of the customer/company sending the PO)
+        - customer_address (The address of the customer if visible)
         - items (An array of objects containing:)
             - description (Product name or description)
             - qty (Quantity as a number)
-            - unit (UOM if specified)
+            - unit (UOM if specified, e.g. pcs, kg, m)
+            - unit_price (Price per unit as a number, without currency symbol)
+            - total_price (Total price for this line as a number)
         
         Return pure JSON without markdown backticks.";
 
