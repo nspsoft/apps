@@ -313,7 +313,13 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::post('/numbering', [App\Http\Controllers\Settings\DocumentNumberingController::class, 'store'])->name('numbering.store');
     Route::put('/numbering/{documentNumbering}', [App\Http\Controllers\Settings\DocumentNumberingController::class, 'update'])->name('numbering.update');
     Route::get('/numbering/preview/{code}', [App\Http\Controllers\Settings\DocumentNumberingController::class, 'preview'])->name('numbering.preview');
-    Route::get('/regional', fn () => Inertia::render('Settings/RegionalTax'))->name('regional');
+    
+    // Regional & Tax Settings
+    Route::get('/regional', [App\Http\Controllers\Settings\RegionalTaxController::class, 'index'])->name('regional');
+    Route::post('/regional/tax-rates', [App\Http\Controllers\Settings\RegionalTaxController::class, 'storeTaxRate'])->name('regional.tax-rates.store');
+    Route::put('/regional/tax-rates/{taxRate}', [App\Http\Controllers\Settings\RegionalTaxController::class, 'updateTaxRate'])->name('regional.tax-rates.update');
+    Route::delete('/regional/tax-rates/{taxRate}', [App\Http\Controllers\Settings\RegionalTaxController::class, 'deleteTaxRate'])->name('regional.tax-rates.delete');
+    Route::put('/regional/settings', [App\Http\Controllers\Settings\RegionalTaxController::class, 'updateSettings'])->name('regional.settings.update');
     Route::get('/preferences', fn () => Inertia::render('Settings/SystemPreferences'))->name('preferences');
     Route::get('/workflow', fn () => Inertia::render('Settings/WorkflowApproval'))->name('workflow');
     Route::get('/io', fn () => Inertia::render('Settings/ImportExport'))->name('io');
