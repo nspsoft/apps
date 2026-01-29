@@ -69,13 +69,18 @@ class RoleSeeder extends Seeder
 
         $roles = [
             'Super Admin',
+            'IT Administrator',
             'Sales Manager',
+            'Marketing Manager',
             'Purchasing Manager',
             'Production Manager',
-            'Quality Control',
-            'Inventory Staff',
-            'Finance',
-            'HR & Payroll'
+            'Warehouse Manager',
+            'Logistics Manager',
+            'Quality Control Manager',
+            'Finance Manager',
+            'HR & Payroll',
+            'Director',
+            'Production Operator'
         ];
 
         foreach ($roles as $roleName) {
@@ -83,6 +88,56 @@ class RoleSeeder extends Seeder
             
             if ($roleName === 'Super Admin') {
                 $role->syncPermissions(Permission::all());
+                continue;
+            }
+
+            // Granular Permissions
+            $permissions = [];
+
+            if ($roleName === 'IT Administrator') {
+                $permissions = Permission::where('name', 'like', 'settings.%')->get();
+            } 
+            elseif ($roleName === 'Director') {
+                $permissions = Permission::where('name', 'like', '%.view')->get();
+            }
+            elseif ($roleName === 'Sales Manager') {
+                $permissions = Permission::where('name', 'like', 'sales_crm.%')->get();
+            }
+            elseif ($roleName === 'Marketing Manager') {
+                $permissions = Permission::where('name', 'like', 'sales_crm.leads_management.%')
+                    ->orWhere('name', 'like', 'sales_crm.opportunity_tracking.%')
+                    ->orWhere('name', 'like', 'sales_crm.marketing_campaigns.%')
+                    ->get();
+            }
+            elseif ($roleName === 'Purchasing Manager') {
+                $permissions = Permission::where('name', 'like', 'purchasing.%')->get();
+            }
+            elseif ($roleName === 'Production Manager') {
+                $permissions = Permission::where('name', 'like', 'manufacturing.%')->get();
+            }
+            elseif ($roleName === 'Warehouse Manager') {
+                $permissions = Permission::where('name', 'like', 'inventory.%')->get();
+            }
+            elseif ($roleName === 'Logistics Manager') {
+                $permissions = Permission::where('name', 'like', 'logistics.%')->get();
+            }
+            elseif ($roleName === 'Quality Control Manager') {
+                $permissions = Permission::where('name', 'like', 'qc.%')->get();
+            }
+            elseif ($roleName === 'Finance Manager') {
+                $permissions = Permission::where('name', 'like', 'finance.%')->get();
+            }
+            elseif ($roleName === 'Production Operator') {
+                $permissions = Permission::whereIn('name', [
+                    'manufacturing.work_orders.view',
+                    'manufacturing.production.view',
+                    'manufacturing.production.create',
+                    'manufacturing.input_output.create'
+                ])->get();
+            }
+
+            if (count($permissions) > 0) {
+                $role->syncPermissions($permissions);
             }
         }
 
