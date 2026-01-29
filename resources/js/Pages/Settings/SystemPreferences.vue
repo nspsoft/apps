@@ -100,31 +100,18 @@ const categories = [
     <Head title="System Preferences" />
     
     <AppLayout title="System Preferences">
-        <template #header>
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="p-2 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-lg">
-                        <Cog6ToothIcon class="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-900 dark:text-white">System Preferences</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Configure core system behaviors and feature toggles</p>
-                    </div>
-                </div>
-                <button 
-                    @click="savePreferences" 
-                    :disabled="saving"
-                    class="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50"
-                >
-                    <CheckIcon v-if="saved" class="h-5 w-5" />
-                    <span v-if="saved">Saved!</span>
-                    <span v-else-if="saving">Saving...</span>
-                    <span v-else>Save All Changes</span>
-                </button>
-            </div>
-        </template>
-
         <div class="p-6 space-y-6">
+            <!-- Header -->
+            <div class="flex items-center gap-3 mb-6">
+                <div class="p-2 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl shadow-lg">
+                    <Cog6ToothIcon class="h-6 w-6 text-white" />
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white">System Preferences</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Configure core system behaviors and feature toggles</p>
+                </div>
+            </div>
+
             <!-- Category Cards -->
             <div v-for="category in categories" :key="category.name" class="glass-card rounded-2xl overflow-hidden">
                 <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
@@ -187,6 +174,20 @@ const categories = [
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Save Button - Sticky at bottom -->
+            <div class="sticky bottom-4 flex justify-center pt-4">
+                <button 
+                    @click="savePreferences" 
+                    :disabled="saving"
+                    class="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-2xl transition-all disabled:opacity-50 text-lg"
+                >
+                    <CheckIcon v-if="saved" class="h-6 w-6" />
+                    <span v-if="saved">✓ Saved Successfully!</span>
+                    <span v-else-if="saving">Saving...</span>
+                    <span v-else>💾 Save All Changes</span>
+                </button>
             </div>
         </div>
     </AppLayout>
