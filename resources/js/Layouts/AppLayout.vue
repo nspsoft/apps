@@ -249,7 +249,7 @@ const navigation = [
             { name: 'Company Profile', href: '/settings/company', permission: 'settings.company_profile.view' },
             { name: 'AI Configuration', href: '/settings/ai', permission: 'settings.company_profile.view' },
             { name: 'Document Numbering', href: '/settings/numbering', permission: 'settings.document_numbering.view' },
-            { name: 'Regional & Tax', href: '/settings/regional_&_tax', permission: 'settings.regional_&_tax.view' },
+            { name: 'Regional & Tax', href: '/settings/regional', permission: 'settings.regional_&_tax.view' },
             { name: 'System Preferences', href: '/settings/preferences', permission: 'settings.system_preferences.view' },
             { name: 'Workflow Approval', href: '/settings/workflow', permission: 'settings.workflow_approval.view' },
             { name: 'Import & Export', href: '/settings/import_&_export', permission: 'settings.import_&_export.view' },
