@@ -325,7 +325,13 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::get('/preferences', [App\Http\Controllers\Settings\SystemPreferencesController::class, 'index'])->name('preferences');
     Route::put('/preferences', [App\Http\Controllers\Settings\SystemPreferencesController::class, 'update'])->name('preferences.update');
     
-    Route::get('/workflow', fn () => Inertia::render('Settings/WorkflowApproval'))->name('workflow');
+    // Workflow Approval
+    Route::get('/workflow', [App\Http\Controllers\Settings\WorkflowController::class, 'index'])->name('workflow');
+    Route::post('/workflow', [App\Http\Controllers\Settings\WorkflowController::class, 'store'])->name('workflow.store');
+    Route::put('/workflow/{workflow}', [App\Http\Controllers\Settings\WorkflowController::class, 'update'])->name('workflow.update');
+    Route::delete('/workflow/{workflow}', [App\Http\Controllers\Settings\WorkflowController::class, 'destroy'])->name('workflow.destroy');
+    Route::post('/workflow/{workflow}/toggle', [App\Http\Controllers\Settings\WorkflowController::class, 'toggle'])->name('workflow.toggle');
+    
     Route::get('/io', fn () => Inertia::render('Settings/ImportExport'))->name('io');
     
     // Database Management
@@ -359,3 +365,11 @@ Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])-
 Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 Route::put('/profile/password', [App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password');
 Route::post('/logout', [App\Http\Controllers\ProfileController::class, 'logout'])->name('logout');
+
+// Approvals
+Route::middleware(['auth'])->prefix('approvals')->name('approvals.')->group(function () {
+    Route::get('/pending', [App\Http\Controllers\ApprovalController::class, 'pending'])->name('pending');
+    Route::get('/history/{documentType}/{documentId}', [App\Http\Controllers\ApprovalController::class, 'history'])->name('history');
+    Route::post('/{approvalRequest}/approve', [App\Http\Controllers\ApprovalController::class, 'approve'])->name('approve');
+    Route::post('/{approvalRequest}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('reject');
+});
