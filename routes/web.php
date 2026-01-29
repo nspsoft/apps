@@ -320,7 +320,11 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::put('/regional/tax-rates/{taxRate}', [App\Http\Controllers\Settings\RegionalTaxController::class, 'updateTaxRate'])->name('regional.tax-rates.update');
     Route::delete('/regional/tax-rates/{taxRate}', [App\Http\Controllers\Settings\RegionalTaxController::class, 'deleteTaxRate'])->name('regional.tax-rates.delete');
     Route::put('/regional/settings', [App\Http\Controllers\Settings\RegionalTaxController::class, 'updateSettings'])->name('regional.settings.update');
-    Route::get('/preferences', fn () => Inertia::render('Settings/SystemPreferences'))->name('preferences');
+    
+    // System Preferences
+    Route::get('/preferences', [App\Http\Controllers\Settings\SystemPreferencesController::class, 'index'])->name('preferences');
+    Route::put('/preferences', [App\Http\Controllers\Settings\SystemPreferencesController::class, 'update'])->name('preferences.update');
+    
     Route::get('/workflow', fn () => Inertia::render('Settings/WorkflowApproval'))->name('workflow');
     Route::get('/io', fn () => Inertia::render('Settings/ImportExport'))->name('io');
     
