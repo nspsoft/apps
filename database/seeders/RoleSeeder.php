@@ -44,7 +44,7 @@ class RoleSeeder extends Seeder
                 'Employee Directory', 'Attendance', 'Payroll'
             ],
             'Settings' => [
-                'User Management', 'Roles & Permissions', 'Company Profile', 'Document Numbering', 'Regional & Tax', 'System Preferences', 'Workflow Approval', 'Import & Export', 'Activity Logs'
+                'User Management', 'Roles & Permissions', 'Company Profile', 'AI Configuration', 'Document Numbering', 'Regional & Tax', 'System Preferences', 'Workflow Approval', 'Import & Export', 'Database Management', 'Activity Logs'
             ]
         ];
 
