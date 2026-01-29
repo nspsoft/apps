@@ -253,6 +253,7 @@ const navigation = [
             { name: 'System Preferences', href: '/settings/preferences', permission: 'settings.system_preferences.view' },
             { name: 'Workflow Approval', href: '/settings/workflow', permission: 'settings.workflow_approval.view' },
             { name: 'Import & Export', href: '/settings/import_&_export', permission: 'settings.import_&_export.view' },
+            { name: 'Database Management', href: '/settings/database', permission: 'settings.database_management.view' },
             { name: 'Activity Logs', href: '/admin/activity-logs', permission: 'settings.activity_logs.view' },
         ]
     },

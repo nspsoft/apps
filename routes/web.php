@@ -313,6 +313,18 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::get('/preferences', fn () => Inertia::render('Settings/SystemPreferences'))->name('preferences');
     Route::get('/workflow', fn () => Inertia::render('Settings/WorkflowApproval'))->name('workflow');
     Route::get('/io', fn () => Inertia::render('Settings/ImportExport'))->name('io');
+    
+    // Database Management
+    Route::get('/database', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'index'])->name('database');
+    Route::post('/database/backup', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'backup'])->name('database.backup');
+    Route::get('/database/download/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'download'])->name('database.download');
+    Route::delete('/database/backup/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'deleteBackup'])->name('database.delete');
+    Route::post('/database/restore', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'restore'])->name('database.restore');
+    Route::post('/database/upload-restore', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'uploadRestore'])->name('database.upload-restore');
+    Route::post('/database/soft-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'softReset'])->name('database.soft-reset');
+    Route::post('/database/hard-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'hardReset'])->name('database.hard-reset');
+    Route::post('/database/module-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'moduleReset'])->name('database.module-reset');
+    Route::get('/database/info/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'backupInfo'])->name('database.info');
 });
 
 // Admin
