@@ -218,29 +218,59 @@ const close = () => {
                             </div>
 
                             <!-- Items Table -->
-                            <div class="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden">
+                            <div class="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden overflow-x-auto">
                                 <table class="w-full text-left text-sm">
                                     <thead class="bg-slate-50 dark:bg-slate-800/80">
                                         <tr>
-                                            <th class="px-4 py-3 font-bold text-slate-500 uppercase text-[10px]">Description</th>
-                                            <th class="px-4 py-3 font-bold text-slate-500 uppercase text-[10px]">Qty</th>
-                                            <th class="px-4 py-3 font-bold text-slate-500 uppercase text-[10px]">JICOS Match</th>
+                                            <th class="px-3 py-3 font-bold text-slate-500 uppercase text-[10px]">Description</th>
+                                            <th class="px-3 py-3 font-bold text-slate-500 uppercase text-[10px]">Qty</th>
+                                            <th class="px-3 py-3 font-bold text-slate-500 uppercase text-[10px]">JICOS Match</th>
+                                            <th class="px-3 py-3 font-bold text-slate-500 uppercase text-[10px]">Price Comparison</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                                         <tr v-for="(item, idx) in extractionResult.items" :key="idx" class="dark:text-slate-300">
-                                            <td class="px-4 py-3 text-xs">{{ item.description }}</td>
-                                            <td class="px-4 py-3 font-bold capitalize">{{ item.qty }} {{ item.unit }}</td>
-                                            <td class="px-4 py-3">
+                                            <td class="px-3 py-3 text-xs max-w-[150px]">{{ item.description }}</td>
+                                            <td class="px-3 py-3 font-bold capitalize whitespace-nowrap">{{ item.qty }} {{ item.unit }}</td>
+                                            <td class="px-3 py-3">
                                                 <div v-if="item.matched_product_id" class="flex flex-col">
                                                     <span class="text-[10px] font-bold text-emerald-500">{{ item.matched_sku }}</span>
-                                                    <span class="text-[10px] text-slate-500 truncate max-w-[150px]">{{ item.matched_product_name }}</span>
+                                                    <span class="text-[10px] text-slate-500 truncate max-w-[120px]">{{ item.matched_product_name }}</span>
                                                 </div>
-                                                <div v-else class="text-[10px] font-bold text-red-500">NO MATCH FOUND</div>
+                                                <div v-else class="text-[10px] font-bold text-red-500">NO MATCH</div>
+                                            </td>
+                                            <td class="px-3 py-3">
+                                                <div v-if="item.matched_product_id" class="space-y-1">
+                                                    <!-- Price from PO -->
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[9px] text-slate-400 w-8">PO:</span>
+                                                        <span class="text-[11px] font-semibold" :class="item.price_mismatch ? 'text-amber-500' : 'text-slate-600 dark:text-slate-300'">
+                                                            {{ item.po_price ? 'Rp ' + Number(item.po_price).toLocaleString('id-ID') : '-' }}
+                                                        </span>
+                                                    </div>
+                                                    <!-- Price from DB -->
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[9px] text-slate-400 w-8">DB:</span>
+                                                        <span class="text-[11px] font-bold text-emerald-600">
+                                                            Rp {{ Number(item.db_price || 0).toLocaleString('id-ID') }}
+                                                        </span>
+                                                    </div>
+                                                    <!-- Mismatch Warning -->
+                                                    <div v-if="item.price_mismatch" class="flex items-center gap-1 mt-1">
+                                                        <span class="text-[9px] bg-amber-500/20 text-amber-600 px-1.5 py-0.5 rounded font-bold">⚠ SELISIH</span>
+                                                    </div>
+                                                </div>
+                                                <div v-else class="text-[10px] text-slate-400">-</div>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                            
+                            <!-- Price Note -->
+                            <div class="mt-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
+                                💡 <strong>Catatan:</strong> Harga yang digunakan adalah <strong>Selling Price dari database</strong>. 
+                                Jika ada selisih dengan harga di PO, Anda dapat mengedit langsung di form Sales Order setelah klik "Generate Draft SO".
                             </div>
 
                             <div class="flex gap-4 pt-4">
