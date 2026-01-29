@@ -28,7 +28,9 @@ const form = useForm({
     order_date: props.salesOrder?.order_date 
         ? new Date(props.salesOrder.order_date).toISOString().split('T')[0] 
         : (props.aiData?.po_date || new Date().toISOString().split('T')[0]),
-    delivery_date: props.salesOrder?.delivery_date ? new Date(props.salesOrder.delivery_date).toISOString().split('T')[0] : '',
+    delivery_date: props.salesOrder?.delivery_date 
+        ? new Date(props.salesOrder.delivery_date).toISOString().split('T')[0] 
+        : (props.aiData?.delivery_date || ''),
     discount_percent: props.salesOrder?.discount_percent || 0,
     tax_percent: props.salesOrder?.tax_percent || 11,
     notes: props.salesOrder?.notes || (props.aiData ? 'Extracted via AI Gemini' : ''),

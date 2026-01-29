@@ -40,6 +40,7 @@ class GeminiService
         $prompt = "Extract the following information from this Purchase Order document and return ONLY a valid JSON object:
         - po_number (The Purchase Order number from the customer)
         - po_date (The date of the PO, format YYYY-MM-DD or null if not found)
+        - delivery_date (The requested delivery date if specified, format YYYY-MM-DD or null if not found)
         - customer_name (The name of the customer/company sending the PO)
         - customer_address (The address of the customer if visible)
         - items (An array of objects containing:)
