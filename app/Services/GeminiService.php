@@ -41,21 +41,26 @@ class GeminiService
         
         The document may be in Indonesian or English. Look for:
         - The PO/Order number (labeled as 'PO No', 'No. PO', 'Order No', 'Nomor PO', etc.)
-        - The customer/buyer company name (the company placing the order, NOT the supplier/seller)
+        - The customer/buyer company name (the company SENDING the order, has the letterhead/logo)
         - Date of the PO
         - All line items with quantities and prices
         
-        IMPORTANT: 
-        - The 'customer_name' should be the BUYER/ORDERING company, not the supplier
-        - Look at the header, letterhead, and 'Kepada/To' sections to identify companies
-        - If you see 'PURCHASE ORDER' header, the company below it is usually the SELLER, and 'Kepada/Attention' is the BUYER
+        CRITICAL - IDENTIFYING THE CUSTOMER:
+        - The CUSTOMER/BUYER is the company with the LETTERHEAD/LOGO at the top of the document
+        - The CUSTOMER is sending the PO to buy products
+        - 'To:', 'Kepada:', 'Attention:' fields show the SUPPLIER/SELLER, NOT the customer
+        - The company name in the HEADER/TOP of document with logo = CUSTOMER (buyer)
+        - The company in 'To:' field = SELLER/SUPPLIER (ignore this for customer_name)
+        
+        Example: If header shows 'PT. HONDA PROSPECT MOTOR' with logo, and 'To: JIDOKA RESULT', 
+        then customer_name = 'PT. HONDA PROSPECT MOTOR' (the buyer with letterhead)
         
         Extract and return ONLY a valid JSON object with this exact structure:
         {
             \"po_number\": \"the PO number or null\",
             \"po_date\": \"YYYY-MM-DD format or null\",
             \"delivery_date\": \"YYYY-MM-DD format or null\",
-            \"customer_name\": \"name of the BUYER company\",
+            \"customer_name\": \"name of the BUYER company (from letterhead/logo)\",
             \"customer_address\": \"address if visible or null\",
             \"items\": [
                 {
