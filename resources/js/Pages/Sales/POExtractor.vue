@@ -462,8 +462,9 @@ const steps = [
                         </div>
 
                         <!-- Editable Items Table -->
-                        <div class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
-                            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col" style="max-height: 400px;">
+                            <!-- Fixed Header -->
+                            <table class="min-w-full">
                                 <thead class="bg-slate-100 dark:bg-slate-800">
                                     <tr>
                                         <th class="px-3 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[40%]">Description</th>
@@ -473,58 +474,63 @@ const steps = [
                                         <th class="px-3 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[15%]">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                                    <tr v-for="(item, index) in editableData.items" :key="index" class="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td class="px-3 py-2">
-                                            <input 
-                                                v-model="item.description"
-                                                type="text"
-                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                                placeholder="Product description..."
-                                            />
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input 
-                                                v-model.number="item.qty"
-                                                type="number"
-                                                min="1"
-                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                            />
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input 
-                                                v-model="item.unit"
-                                                type="text"
-                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                                placeholder="Pcs"
-                                            />
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input 
-                                                v-model.number="item.unit_price"
-                                                type="number"
-                                                min="0"
-                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                            />
-                                        </td>
-                                        <td class="px-3 py-2 text-center">
-                                            <button 
-                                                @click="removeItemRow(index)"
-                                                class="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                                                title="Remove item"
-                                            >
-                                                <TrashIcon class="h-4 w-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <!-- Empty state -->
-                                    <tr v-if="editableData.items.length === 0" class="bg-white dark:bg-slate-900">
-                                        <td colspan="5" class="px-4 py-8 text-center text-slate-400">
-                                            No items. Click "Add Item" to add a new row.
-                                        </td>
-                                    </tr>
-                                </tbody>
                             </table>
+                            <!-- Scrollable Body -->
+                            <div class="overflow-y-auto flex-1">
+                                <table class="min-w-full">
+                                    <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                                        <tr v-for="(item, index) in editableData.items" :key="index" class="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td class="px-3 py-2 w-[40%]">
+                                                <input 
+                                                    v-model="item.description"
+                                                    type="text"
+                                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    placeholder="Product description..."
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2 w-[15%]">
+                                                <input 
+                                                    v-model.number="item.qty"
+                                                    type="number"
+                                                    min="1"
+                                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2 w-[10%]">
+                                                <input 
+                                                    v-model="item.unit"
+                                                    type="text"
+                                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    placeholder="Pcs"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2 w-[20%]">
+                                                <input 
+                                                    v-model.number="item.unit_price"
+                                                    type="number"
+                                                    min="0"
+                                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                />
+                                            </td>
+                                            <td class="px-3 py-2 text-center w-[15%]">
+                                                <button 
+                                                    @click="removeItemRow(index)"
+                                                    class="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                                    title="Remove item"
+                                                >
+                                                    <TrashIcon class="h-4 w-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <!-- Empty state -->
+                                        <tr v-if="editableData.items.length === 0" class="bg-white dark:bg-slate-900">
+                                            <td colspan="5" class="px-4 py-8 text-center text-slate-400">
+                                                No items. Click "Add Item" to add a new row.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                             <!-- Add Item Button -->
                             <div class="p-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
                                 <button 
