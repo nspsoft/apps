@@ -37,20 +37,38 @@ class GeminiService
 
         $fileData = base64_encode(file_get_contents($filePath));
 
-        $prompt = "Extract the following information from this Purchase Order document and return ONLY a valid JSON object:
-        - po_number (The Purchase Order number from the customer)
-        - po_date (The date of the PO, format YYYY-MM-DD or null if not found)
-        - delivery_date (The requested delivery date if specified, format YYYY-MM-DD or null if not found)
-        - customer_name (The name of the customer/company sending the PO)
-        - customer_address (The address of the customer if visible)
-        - items (An array of objects containing:)
-            - description (Product name or description)
-            - qty (Quantity as a number)
-            - unit (UOM if specified, e.g. pcs, kg, m)
-            - unit_price (Price per unit as a number, without currency symbol)
-            - total_price (Total price for this line as a number)
+        $prompt = "You are an expert document reader. Analyze this Purchase Order (PO) document carefully.
         
-        Return pure JSON without markdown backticks.";
+        The document may be in Indonesian or English. Look for:
+        - The PO/Order number (labeled as 'PO No', 'No. PO', 'Order No', 'Nomor PO', etc.)
+        - The customer/buyer company name (the company placing the order, NOT the supplier/seller)
+        - Date of the PO
+        - All line items with quantities and prices
+        
+        IMPORTANT: 
+        - The 'customer_name' should be the BUYER/ORDERING company, not the supplier
+        - Look at the header, letterhead, and 'Kepada/To' sections to identify companies
+        - If you see 'PURCHASE ORDER' header, the company below it is usually the SELLER, and 'Kepada/Attention' is the BUYER
+        
+        Extract and return ONLY a valid JSON object with this exact structure:
+        {
+            \"po_number\": \"the PO number or null\",
+            \"po_date\": \"YYYY-MM-DD format or null\",
+            \"delivery_date\": \"YYYY-MM-DD format or null\",
+            \"customer_name\": \"name of the BUYER company\",
+            \"customer_address\": \"address if visible or null\",
+            \"items\": [
+                {
+                    \"description\": \"product name/description\",
+                    \"qty\": 100,
+                    \"unit\": \"Pcs\",
+                    \"unit_price\": 15000,
+                    \"total_price\": 1500000
+                }
+            ]
+        }
+        
+        Return pure JSON without any markdown formatting or backticks.";
 
         try {
             $response = Http::timeout(120)->post("{$this->baseUrl}?key={$this->apiKey}", [
@@ -76,10 +94,18 @@ class GeminiService
                 $result = $response->json();
                 $text = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
                 
+                // Log the raw response for debugging
+                Log::info('Gemini API Raw Response: ' . substr($text ?? 'NULL', 0, 500));
+                
                 if ($text) {
                     // Clean markdown code blocks if present (handle both ```json and just ```)
                     $text = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($text));
-                    return json_decode($text, true);
+                    $decoded = json_decode($text, true);
+                    
+                    // Log decoded result
+                    Log::info('Gemini Decoded Result: ' . json_encode($decoded));
+                    
+                    return $decoded;
                 }
             } else {
                 Log::error('Gemini API Error: ' . $response->body());
