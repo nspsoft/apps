@@ -87,9 +87,11 @@ class POImportController extends Controller
                 $dbPrice = $product?->selling_price ?? $product?->price ?? 0;
                 
                 $item['po_price'] = $aiPrice; // Price from PO document (AI extracted)
-                $item['db_price'] = $dbPrice; // Price from database (Selling Price)
-                $item['unit_price'] = $dbPrice; // Default to database price
-                $item['price_mismatch'] = $aiPrice > 0 && abs($aiPrice - $dbPrice) > 0.01;
+                $item['db_price'] = floatval($dbPrice); // Price from database (Selling Price)
+                // Keep the AI price as unit_price for editing - don't overwrite with db_price
+                // This way, user sees the original PO price and can adjust as needed
+                $item['unit_price'] = $aiPrice; 
+                $item['price_mismatch'] = $aiPrice > 0 && $dbPrice > 0 && abs($aiPrice - $dbPrice) > 0.01;
             }
         }
 
