@@ -19,13 +19,14 @@ const props = defineProps({
     units: Array,
 });
 
-const productOptions = computed(() => 
-    props.products.map(p => ({
+const productOptions = computed(() => {
+    if (!props.products || !Array.isArray(props.products)) return [];
+    return props.products.map(p => ({
         id: p.id,
         label: `[${p.code || p.sku || '-'}] ${p.name}`,
         ...p
-    }))
-);
+    }));
+});
 
 const isEdit = computed(() => !!props.purchaseOrder?.id);
 

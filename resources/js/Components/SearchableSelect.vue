@@ -26,16 +26,17 @@ const emit = defineEmits(['update:modelValue', 'change']);
 
 const query = ref('');
 
-const filteredOptions = computed(() =>
-    query.value === ''
-        ? props.options
-        : props.options.filter((option) =>
-              option.label
-                  .toLowerCase()
-                  .replace(/\s+/g, '')
-                  .includes(query.value.toLowerCase().replace(/\s+/g, ''))
-          )
-);
+const filteredOptions = computed(() => {
+    if (!query.value) return props.options;
+    
+    return props.options.filter((option) => {
+        const label = option?.label ? String(option.label) : '';
+        return label
+            .toLowerCase()
+            .replace(/\s+/g, '')
+            .includes(query.value.toLowerCase().replace(/\s+/g, ''));
+    });
+});
 
 const selectedOption = computed({
     get: () => props.options.find(opt => opt.id == props.modelValue) || null,
@@ -48,12 +49,12 @@ const selectedOption = computed({
 
 <template>
     <div class="w-full">
-        <Combobox v-model="selectedOption">
+        <Combobox v-model="selectedOption" nullable>
             <div class="relative">
                 <div class="relative w-full cursor-default overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-sm border border-slate-200 dark:border-slate-700">
                     <ComboboxInput
                         class="w-full border-none py-2.5 pl-3 pr-10 text-xs leading-5 text-slate-900 dark:text-white bg-transparent focus:ring-0"
-                        :displayValue="(option) => option?.label"
+                        :displayValue="(option) => option?.label ?? ''"
                         @change="query = $event.target.value"
                         :placeholder="placeholder"
                     />

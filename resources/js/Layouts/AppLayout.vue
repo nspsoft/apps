@@ -117,6 +117,7 @@ const navigation = [
             { name: 'Delivery Orders', href: '/sales/deliveries', permission: 'sales_crm.delivery_orders.view' },
             { name: 'Invoices', href: '/sales/invoices', permission: 'sales_crm.invoices.view' },
             { name: 'Sales Returns', href: '/sales/returns', permission: 'sales_crm.sales_returns.view' },
+            { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.sales_orders.create' },
         ]
     },
     { 

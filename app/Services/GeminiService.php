@@ -14,7 +14,7 @@ class GeminiService
     public function __construct()
     {
         $company = \App\Models\Company::first();
-        $aiSettings = $company->settings['ai'] ?? [];
+        $aiSettings = $company?->settings['ai'] ?? [];
 
         $this->apiKey = $aiSettings['gemini_api_key'] ?? config('services.gemini.key');
         $this->model = $aiSettings['gemini_model'] ?? 'gemini-1.5-flash';
@@ -53,7 +53,7 @@ class GeminiService
         Return pure JSON without markdown backticks.";
 
         try {
-            $response = Http::post("{$this->baseUrl}?key={$this->apiKey}", [
+            $response = Http::timeout(120)->post("{$this->baseUrl}?key={$this->apiKey}", [
                 'contents' => [
                     [
                         'parts' => [
@@ -77,6 +77,8 @@ class GeminiService
                 $text = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
                 
                 if ($text) {
+                    // Clean markdown code blocks if present (handle both ```json and just ```)
+                    $text = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($text));
                     return json_decode($text, true);
                 }
             } else {

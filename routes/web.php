@@ -156,6 +156,10 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::post('/orders/{order}/delivery', [SalesOrderController::class, 'createDelivery'])->name('orders.create-delivery');
     Route::post('/orders/{order}/invoice', [SalesOrderController::class, 'createInvoice'])->name('orders.create-invoice');
     Route::post('/orders/ai-extract', [App\Http\Controllers\Sales\POImportController::class, 'extract'])->name('orders.ai-extract');
+    Route::post('/orders/analyze-fulfillment', [App\Http\Controllers\Sales\FulfillmentAnalysisController::class, 'analyze'])->name('orders.analyze-fulfillment');
+    
+    // AI PO Extractor Page
+    Route::get('/po-extractor', [App\Http\Controllers\Sales\POExtractorController::class, 'index'])->name('po-extractor');
 
     Route::resource('quotations', App\Http\Controllers\Sales\QuotationController::class);
     Route::post('/quotations/{quotation}/send', [App\Http\Controllers\Sales\QuotationController::class, 'send'])->name('quotations.send');
