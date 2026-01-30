@@ -57,6 +57,7 @@ watch(extractionResult, (newVal) => {
                 unit_price: item.unit_price || 0,
                 po_price: item.po_price || item.unit_price || 0, // Price from PO (AI extracted)
                 db_price: item.db_price || 0, // Price from database (master product)
+                current_stock: item.current_stock || 0, // Available stock from product master
                 price_mismatch: item.price_mismatch || false,
                 matched_product_id: item.matched_product_id || null,
                 matched_product_name: item.matched_product_name || '',
@@ -469,12 +470,14 @@ const steps = [
                             <table class="min-w-full">
                                 <thead class="bg-slate-100 dark:bg-slate-800">
                                     <tr>
-                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[28%]">Description</th>
-                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[10%]">Qty</th>
-                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Unit</th>
-                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[14%]">PO Price</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[4%]">No</th>
+                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[22%]">Description</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Qty</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Stock</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[6%]">Unit</th>
+                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">PO Price</th>
                                         <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[22%]">Price Comparison</th>
-                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Actions</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[6%]">Act</th>
                                     </tr>
                                 </thead>
                             </table>
@@ -483,47 +486,71 @@ const steps = [
                                 <table class="min-w-full">
                                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                                         <tr v-for="(item, index) in editableData.items" :key="index" class="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                            <td class="px-2 py-2 w-[28%]">
+                                            <!-- No Column -->
+                                            <td class="px-2 py-2 text-center w-[4%]">
+                                                <span class="text-sm font-bold text-slate-400">{{ index + 1 }}</span>
+                                            </td>
+                                            <!-- Description -->
+                                            <td class="px-2 py-2 w-[22%]">
                                                 <input 
                                                     v-model="item.description"
                                                     type="text"
-                                                    class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                                    placeholder="Product description..."
+                                                    class="w-full px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    placeholder="Product..."
                                                 />
                                             </td>
-                                            <td class="px-2 py-2 w-[10%]">
+                                            <!-- Qty -->
+                                            <td class="px-2 py-2 w-[8%]">
                                                 <input 
                                                     v-model.number="item.qty"
                                                     type="number"
                                                     min="1"
-                                                    class="w-full px-2 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    class="w-full px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center"
                                                 />
                                             </td>
-                                            <td class="px-2 py-2 w-[8%]">
+                                            <!-- Stock Column -->
+                                            <td class="px-2 py-2 text-center w-[8%]">
+                                                <div v-if="item.current_stock > 0">
+                                                    <span 
+                                                        :class="[
+                                                            'px-2 py-1 rounded-lg text-xs font-bold',
+                                                            item.current_stock >= item.qty 
+                                                                ? 'bg-emerald-500/10 text-emerald-600' 
+                                                                : 'bg-red-500/10 text-red-600'
+                                                        ]"
+                                                    >
+                                                        {{ Number(item.current_stock).toLocaleString('id-ID') }}
+                                                    </span>
+                                                </div>
+                                                <span v-else class="text-xs text-slate-400">-</span>
+                                            </td>
+                                            <!-- Unit -->
+                                            <td class="px-2 py-2 w-[6%]">
                                                 <input 
                                                     v-model="item.unit"
                                                     type="text"
-                                                    class="w-full px-2 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    class="w-full px-1 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center"
                                                     placeholder="Pcs"
                                                 />
                                             </td>
-                                            <td class="px-2 py-2 w-[14%]">
+                                            <!-- PO Price -->
+                                            <td class="px-2 py-2 w-[12%]">
                                                 <input 
                                                     v-model.number="item.unit_price"
                                                     type="number"
                                                     min="0"
-                                                    class="w-full px-2 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                    class="w-full px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                                 />
                                             </td>
                                             <!-- Price Comparison Column -->
                                             <td class="px-2 py-2 w-[22%]">
                                                 <div v-if="item.db_price > 0" class="space-y-1">
                                                     <div class="flex items-center gap-2 text-xs">
-                                                        <span class="text-slate-400 w-14">PO:</span>
+                                                        <span class="text-slate-400 w-12">PO:</span>
                                                         <span class="font-bold text-blue-500">Rp {{ Number(item.po_price || 0).toLocaleString('id-ID') }}</span>
                                                     </div>
                                                     <div class="flex items-center gap-2 text-xs">
-                                                        <span class="text-slate-400 w-14">Master:</span>
+                                                        <span class="text-slate-400 w-12">Master:</span>
                                                         <span class="font-bold text-emerald-500">Rp {{ Number(item.db_price || 0).toLocaleString('id-ID') }}</span>
                                                     </div>
                                                     <!-- Price Difference Indicator -->
@@ -545,10 +572,11 @@ const steps = [
                                                 </div>
                                                 <span v-else class="text-xs text-slate-400 italic">No match</span>
                                             </td>
-                                            <td class="px-2 py-2 text-center w-[8%]">
+                                            <!-- Actions -->
+                                            <td class="px-2 py-2 text-center w-[6%]">
                                                 <button 
                                                     @click="removeItemRow(index)"
-                                                    class="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                                    class="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
                                                     title="Remove item"
                                                 >
                                                     <TrashIcon class="h-4 w-4" />
@@ -557,7 +585,7 @@ const steps = [
                                         </tr>
                                         <!-- Empty state -->
                                         <tr v-if="editableData.items.length === 0" class="bg-white dark:bg-slate-900">
-                                            <td colspan="6" class="px-4 py-8 text-center text-slate-400">
+                                            <td colspan="8" class="px-4 py-8 text-center text-slate-400">
                                                 No items. Click "Add Item" to add a new row.
                                             </td>
                                         </tr>
