@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { 
     XMarkIcon, 
     CloudArrowUpIcon, 
@@ -13,6 +13,9 @@ import {
     EyeIcon,
     ArrowsPointingOutIcon,
     ArrowLeftIcon,
+    PlusIcon,
+    TrashIcon,
+    PencilIcon,
 } from '@heroicons/vue/24/outline';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
@@ -31,6 +34,54 @@ const error = ref(null);
 const extractionResult = ref(null);
 const fulfillmentAnalysis = ref(null);
 const currentStep = ref(1); // 1: Upload, 2: Processing, 3: Validation, 4: Fulfillment Analysis
+
+// Editable data for Step 3 (Review)
+const editableData = ref({
+    po_number: '',
+    po_date: '',
+    customer_name: '',
+    items: []
+});
+
+// Watch extraction result and populate editable data
+watch(extractionResult, (newVal) => {
+    if (newVal) {
+        editableData.value = {
+            po_number: newVal.po_number || '',
+            po_date: newVal.po_date || '',
+            customer_name: newVal.customer_name || '',
+            items: (newVal.items || []).map(item => ({
+                description: item.description || '',
+                qty: item.qty || 0,
+                unit: item.unit || 'Pcs',
+                unit_price: item.unit_price || 0,
+                matched_product_id: item.matched_product_id || null,
+                matched_product_name: item.matched_product_name || '',
+                matched_sku: item.matched_sku || '',
+                match_status: item.match_status || 'NO_MATCH'
+            }))
+        };
+    }
+}, { deep: true });
+
+// Add new item row
+const addItemRow = () => {
+    editableData.value.items.push({
+        description: '',
+        qty: 1,
+        unit: 'Pcs',
+        unit_price: 0,
+        matched_product_id: null,
+        matched_product_name: '',
+        matched_sku: '',
+        match_status: 'NO_MATCH'
+    });
+};
+
+// Remove item row
+const removeItemRow = (index) => {
+    editableData.value.items.splice(index, 1);
+};
 
 // Computed for file type detection
 const fileType = computed(() => {
@@ -136,10 +187,19 @@ const analyzeFulfillment = async () => {
 };
 
 const createDraftSO = () => {
-    if (!extractionResult.value) return;
+    if (!editableData.value || editableData.value.items.length === 0) return;
+
+    // Merge editableData with original extraction result for complete data
+    const dataToSend = {
+        ...extractionResult.value,
+        po_number: editableData.value.po_number,
+        po_date: editableData.value.po_date,
+        customer_name: editableData.value.customer_name,
+        items: editableData.value.items
+    };
 
     router.get('/sales/orders/create', {
-        ai_data: JSON.stringify(extractionResult.value)
+        ai_data: JSON.stringify(dataToSend)
     });
 };
 
@@ -355,72 +415,132 @@ const steps = [
                         </div>
                     </div>
 
-                    <!-- Step 3: Success & Preview -->
+                    <!-- Step 3: Success & Editable Review -->
                     <div v-if="currentStep === 3" class="space-y-5">
                         <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl flex items-center gap-3 text-emerald-500">
                             <CheckCircleIcon class="h-6 w-6" />
-                            <div class="text-sm font-bold">Extraction Successful! AI found {{ extractionResult.items?.length }} items.</div>
+                            <div class="text-sm font-bold">Extraction Successful! AI found {{ extractionResult?.items?.length || 0 }} items. You can edit the data below.</div>
                         </div>
 
-                        <!-- Preview Section -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer PO Number</span>
-                                <div class="mt-1 font-bold text-slate-900 dark:text-white">{{ extractionResult.po_number || 'Not found' }}</div>
+                        <!-- Editable Header Section -->
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <PencilIcon class="h-3 w-3" />
+                                    Customer PO Number
+                                </label>
+                                <input 
+                                    v-model="editableData.po_number"
+                                    type="text"
+                                    class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Enter PO Number..."
+                                />
                             </div>
-                            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer Name</span>
-                                <div class="mt-1 font-bold text-slate-900 dark:text-white">{{ extractionResult.customer_name || 'Not found' }}</div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <PencilIcon class="h-3 w-3" />
+                                    Customer Name
+                                </label>
+                                <input 
+                                    v-model="editableData.customer_name"
+                                    type="text"
+                                    class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Enter Customer Name..."
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <PencilIcon class="h-3 w-3" />
+                                    PO Date
+                                </label>
+                                <input 
+                                    v-model="editableData.po_date"
+                                    type="date"
+                                    class="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                                />
                             </div>
                         </div>
 
-                        <!-- Items Table -->
-                        <div class="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
-                            <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
-                                <thead class="bg-slate-50 dark:bg-slate-800/50">
+                        <!-- Editable Items Table -->
+                        <div class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700">
+                            <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                                <thead class="bg-slate-100 dark:bg-slate-800">
                                     <tr>
-                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Description</th>
-                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Qty</th>
-                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">JICOS Match</th>
-                                        <th class="px-4 py-3 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">Price Comparison</th>
+                                        <th class="px-3 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[40%]">Description</th>
+                                        <th class="px-3 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[15%]">Qty</th>
+                                        <th class="px-3 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[10%]">Unit</th>
+                                        <th class="px-3 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[20%]">Unit Price</th>
+                                        <th class="px-3 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[15%]">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                                    <tr v-for="(item, index) in extractionResult.items" :key="index" class="bg-white dark:bg-slate-900">
-                                        <td class="px-4 py-3">
-                                            <div class="text-sm font-medium text-slate-900 dark:text-white">{{ item.description }}</div>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+                                    <tr v-for="(item, index) in editableData.items" :key="index" class="bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td class="px-3 py-2">
+                                            <input 
+                                                v-model="item.description"
+                                                type="text"
+                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                placeholder="Product description..."
+                                            />
                                         </td>
-                                        <td class="px-4 py-3 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-slate-700 dark:text-slate-200">{{ item.qty }} {{ item.unit }}</div>
+                                        <td class="px-3 py-2">
+                                            <input 
+                                                v-model.number="item.qty"
+                                                type="number"
+                                                min="1"
+                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                            />
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <div v-if="item.matched_item" class="space-y-1">
-                                                <span :class="['px-2 py-0.5 rounded-full text-[10px] font-bold', getMatchStatusClass(item.match_status)]">
-                                                    {{ item.matched_item.code }}
-                                                </span>
-                                                <div class="text-xs text-slate-500">{{ item.matched_item.name }}</div>
-                                                <span :class="['px-2 py-0.5 rounded-full text-[10px] font-bold', item.match_status === 'MATCHED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500']">
-                                                    {{ item.match_status === 'MATCHED' ? '✓ SESUAI' : '⚠ PARTIAL' }}
-                                                </span>
-                                            </div>
-                                            <span v-else class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-500">NO MATCH</span>
+                                        <td class="px-3 py-2">
+                                            <input 
+                                                v-model="item.unit"
+                                                type="text"
+                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                placeholder="Pcs"
+                                            />
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <div v-if="item.matched_item" class="space-y-1">
-                                                <div class="text-xs"><span class="text-slate-400">PO:</span> <span class="font-bold text-blue-500">Rp {{ Number(item.unit_price || 0).toLocaleString('id-ID') }}</span></div>
-                                                <div class="text-xs"><span class="text-slate-400">DB:</span> <span class="font-bold text-emerald-500">Rp {{ Number(item.matched_item.selling_price || 0).toLocaleString('id-ID') }}</span></div>
-                                            </div>
-                                            <span v-else class="text-xs text-slate-400">-</span>
+                                        <td class="px-3 py-2">
+                                            <input 
+                                                v-model.number="item.unit_price"
+                                                type="number"
+                                                min="0"
+                                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                            />
+                                        </td>
+                                        <td class="px-3 py-2 text-center">
+                                            <button 
+                                                @click="removeItemRow(index)"
+                                                class="p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                                title="Remove item"
+                                            >
+                                                <TrashIcon class="h-4 w-4" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <!-- Empty state -->
+                                    <tr v-if="editableData.items.length === 0" class="bg-white dark:bg-slate-900">
+                                        <td colspan="5" class="px-4 py-8 text-center text-slate-400">
+                                            No items. Click "Add Item" to add a new row.
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
+                            <!-- Add Item Button -->
+                            <div class="p-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700">
+                                <button 
+                                    @click="addItemRow"
+                                    class="w-full py-2.5 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 text-slate-500 hover:border-blue-500 hover:text-blue-500 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                                >
+                                    <PlusIcon class="h-4 w-4" />
+                                    Add Item
+                                </button>
+                            </div>
                         </div>
                         
-                        <!-- Price Note -->
+                        <!-- Info Note -->
                         <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-600 dark:text-blue-400">
-                            💡 <strong>Catatan:</strong> Harga yang digunakan adalah <strong>Selling Price dari database</strong>. 
-                            Jika ada selisih dengan harga di PO, Anda dapat mengedit langsung di form Sales Order setelah klik "Generate Draft SO".
+                            ✏️ <strong>Edit Mode:</strong> Anda dapat mengedit semua data di atas sebelum Generate Draft SO. 
+                            Perubahan yang anda buat akan langsung digunakan untuk membuat Sales Order.
                         </div>
 
                         <div class="flex gap-4 pt-4">
@@ -432,7 +552,7 @@ const steps = [
                             </button>
                             <button 
                                 @click="analyzeFulfillment"
-                                :disabled="isAnalyzing"
+                                :disabled="isAnalyzing || editableData.items.length === 0"
                                 class="flex-1 py-3 px-6 rounded-2xl bg-amber-500 text-white font-bold shadow-lg shadow-amber-500/25 hover:bg-amber-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                                 <ChartBarSquareIcon v-if="!isAnalyzing" class="h-5 w-5" />
@@ -441,7 +561,8 @@ const steps = [
                             </button>
                             <button 
                                 @click="createDraftSO"
-                                class="flex-1 py-3 px-6 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/25 hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
+                                :disabled="editableData.items.length === 0"
+                                class="flex-1 py-3 px-6 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/25 hover:bg-blue-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                                 <DocumentIcon class="h-5 w-5" />
                                 Generate Draft SO
