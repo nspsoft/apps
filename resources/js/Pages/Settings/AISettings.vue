@@ -124,7 +124,80 @@ const geminiModels = [
                         <h5 class="text-sm font-bold text-slate-900 dark:text-white">Why use Gemini AI?</h5>
                         <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                             JICOS uses Gemini to automate repetitive tasks like Purchase Order extraction, document OCR, and intelligent data matching. 
-                            <strong>Gemini 1.5 Flash</strong> is highly recommended for its perfect balance of speed and visual understanding.
+                            <strong class="text-blue-400">Gemini 2.0 Flash</strong> is highly recommended for its perfect balance of speed and visual understanding.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- How to Get API Key -->
+                <div class="bg-emerald-500/5 rounded-2xl p-6 border border-emerald-500/10">
+                    <h5 class="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <KeyIcon class="h-5 w-5 text-emerald-500" />
+                        Cara Mendapatkan API Key (Gratis)
+                    </h5>
+                    <ol class="space-y-3 text-xs text-slate-500 dark:text-slate-400">
+                        <li class="flex gap-3">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 font-bold flex items-center justify-center text-[10px]">1</span>
+                            <span>Buka <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline font-semibold">Google AI Studio</a> dan login dengan akun Google</span>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 font-bold flex items-center justify-center text-[10px]">2</span>
+                            <span>Klik <strong>"Create API Key"</strong> dan pilih <strong>"Create API key in new project"</strong></span>
+                        </li>
+                        <li class="flex gap-3">
+                            <span class="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-500 font-bold flex items-center justify-center text-[10px]">3</span>
+                            <span>Copy API Key yang muncul (format: <code class="bg-slate-800 px-2 py-0.5 rounded text-emerald-400">AIzaSy...</code>) dan paste di field di atas</span>
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- Free Tier Info -->
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div class="bg-amber-500/5 rounded-2xl p-6 border border-amber-500/10">
+                        <h5 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                            <SparklesIcon class="h-5 w-5 text-amber-500" />
+                            Free Tier (Tanpa Billing)
+                        </h5>
+                        <ul class="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                            <li class="flex items-center gap-2">
+                                <CheckBadgeIcon class="h-4 w-4 text-emerald-500" />
+                                <span><strong>15 requests/menit</strong> - 15 PO extraction per menit</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <CheckBadgeIcon class="h-4 w-4 text-emerald-500" />
+                                <span><strong>1.500 requests/hari</strong> - Cukup untuk usage normal</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <CheckBadgeIcon class="h-4 w-4 text-emerald-500" />
+                                <span><strong>1 juta tokens/hari</strong> - ~200-500 dokumen/hari</span>
+                            </li>
+                        </ul>
+                        <p class="mt-3 text-[10px] text-slate-500 italic">
+                            💡 Free tier sudah cukup untuk kebanyakan bisnis!
+                        </p>
+                    </div>
+
+                    <div class="bg-purple-500/5 rounded-2xl p-6 border border-purple-500/10">
+                        <h5 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                            <CpuChipIcon class="h-5 w-5 text-purple-500" />
+                            Paid Tier (Dengan Billing)
+                        </h5>
+                        <ul class="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                            <li class="flex items-center gap-2">
+                                <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
+                                <span><strong>2.000 requests/menit</strong> - Untuk high volume</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
+                                <span><strong>$300 free credits</strong> - Untuk user baru Google Cloud</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
+                                <span><strong>~$0.10/1M tokens</strong> - Sangat terjangkau</span>
+                            </li>
+                        </ul>
+                        <p class="mt-3 text-[10px] text-slate-500 italic">
+                            💰 100 PO/bulan ≈ $0.05 - $0.20
                         </p>
                     </div>
                 </div>
