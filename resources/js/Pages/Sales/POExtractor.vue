@@ -166,14 +166,14 @@ const uploadPO = async () => {
 };
 
 const analyzeFulfillment = async () => {
-    if (!extractionResult.value?.items) return;
+    if (!editableData.value?.items || editableData.value.items.length === 0) return;
 
     isAnalyzing.value = true;
     error.value = null;
 
     try {
         const response = await axios.post('/sales/orders/analyze-fulfillment', {
-            items: extractionResult.value.items
+            items: editableData.value.items
         });
 
         if (response.data.success) {
