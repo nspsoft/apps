@@ -89,7 +89,7 @@ const uploadPO = async () => {
     error.value = null;
 
     const formData = new FormData();
-    formData.append('po_file', file.value);
+    formData.append('file', file.value);
 
     try {
         const response = await axios.post('/sales/orders/ai-extract', formData, {
