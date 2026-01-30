@@ -237,7 +237,7 @@ const steps = [
 
 <template>
     <AppLayout title="AI PO Extractor">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-full mx-auto px-4">
             <!-- Header -->
             <div class="mb-8">
                 <div class="flex items-center gap-4 mb-4">
