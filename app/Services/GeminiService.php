@@ -17,7 +17,7 @@ class GeminiService
         $aiSettings = $company?->settings['ai'] ?? [];
 
         $this->apiKey = $aiSettings['gemini_api_key'] ?? config('services.gemini.key');
-        $this->model = $aiSettings['gemini_model'] ?? 'gemini-1.5-flash';
+        $this->model = $aiSettings['gemini_model'] ?? 'gemini-2.0-flash';
         $this->baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent";
     }
 
