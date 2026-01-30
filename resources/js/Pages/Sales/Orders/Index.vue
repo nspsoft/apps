@@ -21,7 +21,7 @@ import { ShoppingCartIcon, ClockIcon, ArrowDownTrayIcon, SparklesIcon } from '@h
 import { formatNumber, formatCurrency } from '@/helpers';
 import POImportModal from './POImportModal.vue';
 
-const showImportModal = ref(false);
+// showImportModal removed - now redirects to full page
 
 const props = defineProps({
     salesOrders: Object,
@@ -149,13 +149,13 @@ const formatDate = (date) => {
             </div>
             
             <div class="flex items-center gap-2 shrink-0">
-                <button
-                    @click="showImportModal = true"
+                <Link
+                    href="/sales/po-extractor"
                     class="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all group"
                 >
                     <SparklesIcon class="h-5 w-5 text-amber-500 group-hover:scale-110 transition-transform" />
                     Import PO (AI)
-                </button>
+                </Link>
                 <Link
                     href="/sales/orders/create"
                     class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all"
@@ -166,12 +166,7 @@ const formatDate = (date) => {
             </div>
         </div>
 
-        <!-- AI Import Modal -->
-        <POImportModal 
-            :show="showImportModal" 
-            @close="showImportModal = false"
-            :customers="customers"
-        />
+        <!-- AI Import now redirects to full page at /sales/po-extractor -->
 
         <Transition
             enter-active-class="transition ease-out duration-200"
