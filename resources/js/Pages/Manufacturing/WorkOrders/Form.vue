@@ -65,7 +65,7 @@ watch(() => form.planned_start, (newVal) => {
     <Head :title="isEditing ? 'Edit Work Order' : 'Create Work Order'" />
     
     <AppLayout :title="isEditing ? 'Edit Work Order' : 'Create Work Order'">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header -->
             <div class="flex items-center gap-4 mb-8">
                 <Link 

@@ -100,7 +100,7 @@ const canCancel = computed(() => !['completed', 'cancelled'].includes(props.work
     <Head :title="`Work Order ${workOrder.wo_number}`" />
     
     <AppLayout title="Work Orders">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header -->
             <div class="flex items-center justify-between mb-8">
                 <div class="flex items-center gap-4">
@@ -208,8 +208,8 @@ const canCancel = computed(() => !['completed', 'cancelled'].includes(props.work
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 space-y-8">
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                <div class="xl:col-span-8 space-y-8">
                     <!-- Progress Card -->
                     <div class="glass-card rounded-3xl p-6 shadow-sm">
                         <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-200 dark:border-slate-800 pb-4 flex items-center gap-2">
@@ -276,9 +276,9 @@ const canCancel = computed(() => !['completed', 'cancelled'].includes(props.work
                                 COMPONENTS
                             </h3>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar relative">
                             <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                <thead>
+                                <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                     <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-left">
                                         <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Material</th>
                                         <th class="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Required Qty</th>
@@ -310,9 +310,9 @@ const canCancel = computed(() => !['completed', 'cancelled'].includes(props.work
                                 PRODUCTION_ENTRIES
                             </h3>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar relative">
                             <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                <thead>
+                                <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                     <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-left">
                                         <th class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date / Shift</th>
                                         <th class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Operator</th>
@@ -342,7 +342,7 @@ const canCancel = computed(() => !['completed', 'cancelled'].includes(props.work
                     </div>
                 </div>
 
-                <div class="space-y-8">
+                <div class="xl:col-span-4 space-y-8">
                     <!-- Schedule Info -->
                     <div class="glass-card rounded-3xl p-6 shadow-sm">
                         <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">Schedule</h3>

@@ -165,7 +165,7 @@ onMounted(() => {
     <Head :title="isEditing ? 'Edit BOM' : 'Create BOM'" />
     
     <AppLayout :title="isEditing ? 'Edit BOM' : 'Create BOM'">
-        <div class="max-w-6xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header -->
             <div class="flex items-center gap-4 mb-8">
                 <Link 
@@ -196,9 +196,9 @@ onMounted(() => {
             </div>
 
             <form @submit.prevent="submit" class="space-y-8">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
                     <!-- Left Column: BOM Header Info -->
-                    <div class="lg:col-span-1 space-y-8" id="header-section">
+                    <div class="xl:col-span-4 space-y-8" id="header-section">
                         <div class="glass-card rounded-3xl p-6 shadow-sm relative overflow-hidden" :class="{'ring-2 ring-blue-500 shadow-2xl shadow-blue-500/20 z-10': showTutorial && tutorialSteps[currentStep].target === 'header-section'}">
                             <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-200 dark:border-slate-800 pb-4 flex items-center gap-2">
                                 <CubeIcon class="h-4 w-4" />
@@ -292,7 +292,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Right Column: Components List -->
-                    <div class="lg:col-span-2 space-y-8" id="components-section">
+                    <div class="xl:col-span-8 space-y-8" id="components-section">
                         <div class="glass-card rounded-3xl shadow-sm overflow-hidden" :class="{'ring-2 ring-blue-500 shadow-2xl shadow-blue-500/20 z-10': showTutorial && tutorialSteps[currentStep].target === 'components-section'}">
                             <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                                 <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
@@ -309,9 +309,9 @@ onMounted(() => {
                                 </button>
                             </div>
 
-                            <div class="overflow-x-auto">
+                            <div class="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar relative">
                                 <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
-                                    <thead>
+                                    <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                         <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">
                                             <th class="px-6 py-4 text-left text-[10px] font-bold text-slate-500 uppercase tracking-widest">Material / Component</th>
                                             <th class="px-6 py-4 text-center text-[10px] font-bold text-slate-500 uppercase tracking-widest" width="120">Qty</th>
