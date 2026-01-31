@@ -184,6 +184,18 @@ const navigation = [
         ]
     },
     { 
+        name: 'Maintenance', 
+        href: '#', 
+        icon: WrenchScrewdriverIcon, 
+        current: false,
+        permission: 'maintenance.view',
+        children: [
+            { name: 'Preventive Schedule', href: '/maintenance/schedule', permission: 'maintenance.schedule.view' },
+            { name: 'Breakdown Logs', href: '/maintenance/breakdown', permission: 'maintenance.breakdown.view' },
+            { name: 'Spareparts Inventory', href: '/maintenance/spareparts', permission: 'maintenance.spareparts.view' },
+        ]
+    },
+    { 
         name: 'Quality Control', 
         href: '#', 
         icon: CheckBadgeIcon, 

@@ -239,9 +239,20 @@ Route::middleware(['auth'])->prefix('qc')->name('qc.')->group(function () {
 
 // Maintenance
 Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(function () {
-    Route::get('/schedule', fn () => Inertia::render('Blueprints/Maintenance', ['title' => 'Preventive Schedule']))->name('schedule');
-    Route::get('/breakdown', fn () => Inertia::render('Blueprints/Maintenance', ['title' => 'Breakdown Logs']))->name('breakdown');
-    Route::get('/spareparts', fn () => Inertia::render('Blueprints/Maintenance', ['title' => 'Spareparts Tracking']))->name('spareparts');
+    // Schedule
+    Route::get('/schedule', [App\Http\Controllers\Maintenance\MaintenanceScheduleController::class, 'index'])->name('schedule');
+    Route::post('/schedule', [App\Http\Controllers\Maintenance\MaintenanceScheduleController::class, 'store'])->name('schedule.store');
+    Route::post('/schedule/{schedule}/complete', [App\Http\Controllers\Maintenance\MaintenanceScheduleController::class, 'complete'])->name('schedule.complete');
+
+    // Breakdown Logs
+    Route::get('/breakdown', [App\Http\Controllers\Maintenance\MaintenanceLogController::class, 'index'])->name('breakdown');
+    Route::post('/breakdown', [App\Http\Controllers\Maintenance\MaintenanceLogController::class, 'store'])->name('breakdown.store');
+    Route::put('/breakdown/{log}', [App\Http\Controllers\Maintenance\MaintenanceLogController::class, 'update'])->name('breakdown.update');
+
+    // Spareparts
+    Route::get('/spareparts', [App\Http\Controllers\Maintenance\MaintenanceSparepartController::class, 'index'])->name('spareparts');
+    Route::post('/spareparts', [App\Http\Controllers\Maintenance\MaintenanceSparepartController::class, 'store'])->name('spareparts.store');
+    Route::put('/spareparts/{sparepart}', [App\Http\Controllers\Maintenance\MaintenanceSparepartController::class, 'update'])->name('spareparts.update');
 });
 
 // Finance
