@@ -150,7 +150,7 @@ const canReceive = computed(() => ['sent', 'received'].includes(props.order.stat
     <Head :title="`Subcontract Order ${order.order_number}`" />
     
     <AppLayout title="Subcontract Orders">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header -->
             <div class="flex items-center justify-between mb-8">
                 <div class="flex items-center gap-4">
@@ -208,9 +208,9 @@ const canReceive = computed(() => ['sent', 'received'].includes(props.order.stat
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-8">
                 <!-- Left Column -->
-                <div class="lg:col-span-2 space-y-8">
+                <div class="xl:col-span-8 space-y-8">
                     <!-- Basic Info -->
                     <div class="glass-card rounded-3xl p-6 shadow-sm overflow-hidden relative">
                          <div class="absolute top-0 right-0 p-8 opacity-5">
@@ -251,9 +251,9 @@ const canReceive = computed(() => ['sent', 'received'].includes(props.order.stat
                                  WO Ref: {{ order.work_order?.wo_number }}
                             </span>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar relative">
                             <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                <thead>
+                                <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                     <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-left">
                                         <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Material</th>
                                         <th class="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Required</th>
@@ -291,9 +291,9 @@ const canReceive = computed(() => ['sent', 'received'].includes(props.order.stat
                                 STOCK_MOVEMENT_LOGS
                             </h3>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar relative">
                             <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                <thead>
+                                <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                     <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-left">
                                         <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date / Ref</th>
                                         <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ref / SJ</th>
@@ -373,9 +373,9 @@ const canReceive = computed(() => ['sent', 'received'].includes(props.order.stat
                                 Return Material
                             </button>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar relative">
                             <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                <thead>
+                                <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                     <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-left">
                                         <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Material</th>
                                         <th class="px-6 py-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Sent</th>
@@ -404,7 +404,7 @@ const canReceive = computed(() => ['sent', 'received'].includes(props.order.stat
                 </div>
 
                 <!-- Right Column -->
-                <div class="space-y-8">
+                <div class="xl:col-span-4 space-y-8">
                     <!-- Progress Card -->
                     <div class="glass-card rounded-3xl p-6 shadow-sm">
                         <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">Job Progress</h3>
