@@ -48,7 +48,7 @@ const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', {
              <!-- Background -->
             <div class="fixed inset-0 z-0 pointer-events-none">
                 <div class="absolute inset-0 bg-gradient-to-br from-indigo-950/20 to-[#050510]"></div>
-                <div class="absolute inset-0 bg-[url('/img/grid.svg')] opacity-10"></div>
+                <div class="perspective-grid absolute inset-0 opacity-10"></div>
             </div>
 
             <div class="relative z-10 p-6 space-y-6">
@@ -181,5 +181,20 @@ const formatDate = (date) => new Date(date).toLocaleDateString('id-ID', {
 <style scoped>
 .glow-text {
     text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+}
+
+.perspective-grid {
+    background-image: 
+        linear-gradient(to right, rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(99, 102, 241, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(2);
+    animation: grid-move 20s linear infinite;
+    transform-origin: top;
+}
+
+@keyframes grid-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 40px; }
 }
 </style>

@@ -153,8 +153,8 @@ const doughnutOptions = {
             
             <!-- Dynamic Background -->
             <div class="fixed inset-0 z-0 pointer-events-none">
-                <div class="absolute inset-0 bg-gradient-to-br from-slate-950 to-[#050510]"></div>
-                <div class="absolute inset-0 bg-[url('/img/grid.svg')] opacity-20 animate-pulse-slow"></div>
+                <div class="perspective-grid absolute inset-0 opacity-20"></div>
+                <div class="perspective-grid absolute inset-0 opacity-20"></div>
             </div>
 
             <div class="relative z-10 p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
@@ -377,5 +377,20 @@ const doughnutOptions = {
 }
 .animate-pulse-slow {
     animation: pulse-slow 8s infinite ease-in-out;
+}
+
+.perspective-grid {
+    background-image: 
+        linear-gradient(to right, rgba(6, 182, 212, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(6, 182, 212, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(2);
+    animation: grid-move 20s linear infinite;
+    transform-origin: top;
+}
+
+@keyframes grid-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 40px; }
 }
 </style>
