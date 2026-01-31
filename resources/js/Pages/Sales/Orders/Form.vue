@@ -213,9 +213,9 @@ const submit = () => {
                                     <PlusIcon class="h-4 w-4" /> Add Item
                                 </button>
                             </div>
-                            <div class="overflow-x-auto">
+                            <div class="overflow-x-auto max-h-[600px] overflow-y-auto relative">
                                 <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                                    <thead class="bg-white dark:bg-slate-950 text-slate-200">
+                                    <thead class="bg-white dark:bg-slate-950 text-slate-200 sticky top-0 z-10">
                                         <tr>
                                             <th class="px-4 py-3 min-w-[350px]">Product</th>
                                             <th class="px-4 py-3 w-24">Qty</th>
