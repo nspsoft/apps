@@ -57,14 +57,14 @@ const submit = () => {
     <Head title="Create Quotation" />
     
     <AppLayout title="Quotations">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <Link href="/sales/quotations" class="inline-flex items-center gap-2 mb-4 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
                 <ArrowLeftIcon class="h-4 w-4" /> Back to List
             </Link>
 
             <form @submit.prevent="submit" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="glass-card rounded-2xl p-6 space-y-4">
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                    <div class="xl:col-span-3 glass-card rounded-2xl p-6 space-y-4">
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quotation Info</h3>
                         <div>
                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Quotation Number</label>
@@ -87,7 +87,7 @@ const submit = () => {
                         </div>
                     </div>
 
-                    <div class="md:col-span-2 glass-card rounded-2xl p-6">
+                    <div class="xl:col-span-9 glass-card rounded-2xl p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Items</h3>
                             <button type="button" @click="addItem" class="text-sm font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1">
@@ -95,9 +95,9 @@ const submit = () => {
                             </button>
                         </div>
 
-                        <div class="space-y-2">
+                        <div class="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar relative pr-2">
                              <!-- Header Labels -->
-                             <div class="hidden sm:grid grid-cols-12 gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 rounded-lg">
+                             <div class="hidden sm:grid grid-cols-12 gap-3 px-3 py-2 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 rounded-lg sticky top-0 z-10">
                                   <div class="col-span-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Product</div>
                                   <div class="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Qty</div>
                                   <div class="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Unit Price</div>
