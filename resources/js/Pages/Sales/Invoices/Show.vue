@@ -69,7 +69,7 @@ const getStatusBadge = (status) => {
     <Head :title="`Invoice ${invoice.invoice_number}`" />
     
     <AppLayout title="Invoice Details">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div class="flex items-center gap-4">
@@ -140,16 +140,16 @@ const getStatusBadge = (status) => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                 <!-- Left Column: Items -->
-                <div class="lg:col-span-2 space-y-6">
+                <div class="xl:col-span-8 space-y-6">
                     <div class="rounded-2xl glass-card overflow-hidden shadow-sm">
                         <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/20">
                             <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Invoice Items</h3>
                         </div>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar relative">
                             <table class="w-full text-left">
-                                <thead>
+                                <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                     <tr class="bg-slate-50 dark:bg-slate-800/30">
                                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Product</th>
                                         <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Qty</th>
@@ -194,7 +194,7 @@ const getStatusBadge = (status) => {
                 </div>
 
                 <!-- Right Column: Details -->
-                <div class="space-y-6">
+                <div class="xl:col-span-4 space-y-6">
                     <div class="rounded-2xl glass-card p-6 shadow-sm">
                         <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Invoice Info</h3>
                         <div class="space-y-4">
