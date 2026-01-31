@@ -46,6 +46,31 @@ const form = useForm({
     vehicle_photo: null,
 });
 
+const showImportModal = ref(false);
+const importForm = useForm({
+    file: null,
+});
+
+const openImportModal = () => {
+    importForm.reset();
+    showImportModal.value = true;
+};
+
+const closeImportModal = () => {
+    showImportModal.value = false;
+    importForm.reset();
+};
+
+const submitImport = () => {
+    importForm.post(route('logistics.fleet.import'), {
+        preserveScroll: true,
+        onSuccess: () => closeImportModal(),
+        onError: () => {
+            // Handle errors if needed
+        }
+    });
+};
+
 const openCreateModal = () => {
     editingVehicle.value = null;
     form.reset();
@@ -147,7 +172,20 @@ const getDoStatusColor = (status) => {
             <div>
                 <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest">Master Data Armada</p>
             </div>
-            <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none flex items-center gap-3">
+                <a href="/logistics/fleet/template" class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-lg transition-colors">
+                    Template Excel
+                </a>
+                <a href="/logistics/fleet/export" class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-emerald-600 bg-slate-100 hover:bg-emerald-50 rounded-lg transition-colors">
+                    Export Data
+                </a>
+                <button
+                    @click="openImportModal"
+                    class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                    Import Data
+                </button>
+                <div class="h-6 w-px bg-slate-200"></div>
                 <button
                     @click="openCreateModal"
                     class="group relative inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 hover:shadow-blue-500/40 active:scale-95"
@@ -297,6 +335,64 @@ const getDoStatusColor = (status) => {
             <TruckIcon class="mx-auto h-12 w-12 text-slate-400" />
             <h3 class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">Tidak ada kendaraan</h3>
             <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Mulai dengan menambahkan kendaraan baru ke armada Bapak.</p>
+        </div>
+
+        <!-- Import Modal -->
+        <div v-if="showImportModal" class="fixed inset-0 z-[60] overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4">
+                <div @click="closeImportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" />
+                
+                <div class="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+                    <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Import Data Armada</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest font-bold">Upload Excel File</p>
+                        </div>
+                        <button @click="closeImportModal" class="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+                            <PlusIcon class="h-6 w-6 rotate-45" />
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="submitImport" class="p-8">
+                        <div class="space-y-4">
+                            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex items-start gap-3">
+                                <div class="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
+                                    <TruckIcon class="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-blue-900 dark:text-blue-100">Petunjuk Import</p>
+                                    <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                                        Pastikan format file Excel sesuai dengan template yang disediakan. 
+                                        <a href="/logistics/fleet/template" class="underline font-bold hover:text-blue-500">Download Template Disini</a>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-xs font-black uppercase tracking-widest text-slate-500">File Excel (.xlsx)</label>
+                                <input type="file" @input="importForm.file = $event.target.files[0]" accept=".xlsx, .xls" class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-200 dark:border-slate-700 rounded-xl p-2" required />
+                            </div>
+                        </div>
+
+                        <div class="mt-8 flex items-center justify-end gap-3">
+                            <button 
+                                type="button" 
+                                @click="closeImportModal"
+                                class="px-6 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                type="submit"
+                                :disabled="importForm.processing"
+                                class="px-10 py-2.5 text-sm font-black text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {{ importForm.processing ? 'Mengupload...' : 'Import Data' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
 
         <!-- Create/Edit Modal -->

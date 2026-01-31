@@ -32,6 +32,9 @@ use App\Http\Controllers\Purchasing\SupplierController;
 use App\Http\Controllers\Sales\CustomerController;
 use App\Http\Controllers\Sales\SalesOrderController;
 use App\Http\Controllers\Sales\SalesReturnController;
+use App\Http\Controllers\CRM\LeadController;
+use App\Http\Controllers\CRM\OpportunityController;
+use App\Http\Controllers\CRM\CampaignController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -51,6 +54,7 @@ Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->nam
 
 // Inventory Module
 Route::prefix('inventory')->name('inventory.')->middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Inventory\InventoryDashboardController::class, 'index'])->name('dashboard');
     Route::resource('categories', App\Http\Controllers\Inventory\CategoryController::class);
     Route::get('/stocks', [App\Http\Controllers\Inventory\CurrentStockController::class, 'index'])->name('stocks.index');
     Route::resource('products', ProductController::class);
@@ -91,6 +95,7 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth'])->group(func
 
 // Purchasing Module
 Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Purchasing\PurchasingDashboardController::class, 'index'])->name('dashboard');
     Route::resource('suppliers', SupplierController::class);
     Route::get('/suppliers-export', [SupplierController::class, 'export'])->name('suppliers.export');
     Route::post('/suppliers-import', [SupplierController::class, 'import'])->name('suppliers.import');
@@ -140,7 +145,7 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
 
 // Sales Module
 Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () {
-    Route::get('/dashboard', fn () => Inertia::render('Sales/Dashboard'))->name('dashboard');
+    Route::get('/dashboard', [App\Http\Controllers\Sales\SalesDashboardController::class, 'index'])->name('dashboard');
     Route::resource('customers', CustomerController::class);
     Route::get('/customers-export', [CustomerController::class, 'export'])->name('customers.export');
     Route::post('/customers-import', [CustomerController::class, 'import'])->name('customers.import');
@@ -195,6 +200,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
 
 // Manufacturing Module
 Route::prefix('manufacturing')->name('manufacturing.')->middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Manufacturing\ProductionDashboardController::class, 'index'])->name('dashboard');
     Route::resource('boms', BomController::class);
     Route::post('/boms/{bom}/activate', [BomController::class, 'activate'])->name('boms.activate');
     Route::post('/boms/{bom}/archive', [BomController::class, 'archive'])->name('boms.archive');
@@ -240,9 +246,10 @@ Route::middleware(['auth'])->prefix('maintenance')->name('maintenance.')->group(
 
 // Finance
 Route::middleware(['auth'])->prefix('finance')->name('finance.')->group(function () {
-    Route::get('/ledger', fn () => Inertia::render('Blueprints/Finance', ['title' => 'General Ledger']))->name('ledger');
-    Route::get('/reports', fn () => Inertia::render('Blueprints/Finance', ['title' => 'Profit & Loss']))->name('reports');
-    Route::get('/payment-monitoring', fn () => Inertia::render('Blueprints/Finance', ['title' => 'AP & AR Monitoring']))->name('payment-monitoring');
+    Route::get('/dashboard', [App\Http\Controllers\Finance\FinanceDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/ledger', [App\Http\Controllers\Finance\FinanceLedgerController::class, 'index'])->name('ledger');
+    Route::get('/reports', [App\Http\Controllers\Finance\FinanceReportController::class, 'profitAndLoss'])->name('reports');
+    Route::get('/payment-monitoring', [App\Http\Controllers\Finance\FinanceMonitoringController::class, 'index'])->name('payment-monitoring');
 });
 
 // HR
@@ -268,9 +275,13 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
 
 // Logistics
 Route::middleware(['auth'])->prefix('logistics')->name('logistics.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\Logistics\LogisticsDashboardController::class, 'index'])->name('dashboard');
     Route::get('/planning', [App\Http\Controllers\Logistics\LogisticsController::class, 'index'])->name('planning');
     Route::post('/planning/assign', [App\Http\Controllers\Logistics\LogisticsController::class, 'assignVehicle'])->name('planning.assign');
     
+    Route::get('/fleet/export', [App\Http\Controllers\Logistics\VehicleController::class, 'export'])->name('fleet.export');
+    Route::get('/fleet/template', [App\Http\Controllers\Logistics\VehicleController::class, 'template'])->name('fleet.template');
+    Route::post('/fleet/import', [App\Http\Controllers\Logistics\VehicleController::class, 'import'])->name('fleet.import');
     Route::get('/fleet', [App\Http\Controllers\Logistics\VehicleController::class, 'index'])->name('fleet.index');
     Route::post('/fleet', [App\Http\Controllers\Logistics\VehicleController::class, 'store'])->name('fleet.store');
     Route::get('/fleet/{vehicle}', [App\Http\Controllers\Logistics\VehicleController::class, 'show'])->name('fleet.show');
@@ -280,9 +291,10 @@ Route::middleware(['auth'])->prefix('logistics')->name('logistics.')->group(func
 
 // CRM
 Route::middleware(['auth'])->prefix('crm')->name('crm.')->group(function () {
-    Route::get('/leads', fn () => Inertia::render('Blueprints/CRM', ['title' => 'Leads Management']))->name('leads');
-    Route::get('/opportunities', fn () => Inertia::render('Blueprints/CRM', ['title' => 'Opportunity Tracking']))->name('opportunities');
-    Route::get('/campaigns', fn () => Inertia::render('Blueprints/CRM', ['title' => 'Marketing Campaigns']))->name('campaigns');
+    Route::get('/dashboard', [App\Http\Controllers\CRM\CrmDashboardController::class, 'index'])->name('dashboard');
+    Route::resource('leads', LeadController::class);
+    Route::resource('opportunities', OpportunityController::class);
+    Route::resource('campaigns', CampaignController::class);
 });
 
 // Costing

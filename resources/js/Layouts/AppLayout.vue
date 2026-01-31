@@ -111,12 +111,12 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
-            { name: 'Dashboard', href: '/sales/dashboard', permission: 'sales_crm.view' },
+            { name: 'Sales Hub', href: '/sales/dashboard', permission: 'sales_crm.view' },
             { name: 'Customers', href: '/sales/customers', permission: 'sales_crm.customers.view' },
             { name: 'Quotations', href: '/sales/quotations', permission: 'sales_crm.quotations.view' },
             { name: 'Sales Orders', href: '/sales/orders', permission: 'sales_crm.sales_orders.view' },
             { name: 'Delivery Orders', href: '/sales/deliveries', permission: 'sales_crm.delivery_orders.view' },
-            { name: 'Invoices', href: '/sales/invoices', permission: 'sales_crm.invoices.view' },
+            { name: 'Sales Invoices', href: '/sales/invoices', permission: 'sales_crm.invoices.view' },
             { name: 'Sales Returns', href: '/sales/returns', permission: 'sales_crm.sales_returns.view' },
             { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.ai_po_extractor.view' },
         ]
@@ -128,6 +128,7 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
+            { name: 'CRM Intelligence', href: '/crm/dashboard', permission: 'sales_crm.leads_management.view' },
             { name: 'Leads Management', href: '/crm/leads', permission: 'sales_crm.leads_management.view' },
             { name: 'Opportunity Tracking', href: '/crm/opportunities', permission: 'sales_crm.opportunity_tracking.view' },
             { name: 'Marketing Campaigns', href: '/crm/campaigns', permission: 'sales_crm.marketing_campaigns.view' },
@@ -140,6 +141,7 @@ const navigation = [
         current: false,
         permission: 'purchasing.view',
         children: [
+            { name: 'Procurement Ops', href: '/purchasing/dashboard', permission: 'purchasing.view' },
             { name: 'Suppliers', href: '/purchasing/suppliers', permission: 'purchasing.suppliers.view' },
             { name: 'Purchase Requests', href: '/purchasing/requests', permission: 'purchasing.purchase_requests.view' },
             { name: 'Purchase Orders', href: '/purchasing/orders', permission: 'purchasing.purchase_orders.view' },
@@ -155,6 +157,7 @@ const navigation = [
         current: false,
         permission: 'inventory.view',
         children: [
+            { name: 'Command Center', href: '/inventory/dashboard', permission: 'inventory.view' },
             { name: 'Categories', href: '/inventory/categories', permission: 'inventory.categories.view' },
             { name: 'Products', href: '/inventory/products', permission: 'inventory.products.view' },
             { name: 'Current Stock', href: '/inventory/stocks', permission: 'inventory.current_stock.view' },
@@ -170,10 +173,10 @@ const navigation = [
         current: false,
         permission: 'manufacturing.view',
         children: [
+            { name: 'Intelligence Hub', href: '/manufacturing/dashboard', permission: 'manufacturing.view' },
             { name: 'Bill of Materials', href: '/manufacturing/boms', permission: 'manufacturing.bill_of_materials.view' },
             { name: 'Production Routing', href: '/manufacturing/routing', permission: 'manufacturing.production_routing.view' },
             { name: 'Work Orders', href: '/manufacturing/work-orders', permission: 'manufacturing.work_orders.view' },
-            { name: 'Production', href: '/manufacturing/production', permission: 'manufacturing.production.view' },
             { name: 'Input Output', href: '/manufacturing/production-entry', permission: 'manufacturing.input_output.view' },
             { name: 'Shift Management', href: '/manufacturing/shifts', permission: 'manufacturing.shift_management.view' },
             { name: 'Machine Management', href: '/manufacturing/machines', permission: 'manufacturing.machine_management.view' },
@@ -199,6 +202,7 @@ const navigation = [
         current: false,
         permission: 'logistics.view',
         children: [
+            { name: 'Logistics Hub', href: '/logistics/dashboard', permission: 'logistics.view' },
             { name: 'Delivery Planning', href: '/logistics/planning', permission: 'logistics.delivery_planning.view' },
             { name: 'Vehicle Fleet', href: '/logistics/fleet', permission: 'logistics.vehicle_fleet.view' },
         ]
@@ -210,6 +214,7 @@ const navigation = [
         current: false,
         permission: 'finance.view',
         children: [
+            { name: 'Financial Command', href: '/finance/dashboard', permission: 'finance.general_ledger.view' },
             { name: 'General Ledger', href: '/finance/ledger', permission: 'finance.general_ledger.view' },
             { name: 'Profit & Loss', href: '/finance/reports', permission: 'finance.profit_&_loss.view' },
             { name: 'AP & AR Monitoring', href: '/finance/ap_&_ar_monitoring', permission: 'finance.ap_&_ar_monitoring.view' },
@@ -645,14 +650,11 @@ const toggleTheme = () => {
                 <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 lg:hidden" />
 
                 <div class="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6">
-                    <!-- Digital Clock -->
+                    <!-- Date Display Only (Time removed per request) -->
                     <div class="flex flex-1 items-center gap-4">
                         <div class="hidden md:flex flex-row items-baseline gap-3">
                              <div class="text-sm font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase font-mono">
                                 {{ currentDate }}
-                            </div>
-                            <div class="text-2xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-cyan-400 dark:to-blue-500 drop-shadow-[0_0_8px_rgba(6,182,212,0.3)] dark:drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
-                                {{ currentTime }}
                             </div>
                         </div>
                     </div>

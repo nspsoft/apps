@@ -8,17 +8,7 @@ import { ZiggyVue } from 'ziggy-js';
 
 const appName = import.meta.env.VITE_APP_NAME || 'ERP Manufacturing';
 
-import { registerSW } from 'virtual:pwa-register';
 
-// Register Service Worker
-registerSW({ immediate: true });
-
-// Global PWA Install Prompt
-window.deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    window.deferredPrompt = e;
-});
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,

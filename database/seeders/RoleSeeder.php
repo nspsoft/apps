@@ -142,7 +142,7 @@ class RoleSeeder extends Seeder
         }
 
         // Assign Super Admin to potential admins
-        $users = User::whereIn('email', ['test@example.com', 'admin@jicos.com'])->get();
+        $users = User::whereIn('email', ['test@example.com', 'admin@jicos.com', 'admin@jidoka.co.id'])->get();
         foreach ($users as $user) {
             if (!$user->hasRole('Super Admin')) {
                 $user->assignRole('Super Admin');

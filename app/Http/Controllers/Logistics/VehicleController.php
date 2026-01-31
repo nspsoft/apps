@@ -155,4 +155,28 @@ class VehicleController extends Controller
 
         return redirect()->back()->with('success', 'Vehicle deleted successfully.');
     }
+
+    public function export()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Logistics\VehicleExport, 'vehicle_fleet.xlsx');
+    }
+
+    public function template()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Template\VehicleTemplateExport, 'vehicle_import_template.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls'
+        ]);
+
+        try {
+            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\Logistics\VehicleImport, $request->file('file'));
+            return redirect()->back()->with('success', 'Vehicles imported successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error importing file: ' . $e->getMessage());
+        }
+    }
 }

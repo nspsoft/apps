@@ -5,12 +5,12 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     CurrencyDollarIcon,
     ShoppingCartIcon,
-    DocumentTextIcon,
-    ChartPieIcon,
-    BoltIcon,
+    ClipboardDocumentCheckIcon,
+    CheckBadgeIcon,
+    FunnelIcon,
+    UserGroupIcon,
     ClockIcon,
-    UserCircleIcon,
-    ArrowTrendingUpIcon
+    ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 import {
@@ -43,10 +43,10 @@ ChartJS.register(
 
 const props = defineProps({
     stats: Object,
-    salesTrend: Array,
+    spendTrend: Array,
     statusDist: Object,
-    topCustomers: Array,
-    recentOrders: Array,
+    topSuppliers: Array,
+    recentRequests: Array,
 });
 
 // --- Real-time Clock ---
@@ -70,9 +70,9 @@ const commonOptions = computed(() => ({
         legend: { labels: { color: '#94a3b8', font: { family: 'Space Mono' } } },
         tooltip: {
             backgroundColor: 'rgba(5, 5, 16, 0.9)',
-            titleColor: '#d946ef',
+            titleColor: '#f59e0b',
             bodyColor: '#e2e8f0',
-            borderColor: '#d946ef',
+            borderColor: '#f59e0b',
             borderWidth: 1,
             padding: 12,
             titleFont: { family: 'Space Mono', weight: 'bold' },
@@ -82,11 +82,11 @@ const commonOptions = computed(() => ({
     },
     scales: {
         x: { 
-            grid: { color: 'rgba(217, 70, 239, 0.1)', drawBorder: false },
+            grid: { color: 'rgba(245, 158, 11, 0.1)', drawBorder: false },
             ticks: { color: '#64748b', font: { family: 'Space Mono', size: 10 } }
         },
         y: { 
-            grid: { color: 'rgba(217, 70, 239, 0.1)', drawBorder: false },
+            grid: { color: 'rgba(245, 158, 11, 0.1)', drawBorder: false },
             ticks: { color: '#64748b', font: { family: 'Space Mono', size: 10 } }
         },
     },
@@ -94,19 +94,19 @@ const commonOptions = computed(() => ({
 
 // -- Chart Data --
 
-// 1. Sales Trend (Line Chart)
-const trendData = computed(() => ({
-    labels: props.salesTrend.map(t => t.month),
+// 1. Spend Trend (Line/Bar)
+const spendData = computed(() => ({
+    labels: props.spendTrend.map(t => t.month),
     datasets: [
         {
-            label: 'Monthly Revenue',
-            data: props.salesTrend.map(t => t.total),
-            borderColor: '#d946ef', // Fuchsia
+            label: 'Monthly Spend',
+            data: props.spendTrend.map(t => t.total),
+            borderColor: '#f59e0b', // Amber
             backgroundColor: (ctx) => {
                 const canvas = ctx.chart.ctx;
                 const gradient = canvas.createLinearGradient(0, 0, 0, 300);
-                gradient.addColorStop(0, 'rgba(217, 70, 239, 0.4)');
-                gradient.addColorStop(1, 'rgba(217, 70, 239, 0.0)');
+                gradient.addColorStop(0, 'rgba(245, 158, 11, 0.4)');
+                gradient.addColorStop(1, 'rgba(245, 158, 11, 0.0)');
                 return gradient;
             },
             fill: true,
@@ -114,59 +114,60 @@ const trendData = computed(() => ({
             borderWidth: 2,
             pointRadius: 4,
             pointHoverRadius: 6,
-            pointBackgroundColor: '#fff'
+            pointBackgroundColor: '#fff',
         }
     ]
 }));
 
 // 2. Status Distribution (Doughnut)
+// Map statuses to colors
 const statusColors = {
-    'draft': '#64748b',
-    'confirmed': '#22d3ee',
-    'processing': '#f59e0b',
-    'shipped': '#8b5cf6',
-    'delivered': '#10b981',
-    'cancelled': '#f43f5e',
+    'pending': '#f43f5e', // Rose
+    'approved': '#22d3ee', // Cyan
+    'partially_approved': '#a855f7', // Purple
+    'ordered': '#f59e0b', // Amber
+    'completed': '#10b981', // Emerald
+    'cancelled': '#64748b', // Slate
 };
 
 const statusData = computed(() => {
     const labels = Object.keys(props.statusDist);
     return {
-        labels: labels.map(l => l.toUpperCase()),
+        labels: labels.map(l => l.replace('_', ' ').toUpperCase()),
         datasets: [{
             data: Object.values(props.statusDist),
             backgroundColor: labels.map(l => statusColors[l] || '#94a3b8'),
             borderWidth: 0,
-            hoverOffset: 10
         }]
     };
 });
 
-// 3. Top Customers (Bar)
-const customerData = computed(() => ({
-    labels: props.topCustomers.map(c => c.name),
+// 3. Top Suppliers (Horizontal Bar)
+const supplierData = computed(() => ({
+    labels: props.topSuppliers.map(s => s.name),
     datasets: [{
-        label: 'Revenue contribution',
-        data: props.topCustomers.map(c => c.total_revenue),
-        backgroundColor: '#22d3ee',
+        label: 'Total Spend',
+        data: props.topSuppliers.map(s => s.total_spend),
+        backgroundColor: '#06b6d4', // Cyan
         borderRadius: 4,
-        barThickness: 25,
+        barThickness: 20,
     }]
 }));
 
 </script>
 
 <template>
-    <Head title="Sales Command" />
+    <Head title="Procurement Ops" />
 
-    <AppLayout title="Sales Command" :render-header="false">
-        <div class="min-h-screen bg-[#050510] relative overflow-hidden font-mono text-cyan-50 selection:bg-fuchsia-500/30">
+    <AppLayout title="Procurement Ops" :render-header="false">
+        <div class="min-h-screen bg-[#050510] relative overflow-hidden font-mono text-cyan-50 selection:bg-amber-500/30">
             
             <!-- Dynamic Background -->
             <div class="fixed inset-0 z-0 pointer-events-none">
-                <div class="absolute inset-0 bg-gradient-to-b from-fuchsia-950/20 to-[#050510]"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-amber-950/20 to-[#050510]"></div>
                 <div class="perspective-grid absolute inset-0 opacity-20"></div>
-                <div class="absolute top-[-10%] right-[20%] w-[600px] h-[600px] bg-fuchsia-600/10 blur-[150px] rounded-full animate-float"></div>
+                <div class="absolute top-[-10%] left-[20%] w-[600px] h-[600px] bg-amber-600/10 blur-[150px] rounded-full animate-float"></div>
+                <div class="absolute bottom-[-10%] right-[10%] w-[500px] h-[500px] bg-cyan-600/10 blur-[150px] rounded-full animate-float-delayed"></div>
                 <div class="stars"></div>
             </div>
 
@@ -176,19 +177,19 @@ const customerData = computed(() => ({
                 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-4 backdrop-blur-sm">
                     <div>
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="px-2 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-slate-400 tracking-[0.2em]">HUB.SALES.4.0</span>
-                            <span class="flex items-center gap-1.5 px-2 py-0.5 text-[10px] bg-fuchsia-500/10 border border-fuchsia-500/20 rounded text-fuchsia-400 tracking-wider animate-pulse">
-                                <span class="w-1.5 h-1.5 rounded-full bg-fuchsia-400"></span> REVENUE STREAM ACTIVE
+                            <span class="px-2 py-0.5 text-[10px] bg-white/5 border border-white/10 rounded text-slate-400 tracking-[0.2em]">PROC.SYS.3.0</span>
+                            <span class="flex items-center gap-1.5 px-2 py-0.5 text-[10px] bg-amber-500/10 border border-amber-500/20 rounded text-amber-400 tracking-wider animate-pulse">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> OPS ACTIVE
                             </span>
                         </div>
-                        <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 via-white to-fuchsia-400 tracking-widest uppercase glow-text">
-                            SALES HUB COMMAND
+                        <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-white to-amber-400 tracking-widest uppercase glow-text">
+                            PROCUREMENT OPS
                         </h1>
                     </div>
                     
                     <div class="flex items-center gap-6">
                         <div class="text-right hidden md:block">
-                            <p class="text-[10px] text-fuchsia-500/70 tracking-[0.2em] mb-1">LOCAL TIME</p>
+                            <p class="text-[10px] text-amber-500/70 tracking-[0.2em] mb-1">LOCAL TIME</p>
                             <p class="text-2xl font-bold font-mono text-white glow-text">{{ time }}</p>
                         </div>
                     </div>
@@ -196,74 +197,74 @@ const customerData = computed(() => ({
 
                 <!-- KPI Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <!-- Revenue -->
+                    <!-- Monthly Spend -->
                     <div class="hud-card group delay-100">
                         <div class="hud-content p-6 h-full relative z-10 bg-[#0a0a16]/60 backdrop-blur-xl border border-white/5 rounded-xl overflow-hidden flex flex-col justify-between">
                             <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-                                <CurrencyDollarIcon class="h-12 w-12 text-fuchsia-400" />
+                                <CurrencyDollarIcon class="h-12 w-12 text-amber-400" />
                             </div>
                             <div>
-                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">MONTHLY REVENUE</p>
+                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">MONTHLY SPEND</p>
                                 <h3 class="text-2xl font-black text-white glow-text tracking-tight">
-                                    {{ formatCurrency(stats.monthly_revenue) }}
+                                    {{ formatCurrency(stats.monthly_spend) }}
                                 </h3>
                             </div>
                             <div class="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-fuchsia-500 w-[85%] shadow-[0_0_10px_#d946ef]"></div>
+                                <div class="h-full bg-amber-500 w-[70%] shadow-[0_0_10px_#f59e0b]"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Order Count -->
+                    <!-- Open Orders -->
                     <div class="hud-card group delay-200">
                          <div class="hud-content p-6 h-full relative z-10 bg-[#0a0a16]/60 backdrop-blur-xl border border-white/5 rounded-xl overflow-hidden flex flex-col justify-between">
                             <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
                                 <ShoppingCartIcon class="h-12 w-12 text-cyan-400" />
                             </div>
                             <div>
-                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">TOTAL ORDERS</p>
+                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">OPEN ORDERS</p>
                                 <h3 class="text-3xl font-black text-white glow-text tracking-tight">
-                                    {{ formatNumber(stats.order_count) }}
+                                    {{ formatNumber(stats.open_orders) }}
                                 </h3>
                             </div>
                             <div class="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-cyan-500 w-[60%] shadow-[0_0_10px_#22d3ee]"></div>
+                                <div class="h-full bg-cyan-500 w-[50%] shadow-[0_0_10px_#06b6d4]"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Pending Quotations -->
+                    <!-- Pending Approvals -->
                     <div class="hud-card group delay-300">
                          <div class="hud-content p-6 h-full relative z-10 bg-[#0a0a16]/60 backdrop-blur-xl border border-white/5 rounded-xl overflow-hidden flex flex-col justify-between">
                             <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-                                <DocumentTextIcon class="h-12 w-12 text-amber-400" />
+                                <ClipboardDocumentCheckIcon class="h-12 w-12 text-rose-400" />
                             </div>
                             <div>
-                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">PENDING QUOTES</p>
+                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">WAITING APPROVAL</p>
                                 <h3 class="text-3xl font-black text-white glow-text tracking-tight">
-                                    {{ formatNumber(stats.pending_quotations) }}
+                                    {{ formatNumber(stats.pending_approvals) }}
                                 </h3>
                             </div>
                              <div class="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-amber-500 w-[45%] shadow-[0_0_10px_#f59e0b]"></div>
+                                <div class="h-full bg-rose-500 w-[30%] shadow-[0_0_10px_#f43f5e]"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Avg Order Value -->
+                    <!-- Supplier Perf -->
                     <div class="hud-card group delay-400">
                          <div class="hud-content p-6 h-full relative z-10 bg-[#0a0a16]/60 backdrop-blur-xl border border-white/5 rounded-xl overflow-hidden flex flex-col justify-between">
                             <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition-opacity">
-                                <ArrowTrendingUpIcon class="h-12 w-12 text-emerald-400" />
+                                <CheckBadgeIcon class="h-12 w-12 text-emerald-400" />
                             </div>
                              <div>
-                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">AVG ORDER VALUE</p>
-                                <h3 class="text-2xl font-black text-white glow-text tracking-tight">
-                                    {{ formatCurrency(stats.avg_order_value) }}
+                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">VENDOR RATING</p>
+                                <h3 class="text-3xl font-black text-white glow-text tracking-tight">
+                                    {{ stats.supplier_performance }}%
                                 </h3>
                             </div>
                              <div class="mt-4 h-1 bg-slate-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-emerald-500 w-[78%] shadow-[0_0_10px_#10b981]"></div>
+                                <div class="h-full bg-emerald-500 w-[94%] shadow-[0_0_10px_#10b981]"></div>
                             </div>
                         </div>
                     </div>
@@ -271,23 +272,23 @@ const customerData = computed(() => ({
 
                 <!-- Charts Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Sales Trend -->
+                    <!-- Spend Analysis -->
                     <div class="lg:col-span-2 hud-panel min-h-[350px]">
                         <div class="panel-header flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
-                            <h3 class="flex items-center gap-2 text-sm font-bold text-fuchsia-300 tracking-widest uppercase">
-                                <BoltIcon class="h-4 w-4" /> Revenue Performance (6mo)
+                            <h3 class="flex items-center gap-2 text-sm font-bold text-amber-300 tracking-widest uppercase">
+                                <CurrencyDollarIcon class="h-4 w-4" /> Spend Analysis (6mo)
                             </h3>
                         </div>
                         <div class="panel-body p-4 h-[300px] relative">
-                            <Line :data="trendData" :options="commonOptions" />
+                            <Line :data="spendData" :options="commonOptions" />
                         </div>
                     </div>
 
-                    <!-- Status Dist -->
+                    <!-- Procurement Cycle -->
                     <div class="hud-panel min-h-[350px] flex flex-col">
                         <div class="panel-header p-4 border-b border-white/5 bg-white/5">
                             <h3 class="flex items-center gap-2 text-sm font-bold text-cyan-300 tracking-widest uppercase">
-                                <ChartPieIcon class="h-4 w-4" /> Order Pipeline
+                                <FunnelIcon class="h-4 w-4" /> Order Distribution
                             </h3>
                         </div>
                         <div class="panel-body p-6 flex-1 flex flex-row items-center justify-center gap-8 relative">
@@ -302,8 +303,8 @@ const customerData = computed(() => ({
                                     }" 
                                 />
                                  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none w-full">
-                                    <p class="text-[10px] text-slate-500 tracking-[0.2em] uppercase font-bold">STATUSES</p>
-                                    <p class="text-3xl font-black text-white glow-text leading-tight">{{ Object.keys(props.statusDist).length }}</p>
+                                    <p class="text-[10px] text-slate-500 tracking-[0.2em] uppercase font-bold">TOTAL POs</p>
+                                    <p class="text-3xl font-black text-white glow-text leading-tight">{{ formatNumber(Object.values(props.statusDist).reduce((a, b) => a + b, 0)) }}</p>
                                 </div>
                             </div>
                             <div class="w-1/2 space-y-4">
@@ -321,65 +322,63 @@ const customerData = computed(() => ({
 
                 <!-- Bottom Row -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     <!-- Recent Orders -->
+                     <!-- Urgent Requests -->
                      <div class="hud-panel overflow-hidden">
                          <div class="panel-header p-4 border-b border-white/5 bg-white/5">
-                            <h3 class="flex items-center gap-2 text-sm font-bold text-fuchsia-300 tracking-widest uppercase">
-                                <ShoppingCartIcon class="h-4 w-4" /> Recent Transactions
+                            <h3 class="flex items-center gap-2 text-sm font-bold text-rose-300 tracking-widest uppercase">
+                                <ExclamationTriangleIcon class="h-4 w-4" /> Urgent Requests
                             </h3>
                         </div>
                         <div class="panel-body p-0 overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="text-[10px] text-slate-500 font-bold uppercase tracking-wider border-b border-white/10 bg-white/5">
-                                        <th class="p-3">Order #</th>
-                                        <th class="p-3">Customer</th>
-                                        <th class="p-3">Status</th>
-                                        <th class="p-3 text-right">Amount</th>
+                                        <th class="p-3">Req ID</th>
+                                        <th class="p-3">Requester</th>
+                                        <th class="p-3">Description</th>
                                         <th class="p-3 text-right">Date</th>
+                                        <th class="p-3 text-center">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-white/5">
                                     <tr 
-                                        v-for="order in recentOrders" 
-                                        :key="order.id" 
+                                        v-for="req in recentRequests" 
+                                        :key="req.id" 
                                         class="hover:bg-white/5 transition-colors group"
                                     >
-                                        <td class="p-3 text-[10px] font-mono text-fuchsia-500/70 border-l-2 border-transparent group-hover:border-fuchsia-500 transition-colors">
-                                            {{ order.so_number }}
+                                        <td class="p-3 text-[10px] font-mono text-cyan-500/70 border-l-2 border-transparent group-hover:border-rose-500 transition-colors">
+                                            {{ req.request_number }}
                                         </td>
-                                        <td class="p-3 text-xs font-bold text-white uppercase">{{ order.customer }}</td>
-                                        <td class="p-3">
-                                            <span 
-                                                class="px-2 py-0.5 text-[10px] font-bold border rounded uppercase"
-                                                :class="{
-                                                    'bg-cyan-500/10 text-cyan-400 border-cyan-500/30': order.status === 'confirmed',
-                                                    'bg-amber-500/10 text-amber-400 border-amber-500/30': order.status === 'processing',
-                                                    'bg-emerald-500/10 text-emerald-400 border-emerald-500/30': order.status === 'delivered',
-                                                    'bg-slate-500/10 text-slate-400 border-slate-500/30': order.status === 'draft',
-                                                }"
+                                        <td class="p-3 text-xs font-bold text-white uppercase">{{ req.requester }}</td>
+                                        <td class="p-3 text-xs text-slate-400 truncate max-w-[200px]">{{ req.description }}</td>
+                                        <td class="p-3 text-[10px] text-slate-500 text-right">{{ req.date }}</td>
+                                        <td class="p-3 text-center">
+                                            <Link 
+                                                :href="route('purchasing.requests.show', req.id)" 
+                                                class="px-2 py-1 text-[10px] bg-rose-500/20 text-rose-400 rounded hover:bg-rose-500 hover:text-white transition-colors uppercase tracking-wider"
                                             >
-                                                {{ order.status }}
-                                            </span>
+                                                Review
+                                            </Link>
                                         </td>
-                                        <td class="p-3 text-xs font-mono text-right text-white">{{ formatCurrency(order.amount) }}</td>
-                                        <td class="p-3 text-[10px] text-slate-500 text-right">{{ order.date }}</td>
+                                    </tr>
+                                    <tr v-if="recentRequests.length === 0" class="text-center">
+                                        <td colspan="5" class="p-8 text-slate-500 text-xs uppercase tracking-wider">No pending urgent requests</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                      </div>
 
-                     <!-- Top Customers -->
+                     <!-- Top Suppliers -->
                      <div class="hud-panel">
                         <div class="panel-header p-4 border-b border-white/5 bg-white/5">
                             <h3 class="flex items-center gap-2 text-sm font-bold text-cyan-300 tracking-widest uppercase">
-                                <UserCircleIcon class="h-4 w-4" /> Top Client Revenue
+                                <UserGroupIcon class="h-4 w-4" /> Top Suppliers (YTD)
                             </h3>
                         </div>
                         <div class="panel-body p-4 h-[300px]">
                             <Bar 
-                                :data="customerData" 
+                                :data="supplierData" 
                                 :options="{ 
                                     ...commonOptions, 
                                     indexAxis: 'y', 
@@ -402,11 +401,11 @@ const customerData = computed(() => ({
     font-family: 'Space Mono', monospace;
 }
 
-/* Background Effects */
+/* Background Effects - Amber Version */
 .perspective-grid {
     background-image: 
-        linear-gradient(to right, rgba(217, 70, 239, 0.1) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(217, 70, 239, 0.1) 1px, transparent 1px);
+        linear-gradient(to right, rgba(245, 158, 11, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(245, 158, 11, 0.1) 1px, transparent 1px);
     background-size: 40px 40px;
     transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(2);
     animation: grid-move 20s linear infinite;
@@ -423,17 +422,22 @@ const customerData = computed(() => ({
     50% { transform: translate(-20px, 20px); }
 }
 
+@keyframes float-delayed {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, -20px); }
+}
+
 /* Card Styling */
 .hud-card {
     transition: all 0.3s ease;
 }
 .hud-card:hover {
     transform: translateY(-5px);
-    filter: drop-shadow(0 0 10px rgba(217, 70, 239, 0.2));
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.2));
 }
 
 .hud-panel {
-    background: rgba(10, 10, 22, 0.8);
+    background: rgba(10, 10, 22, 0.6);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
