@@ -128,7 +128,7 @@ const submit = () => {
     <Head :title="salesOrder ? `Edit SO ${salesOrder.so_number}` : 'New Sales Order'" />
 
     <AppLayout :title="salesOrder ? 'Edit Sales Order' : 'Create Sales Order'">
-        <div class="max-w-7xl mx-auto space-y-6">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6">
             <!-- Header -->
             <div class="flex items-center gap-4">
                 <Link
@@ -144,8 +144,8 @@ const submit = () => {
 
             <form @submit.prevent="submit" class="space-y-6">
                 <!-- Main Info -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-9 space-y-6">
                         <div class="rounded-2xl glass-card p-6 space-y-4">
                             <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">Order Details</h3>
                             
@@ -217,7 +217,7 @@ const submit = () => {
                                 <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
                                     <thead class="bg-white dark:bg-slate-950 text-slate-200">
                                         <tr>
-                                            <th class="px-4 py-3 min-w-[200px]">Product</th>
+                                            <th class="px-4 py-3 min-w-[350px]">Product</th>
                                             <th class="px-4 py-3 w-24">Qty</th>
                                             <th class="px-4 py-3 w-32">Unit</th>
                                             <th class="px-4 py-3 w-32">Price</th>
@@ -344,7 +344,7 @@ const submit = () => {
                     </div>
 
                     <!-- Right Sidebar -->
-                    <div class="space-y-6">
+                    <div class="lg:col-span-3 space-y-6">
                         <!-- Sold-to Preview -->
                         <div v-if="form.customer_id" class="rounded-2xl bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 p-6 space-y-4">
                              <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest">Sold-to Party (Buyer)</h3>
