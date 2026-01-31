@@ -10,7 +10,8 @@ import {
     CheckBadgeIcon,
     CpuChipIcon,
     InformationCircleIcon,
-    ArrowLeftIcon
+    ArrowLeftIcon,
+    ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -160,20 +161,20 @@ const geminiModels = [
                         </h5>
                         <ul class="space-y-2 text-xs text-slate-500 dark:text-slate-400">
                             <li class="flex items-center gap-2">
-                                <CheckBadgeIcon class="h-4 w-4 text-emerald-500" />
-                                <span><strong>15 requests/menit</strong> - 15 PO extraction per menit</span>
+                                <ExclamationTriangleIcon class="h-4 w-4 text-amber-500" />
+                                <span><strong>5 requests/menit</strong> - Limit per menit</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <ExclamationTriangleIcon class="h-4 w-4 text-amber-500" />
+                                <span><strong>20 requests/hari</strong> - Limit harian (RPD)</span>
                             </li>
                             <li class="flex items-center gap-2">
                                 <CheckBadgeIcon class="h-4 w-4 text-emerald-500" />
-                                <span><strong>1.500 requests/hari</strong> - Cukup untuk usage normal</span>
-                            </li>
-                            <li class="flex items-center gap-2">
-                                <CheckBadgeIcon class="h-4 w-4 text-emerald-500" />
-                                <span><strong>1 juta tokens/hari</strong> - ~200-500 dokumen/hari</span>
+                                <span><strong>Gratis</strong> - Tidak perlu kartu kredit</span>
                             </li>
                         </ul>
-                        <p class="mt-3 text-[10px] text-slate-500 italic">
-                            💡 Free tier sudah cukup untuk kebanyakan bisnis!
+                        <p class="mt-3 text-[10px] text-amber-600 font-medium">
+                            ⚠️ Free tier terbatas! Untuk production, gunakan Paid Tier.
                         </p>
                     </div>
 
@@ -193,11 +194,11 @@ const geminiModels = [
                             </li>
                             <li class="flex items-center gap-2">
                                 <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
-                                <span><strong>~$0.10/1M tokens</strong> - Sangat terjangkau</span>
+                                <span><strong>Kartu Debit Indonesia</strong> - BCA, Mandiri (logo Visa/MC)</span>
                             </li>
                         </ul>
-                        <p class="mt-3 text-[10px] text-slate-500 italic">
-                            💰 100 PO/bulan ≈ $0.05 - $0.20
+                        <p class="mt-3 text-[10px] text-purple-600 font-medium">
+                            💰 1000 PO/bulan ≈ Rp 15.000 - 75.000 (sangat murah!)
                         </p>
                     </div>
                 </div>
