@@ -64,7 +64,7 @@ const submit = () => {
 
             <form @submit.prevent="submit" class="space-y-6">
                 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                    <div class="xl:col-span-3 glass-card rounded-2xl p-6 space-y-4">
+                    <div class="xl:col-span-4 glass-card rounded-2xl p-6 space-y-4">
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quotation Info</h3>
                         <div>
                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Quotation Number</label>
@@ -87,7 +87,7 @@ const submit = () => {
                         </div>
                     </div>
 
-                    <div class="xl:col-span-9 glass-card rounded-2xl p-6">
+                    <div class="xl:col-span-8 glass-card rounded-2xl p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Items</h3>
                             <button type="button" @click="addItem" class="text-sm font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1">
