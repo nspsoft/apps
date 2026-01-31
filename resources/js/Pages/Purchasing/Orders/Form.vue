@@ -103,15 +103,15 @@ const submit = () => {
     <Head :title="isEdit ? 'Edit Purchase Order' : 'Create Purchase Order'" />
     
     <AppLayout title="Purchase Orders">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <Link href="/purchasing/orders" class="inline-flex items-center gap-2 mb-4 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
                 <ArrowLeftIcon class="h-4 w-4" /> Back to List
             </Link>
 
             <form @submit.prevent="submit" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                     <!-- PO Info -->
-                    <div class="glass-card rounded-2xl p-6 space-y-4">
+                    <div class="xl:col-span-4 glass-card rounded-2xl p-6 space-y-4">
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Order Info</h3>
                         
                         <div>
@@ -147,7 +147,7 @@ const submit = () => {
                     </div>
 
                     <!-- Items -->
-                    <div class="md:col-span-2 glass-card rounded-2xl p-6">
+                    <div class="xl:col-span-8 glass-card rounded-2xl p-6">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Items</h3>
                             <button type="button" @click="addItem" class="text-sm font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1">
@@ -155,9 +155,9 @@ const submit = () => {
                             </button>
                         </div>
 
-                        <div class="space-y-3">
+                        <div class="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-2 relative">
                             <!-- Header Row -->
-                            <div class="grid grid-cols-12 gap-3 px-3 mb-2 hidden sm:grid">
+                            <div class="grid grid-cols-12 gap-3 px-3 py-2 mb-2 hidden sm:grid sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                                 <div class="col-span-12 sm:col-span-4">
                                     <span class="text-[10px] font-bold text-slate-500 uppercase">Product</span>
                                 </div>
