@@ -134,15 +134,15 @@ onMounted(() => {
     <Head title="Create Sales Return" />
     
     <AppLayout title="Sales Returns">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <Link :href="route('sales.returns.index')" class="inline-flex items-center gap-2 mb-4 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
                 <ArrowLeftIcon class="h-4 w-4" /> Back to List
             </Link>
 
             <form @submit.prevent="submit" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                     <!-- Column 1: Info -->
-                    <div class="glass-card rounded-2xl p-6 space-y-4">
+                    <div class="xl:col-span-4 glass-card rounded-2xl p-6 space-y-4">
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Return Info</h3>
                         
                         <div>
@@ -180,7 +180,7 @@ onMounted(() => {
                     </div>
 
                     <!-- Column 2 & 3: Items -->
-                    <div class="md:col-span-2 glass-card rounded-2xl p-6 flex flex-col">
+                    <div class="xl:col-span-8 glass-card rounded-2xl p-6 flex flex-col">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Items Returned</h3>
                             <button type="button" @click="addItem" class="text-sm font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1">
@@ -188,9 +188,9 @@ onMounted(() => {
                             </button>
                         </div>
 
-                        <div class="flex-1 space-y-3 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
+                        <div class="flex-1 space-y-3 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar relative">
                             <!-- Header Row -->
-                            <div class="grid grid-cols-12 gap-3 px-3 mb-2 hidden sm:grid">
+                            <div class="grid grid-cols-12 gap-3 px-3 py-2 mb-2 hidden sm:grid sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                                 <div class="col-span-12 sm:col-span-4">
                                     <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Product</span>
                                 </div>
