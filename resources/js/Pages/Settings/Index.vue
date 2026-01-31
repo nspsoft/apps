@@ -57,7 +57,7 @@ const settingsSections = [
     <Head title="Settings" />
     
     <AppLayout title="Settings">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <a 
                     v-for="section in settingsSections" 

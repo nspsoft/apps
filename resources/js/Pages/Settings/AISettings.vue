@@ -46,7 +46,7 @@ const geminiModels = [
     <Head title="AI Configuration" />
     
     <AppLayout title="AI Configuration">
-        <div class="max-w-4xl mx-auto space-y-6 pb-20">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6 pb-20">
             <!-- Header section -->
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">

@@ -111,13 +111,14 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
+            { name: 'Dashboard', href: '/sales/dashboard', permission: 'sales_crm.view' },
             { name: 'Customers', href: '/sales/customers', permission: 'sales_crm.customers.view' },
             { name: 'Quotations', href: '/sales/quotations', permission: 'sales_crm.quotations.view' },
             { name: 'Sales Orders', href: '/sales/orders', permission: 'sales_crm.sales_orders.view' },
             { name: 'Delivery Orders', href: '/sales/deliveries', permission: 'sales_crm.delivery_orders.view' },
             { name: 'Invoices', href: '/sales/invoices', permission: 'sales_crm.invoices.view' },
             { name: 'Sales Returns', href: '/sales/returns', permission: 'sales_crm.sales_returns.view' },
-            { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.sales_orders.create' },
+            { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.ai_po_extractor.view' },
         ]
     },
     { 

@@ -20,7 +20,7 @@ class RoleSeeder extends Seeder
         $structure = [
             'Sales & CRM' => [
                 'Customers', 'Quotations', 'Sales Orders', 'Delivery Orders', 'Invoices', 'Sales Returns',
-                'Leads Management', 'Opportunity Tracking', 'Marketing Campaigns'
+                'Leads Management', 'Opportunity Tracking', 'Marketing Campaigns', 'AI PO Extractor'
             ],
             'Purchasing' => [
                 'Suppliers', 'Purchase Requests', 'Purchase Orders', 'Goods Receipts', 'Purchase Invoices', 'Purchase Returns'

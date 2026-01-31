@@ -60,7 +60,7 @@ const submit = () => {
     <Head title="Company Profile" />
     
     <AppLayout title="Company Profile">
-        <div class="max-w-5xl mx-auto space-y-8 pb-20">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-8 pb-20">
             <!-- Header Section -->
             <div class="flex items-center gap-4">
                 <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400">

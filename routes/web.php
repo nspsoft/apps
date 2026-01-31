@@ -140,6 +140,7 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
 
 // Sales Module
 Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () {
+    Route::get('/dashboard', fn () => Inertia::render('Sales/Dashboard'))->name('dashboard');
     Route::resource('customers', CustomerController::class);
     Route::get('/customers-export', [CustomerController::class, 'export'])->name('customers.export');
     Route::post('/customers-import', [CustomerController::class, 'import'])->name('customers.import');
