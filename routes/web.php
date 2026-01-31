@@ -160,6 +160,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     
     // AI PO Extractor Page
     Route::get('/po-extractor', [App\Http\Controllers\Sales\POExtractorController::class, 'index'])->name('po-extractor');
+    Route::post('/po-extractor/store-product', [App\Http\Controllers\Sales\POImportController::class, 'storeProduct'])->name('po-extractor.store-product');
 
     Route::resource('quotations', App\Http\Controllers\Sales\QuotationController::class);
     Route::post('/quotations/{quotation}/send', [App\Http\Controllers\Sales\QuotationController::class, 'send'])->name('quotations.send');

@@ -98,4 +98,48 @@ class POImportController extends Controller
 
         return $data;
     }
+
+    /**
+     * Quick store product from PO Extractor
+     */
+    public function storeProduct(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'sku' => 'nullable|string|max:50|unique:products,sku',
+            'category_id' => 'nullable|exists:categories,id',
+            'unit_id' => 'required|exists:units,id',
+            'selling_price' => 'nullable|numeric|min:0',
+            'type' => 'required|in:product,service,consumable',
+            'product_type' => 'required|in:raw_material,wip,finished_good,spare_part',
+        ]);
+
+        // Auto-generate SKU if not provided
+        if (empty($validated['sku'])) {
+            // Simple SKU gen: PRD-TIMESTAMP-RAND
+            $validated['sku'] = 'PRD-' . time() . '-' . rand(100, 999);
+        }
+
+        // Set defaults
+        $validated['is_active'] = true;
+        $validated['is_sold'] = true;
+        $validated['is_purchased'] = true;
+        
+        $product = Product::create($validated);
+        
+        // Load relationships needed for frontend
+        $product->load(['stocks']);
+        
+        return response()->json([
+            'success' => true,
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'selling_price' => $product->selling_price,
+                'current_stock' => $product->total_stock ?? 0,
+            ],
+            'message' => 'Product registered successfully'
+        ]);
+    }
 }

@@ -22,8 +22,83 @@ import axios from 'axios';
 import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
-    customers: Array
+    customers: Array,
+    units: Array,
+    categories: Array
 });
+
+// Register Product Modal State
+const showRegisterModal = ref(false);
+const registerForm = ref({
+    name: '',
+    sku: '',
+    unit_id: '',
+    category_id: '',
+    selling_price: 0,
+    type: 'product',
+    product_type: 'finished_good',
+    itemIndex: null
+});
+const isRegistering = ref(false);
+
+const openRegisterModal = (item, index) => {
+    registerForm.value = {
+        name: item.description,
+        sku: '',
+        unit_id: '',
+        category_id: '',
+        selling_price: item.po_price || 0,
+        type: 'product',
+        product_type: 'finished_good',
+        itemIndex: index
+    };
+    
+    // Try to auto-select unit based on name
+    if (item.unit && props.units) {
+        const matchingUnit = props.units.find(u => u.name.toLowerCase() === item.unit.toLowerCase());
+        if (matchingUnit) {
+            registerForm.value.unit_id = matchingUnit.id;
+        }
+    }
+    
+    showRegisterModal.value = true;
+};
+
+const closeRegisterModal = () => {
+    showRegisterModal.value = false;
+    registerForm.value.itemIndex = null;
+};
+
+const registerProduct = async () => {
+    if (!registerForm.value.name || !registerForm.value.unit_id) {
+        alert('Please fill Name and Unit');
+        return;
+    }
+    
+    isRegistering.value = true;
+    try {
+        const response = await axios.post('/sales/po-extractor/store-product', registerForm.value);
+        if (response.data.success) {
+            const newProduct = response.data.product;
+            
+            // Update the item row
+            if (registerForm.value.itemIndex !== null) {
+                const item = editableData.value.items[registerForm.value.itemIndex];
+                item.matched_product_id = newProduct.id;
+                item.matched_product_name = newProduct.name;
+                item.matched_sku = newProduct.sku;
+                item.db_price = newProduct.selling_price;
+                item.current_stock = newProduct.current_stock;
+            }
+            
+            closeRegisterModal();
+        }
+    } catch (err) {
+        alert('Failed to register product: ' + (err.response?.data?.message || err.message));
+    } finally {
+        isRegistering.value = false;
+    }
+};
 
 const file = ref(null);
 const fileInput = ref(null);
@@ -482,13 +557,13 @@ const steps = [
                                 <thead class="bg-slate-100 dark:bg-slate-800">
                                     <tr>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[4%]">No</th>
-                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[22%]">Description</th>
+                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[20%]">Description</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Qty</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Stock</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[6%]">Unit</th>
                                         <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">PO Price</th>
                                         <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[22%]">Price Comparison</th>
-                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[6%]">Act</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Act</th>
                                     </tr>
                                 </thead>
                             </table>
@@ -502,7 +577,7 @@ const steps = [
                                                 <span class="text-sm font-bold text-slate-400">{{ index + 1 }}</span>
                                             </td>
                                             <!-- Description -->
-                                            <td class="px-2 py-2 w-[22%]">
+                                            <td class="px-2 py-2 w-[20%]">
                                                 <input 
                                                     v-model="item.description"
                                                     type="text"
@@ -584,14 +659,25 @@ const steps = [
                                                 <span v-else class="text-xs text-slate-400 italic">No match</span>
                                             </td>
                                             <!-- Actions -->
-                                            <td class="px-2 py-2 text-center w-[6%]">
-                                                <button 
-                                                    @click="removeItemRow(index)"
-                                                    class="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
-                                                    title="Remove item"
-                                                >
-                                                    <TrashIcon class="h-4 w-4" />
-                                                </button>
+                                            <td class="px-2 py-2 text-center w-[8%]">
+                                                <div class="flex items-center justify-center gap-1">
+                                                    <button 
+                                                        v-if="!item.matched_product_id"
+                                                        @click="openRegisterModal(item, index)"
+                                                        class="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors"
+                                                        title="Register new product"
+                                                    >
+                                                        <PlusIcon class="h-4 w-4" />
+                                                    </button>
+                                                    
+                                                    <button 
+                                                        @click="removeItemRow(index)"
+                                                        class="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                                        title="Remove item"
+                                                    >
+                                                        <TrashIcon class="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                         <!-- Empty state -->
@@ -752,6 +838,97 @@ const steps = [
                 <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     Tip: Best results come from high-resolution images or clear PDF documents.
                 </p>
+            </div>
+        </div>
+        <!-- Fast Product Register Modal -->
+        <div v-if="showRegisterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                    <h3 class="font-bold text-slate-900 dark:text-white">Register New Product</h3>
+                    <button @click="closeRegisterModal" class="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                        <XMarkIcon class="h-5 w-5" />
+                    </button>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <!-- Name -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Product Name</label>
+                        <input 
+                            v-model="registerForm.name"
+                            type="text"
+                            class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Product Name"
+                        />
+                    </div>
+                    
+                    <!-- SKU (Optional) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">SKU (Optional)</label>
+                        <input 
+                            v-model="registerForm.sku"
+                            type="text"
+                            class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Leave empty to auto-generate"
+                        />
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Unit -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unit</label>
+                            <select 
+                                v-model="registerForm.unit_id"
+                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="" disabled>Select Unit</option>
+                                <option v-for="unit in props.units" :key="unit.id" :value="unit.id">
+                                    {{ unit.name }}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <!-- Product Type -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Type</label>
+                            <select 
+                                v-model="registerForm.product_type"
+                                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            >
+                                <option value="finished_good">Finished Good</option>
+                                <option value="raw_material">Raw Material</option>
+                                <option value="spare_part">Spare Part</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Selling Price -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Selling Price</label>
+                        <input 
+                            v-model.number="registerForm.selling_price"
+                            type="number"
+                            class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm placeholder-slate-400 dark:placeholder-slate-500 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                    </div>
+                </div>
+                
+                <div class="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+                    <button 
+                        @click="closeRegisterModal"
+                        class="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 font-bold text-sm transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        @click="registerProduct"
+                        :disabled="isRegistering"
+                        class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors flex items-center gap-2"
+                    >
+                        <span v-if="isRegistering">Saving...</span>
+                        <span v-else>Save Product</span>
+                    </button>
+                </div>
             </div>
         </div>
     </AppLayout>
