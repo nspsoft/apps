@@ -680,28 +680,39 @@ const steps = [
                                     <div class="flex-1">
                                         <div class="flex items-center gap-2">
                                             <component :is="getPriorityIcon(item.priority)" :class="['h-5 w-5', getPriorityIconClass(item.priority)]" />
-                                            <span class="font-bold text-slate-900 dark:text-white">{{ item.description }}</span>
+                                            <span class="font-bold text-slate-900 dark:text-white">{{ item.product_name }}</span>
+                                            <span v-if="item.product_sku" class="text-xs text-slate-400">({{ item.product_sku }})</span>
                                         </div>
                                         <div class="mt-2 grid grid-cols-3 gap-4 text-xs">
                                             <div>
                                                 <span class="text-slate-400">Ordered:</span>
-                                                <span class="ml-1 font-bold text-slate-700 dark:text-slate-200">{{ item.qty_ordered }} {{ item.unit }}</span>
+                                                <span class="ml-1 font-bold text-slate-700 dark:text-slate-200">{{ item.required_qty }}</span>
                                             </div>
                                             <div>
                                                 <span class="text-slate-400">Current Stock:</span>
-                                                <span class="ml-1 font-bold" :class="item.current_stock >= item.qty_ordered ? 'text-emerald-500' : 'text-red-500'">
-                                                    {{ item.current_stock }} {{ item.unit }}
+                                                <span class="ml-1 font-bold" :class="item.current_stock >= item.required_qty ? 'text-emerald-500' : 'text-red-500'">
+                                                    {{ item.current_stock }}
                                                 </span>
                                             </div>
                                             <div>
                                                 <span class="text-slate-400">Shortage:</span>
-                                                <span class="ml-1 font-bold" :class="item.shortage > 0 ? 'text-red-500' : 'text-emerald-500'">
-                                                    {{ item.shortage > 0 ? item.shortage : 0 }} {{ item.unit }}
+                                                <span class="ml-1 font-bold" :class="item.gap < 0 ? 'text-red-500' : 'text-emerald-500'">
+                                                    {{ item.gap < 0 ? Math.abs(item.gap) : 0 }}
                                                 </span>
                                             </div>
                                         </div>
-                                        <div v-if="item.recommendation" class="mt-3 p-2 rounded-lg bg-white/50 dark:bg-slate-900/50 text-xs text-slate-600 dark:text-slate-300">
-                                            💡 {{ item.recommendation }}
+                                        <div v-if="item.recommendation" class="mt-3 p-2 rounded-lg bg-white/50 dark:bg-slate-900/50 text-xs">
+                                            <span 
+                                                :class="[
+                                                    'font-medium',
+                                                    item.recommendation.type === 'success' ? 'text-emerald-600' : '',
+                                                    item.recommendation.type === 'purchase' ? 'text-blue-600' : '',
+                                                    item.recommendation.type === 'manufacture' ? 'text-purple-600' : '',
+                                                    item.recommendation.type === 'warning' ? 'text-amber-600' : ''
+                                                ]"
+                                            >
+                                                💡 {{ item.recommendation.message }}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
