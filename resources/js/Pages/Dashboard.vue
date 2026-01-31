@@ -167,6 +167,7 @@ const getStatusColor = (status) => {
 
 <template>
     <Head title="Command Core" />
+    <!-- Command Core Sync v1.1 -->
 
     <AppLayout title="Dashboard" :render-header="false">
         <div class="min-h-screen bg-[#050510] relative overflow-hidden font-mono text-cyan-50 selection:bg-cyan-500/30">
