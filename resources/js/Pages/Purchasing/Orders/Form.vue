@@ -9,6 +9,7 @@ import {
 } from '@heroicons/vue/24/outline';
 
 import SearchableSelect from '@/Components/SearchableSelect.vue';
+import { formatCurrency } from '@/helpers';
 
 const props = defineProps({
     purchaseOrder: Object,
