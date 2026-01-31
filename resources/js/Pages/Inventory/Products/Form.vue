@@ -91,9 +91,9 @@ const removeInitialStock = (index) => {
                 </Link>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                 <!-- Main Content -->
-                <div class="lg:col-span-2 space-y-6">
+                <div class="xl:col-span-8 space-y-6">
                     <!-- Basic Information -->
                     <div class="rounded-2xl glass-card">
                         <div class="border-b border-slate-200 dark:border-slate-800 px-6 py-4">
@@ -435,7 +435,7 @@ const removeInitialStock = (index) => {
                 </div>
 
                 <!-- Sidebar -->
-                <div class="space-y-6">
+                <div class="xl:col-span-4 space-y-6">
                     <!-- Status -->
                     <div class="rounded-2xl glass-card">
                         <div class="border-b border-slate-200 dark:border-slate-800 px-6 py-4">

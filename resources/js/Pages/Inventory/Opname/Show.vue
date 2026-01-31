@@ -196,9 +196,9 @@ const getDiffClass = (diff) => {
                     </button>
                 </div>
 
-                <div v-if="itemsForm.items.length > 0" class="overflow-x-auto">
+                <div v-if="itemsForm.items.length > 0" class="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar relative">
                     <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
-                        <thead>
+                        <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                             <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">
                                 <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Product</th>
                                 <th class="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">System Qty</th>

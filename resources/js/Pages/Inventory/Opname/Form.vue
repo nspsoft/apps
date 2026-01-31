@@ -25,7 +25,7 @@ const submit = () => {
     <Head title="New Stock Opname" />
 
     <AppLayout title="New Stock Opname">
-        <div class="max-w-xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <Link
                 href="/inventory/opname"
                 class="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white mb-6"

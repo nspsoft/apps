@@ -69,7 +69,7 @@ const getDiff = (item) => {
     <Head title="New Adjustment" />
 
     <AppLayout title="New Adjustment">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <Link
                 href="/inventory/adjustments"
                 class="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white mb-6"
@@ -150,7 +150,7 @@ const getDiff = (item) => {
                         </button>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
                         <div v-if="form.items.length === 0" class="text-center py-8 text-slate-500 border border-dashed border-slate-200 dark:border-slate-700 rounded-xl">
                             No items added. Click "Add Item" to start.
                         </div>
