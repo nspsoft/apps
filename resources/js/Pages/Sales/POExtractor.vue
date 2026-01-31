@@ -172,12 +172,23 @@ const analyzeFulfillment = async () => {
     error.value = null;
 
     try {
+        // Map items to format expected by backend
+        const mappedItems = editableData.value.items.map(item => ({
+            product_id: item.matched_product_id || null,
+            product_name: item.description || item.matched_product_name || 'Unknown',
+            qty: item.qty || 0,
+            unit_price: item.unit_price || 0
+        }));
+
         const response = await axios.post('/sales/orders/analyze-fulfillment', {
-            items: editableData.value.items
+            items: mappedItems
         });
 
         if (response.data.success) {
-            fulfillmentAnalysis.value = response.data.data;
+            fulfillmentAnalysis.value = {
+                items: response.data.items,
+                summary: response.data.summary
+            };
             currentStep.value = 4;
         } else {
             error.value = response.data.message || 'Failed to analyze fulfillment.';
