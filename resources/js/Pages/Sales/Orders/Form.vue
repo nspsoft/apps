@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import Pagination from '@/Components/Pagination.vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatNumber, formatCurrency } from '@/helpers';
 import {
     ArrowLeftIcon,
