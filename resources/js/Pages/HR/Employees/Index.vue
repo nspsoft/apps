@@ -140,7 +140,7 @@ const getStatusBadge = (status) => {
     <Head title="Employee Directory" />
     
     <AppLayout title="HR: Employee Directory">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header & Actions -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>

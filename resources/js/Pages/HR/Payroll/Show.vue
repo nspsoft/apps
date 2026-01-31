@@ -41,7 +41,7 @@ const getStatusBadge = (status) => {
     <Head title="Employee Payslip" />
     
     <AppLayout title="HR: Employee Payslip">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Back & Actions -->
             <div class="flex items-center justify-between mb-8">
                 <Link :href="route('hr.payroll.index')" class="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 dark:text-white transition-colors">

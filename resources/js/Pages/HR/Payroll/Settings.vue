@@ -45,7 +45,7 @@ const tabs = [
     <Head title="Payroll Configurations" />
     
     <AppLayout title="HR: Payroll Settings">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header -->
             <div class="flex items-center justify-between mb-8">
                 <div class="flex items-center gap-4">

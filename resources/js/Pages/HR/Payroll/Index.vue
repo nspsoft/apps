@@ -72,7 +72,7 @@ const getStatusStyle = (status) => {
     <Head title="Payroll Management" />
     
     <AppLayout title="HR: Payroll Management">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <!-- Header -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
