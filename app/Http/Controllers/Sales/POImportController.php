@@ -69,8 +69,9 @@ class POImportController extends Controller
             foreach ($data['items'] as &$item) {
                 $description = $item['description'] ?? '';
                 
-                // Try to find matching product by SKU or Name
-                $product = Product::active()
+                // Try to find matching product by SKU or Name (with stocks for stock calculation)
+                $product = Product::with('stocks')
+                    ->active()
                     ->where(function($q) use ($description) {
                         $q->where('sku', 'like', "%{$description}%")
                           ->orWhere('name', 'like', "%{$description}%");
@@ -80,7 +81,7 @@ class POImportController extends Controller
                 $item['matched_product_id'] = $product?->id;
                 $item['matched_product_name'] = $product?->name;
                 $item['matched_sku'] = $product?->sku;
-                $item['current_stock'] = $product?->current_stock ?? 0; // Available stock from product master
+                $item['current_stock'] = $product?->total_stock ?? 0; // Total stock across all warehouses
                 
                 // Store both prices for comparison
                 $aiPrice = isset($item['unit_price']) ? floatval($item['unit_price']) : 0;
