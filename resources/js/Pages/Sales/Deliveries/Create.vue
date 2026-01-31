@@ -119,7 +119,7 @@ onMounted(() => {
     <Head title="Create Delivery Order" />
     
     <AppLayout title="Deliveries">
-        <div class="max-w-7xl mx-auto">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
             <Link :href="route('sales.deliveries.index')" class="inline-flex items-center gap-2 mb-4 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white transition-colors">
                 <ArrowLeftIcon class="h-4 w-4" /> Back to List
             </Link>
@@ -132,9 +132,9 @@ onMounted(() => {
             </div>
 
             <form @submit.prevent="submit" class="space-y-6">
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
                     <!-- Left Column: Main Cargo Info -->
-                    <div class="lg:col-span-4 space-y-6">
+                    <div class="xl:col-span-4 space-y-6">
                         <!-- Reference Section -->
                         <div class="glass-card rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                             <div class="flex items-center gap-2 mb-4">
@@ -233,16 +233,16 @@ onMounted(() => {
                     </div>
 
                     <!-- Right Column: Shipped Items -->
-                    <div class="lg:col-span-8 space-y-6">
+                    <div class="xl:col-span-8 space-y-6">
                         <div class="glass-card rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
                             <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/30">
                                 <h3 class="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">Items to Ship</h3>
                             </div>
 
-                            <div class="overflow-x-auto">
+                            <div class="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar relative">
                                 <table class="w-full text-left">
-                                    <thead>
-                                        <tr class="bg-slate-50 dark:bg-slate-950/30">
+                                    <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
+                                        <tr>
                                             <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Product</th>
                                             <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase text-center tracking-tighter">Sisa SO</th>
                                             <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase text-center tracking-tighter">Qty Kirim</th>
