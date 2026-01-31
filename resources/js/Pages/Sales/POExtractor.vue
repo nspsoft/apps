@@ -287,8 +287,8 @@ const createDraftSO = () => {
         items: editableData.value.items
     };
 
-    router.get('/sales/orders/create', {
-        ai_data: JSON.stringify(dataToSend)
+    router.post('/sales/orders/create-from-ai', {
+        data: dataToSend
     });
 };
 
