@@ -68,6 +68,18 @@ const removeItem = (id) => {
     }
 };
 
+const updateStatus = (status) => {
+    if (confirm(`Update status delivery ini menjadi '${status.toUpperCase()}'?`)) {
+        router.put(route('sales.deliveries.update-status', props.deliveryOrder.id), {
+            status: status
+        }, {
+            preserveScroll: true,
+            onError: (errors) => alert('Gagal update status: ' + JSON.stringify(errors)),
+            onSuccess: () => { /* Inertia auto reload */ }
+        });
+    }
+};
+
 const getRemainingBeforeThis = (item) => {
     const soQty = parseFloat(item.sales_order_item?.qty || 0);
     const totalDeliveredSoItem = parseFloat(item.sales_order_item?.qty_delivered || 0);
@@ -171,7 +183,52 @@ const currentStepIndex = computed(() => {
                         Print SJ
                     </a>
 
-                    <!-- 2. Save Changes (Editable state) -->
+                    <!-- PIPELINE ACTIONS -->
+                    
+                    <!-- DRAFT -> PICKING (Start Loading) -->
+                    <button 
+                        v-if="deliveryOrder.status === 'draft'"
+                        @click="updateStatus('picking')"
+                        :disabled="form.isDirty || form.processing"
+                        class="flex items-center gap-2 rounded-xl bg-amber-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-amber-500 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <CubeIcon class="h-4 w-4" />
+                        Start Loading
+                    </button>
+
+                    <!-- PICKING -> PACKED (Finish Packing) -->
+                    <button 
+                        v-if="deliveryOrder.status === 'picking'"
+                        @click="updateStatus('packed')"
+                        class="flex items-center gap-2 rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-blue-500 shadow-lg shadow-blue-500/20 transition-all"
+                    >
+                        <CubeIcon class="h-4 w-4" />
+                        Finish Packing
+                    </button>
+
+                    <!-- PACKED -> SHIPPED (Ship Order) -->
+                    <button 
+                        v-if="deliveryOrder.status === 'packed'"
+                        @click="updateStatus('shipped')"
+                        class="flex items-center gap-2 rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 transition-all"
+                    >
+                        <TruckIcon class="h-4 w-4" />
+                        Ship Order
+                    </button>
+
+                     <!-- SHIPPED -> DELIVERED (Arrived) -->
+                     <button 
+                        v-if="deliveryOrder.status === 'shipped'"
+                        @click="updateStatus('delivered')"
+                        class="flex items-center gap-2 rounded-xl bg-teal-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all"
+                    >
+                        <MapPinIconSolid class="h-4 w-4" />
+                        Arrived at Location
+                    </button>
+
+                    <!-- DELIVERED -> COMPLETED (Already implemented as Confirm Delivery) -->
+                    
+                    <!-- Save Changes (Editable state for Draft) -->
                     <button 
                         v-if="deliveryOrder.status === 'draft'"
                         @click="updateDelivery"
@@ -184,19 +241,17 @@ const currentStepIndex = computed(() => {
                     
                     <!-- 3. CONFIRM DELIVERY (Final Process - Locked if unsaved changes) -->
                     <button 
-                        v-if="deliveryOrder.status === 'draft'"
+                        v-if="deliveryOrder.status === 'delivered'"
                         @click="completeDelivery"
-                        :disabled="form.isDirty || form.processing"
-                        class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all shadow-lg disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed"
-                        :class="!form.isDirty ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-700'"
+                        class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all shadow-lg bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20"
                     >
                         <CheckCircleIcon class="h-4 w-4" />
-                        CONFIRM DELIVERY
+                        CONFIRM / VERIFY
                     </button>
 
                     <!-- 4. Create Invoice (Post-Delivery Process) -->
                     <Link 
-                        v-if="deliveryOrder.status === 'delivered'"
+                        v-if="deliveryOrder.status === 'completed'"
                         :href="route('sales.deliveries.create-invoice', deliveryOrder.id)"
                         method="post"
                         as="button"

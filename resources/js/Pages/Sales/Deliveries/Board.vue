@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
 import { 
     ClockIcon, 
@@ -17,6 +17,7 @@ const props = defineProps({
     orders: Object // All orders passed from parent
 });
 
+// Columns definition
 const columns = [
     { 
         id: 'draft', 
@@ -31,7 +32,7 @@ const columns = [
         bg: 'bg-amber-50 dark:bg-amber-900/10',
         icon: CubeIcon,
         color: 'text-amber-500',
-        statuses: ['picking', 'packed'] 
+        statuses: ['picking', 'packed']
     },
     { 
         id: 'shipped', 
@@ -76,7 +77,7 @@ const formatDate = (date) => {
         <div 
             v-for="col in columns" 
             :key="col.id"
-            class="flex-shrink-0 w-80 flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm"
+            class="flex-shrink-0 w-80 flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300"
         >
             <!-- Header -->
             <div :class="`p-4 border-b border-slate-100 dark:border-slate-800 ${col.bg} rounded-t-2xl flex items-center justify-between`">
@@ -134,7 +135,7 @@ const formatDate = (date) => {
                 </div>
                 
                 <!-- Empty State per column -->
-                <div v-if="getOrdersByColumn(col.id, col.statuses).length === 0" class="h-full flex items-center justify-center py-8 text-center">
+                <div v-if="getOrdersByColumn(col.id, col.statuses).length === 0" class="h-full flex items-center justify-center py-8 text-center pointer-events-none">
                     <span class="text-xs text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 w-full">Kosong</span>
                 </div>
             </div>
