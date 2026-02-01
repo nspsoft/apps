@@ -65,7 +65,7 @@ class DeliveryOrderItem extends Model
         return $this->belongsTo(Location::class);
     }
 
-    protected $appends = ['current_stock'];
+    protected $appends = [];
 
     public function getCurrentStockAttribute(): float
     {
