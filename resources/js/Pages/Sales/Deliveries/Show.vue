@@ -134,7 +134,7 @@ const steps = [
     { label: 'VERIFIED', status: 'completed', icon: CheckBadgeIcon },
 ];
 
-const currentStepIndex = computed(() => {
+    const currentStepIndex = computed(() => {
     const status = props.deliveryOrder.status;
     if (status === 'draft') return 0;
     if (['picking', 'packed'].includes(status)) return 1;
@@ -143,6 +143,64 @@ const currentStepIndex = computed(() => {
     if (status === 'completed') return 4;
     return -1;
 });
+
+// --- SMART ACTION BUTTON LOGIC ---
+const nextAction = computed(() => {
+    const status = props.deliveryOrder.status;
+    switch (status) {
+        case 'draft':
+            return {
+                label: 'START LOADING',
+                target: 'picking',
+                icon: CubeIcon,
+                color: 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 shadow-amber-500/30'
+            };
+        case 'picking':
+            return {
+                label: 'FINISH PACKING',
+                target: 'packed',
+                icon: CubeIcon,
+                color: 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-blue-500/30'
+            };
+        case 'packed':
+            return {
+                label: 'SHIP ORDER',
+                target: 'shipped',
+                icon: TruckIcon,
+                color: 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 shadow-indigo-500/30'
+            };
+        case 'shipped':
+            return {
+                label: 'ARRIVED AT LOCATION',
+                target: 'delivered',
+                icon: MapPinIconSolid,
+                color: 'bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 shadow-teal-500/30'
+            };
+        case 'delivered':
+            return {
+                label: 'CONFIRM & VERIFY',
+                target: 'completed',
+                icon: CheckCircleIcon,
+                color: 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 shadow-emerald-500/30'
+            };
+        default:
+            return null;
+    }
+});
+
+const handleSmartAction = () => {
+    if (!nextAction.value) return;
+
+    // Special handler for completion (uses different endpoint in original code, 
+    // but updateStatus handles 'completed' logic too via controller, 
+    // but let's stick to the main method for completion if needed or unify it)
+    
+    if (nextAction.value.target === 'completed') {
+        completeDelivery();
+    } else {
+        updateStatus(nextAction.value.target);
+    }
+};
 </script>
 
 <template>
@@ -183,52 +241,7 @@ const currentStepIndex = computed(() => {
                         Print SJ
                     </a>
 
-                    <!-- PIPELINE ACTIONS -->
-                    
-                    <!-- DRAFT -> PICKING (Start Loading) -->
-                    <button 
-                        v-if="deliveryOrder.status === 'draft'"
-                        @click="updateStatus('picking')"
-                        :disabled="form.isDirty || form.processing"
-                        class="flex items-center gap-2 rounded-xl bg-amber-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-amber-500 shadow-lg shadow-amber-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <CubeIcon class="h-4 w-4" />
-                        Start Loading
-                    </button>
-
-                    <!-- PICKING -> PACKED (Finish Packing) -->
-                    <button 
-                        v-if="deliveryOrder.status === 'picking'"
-                        @click="updateStatus('packed')"
-                        class="flex items-center gap-2 rounded-xl bg-blue-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-blue-500 shadow-lg shadow-blue-500/20 transition-all"
-                    >
-                        <CubeIcon class="h-4 w-4" />
-                        Finish Packing
-                    </button>
-
-                    <!-- PACKED -> SHIPPED (Ship Order) -->
-                    <button 
-                        v-if="deliveryOrder.status === 'packed'"
-                        @click="updateStatus('shipped')"
-                        class="flex items-center gap-2 rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 transition-all"
-                    >
-                        <TruckIcon class="h-4 w-4" />
-                        Ship Order
-                    </button>
-
-                     <!-- SHIPPED -> DELIVERED (Arrived) -->
-                     <button 
-                        v-if="deliveryOrder.status === 'shipped'"
-                        @click="updateStatus('delivered')"
-                        class="flex items-center gap-2 rounded-xl bg-teal-600 text-white px-4 py-2.5 text-sm font-bold hover:bg-teal-500 shadow-lg shadow-teal-500/20 transition-all"
-                    >
-                        <MapPinIconSolid class="h-4 w-4" />
-                        Arrived at Location
-                    </button>
-
-                    <!-- DELIVERED -> COMPLETED (Already implemented as Confirm Delivery) -->
-                    
-                    <!-- Save Changes (Editable state for Draft) -->
+                    <!-- 2. Save Changes (Only in Draft) -->
                     <button 
                         v-if="deliveryOrder.status === 'draft'"
                         @click="updateDelivery"
@@ -239,14 +252,16 @@ const currentStepIndex = computed(() => {
                         Save Changes
                     </button>
                     
-                    <!-- 3. CONFIRM DELIVERY (Final Process - Locked if unsaved changes) -->
+                    <!-- 3. SMART ACTION BUTTON (Pipeline Progression) -->
                     <button 
-                        v-if="deliveryOrder.status === 'delivered'"
-                        @click="completeDelivery"
-                        class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-widest transition-all shadow-lg bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20"
+                        v-if="nextAction"
+                        @click="handleSmartAction"
+                        :disabled="form.isDirty || form.processing"
+                        class="flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-black uppercase tracking-wide text-white shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                        :class="nextAction.color"
                     >
-                        <CheckCircleIcon class="h-4 w-4" />
-                        CONFIRM / VERIFY
+                        <component :is="nextAction.icon" class="h-5 w-5" />
+                        {{ nextAction.label }}
                     </button>
 
                     <!-- 4. Create Invoice (Post-Delivery Process) -->
