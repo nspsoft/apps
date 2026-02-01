@@ -163,6 +163,9 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::post('/orders/{order}/invoice', [SalesOrderController::class, 'createInvoice'])->name('orders.create-invoice');
     Route::post('/orders/ai-extract', [App\Http\Controllers\Sales\POImportController::class, 'extract'])->name('orders.ai-extract');
     Route::post('/orders/analyze-fulfillment', [App\Http\Controllers\Sales\FulfillmentAnalysisController::class, 'analyze'])->name('orders.analyze-fulfillment');
+    Route::get('/information', function () {
+        return Inertia::render('Sales/Information');
+    })->name('sales.information');
     
     // AI PO Extractor Page
     Route::get('/po-extractor', [App\Http\Controllers\Sales\POExtractorController::class, 'index'])->name('po-extractor');
@@ -186,6 +189,8 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::patch('/deliveries/{delivery_order}/status', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'updateStatus'])->name('deliveries.update-status');
     Route::get('/deliveries/{delivery_order}/print', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'print'])->name('deliveries.print');
     Route::post('/deliveries/{delivery_order}/invoice', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'createInvoice'])->name('deliveries.create-invoice');
+    Route::post('/deliveries/bulk-invoice', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'bulkInvoice'])->name('deliveries.bulk-invoice');
+    Route::post('/deliveries/bulk-invoice-preview', [App\Http\Controllers\Sales\DeliveryOrderController::class, 'bulkInvoicePreview'])->name('deliveries.bulk-invoice-preview');
     Route::get('/invoices', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'index'])->name('invoices.index');
     Route::get('/invoices/{sales_invoice}', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'show'])->name('invoices.show');
     Route::post('/invoices/{sales_invoice}/confirm', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'confirm'])->name('invoices.confirm');

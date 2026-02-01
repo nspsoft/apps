@@ -96,8 +96,8 @@ const getStatusClass = (status) => {
                         as="button"
                         class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-700 transition-colors"
                     >
-                        <DocumentTextIcon class="h-4 w-4" />
-                        Invoice
+                        <DocumentTextIcon class="h-4 w-4 text-indigo-400" />
+                        Create Invoice (All Delivered)
                     </Link>
 
                     <!-- Delivery Button -->
@@ -154,6 +154,7 @@ const getStatusClass = (status) => {
                                         <th class="px-6 py-4 text-right">Price</th>
                                         <th class="px-6 py-4 text-center">Ordered</th>
                                         <th class="px-6 py-4 text-center">Delivered</th>
+                                        <th class="px-6 py-4 text-center">Invoiced</th>
                                         <th class="px-6 py-4 text-center">Returned</th>
                                         <th class="px-6 py-4 text-center">Remaining</th>
                                         <th class="px-6 py-4 text-right">Total</th>
@@ -218,6 +219,9 @@ const getStatusClass = (status) => {
                                         <td class="px-6 py-4 text-center text-emerald-400 font-medium">
                                             {{ formatNumber(item.qty_delivered) }}
                                         </td>
+                                        <td class="px-6 py-4 text-center text-indigo-400 font-medium">
+                                            {{ formatNumber(item.qty_invoiced || 0) }}
+                                        </td>
                                         <td class="px-6 py-4 text-center text-red-400 font-medium">
                                             {{ formatNumber(item.qty_returned || 0) }}
                                         </td>
@@ -236,7 +240,7 @@ const getStatusClass = (status) => {
                                 </tbody>
                                 <tfoot class="bg-white dark:bg-slate-950 font-medium">
                                     <tr>
-                                        <td colspan="6" class="px-6 py-4 text-right text-slate-500 dark:text-slate-400">
+                                        <td colspan="7" class="px-6 py-4 text-right text-slate-500 dark:text-slate-400">
                                             Subtotal
                                         </td>
                                         <td class="px-6 py-4 text-right text-slate-900 dark:text-white">
@@ -244,7 +248,7 @@ const getStatusClass = (status) => {
                                         </td>
                                     </tr>
                                     <tr v-if="salesOrder.tax_amount > 0">
-                                        <td colspan="6" class="px-6 py-4 text-right text-slate-500 dark:text-slate-400">
+                                        <td colspan="7" class="px-6 py-4 text-right text-slate-500 dark:text-slate-400">
                                             VAT ({{ salesOrder.tax_percent }}%)
                                         </td>
                                         <td class="px-6 py-4 text-right text-slate-900 dark:text-white">
@@ -252,7 +256,7 @@ const getStatusClass = (status) => {
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td colspan="6" class="px-6 py-4 text-right text-slate-900 dark:text-white text-lg font-bold">
+                                        <td colspan="7" class="px-6 py-4 text-right text-slate-900 dark:text-white text-lg font-bold">
                                             Grand Total
                                         </td>
                                         <td class="px-6 py-4 text-right text-slate-900 dark:text-white text-lg font-bold">
@@ -319,6 +323,33 @@ const getStatusClass = (status) => {
                                 <dd class="text-sm text-slate-900 dark:text-white">{{ new Date(salesOrder.delivery_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) }}</dd>
                             </div>
                         </dl>
+                    </div>
+
+                    <!-- Related Invoices -->
+                    <div v-if="salesOrder.invoices && salesOrder.invoices.length > 0" class="rounded-2xl glass-card p-6">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Related Invoices</h3>
+                        <div class="space-y-3">
+                            <div v-for="invoice in salesOrder.invoices" :key="invoice.id" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                <div class="flex flex-col">
+                                    <Link :href="route('sales.invoices.show', invoice.id)" class="text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:underline">
+                                        {{ invoice.invoice_number }}
+                                    </Link>
+                                    <span class="text-[10px] text-slate-500">{{ new Date(invoice.invoice_date).toLocaleDateString('id-ID') }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-medium text-slate-900 dark:text-white">{{ formatCurrency(invoice.total) }}</div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium" 
+                                          :class="{
+                                              'bg-slate-100 text-slate-800': invoice.status === 'draft',
+                                              'bg-blue-100 text-blue-800': invoice.status === 'issued' || invoice.status === 'sent',
+                                              'bg-emerald-100 text-emerald-800': invoice.status === 'paid',
+                                              'bg-amber-100 text-amber-800': invoice.status === 'partial'
+                                          }">
+                                        {{ invoice.status }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -273,7 +273,7 @@ const handleSmartAction = () => {
                         class="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
                     >
                         <DocumentTextIcon class="h-4 w-4" />
-                        Create Invoice
+                        Create Invoice (This SJ)
                     </Link>
                 </div>
             </div>

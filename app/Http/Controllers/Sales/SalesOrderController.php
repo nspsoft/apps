@@ -322,45 +322,91 @@ class SalesOrderController extends Controller
 
     public function createInvoice(SalesOrder $order)
     {
-         $invoice = \App\Models\SalesInvoice::create([
-             'company_id' => $order->company_id ?? 1,
-             'invoice_number' => \App\Models\SalesInvoice::generateInvoiceNumber(),
-             'sales_order_id' => $order->id,
-             'customer_id' => $order->customer_id,
-             'invoice_date' => now(),
-             'due_date' => now()->addDays(30),
-             'status' => 'draft',
-             'subtotal' => $order->subtotal,
-             'tax_amount' => $order->tax_amount,
-             'discount_amount' => $order->discount_amount,
-             'total' => $order->total,
-             'paid_amount' => 0,
-             'balance' => $order->total,
-             'created_by' => auth()->id(),
-         ]);
-         
-         foreach($order->items as $item) {
-             $remainingToInvoice = $item->qty - $item->qty_invoiced;
-             
-             if ($remainingToInvoice <= 0) continue;
+        \Log::info("Attempting to create consolidated invoice for SO: {$order->so_number}");
 
-             $invoice->items()->create([
-                 'sales_order_item_id' => $item->id,
-                 'product_id' => $item->product_id,
-                 'qty' => $remainingToInvoice,
-                 'unit_id' => $item->unit_id,
-                 'unit_price' => $item->unit_price,
-                 'discount_percent' => $item->discount_percent,
-                 'discount_amount' => $item->discount_amount * ($remainingToInvoice / $item->qty),
-                 'subtotal' => $item->subtotal * ($remainingToInvoice / $item->qty),
-             ]);
+        // Determine items that can be invoiced (delivered but not yet invoiced)
+        $itemsToInvoice = $order->items->filter(function($item) {
+            $remaining = $item->qty_delivered - $item->qty_invoiced;
+            return $remaining > 0;
+        });
 
-             $item->qty_invoiced += $remainingToInvoice;
-             $item->save();
-         }
-         
-         $invoice->calculateTotals();
-         
-         return redirect()->route('sales.invoices.index')->with('success', 'Invoice created.');
+        if ($itemsToInvoice->isEmpty()) {
+            \Log::warning("No items available to invoice for SO: {$order->so_number}");
+            return back()->with('error', 'No delivered items are available for invoicing. They may have already been invoiced.');
+        }
+
+        \Log::info("Found " . $itemsToInvoice->count() . " items to invoice for SO: {$order->so_number}");
+
+        try {
+            return \DB::transaction(function () use ($order, $itemsToInvoice) {
+                // Create the invoice
+                $invoice = $order->invoices()->create([
+                    'company_id' => $order->company_id ?? 1,
+                    'customer_id' => $order->customer_id,
+                    'invoice_number' => \App\Models\SalesInvoice::generateInvoiceNumber(),
+                    'invoice_date' => now(),
+                    'due_date' => now()->addDays($order->customer->payment_days ?? 30),
+                    'status' => 'draft',
+                    'tax_percent' => $order->tax_percent,
+                    'notes' => 'Generated from Sales Order (Consolidated)',
+                    'created_by' => auth()->id(),
+                ]);
+
+                foreach ($itemsToInvoice as $soItem) {
+                    $uninvoicedQty = $soItem->qty_delivered - $soItem->qty_invoiced;
+                    
+                    // Find DO items for this SO item that haven't been fully invoiced
+                    $doItems = \App\Models\DeliveryOrderItem::where('sales_order_item_id', $soItem->id)
+                        ->whereHas('deliveryOrder', function($q) {
+                            $q->whereIn('status', ['delivered', 'completed']);
+                        })
+                        ->whereRaw('qty_delivered > qty_invoiced')
+                        ->get();
+
+                    foreach ($doItems as $doItem) {
+                        if ($uninvoicedQty <= 0) break;
+
+                        $take = min($uninvoicedQty, $doItem->qty_delivered - $doItem->qty_invoiced);
+                        
+                        $itemAmount = $take * $soItem->unit_price;
+                        $discountAmt = $itemAmount * ($soItem->discount_percent / 100);
+                        $lineTotal = $itemAmount - $discountAmt;
+
+                        $invoice->items()->create([
+                            'sales_order_item_id' => $soItem->id,
+                            'product_id' => $soItem->product_id,
+                            'description' => $soItem->product->name ?? $soItem->description,
+                            'qty' => $take,
+                            'unit_id' => $soItem->unit_id,
+                            'unit_price' => $soItem->unit_price,
+                            'discount_percent' => $soItem->discount_percent,
+                            'discount_amount' => $discountAmt,
+                            'subtotal' => $lineTotal,
+                            'delivery_order_id' => $doItem->delivery_order_id,
+                        ]);
+
+                        // Update DO item tracking
+                        $doItem->qty_invoiced += $take;
+                        $doItem->save();
+
+                        // Update SO item tracking
+                        $soItem->qty_invoiced += $take;
+                        $soItem->save();
+
+                        $uninvoicedQty -= $take;
+                    }
+                }
+
+                $invoice->calculateTotals();
+
+                \Log::info("Invoice {$invoice->invoice_number} created successfully for SO: {$order->so_number}");
+
+                return redirect()->route('sales.invoices.show', $invoice->id)
+                    ->with('success', 'Consolidated invoice created successfully.');
+            });
+        } catch (\Exception $e) {
+            \Log::error("Error creating consolidated invoice for SO {$order->so_number}: " . $e->getMessage());
+            return back()->with('error', 'Error creating invoice: ' . $e->getMessage());
+        }
     }
 }

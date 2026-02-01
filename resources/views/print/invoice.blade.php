@@ -16,8 +16,6 @@
             color: #000;
             margin: 0;
             padding: 0;
-            min-height: 27.5cm; /* Ensure body spans full A4 height minus margins */
-            position: relative;
         }
         .content-wrapper {
             padding: 20px;
@@ -129,11 +127,9 @@
         }
 
         .footer-section {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
+            margin-top: 40px;
             clear: both;
+            page-break-inside: avoid;
         }
         .bank-info-box {
             border: 0.8pt solid #000;
@@ -262,12 +258,7 @@
                             <tr>
                                 <td class="info-label">DO No.</td>
                                 <td class="info-separator">:</td>
-                                <td class="info-value">
-                                    @php
-                                        $doNumbers = $invoice->salesOrder->deliveryOrders()->where('status', 'delivered')->pluck('do_number')->toArray();
-                                        echo implode(', ', $doNumbers) ?: '-';
-                                    @endphp
-                                </td>
+                                <td class="info-value"><i>See Appendix</i></td>
                             </tr>
                         </table>
                     </td>
@@ -294,6 +285,9 @@
                     <td>
                         <div class="font-bold">{{ $item->product->name }}</div>
                         <div style="font-size: 8.5pt; color: #444;">{{ $item->product->description }}</div>
+                        @if($item->deliveryOrder)
+                        <div style="font-size: 7.5pt; color: #003680; margin-top: 2px;">Ref. DO: {{ $item->deliveryOrder->do_number }}</div>
+                        @endif
                     </td>
                     <td class="text-center">{{ number_format($item->qty, 0, ',', '.') }}</td>
                     <td class="text-center">{{ $item->unit->code ?? 'PCs' }}</td>
@@ -353,28 +347,110 @@
                     <td class="summary-value" style="border-bottom: 1.5pt double #000; font-size: 11pt;">{{ number_format($invoice->total, 0, ',', '.') }}</td>
                 </tr>
             </table>
+            <div style="clear: both;"></div>
         </div>
-    </div>
 
-    <!-- Final Footer -->
-    <div class="footer-section">
-        <div class="bank-info-box">
-            <div class="font-bold">Kindly T/T The Payment To Our Bank :</div>
-            <div style="margin-top: 10px;">
-                <div class="font-bold">Bank MANDIRI</div>
-                <div class="font-bold">KK Karawang Galuh Mas</div>
-                <div class="font-bold">173-00-0777778-3</div>
-                <div class="font-bold">PT JIDOKA RESULT INDONESIA</div>
+        <!-- Final Footer inside content for flow -->
+        <div class="footer-section">
+            <div class="bank-info-box">
+                <div class="font-bold">Kindly T/T The Payment To Our Bank :</div>
+                <div style="margin-top: 10px;">
+                    <div class="font-bold" style="color: #003680;">Bank MANDIRI</div>
+                    <div class="font-bold">KK Karawang Galuh Mas</div>
+                    <div class="font-bold" style="font-size: 11pt; letter-spacing: 1px;">173-00-0777778-3</div>
+                    <div class="font-bold text-uppercase">PT JIDOKA RESULT INDONESIA</div>
+                </div>
             </div>
-        </div>
 
-        <div class="signature-box">
-            <div>Cikarang, {{ $invoice->invoice_date->format('d F Y') }}</div>
-            <div class="signature-space"></div>
-            <div class="signature-line">Jahrudin</div>
-            <div style="font-size: 9pt;">Direktur</div>
+            <div class="signature-box">
+                <div>Cikarang, {{ $invoice->invoice_date->format('d F Y') }}</div>
+                <div class="signature-space"></div>
+                <div class="signature-line">Jahrudin</div>
+                <div style="font-size: 9pt;">Direktur</div>
+            </div>
+            <div style="clear: both;"></div>
         </div>
     </div>
+
+    <!-- APPENDIX PAGE -->
+    @php
+        $groupedItems = $invoice->items->groupBy(fn($item) => $item->deliveryOrder?->do_number ?? 'No Reference');
+    @endphp
+
+    @if($groupedItems->count() > 0)
+    <div style="page-break-before: always; padding: 20px;">
+        <div style="border-bottom: 2pt solid #003680; margin-bottom: 20px; padding-bottom: 10px;">
+            <div style="font-size: 16pt; font-weight: 900; color: #003680; font-style: italic;">APPENDIX: DELIVERY DETAILS</div>
+            <div style="font-size: 9pt; color: #666;">Detailed breakdown for Invoice #{{ $invoice->invoice_number }}</div>
+        </div>
+
+        @foreach($groupedItems as $doNumber => $items)
+        <div style="margin-bottom: 30px; border: 1pt solid #ddd; border-radius: 8px; overflow: hidden;">
+            <div style="background-color: #f8f9fa; padding: 10px 15px; border-bottom: 1pt solid #ddd; display: table; width: 100%;">
+                <div style="display: table-cell;">
+                    <span style="font-weight: bold; color: #003680; font-size: 11pt;">
+                        @if($doNumber === 'No Reference')
+                            @php
+                                $soDos = $invoice->salesOrder->deliveryOrders()
+                                    ->whereIn('status', ['delivered', 'completed'])
+                                    ->get();
+                            @endphp
+                            @if($soDos->count() > 0)
+                                Related Deliveries: 
+                                @foreach($soDos as $sd)
+                                    {{ $sd->do_number }} ({{ $sd->delivery_date->format('d/m/Y') }}){{ !$loop->last ? ', ' : '' }}
+                                @endforeach
+                            @else
+                                Manual / Legacy Delivery (No Reference)
+                            @endif
+                        @else
+                            Surat Jalan: {{ $doNumber }}
+                            @if($items->first()->deliveryOrder)
+                                <span style="margin-left: 20px; font-size: 9pt; color: #666; font-weight: normal;">
+                                    Delivery Date: {{ $items->first()->deliveryOrder->delivery_date->format('d/m/Y') }}
+                                </span>
+                            @endif
+                        @endif
+                    </span>
+                </div>
+                @if($items->first()->deliveryOrder)
+                <div style="display: table-cell; text-align: right; font-size: 8pt; color: #666; vertical-align: middle;">
+                    Recipient: {{ $items->first()->deliveryOrder->shipping_name ?? '-' }}
+                </div>
+                @endif
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background-color: #fff;">
+                    <tr>
+                        <th style="padding: 8px; border-bottom: 1pt solid #ddd; text-align: left; font-size: 8pt; width: 40px;">No</th>
+                        <th style="padding: 8px; border-bottom: 1pt solid #ddd; text-align: left; font-size: 8pt;">Material Description</th>
+                        <th style="padding: 8px; border-bottom: 1pt solid #ddd; text-align: center; font-size: 8pt; width: 60px;">Qty</th>
+                        <th style="padding: 8px; border-bottom: 1pt solid #ddd; text-align: center; font-size: 8pt; width: 60px;">UOM</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($items as $idx => $it)
+                    <tr>
+                        <td style="padding: 6px 8px; border-bottom: 0.5pt solid #eee; font-size: 8.5pt;">{{ $idx + 1 }}</td>
+                        <td style="padding: 6px 8px; border-bottom: 0.5pt solid #eee; font-size: 8.5pt;">
+                            <div style="font-weight: bold;">{{ $it->product->name }}</div>
+                            <div style="font-size: 7.5pt; color: #777;">{{ $it->product->sku }}</div>
+                        </td>
+                        <td style="padding: 6px 8px; border-bottom: 0.5pt solid #eee; font-size: 8.5pt; text-align: center;">{{ number_format($it->qty, 0, ',', '.') }}</td>
+                        <td style="padding: 6px 8px; border-bottom: 0.5pt solid #eee; font-size: 8.5pt; text-align: center;">{{ $it->unit->code ?? 'PCs' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        @endforeach
+
+        <div style="margin-top: 40px; font-size: 8pt; color: #888; text-align: center; border-top: 1pt dashed #ccc; padding-top: 10px;">
+            End of Appendix for Invoice #{{ $invoice->invoice_number }} - All deliveries have been verified by recipients.
+        </div>
+    </div>
+    @endif
 
 </body>
 </html>

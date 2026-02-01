@@ -104,13 +104,22 @@ class SalesSeeder extends Seeder
                 $price = $product->selling_price > 0 ? $product->selling_price : rand(50000, 1000000);
                 $rowTotal = $qty * $price;
 
+                $deliveredQty = 0;
+                if ($status === 'delivered') {
+                    $deliveredQty = $qty;
+                } elseif ($status === 'shipped') {
+                    $deliveredQty = rand(floor($qty * 0.5), $qty); // Partial delivery simulation
+                }
+
                 SalesOrderItem::create([
                     'sales_order_id' => $so->id,
                     'product_id' => $product->id,
                     'description' => $product->name,
                     'qty' => $qty,
+                    'unit_id' => $product->unit_id,
                     'unit_price' => $price,
                     'subtotal' => $rowTotal,
+                    'qty_delivered' => $deliveredQty,
                 ]);
                 $subtotal += $rowTotal;
             }

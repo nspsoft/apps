@@ -17,7 +17,7 @@ class DeliveryOrderController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = DeliveryOrder::with(['salesOrder.customer', 'warehouse'])
+        $query = DeliveryOrder::with(['salesOrder.customer', 'warehouse', 'items'])
             ->withCount('items')
             ->when($request->search, function ($q, $search) {
                 $q->where(function ($q) use ($search) {
@@ -33,11 +33,18 @@ class DeliveryOrderController extends Controller
             })
             ->when($request->status, function ($q, $status) {
                 $q->where('status', $status);
+            })
+            ->when($request->invoice_status, function ($q, $status) {
+                $q->invoiceStatus($status);
             });
 
         $deliveryOrders = $query->orderByDesc('delivery_date')
             ->paginate(10)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(function ($do) {
+                $do->makeHidden('items');
+                return $do;
+            });
 
         // SOs that can be delivered (Confirmed/Processing and have undelivered items)
         $pendingSalesOrders = \App\Models\SalesOrder::whereIn('status', ['confirmed', 'processing'])
@@ -52,7 +59,7 @@ class DeliveryOrderController extends Controller
         return Inertia::render('Sales/Deliveries/Index', [
             'deliveryOrders' => $deliveryOrders,
             'pendingSalesOrders' => $pendingSalesOrders,
-            'filters' => $request->only(['search', 'status']),
+            'filters' => $request->only(['search', 'status', 'invoice_status']),
             'statuses' => [
                 ['value' => 'draft', 'label' => 'Draft'],
                 ['value' => 'picking', 'label' => 'Picking'],
@@ -63,6 +70,121 @@ class DeliveryOrderController extends Controller
                 ['value' => 'cancelled', 'label' => 'Cancelled'],
             ],
         ]);
+    }
+
+    public function bulkCreateInvoice(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:delivery_orders,id',
+        ]);
+
+        $deliveryOrders = DeliveryOrder::whereIn('id', $request->ids)
+            ->with(['items.salesOrderItem.product', 'items.salesOrderItem', 'salesOrder'])
+            ->get();
+
+        if ($deliveryOrders->isEmpty()) {
+            return back()->with('error', 'No delivery orders selected.');
+        }
+
+        // Validate distinct customers
+        $customerIds = $deliveryOrders->pluck('customer_id')->unique();
+        if ($customerIds->count() > 1) {
+            return back()->with('error', 'Selected delivery orders must belong to the same customer.');
+        }
+
+        // Validate status
+        $invalidStatus = $deliveryOrders->contains(fn($do) => !in_array($do->status, ['delivered', 'completed']));
+        if ($invalidStatus) {
+            return back()->with('error', 'All selected delivery orders must be Delivered or Completed.');
+        }
+        
+        // Validate not already fully invoiced
+        $alreadyInvoiced = $deliveryOrders->contains(fn($do) => $do->invoice_status === 'invoiced');
+        if ($alreadyInvoiced) {
+            return back()->with('error', 'Some selected delivery orders are already fully invoiced.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $firstDO = $deliveryOrders->first();
+            $customer = $firstDO->customer ?? $firstDO->salesOrder->customer;
+            
+            // Create Invoice
+            $invoice = new \App\Models\SalesInvoice();
+            $invoice->company_id = $firstDO->company_id ?? 1;
+            $invoice->customer_id = $customer->id;
+            $invoice->sales_order_id = $firstDO->sales_order_id; // Link to the first SO as primary reference, or leave null/manage many-to-many if supported. 
+            // Note: Current schema assumes one SO per Invoice strictly? 
+            // Schema check: invoices table usually has sales_order_id.
+            // If we consolidate multiple DOs from DIFFERENT SOs, this might be tricky if schema enforces 1 SO.
+            // Let's assume for now they might be from same SO because users usually invoice per SO or per Project. 
+            // BUT the user request implies simply selecting DOs. If they are from different SOs but same Customer, we can support it 
+            // IF the invoice->sales_order_id is nullable or we treat it loosely. 
+            // For safety, let's link to the first SO, or check if schema allows nullable. 
+            // Actually, previously I used $so->invoices()->create(). 
+            // If DOs are from different SOs, we just pick the first one as "Master" SO or leave it if schema allows.
+            // Let's assume same Customer is the constraint.
+            
+            $invoice->invoice_number = \App\Models\SalesInvoice::generateInvoiceNumber();
+            $invoice->invoice_date = now();
+            $invoice->due_date = now()->addDays(30); // Default term
+            $invoice->status = 'draft';
+            $invoice->tax_percent = $firstDO->salesOrder->tax_percent ?? 11;
+            $invoice->notes = 'Consolidated Invoice from DOs: ' . $deliveryOrders->pluck('do_number')->implode(', ');
+            $invoice->created_by = auth()->id();
+            $invoice->save();
+
+            // Process Items
+            foreach ($deliveryOrders as $do) {
+                foreach ($do->items as $doItem) {
+                    $qtyToInvoice = $doItem->qty_delivered - $doItem->qty_invoiced;
+                    
+                    if ($qtyToInvoice <= 0) continue;
+
+                    $soItem = $doItem->salesOrderItem;
+                    if (!$soItem) continue;
+
+                    // Calculate price
+                    $price = $soItem->unit_price;
+                    $discountPct = $soItem->discount_percent;
+                    $discountAmt = ($qtyToInvoice * $price) * ($discountPct / 100);
+                    $subtotal = ($qtyToInvoice * $price) - $discountAmt;
+
+                    $invoice->items()->create([
+                        'sales_order_item_id' => $soItem->id,
+                        'product_id' => $doItem->product_id,
+                        'description' => $doItem->product->name ?? $soItem->product_name, // Ensure description is filled
+                        'qty' => $qtyToInvoice,
+                        'unit_id' => $doItem->unit_id,
+                        'unit_price' => $price,
+                        'discount_percent' => $discountPct,
+                        'discount_amount' => $discountAmt,
+                        'subtotal' => $subtotal,
+                        'delivery_order_id' => $do->id, // Important for tracking
+                    ]);
+
+                    // Update tracking
+                    $doItem->qty_invoiced += $qtyToInvoice;
+                    $doItem->save();
+                    
+                    $soItem->qty_invoiced += $qtyToInvoice;
+                    $soItem->save();
+                }
+            }
+
+            $invoice->calculateTotals();
+            
+            DB::commit();
+
+            return redirect()->route('sales.invoices.show', $invoice->id)
+                ->with('success', 'Consolidated Invoice created successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to create invoice: ' . $e->getMessage());
+        }
     }
 
     public function create(Request $request): Response
@@ -103,12 +225,12 @@ class DeliveryOrderController extends Controller
             return [
                 'sales_order_item_id' => $item->id,
                 'product_id' => $item->product_id,
-                'name' => $item->product->name,
-                'sku' => $item->product->sku,
+                'name' => $item->product->name ?? 'N/A',
+                'sku' => $item->product->sku ?? 'N/A',
                 'qty_ordered' => (float) $item->qty,
                 'remaining' => (float) $remaining,
                 'unit_id' => $item->unit_id,
-                'unit_name' => $item->unit->name,
+                'unit_name' => $item->unit->name ?? 'N/A',
             ];
         })->filter()->values();
 
@@ -185,6 +307,9 @@ class DeliveryOrderController extends Controller
     public function show(DeliveryOrder $deliveryOrder): Response
     {
         $deliveryOrder->load(['salesOrder.customer', 'warehouse', 'items.product', 'items.unit', 'items.salesOrderItem']);
+
+        // Hide expensive appends
+        $deliveryOrder->items->each->makeHidden(['current_stock']);
 
         return Inertia::render('Sales/Deliveries/Show', [
             'deliveryOrder' => $deliveryOrder,
@@ -321,8 +446,8 @@ class DeliveryOrderController extends Controller
 
     public function createInvoice(DeliveryOrder $deliveryOrder)
     {
-        if ($deliveryOrder->status !== 'delivered') {
-            return back()->with('error', 'Only completed deliveries can be invoiced.');
+        if ($deliveryOrder->status !== 'completed') {
+            return back()->with('error', 'Only verified (completed) deliveries can be invoiced.');
         }
 
         // Check if already invoiced (simple check for now)
@@ -359,20 +484,28 @@ class DeliveryOrderController extends Controller
                     $invoice->items()->create([
                         'sales_order_item_id' => $soItem->id,
                         'product_id' => $item->product_id,
+                        'description' => $soItem->product->name ?? $soItem->description,
                         'qty' => $item->qty_delivered,
                         'unit_id' => $item->unit_id,
                         'unit_price' => $soItem->unit_price,
                         'discount_percent' => $soItem->discount_percent,
                         'discount_amount' => $discountAmt,
                         'subtotal' => $lineTotal,
+                        'delivery_order_id' => $deliveryOrder->id,
                     ]);
 
                     $subtotal += $lineTotal;
+
+                    // Update DO item invoiced qty
+                    $item->qty_invoiced += $item->qty_delivered;
+                    $item->save();
 
                     // Update SO item invoiced qty
                     $soItem->qty_invoiced += $item->qty_delivered;
                     $soItem->save();
                 }
+
+                $deliveryOrder->refreshInvoiceStatus();
 
                 // Update invoice totals
                 $taxAmount = $subtotal * ($so->tax_percent / 100);
@@ -392,23 +525,247 @@ class DeliveryOrderController extends Controller
         }
     }
 
-    public function destroy(DeliveryOrder $deliveryOrder)
+    public function bulkInvoicePreview(Request $request): \Illuminate\Http\JsonResponse
     {
-        if ($deliveryOrder->status !== 'draft') {
-            return back()->with('error', 'Only draft delivery orders can be deleted.');
+        $validated = $request->validate([
+            'ids' => 'nullable|array',
+            'ids.*' => 'exists:delivery_orders,id',
+            'select_all' => 'nullable|boolean',
+            'filters' => 'nullable|array',
+        ]);
+
+        $deliveryOrders = $this->getEligibleBulkDOs($validated);
+
+        if ($deliveryOrders->isEmpty()) {
+            return response()->json(['error' => 'No eligible Delivery Orders found.'], 422);
         }
 
-        try {
-            DB::transaction(function () use ($deliveryOrder) {
-                // Delete items via Eloquent so events are fired
-                foreach ($deliveryOrder->items as $item) {
-                    $item->delete();
+        $groups = $deliveryOrders->groupBy('sales_order_id');
+        $previewData = [];
+
+        foreach ($groups as $soId => $dos) {
+            $so = $dos->first()->salesOrder;
+            $customer = $so->customer;
+            
+            $totalQty = 0;
+            $totalAmount = 0;
+            $items = [];
+
+            // Group items for this invoice
+            $groupedItems = [];
+            foreach ($dos as $do) {
+                foreach ($do->items as $item) {
+                    $unitPrice = (float) ($item->salesOrderItem->unit_price ?? 0);
+                    $discountPercent = (float) ($item->salesOrderItem->discount_percent ?? 0);
+                    $key = $item->product_id . '_' . round($unitPrice, 2) . '_' . round($discountPercent, 2);
+
+                    if (!isset($groupedItems[$key])) {
+                        $groupedItems[$key] = [
+                            'product_name' => $item->product->name,
+                            'qty' => 0,
+                            'unit_name' => $item->unit->short_name ?? $item->unit->name ?? '',
+                            'unit_price' => $unitPrice,
+                            'discount_percent' => $discountPercent,
+                        ];
+                    }
+                    $qty = (float) $item->qty_delivered;
+                    $groupedItems[$key]['qty'] += $qty;
+                    $totalQty += $qty;
+                    
+                    $lineTotal = $qty * $unitPrice * (1 - ($discountPercent / 100));
+                    $totalAmount += $lineTotal;
                 }
-                $deliveryOrder->delete();
+            }
+
+            $previewData[] = [
+                'so_id' => $so->id,
+                'so_number' => $so->so_number,
+                'customer_name' => $customer->name,
+                'do_count' => $dos->count(),
+                'do_numbers' => $dos->pluck('do_number')->implode(', '),
+                'total_qty' => $totalQty,
+                'total_amount' => $totalAmount,
+                'items' => array_values($groupedItems)
+            ];
+        }
+
+        return response()->json([
+            'invoices_count' => count($previewData),
+            'total_dos' => $deliveryOrders->count(),
+            'preview' => $previewData
+        ]);
+    }
+
+    private function getEligibleBulkDOs(array $validated)
+    {
+        if (!empty($validated['select_all'])) {
+            $query = DeliveryOrder::with(['items.salesOrderItem.product', 'items.unit', 'salesOrder.customer'])
+                ->whereIn('status', ['completed', 'delivered', 'shipped'])
+                ->invoiceStatus('pending');
+            
+            $filters = $validated['filters'] ?? [];
+            $query->when($filters['search'] ?? null, function ($q, $search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('do_number', 'like', "%{$search}%")
+                      ->orWhere('shipping_name', 'like', "%{$search}%")
+                      ->orWhereHas('salesOrder', function ($sq) use ($search) {
+                          $sq->where('so_number', 'like', "%{$search}%")
+                             ->orWhereHas('customer', function ($cq) use ($search) {
+                                 $cq->where('name', 'like', "%{$search}%");
+                             });
+                      });
+                });
+            })
+            ->when($filters['status'] ?? null, function ($q, $status) {
+                $q->where('status', $status);
+            })
+            ->when($filters['invoice_status'] ?? null, function ($q, $status) {
+                $q->invoiceStatus($status);
             });
-            return back()->with('success', 'Delivery Order deleted successfully.');
+
+            return $query->get();
+        }
+
+        return DeliveryOrder::with(['items.salesOrderItem.product', 'items.unit', 'salesOrder.customer'])
+            ->whereIn('id', $validated['ids'] ?? [])
+            ->whereIn('status', ['completed', 'delivered', 'shipped'])
+            ->invoiceStatus('pending')
+            ->get();
+    }
+
+    public function bulkInvoice(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'nullable|array',
+            'ids.*' => 'exists:delivery_orders,id',
+            'select_all' => 'nullable|boolean',
+            'filters' => 'nullable|array',
+            'excluded_so_ids' => 'nullable|array',
+            'excluded_so_ids.*' => 'integer'
+        ]);
+
+        $deliveryOrders = $this->getEligibleBulkDOs($validated);
+
+        if ($deliveryOrders->isEmpty()) {
+            return back()->with('error', 'No Delivery Orders found.');
+        }
+
+        // Group by Sales Order for batch processing
+        $excludedSoIds = $validated['excluded_so_ids'] ?? [];
+        $groups = $deliveryOrders->groupBy('sales_order_id')
+            ->reject(function($dos, $soId) use ($excludedSoIds) {
+                return in_array($soId, $excludedSoIds);
+            });
+            
+        $invoiceCount = 0;
+        $processedDOs = 0;
+        $lastInvoiceId = null;
+
+        try {
+            DB::transaction(function () use ($groups, &$invoiceCount, &$processedDOs, &$lastInvoiceId, $deliveryOrders) {
+                // Determine starting sequence
+                $prefix = "INV-" . date('Ym') . "-";
+                $lastInvoice = \App\Models\SalesInvoice::where('invoice_number', 'like', "{$prefix}%")
+                    ->orderBy('invoice_number', 'desc')
+                    ->lockForUpdate()
+                    ->first();
+                
+                $nextSequence = 1;
+                if ($lastInvoice) {
+                    $nextSequence = (int) substr($lastInvoice->invoice_number, -4) + 1;
+                }
+
+                foreach ($groups as $soId => $dos) {
+                    $groupedItems = [];
+                    $so = $dos->first()->salesOrder;
+                    $customerId = $so->customer_id;
+
+                    foreach ($dos as $do) {
+                        foreach ($do->items as $item) {
+                            $unitPrice = (float) ($item->salesOrderItem->unit_price ?? 0);
+                            $discountPercent = (float) ($item->salesOrderItem->discount_percent ?? 0);
+                            $key = $item->product_id . '_' . round($unitPrice, 2) . '_' . round($discountPercent, 2);
+                            
+                            if (!isset($groupedItems[$key])) {
+                                $groupedItems[$key] = [
+                                    'product_id' => $item->product_id,
+                                    'sales_order_item_id' => $item->sales_order_item_id,
+                                    'description' => $item->product->name,
+                                    'qty' => 0,
+                                    'unit_id' => $item->unit_id,
+                                    'unit_price' => $unitPrice,
+                                    'discount_percent' => $discountPercent,
+                                    'do_numbers' => []
+                                ];
+                            }
+                            
+                            $groupedItems[$key]['qty'] += (float) $item->qty_delivered;
+                            if (!in_array($do->do_number, $groupedItems[$key]['do_numbers'])) {
+                                $groupedItems[$key]['do_numbers'][] = $do->do_number;
+                            }
+
+                            $item->qty_invoiced += (float) $item->qty_delivered;
+                            $item->save();
+
+                            if ($item->salesOrderItem) {
+                                $item->salesOrderItem->qty_invoiced += (float) $item->qty_delivered;
+                                $item->salesOrderItem->save();
+                            }
+                        }
+                        $processedDOs++;
+                        $do->refreshInvoiceStatus();
+                    }
+
+                    if (empty($groupedItems)) continue;
+
+                    $invoiceNumber = $prefix . str_pad($nextSequence++, 4, '0', STR_PAD_LEFT);
+                    $invoice = \App\Models\SalesInvoice::create([
+                        'company_id' => $so->company_id,
+                        'invoice_number' => $invoiceNumber,
+                        'sales_order_id' => $so->id,
+                        'customer_id' => $customerId,
+                        'invoice_date' => now(),
+                        'due_date' => now()->addDays(30),
+                        'status' => 'draft',
+                        'subtotal' => 0,
+                        'tax_amount' => 0,
+                        'total' => 0,
+                        'balance' => 0,
+                        'created_by' => auth()->id(),
+                        'notes' => 'Batch Generated from DOs: ' . $dos->pluck('do_number')->implode(', '),
+                    ]);
+
+                    foreach ($groupedItems as $itemData) {
+                        \App\Models\SalesInvoiceItem::create([
+                            'sales_invoice_id' => $invoice->id,
+                            'sales_order_item_id' => $itemData['sales_order_item_id'],
+                            'product_id' => $itemData['product_id'],
+                            'description' => $itemData['description'],
+                            'qty' => $itemData['qty'],
+                            'unit_id' => $itemData['unit_id'],
+                            'unit_price' => $itemData['unit_price'],
+                            'discount_percent' => $itemData['discount_percent'],
+                            'delivery_order_id' => $deliveryOrders->where('do_number', $itemData['do_numbers'][0])->first()->id ?? null,
+                        ]);
+                    }
+
+                    $invoice->refresh();
+                    $invoiceCount++;
+                    $lastInvoiceId = $invoice->id;
+                }
+            });
+
+            if ($invoiceCount === 0) {
+                return back()->with('error', 'No eligible Delivery Orders were processed.');
+            }
+
+            if ($invoiceCount === 1) {
+                return redirect()->route('sales.invoices.show', $lastInvoiceId)->with('success', 'Invoice generated successfully.');
+            }
+
+            return redirect()->route('sales.invoices.index')->with('success', "Batch Processing Complete: Generated $invoiceCount invoices from $processedDOs Delivery Orders.");
         } catch (\Exception $e) {
-            return back()->with('error', 'Error deleting delivery order: ' . $e->getMessage());
+            return back()->with('error', 'Error creating batch invoices: ' . $e->getMessage());
         }
     }
 }

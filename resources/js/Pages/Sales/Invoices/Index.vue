@@ -14,6 +14,7 @@ import {
     ShieldCheckIcon,
     CalendarIcon,
     DocumentArrowUpIcon,
+    TrashIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import { formatNumber, formatCurrency } from '@/helpers';
@@ -69,6 +70,16 @@ const getStatusTooltip = (status) => {
 const formatDate = (date) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const deleteInvoice = (id) => {
+    if (confirm('Apakah Anda yakin ingin menghapus invoice ini?')) {
+        router.delete(route('sales.invoices.destroy', id), {
+            onSuccess: () => {
+                // Success
+            }
+        });
+    }
 };
 </script>
 
@@ -147,6 +158,13 @@ const formatDate = (date) => {
                                     <Link :href="route('sales.invoices.show', invoice.id)" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors">
                                         <EyeIcon class="h-4 w-4" />
                                     </Link>
+                                    <button 
+                                        v-if="invoice.status === 'draft'"
+                                        @click="deleteInvoice(invoice.id)" 
+                                        class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                                    >
+                                        <TrashIcon class="h-4 w-4" />
+                                    </button>
                                 </div>
                             </td>
                         </tr>

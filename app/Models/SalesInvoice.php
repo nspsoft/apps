@@ -46,7 +46,7 @@ class SalesInvoice extends Model
         'subtotal' => 'double',
         'tax_amount' => 'double',
         'discount_amount' => 'double',
-        'total_amount' => 'double',
+        'total' => 'double',
         'paid_amount' => 'double',
         'balance' => 'decimal:2',
     ];
@@ -106,6 +106,10 @@ class SalesInvoice extends Model
     public function calculateTotals(): void
     {
         $this->subtotal = $this->items->sum('subtotal');
+        // If SalesOrder has tax_percent, use it, otherwise default to 11
+        $taxPercent = $this->salesOrder->tax_percent ?? 11;
+        $this->tax_amount = $this->subtotal * ($taxPercent / 100);
+        $this->total = $this->subtotal + $this->tax_amount - $this->discount_amount;
         $this->balance = $this->total - $this->paid_amount;
         $this->save();
     }

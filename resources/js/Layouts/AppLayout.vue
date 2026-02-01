@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     HomeIcon,
@@ -48,9 +48,22 @@ const page = usePage();
 const sidebarOpen = ref(false);
 const collapsed = ref(false);
 const userMenuOpen = ref(false);
-const isDark = ref(false);
 const isFullscreen = ref(false);
 const isInstalled = ref(false);
+
+// Flash Notifications Logic
+const flashSuccess = computed(() => page.props.flash?.success);
+const flashError = computed(() => page.props.flash?.error);
+const showFlash = ref(false);
+
+watch([flashSuccess, flashError], ([newSuccess, newError]) => {
+    if (newSuccess || newError) {
+        showFlash.value = true;
+        setTimeout(() => {
+            showFlash.value = false;
+        }, 5000);
+    }
+});
 
 // PWA Install Prompt
 const deferredPrompt = ref(null);
@@ -118,6 +131,7 @@ const navigation = [
             { name: 'Delivery Orders', href: '/sales/deliveries', permission: 'sales_crm.delivery_orders.view' },
             { name: 'Sales Invoices', href: '/sales/invoices', permission: 'sales_crm.invoices.view' },
             { name: 'Sales Returns', href: '/sales/returns', permission: 'sales_crm.sales_returns.view' },
+            { name: 'ℹ️ Information', href: '/sales/information', permission: 'sales_crm.view' },
             { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.ai_po_extractor.view' },
         ]
     },
@@ -295,6 +309,28 @@ const filteredNavigation = computed(() => {
 
 const expandedMenus = ref({});
 
+// Initialize expanded state based on current URL
+const initExpandedMenus = () => {
+    // Ensure we handle potential trailing slashes or query params loosely if needed
+    // But startsWith is usually consistent for hierarchical paths
+    const currentUrl = page.url; 
+    
+    navigation.forEach(item => {
+        if (item.children) {
+            // Check if any child matches the current URL
+            const hasActiveChild = item.children.some(child => 
+                child.href !== '#' && currentUrl.startsWith(child.href)
+            );
+            
+            if (hasActiveChild) {
+                expandedMenus.value[item.name] = true;
+            }
+        }
+    });
+};
+
+initExpandedMenus();
+
 const toggleMenu = (name) => {
     expandedMenus.value[name] = !expandedMenus.value[name];
 };
@@ -319,11 +355,25 @@ const recentNotifications = computed(() => page.props.auth?.recentNotifications 
 
 
 // Clock Logic
-const currentTime = ref('');
 const currentDate = ref('');
 
+// Immediate initialization (outside onMounted)
+const dateOptions = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+};
+
+try {
+    currentDate.value = new Date().toLocaleDateString('id-ID', dateOptions);
+} catch (e) {
+    console.error('Date formatting error:', e);
+    currentDate.value = new Date().toDateString();
+}
+
 onMounted(() => {
-    // Initialize theme from localStorage or system preference
+    // Initialize theme
     if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         isDark.value = true;
         document.documentElement.classList.add('dark');
@@ -331,31 +381,6 @@ onMounted(() => {
         isDark.value = false;
         document.documentElement.classList.remove('dark');
     }
-    
-    currentTime.value = new Date().toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
-    
-    currentDate.value = new Date().toLocaleDateString('en-US', {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-    }).toUpperCase();
-
-    const timer = setInterval(() => {
-        currentTime.value = new Date().toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-    }, 1000);
-    
-    onUnmounted(() => clearInterval(timer));
     
     const checkInstall = () => {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
@@ -662,11 +687,19 @@ const toggleTheme = () => {
                 <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 lg:hidden" />
 
                 <div class="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6">
-                    <!-- Date Display Only (Time removed per request) -->
-                    <div class="flex flex-1 items-center gap-4">
-                        <div class="hidden md:flex flex-row items-baseline gap-3">
-                             <div class="text-sm font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase font-mono">
-                                {{ currentDate }}
+                    <!-- Tech Date Display -->
+                    <div class="flex flex-1 items-center justify-center lg:justify-start">
+                        <div class="hidden md:flex flex-row items-center lg:items-start gap-3 group">
+                            <!-- Digital Icon -->
+                            <div class="h-8 w-1 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-full animate-pulse shadow-[0_0_10px_#06b6d4]"></div>
+                            
+                            <!-- Date with Neon Effect -->
+                            <div class="flex flex-col justify-center h-full">
+                                <div class="text-lg md:text-xl font-bold tracking-widest text-cyan-400 dark:text-cyan-400" 
+                                     style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);">
+                                    {{ currentDate || 'LOADING SYSTEM...' }}
+                                </div>
+                                <div class="h-[1px] w-full bg-gradient-to-r from-cyan-500/50 to-transparent mt-1"></div>
                             </div>
                         </div>
                     </div>
@@ -817,7 +850,45 @@ const toggleTheme = () => {
             </div>
 
             <!-- Page content -->
-            <main class="py-8 px-4 sm:px-6 lg:px-8">
+            <main class="py-8 px-4 sm:px-6 lg:px-8 relative">
+                <!-- Global Flash Notifications -->
+                <Transition
+                    enter-active-class="transform ease-out duration-300 transition"
+                    enter-from-class="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+                    enter-to-class="translate-y-0 opacity-100 sm:translate-x-0"
+                    leave-active-class="transition ease-in duration-100"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                >
+                    <div v-if="showFlash" class="fixed top-20 right-4 z-[100] w-full max-w-sm overflow-hidden rounded-2xl bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-black ring-opacity-5 pointer-events-auto border border-slate-200 dark:border-slate-800">
+                        <div class="p-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <CheckBadgeIcon v-if="flashSuccess" class="h-6 w-6 text-emerald-500" />
+                                    <ShieldExclamationIcon v-if="flashError" class="h-6 w-6 text-red-500" />
+                                </div>
+                                <div class="ml-3 w-0 flex-1 pt-0.5">
+                                    <p class="text-sm font-bold" :class="flashSuccess ? 'text-emerald-500' : 'text-red-500'">
+                                        {{ flashSuccess ? 'Success' : 'Attention Needed' }}
+                                    </p>
+                                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                        {{ flashSuccess || flashError }}
+                                    </p>
+                                </div>
+                                <div class="ml-4 flex flex-shrink-0">
+                                    <button @click="showFlash = false" class="inline-flex rounded-md text-slate-400 hover:text-slate-500 focus:outline-none">
+                                        <XMarkIcon class="h-5 w-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Progress bar for auto-close -->
+                        <div class="h-1 w-full bg-slate-100 dark:bg-slate-800">
+                            <div class="h-full bg-blue-500 animate-[progress_5s_linear_forwards]"></div>
+                        </div>
+                    </div>
+                </Transition>
+
                 <!-- Page header -->
                 <div v-if="renderHeader" class="mb-8">
                     <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ title }}</h1>

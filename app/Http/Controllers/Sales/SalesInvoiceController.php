@@ -108,4 +108,29 @@ class SalesInvoiceController extends Controller
             return back()->with('error', 'Error recording payment: '.$e->getMessage());
         }
     }
+
+    public function destroy(SalesInvoice $salesInvoice)
+    {
+        if ($salesInvoice->status !== 'draft') {
+            return back()->with('error', 'Only draft invoices can be deleted.');
+        }
+
+        try {
+            \DB::transaction(function () use ($salesInvoice) {
+                // Return invoiced qty to SO items
+                foreach ($salesInvoice->items as $item) {
+                    $soItem = $item->salesOrderItem;
+                    if ($soItem) {
+                        $soItem->qty_invoiced -= $item->qty;
+                        $soItem->save();
+                    }
+                }
+                $salesInvoice->delete();
+            });
+
+            return back()->with('success', 'Invoice deleted successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error deleting invoice: '.$e->getMessage());
+        }
+    }
 }

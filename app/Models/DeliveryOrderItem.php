@@ -31,11 +31,13 @@ class DeliveryOrderItem extends Model
         'location_id',
         'batch_number',
         'notes',
+        'qty_invoiced',
     ];
 
     protected $casts = [
         'qty_ordered' => 'float',
-        'qty_shipped' => 'float',
+        'qty_delivered' => 'float',
+        'qty_invoiced' => 'float',
     ];
 
     public function deliveryOrder(): BelongsTo

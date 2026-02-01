@@ -70,6 +70,19 @@ const formatDate = (date) => {
     return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
 };
 
+const getStatusDescription = (status) => {
+    const descriptions = {
+        draft: 'Draft surat jalan, belum diproses.',
+        picking: 'Barang sedang diambil di gudang.',
+        packed: 'Barang siap dimuat (load).',
+        shipped: 'Barang dalam perjalanan.',
+        delivered: 'Barang sampai di tujuan (Laporan Driver).',
+        completed: 'Selesai (Verifikasi Admin/POD).',
+        cancelled: 'Pengiriman dibatalkan.',
+    };
+    return descriptions[status] || '';
+};
+
 </script>
 
 <template>
@@ -100,8 +113,9 @@ const formatDate = (date) => {
                     <div class="flex justify-between items-start mb-2">
                         <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">{{ order.do_number }}</span>
                         <div class="flex items-center gap-1">
-                             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border" 
+                             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border cursor-help" 
                                 :class="order.status === 'completed' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-slate-50 border-slate-100 text-slate-500'"
+                                :title="getStatusDescription(order.status)"
                             >
                                 {{ order.status }}
                             </span>

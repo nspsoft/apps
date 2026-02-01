@@ -67,7 +67,7 @@ class LogisticsSeeder extends Seeder
             $status = $statuses[array_rand($statuses)];
             $vehicle = $vehicleModels->random();
 
-            DeliveryOrder::create([
+            $do = DeliveryOrder::create([
                 'company_id' => $company->id ?? 1,
                 'do_number' => 'DO-' . $date->format('ym') . '-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
                 'sales_order_id' => $so->id,
@@ -83,6 +83,24 @@ class LogisticsSeeder extends Seeder
                 'prepared_by' => $user->id,
                 'delivered_at' => $status === 'delivered' ? $date->copy()->addHours(rand(2, 8)) : null,
             ]);
+
+            // Add items to the DO
+            $itemsToDeliver = $so->items->take(rand(1, $so->items->count()));
+            foreach ($itemsToDeliver as $soItem) {
+                $qtyToDeliver = $soItem->qty;
+                if ($status !== 'delivered' && $status !== 'completed') {
+                    $qtyToDeliver = rand(1, $soItem->qty);
+                }
+
+                \App\Models\DeliveryOrderItem::create([
+                    'delivery_order_id' => $do->id,
+                    'sales_order_item_id' => $soItem->id,
+                    'product_id' => $soItem->product_id,
+                    'qty_ordered' => $soItem->qty,
+                    'qty_delivered' => $qtyToDeliver,
+                    'unit_id' => $soItem->unit_id,
+                ]);
+            }
         }
 
         $this->command->info('Logistics Intelligence data seeded successfully.');

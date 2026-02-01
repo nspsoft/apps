@@ -85,6 +85,18 @@ const getStatusLabel = (status) => {
     return labels[status] || status;
 };
 
+const getStatusDescription = (status) => {
+    const descriptions = {
+        draft: 'Pesanan baru dibuat, belum dikonfirmasi.',
+        confirmed: 'Pesanan disetujui, siap diproses.',
+        processing: 'Sedang disiapkan di gudang.',
+        shipped: 'Barang dalam pengiriman.',
+        delivered: 'Pesanan sudah sampai.',
+        cancelled: 'Pesanan dibatalkan.',
+    };
+    return descriptions[status] || '';
+};
+
 
 const formatDate = (date) => {
     return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -281,8 +293,9 @@ const formatDate = (date) => {
                             </td>
                             <td class="px-4 py-2 whitespace-nowrap text-center">
                                 <span 
-                                    class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
+                                    class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium cursor-help"
                                     :class="getStatusBadge(so.status)"
+                                    :title="getStatusDescription(so.status)"
                                 >
                                     {{ getStatusLabel(so.status) }}
                                 </span>

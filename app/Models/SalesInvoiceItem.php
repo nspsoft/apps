@@ -21,6 +21,7 @@ class SalesInvoiceItem extends Model
         'discount_percent',
         'discount_amount',
         'subtotal',
+        'delivery_order_id',
     ];
 
     protected $casts = [
@@ -29,6 +30,7 @@ class SalesInvoiceItem extends Model
         'discount_percent' => 'float',
         'discount_amount' => 'double',
         'subtotal' => 'double',
+        'delivery_order_id' => 'integer',
     ];
 
     public function salesInvoice(): BelongsTo
@@ -49,6 +51,11 @@ class SalesInvoiceItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function deliveryOrder(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryOrder::class);
     }
 
     protected static function booted(): void

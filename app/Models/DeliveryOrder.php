@@ -34,6 +34,7 @@ class DeliveryOrder extends Model
         'warehouse_id',
         'delivery_date',
         'status',
+        'invoice_status',
         'shipping_name',
         'shipping_address',
         'shipping_method',
@@ -42,6 +43,11 @@ class DeliveryOrder extends Model
         'prepared_by',
         'delivered_by',
         'delivered_at',
+    ];
+
+    protected $appends = [
+        'invoice_status',
+        'status_color',
     ];
 
     public function vehicle(): BelongsTo
@@ -165,5 +171,84 @@ class DeliveryOrder extends Model
             self::STATUS_COMPLETED => 'emerald',
             default => 'slate',
         };
+    }
+
+    /**
+     * Get the invoicing status of the delivery order.
+     */
+    public function getInvoiceStatusAttribute($value): string
+    {
+        if ($value) {
+            return $value;
+        }
+
+        // Fallback to calculation if column is empty
+        if ($this->items->isEmpty()) {
+            return 'pending';
+        }
+
+        $allInvoiced = $this->items->every(function ($item) {
+            return $item->qty_invoiced >= $item->qty_delivered;
+        });
+
+        if ($allInvoiced) {
+            return 'invoiced';
+        }
+
+        $anyInvoiced = $this->items->some(function ($item) {
+            return $item->qty_invoiced > 0;
+        });
+
+        if ($anyInvoiced) {
+            return 'partial';
+        }
+
+        return 'pending';
+    }
+
+    public function refreshInvoiceStatus()
+    {
+        $status = 'pending';
+        
+        $items = $this->items()->get();
+        if ($items->isEmpty()) {
+            $status = 'pending';
+        } else {
+            $allInvoiced = $items->every(function ($item) {
+                return $item->qty_invoiced >= $item->qty_delivered;
+            });
+
+            if ($allInvoiced) {
+                $status = 'invoiced';
+            } else {
+                $anyInvoiced = $items->some(function ($item) {
+                    return $item->qty_invoiced > 0;
+                });
+
+                if ($anyInvoiced) {
+                    $status = 'partial';
+                }
+            }
+        }
+
+        $this->update(['invoice_status' => $status]);
+        return $status;
+    }
+
+    /**
+     * Scope a query to only include delivery orders with a specific invoice status.
+     */
+    public function scopeInvoiceStatus($query, $status)
+    {
+        if ($status === 'invoiced') {
+            return $query->whereHas('items', function ($q) {
+                $q->whereRaw('qty_invoiced >= qty_delivered');
+            });
+        } elseif ($status === 'pending') {
+            return $query->whereHas('items', function ($q) {
+                $q->whereRaw('qty_invoiced < qty_delivered');
+            });
+        }
+        return $query;
     }
 }
