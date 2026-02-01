@@ -17,8 +17,21 @@ class VehicleImport implements OnEachRow, WithHeadingRow, WithValidation
         $rowIndex = $row->getIndex();
         $row      = $row->toArray();
         
-        Vehicle::updateOrCreate(
-            ['license_plate' => $row['plate_number']],
+        // Handle potential key variations (robustness)
+        $plateNumber = isset($row['plate_number']) ? trim($row['plate_number']) : (isset($row['plate_no']) ? trim($row['plate_no']) : null);
+
+        if (!$plateNumber) {
+            // Should be caught by validation, but just in case
+            return;
+        }
+
+        // Normalize status
+        $rawStatus = isset($row['status']) ? strtolower(trim($row['status'])) : 'available';
+        $validStatuses = ['available', 'maintenance', 'busy'];
+        $status = in_array($rawStatus, $validStatuses) ? $rawStatus : 'available';
+
+        \App\Models\Vehicle::updateOrCreate(
+            ['license_plate' => $plateNumber],
             [
                 'vehicle_type'    => $row['type'],
                 'brand'           => $row['brand'],
@@ -27,7 +40,7 @@ class VehicleImport implements OnEachRow, WithHeadingRow, WithValidation
                 'chassis_number'  => $row['chassis_number'],
                 'engine_number'   => $row['engine_number'],
                 'fuel_type'       => $row['fuel_type'],
-                'status'          => $row['status'] ?? 'Available',
+                'status'          => $status,
                 'ownership'       => $row['ownership'] ?? 'Owned',
                 'driver_name'     => $row['driver_name'],
                 'capacity_weight' => $row['capacity_weight'],
@@ -46,7 +59,7 @@ class VehicleImport implements OnEachRow, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
-            'plate_number' => 'required', // Removed unique check to allow updates
+            'plate_number' => 'required',
             'type'         => 'required',
             'brand'        => 'required',
         ];
