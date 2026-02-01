@@ -147,7 +147,18 @@ class SalesOrderController extends Controller
 
     public function show(SalesOrder $order): Response
     {
-        $order->load(['customer', 'warehouse', 'items.product' => function($q) { $q->withTrashed(); }, 'items.unit', 'createdBy', 'confirmedBy', 'deliveryOrders', 'invoices']);
+        // Optimized loading to include delivery items for calculation
+        $order->load([
+            'customer', 
+            'warehouse', 
+            'items.product' => function($q) { $q->withTrashed(); }, 
+            'items.unit', 
+            'items.deliveryOrderItems.deliveryOrder', // Eager load for reserved_qty optimization
+            'createdBy', 
+            'confirmedBy', 
+            'deliveryOrders', 
+            'invoices'
+        ]);
 
         return Inertia::render('Sales/Orders/Show', [
             'salesOrder' => $order,

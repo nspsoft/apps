@@ -72,6 +72,20 @@ class SalesOrderItem extends Model
 
     public function getReservedQtyAttribute(): float
     {
+        // Optimization: Use loaded relationship if available to prevent N+1 queries
+        if ($this->relationLoaded('deliveryOrderItems')) {
+            return (float) $this->deliveryOrderItems
+                ->filter(function ($doItem) {
+                    // Check if parent DO is loaded (should be for optimization)
+                    if ($doItem->relationLoaded('deliveryOrder')) {
+                        return !in_array($doItem->deliveryOrder->status, ['delivered', 'cancelled']);
+                    }
+                    // Fallback to query if DO relation not loaded (rare if optimized properly)
+                    return !in_array($doItem->deliveryOrder->status, ['delivered', 'cancelled']);
+                })
+                ->sum('qty_delivered');
+        }
+
         return (float) $this->deliveryOrderItems()
             ->whereHas('deliveryOrder', function ($query) {
                 // We count everything that is NOT delivered and NOT cancelled as "Reserved"
