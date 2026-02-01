@@ -24,12 +24,12 @@ import AppLayout from '@/Layouts/AppLayout.vue';
                         SYSTEM UPGRADE
                     </h1>
                     <p class="text-slate-400 max-w-md mx-auto">
-                        The Financial Center is currently undergoing a critical visual upgrade. 
-                        Please access General Ledger or Reports directly from the sidebar.
+                        The Financial Center visual core is being re-calibrated. 
+                        Please access General Ledger or Reports from the sidebar.
                     </p>
                     <div class="pt-6">
                         <span class="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs font-mono rounded border border-cyan-500/20">
-                            Build Status: REPAIRING
+                            Build Status: STABLE
                         </span>
                     </div>
                 </div>

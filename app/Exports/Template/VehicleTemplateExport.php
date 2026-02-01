@@ -20,6 +20,9 @@ class VehicleTemplateExport implements WithHeadings, ShouldAutoSize
             'Fuel Type', // Diesel, Petrol, Electric
             'Status', // Available, Maintenance, In Use, Sold
             'Ownership', // Owned, Leased
+            'Driver Name',
+            'Capacity Weight',
+            'Capacity Volume',
             'Purchase Date (YYYY-MM-DD)',
             'Purchase Price',
             'Notes',
