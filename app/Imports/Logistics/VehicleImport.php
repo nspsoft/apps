@@ -14,8 +14,8 @@ class VehicleImport implements ToModel, WithHeadingRow, WithValidation
     public function model(array $row)
     {
         return new Vehicle([
-            'plate_number'    => $row['plate_number'],
-            'type'            => $row['type'],
+            'license_plate'   => $row['plate_number'],
+            'vehicle_type'    => $row['type'],
             'brand'           => $row['brand'],
             'model'           => $row['model'],
             'year'            => $row['year'],
@@ -40,20 +40,28 @@ class VehicleImport implements ToModel, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
-            'plate_number' => 'required|unique:vehicles,plate_number',
+            'plate_number' => 'required|unique:vehicles,license_plate',
             'type'         => 'required',
             'brand'        => 'required',
-            'model'        => 'required',
-            'year'         => 'required|numeric',
         ];
     }
 
     private function transformDate($value, $format = 'Y-m-d')
     {
         try {
+            if (empty($value)) return null;
+            
+            // Handle numeric Excel date
             if (is_numeric($value)) {
                 return Date::excelToDateTimeObject($value)->format($format);
             }
+            
+            // Handle d/m/Y format (DD/MM/YYYY) commonly used in ID/Excel
+            if (preg_match('/^\d{1,2}\/\d{1,2}\/\d{4}$/', $value)) {
+                return Carbon::createFromFormat('d/m/Y', $value)->format($format);
+            }
+
+            // Fallback to Y-m-d
             return Carbon::createFromFormat($format, $value)->format($format);
         } catch (\Exception $e) {
             return null;

@@ -26,7 +26,15 @@ class Vehicle extends Model
         'stnk_number',
         'stnk_expiry',
         'kir_number',
-        'kir_expiry'
+        'kir_expiry',
+        'model',
+        'year',
+        'chassis_number',
+        'engine_number',
+        'fuel_type',
+        'ownership',
+        'purchase_date',
+        'purchase_price'
     ];
 
     protected $appends = ['driver_photo_url', 'vehicle_photo_url'];

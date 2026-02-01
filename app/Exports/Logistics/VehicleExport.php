@@ -44,8 +44,8 @@ class VehicleExport implements FromCollection, WithHeadings, WithMapping, Should
     public function map($vehicle): array
     {
         return [
-            $vehicle->plate_number,
-            $vehicle->type,
+            $vehicle->license_plate,
+            $vehicle->vehicle_type,
             $vehicle->brand,
             $vehicle->model,
             $vehicle->year,
