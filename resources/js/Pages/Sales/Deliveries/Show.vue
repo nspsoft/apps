@@ -70,7 +70,7 @@ const removeItem = (id) => {
 
 const updateStatus = (status) => {
     if (confirm(`Update status delivery ini menjadi '${status.toUpperCase()}'?`)) {
-        router.put(route('sales.deliveries.update-status', props.deliveryOrder.id), {
+        router.patch(route('sales.deliveries.update-status', props.deliveryOrder.id), {
             status: status
         }, {
             preserveScroll: true,
