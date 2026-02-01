@@ -67,6 +67,10 @@ class DeliveryOrderItem extends Model
 
     public function getCurrentStockAttribute(): float
     {
+        if (!$this->deliveryOrder) {
+            return 0;
+        }
+
         $stock = ProductStock::where('product_id', $this->product_id)
             ->where('warehouse_id', $this->deliveryOrder->warehouse_id)
             ->first();
