@@ -31,6 +31,7 @@ import {
     GlobeAltIcon,
     SunIcon,
     MoonIcon,
+    CpuChipIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -50,6 +51,13 @@ const collapsed = ref(false);
 const userMenuOpen = ref(false);
 const isFullscreen = ref(false);
 const isInstalled = ref(false);
+const isDark = ref(false);
+
+// Flash Notifications Logic
+const flashSuccess = computed(() => page.props.flash?.success);
+const flashError = computed(() => page.props.flash?.error);
+const showFlash = ref(false);
+const isDark = ref(false);
 
 // Flash Notifications Logic
 const flashSuccess = computed(() => page.props.flash?.success);
@@ -183,7 +191,7 @@ const navigation = [
     { 
         name: 'Manufacturing', 
         href: '#', 
-        icon: WrenchScrewdriverIcon, 
+        icon: CpuChipIcon, 
         current: false,
         permission: 'manufacturing.view',
         children: [
