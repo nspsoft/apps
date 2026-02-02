@@ -76,12 +76,9 @@ class SalesOrderItem extends Model
         if ($this->relationLoaded('deliveryOrderItems')) {
             return (float) $this->deliveryOrderItems
                 ->filter(function ($doItem) {
-                    // Check if parent DO is loaded (should be for optimization)
-                    if ($doItem->relationLoaded('deliveryOrder')) {
-                        return !in_array($doItem->deliveryOrder->status, ['delivered', 'cancelled']);
-                    }
-                    // Fallback to query if DO relation not loaded (rare if optimized properly)
-                    return !in_array($doItem->deliveryOrder->status, ['delivered', 'cancelled']);
+                    $status = $doItem->deliveryOrder?->status;
+                    if (!$status) return false;
+                    return !in_array($status, ['delivered', 'cancelled']);
                 })
                 ->sum('qty_delivered');
         }

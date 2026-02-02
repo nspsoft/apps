@@ -233,10 +233,12 @@ const formatDate = (date) => {
                         <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">
                             <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">SO Number</th>
                             <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</th>
+                            <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">No PO</th>
                             <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Date</th>
                             <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Items</th>
                             <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Qty</th>
                             <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sent</th>
+                            <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Invoiced</th>
                             <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Return</th>
                             <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Balance</th>
                             <th class="px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
@@ -265,6 +267,11 @@ const formatDate = (date) => {
                                 <div class="text-sm text-slate-900 dark:text-white">{{ so.customer?.name }}</div>
                                 <div class="text-xs text-slate-500">{{ so.customer?.code }}</div>
                             </td>
+                            <td class="px-4 py-2 whitespace-nowrap max-w-[180px]">
+                                <div class="truncate text-sm font-medium text-slate-600 dark:text-slate-300 font-mono" :title="so.customer_po_number">
+                                    {{ so.customer_po_number || '-' }}
+                                </div>
+                            </td>
                             <td class="px-4 py-2 whitespace-nowrap">
                                 <span class="text-sm text-slate-600 dark:text-slate-300">{{ formatDate(so.order_date) }}</span>
                             </td>
@@ -276,6 +283,9 @@ const formatDate = (date) => {
                             </td>
                             <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-slate-600 dark:text-slate-300">
                                 {{ formatNumber(so.total_qty_delivered || 0) }}
+                            </td>
+                            <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-blue-500">
+                                {{ formatNumber(so.total_qty_invoiced || 0) }}
                             </td>
                             <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-red-400">
                                 {{ formatNumber(so.total_qty_returned || 0) }}

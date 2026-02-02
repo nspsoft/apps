@@ -134,6 +134,7 @@ const navigation = [
             { name: 'Sales Invoices', href: '/sales/invoices', permission: 'sales_crm.invoices.view' },
             { name: 'Sales Returns', href: '/sales/returns', permission: 'sales_crm.sales_returns.view' },
             { name: 'ℹ️ Information', href: '/sales/information', permission: 'sales_crm.view' },
+            { name: '📍 PO Tracking', href: '/sales/po-tracking', permission: 'sales_crm.view' },
             { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.ai_po_extractor.view' },
         ]
     },

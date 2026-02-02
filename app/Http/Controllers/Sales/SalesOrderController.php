@@ -21,6 +21,7 @@ class SalesOrderController extends Controller
             ->withCount('items')
             ->withSum('items as total_qty_ordered', 'qty')
             ->withSum('items as total_qty_delivered', 'qty_delivered')
+            ->withSum('items as total_qty_invoiced', 'qty_invoiced')
             ->withSum('items as total_qty_returned', 'qty_returned')
             ->when($request->search, function ($q, $search) {
                 $q->where(function ($q) use ($search) {
