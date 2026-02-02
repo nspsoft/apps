@@ -105,6 +105,57 @@ class QuotationController extends Controller
         ]);
     }
 
+    public function edit(Quotation $quotation): Response
+    {
+        $quotation->load(['items']);
+
+        return Inertia::render('Sales/Quotations/Edit', [
+            'quotation' => $quotation,
+            'customers' => Customer::active()->orderBy('name')->get(),
+            'products' => Product::active()->where('is_sold', true)->orderBy('name')->get(),
+        ]);
+    }
+
+    public function update(Request $request, Quotation $quotation)
+    {
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'quotation_date' => 'required|date',
+            'valid_until' => 'required|date|after:quotation_date',
+            'notes' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty' => 'required|numeric|min:0.0001',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
+        DB::transaction(function () use ($validated, $quotation) {
+            $quotation->update([
+                'customer_id' => $validated['customer_id'],
+                'quotation_date' => $validated['quotation_date'],
+                'valid_until' => $validated['valid_until'],
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Sync items (Delete all and recreate)
+            $quotation->items()->delete();
+
+            foreach ($validated['items'] as $item) {
+                $quotation->items()->create([
+                    'product_id' => $item['product_id'],
+                    'qty' => $item['qty'],
+                    'unit_price' => $item['unit_price'],
+                    'total_price' => $item['qty'] * $item['unit_price'],
+                ]);
+            }
+
+            $quotation->calculateTotal();
+        });
+
+        return redirect()->route('sales.quotations.show', $quotation->id)
+            ->with('success', 'Quotation updated successfully.');
+    }
+
     public function send(Quotation $quotation)
     {
         $quotation->update(['status' => 'sent']);

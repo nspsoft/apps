@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { ArrowLeftIcon, PrinterIcon, PaperAirplaneIcon, CheckCircleIcon, DocumentTextIcon,
+import { ArrowLeftIcon, PrinterIcon, PaperAirplaneIcon, CheckCircleIcon, DocumentTextIcon, PencilSquareIcon, XCircleIcon
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 
@@ -59,6 +59,9 @@ const getStatusBadge = (status) => {
                     <a :href="route('sales.quotations.print', quotation.id)" target="_blank" class="inline-flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-700 transition-colors shadow-lg shadow-slate-900/10">
                         <PrinterIcon class="h-4 w-4" /> Print
                     </a>
+                    <Link :href="route('sales.quotations.edit', quotation.id)" v-if="['draft', 'sent'].includes(quotation.status)" class="inline-flex items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-500 hover:bg-amber-500/20 border border-amber-500/20">
+                        <PencilSquareIcon class="h-4 w-4" /> Edit
+                    </Link>
                     <button v-if="quotation.status === 'draft'" @click="sendQuotation" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">
                         <PaperAirplaneIcon class="h-4 w-4" /> Send to Customer
                     </button>
