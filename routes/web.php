@@ -163,9 +163,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::post('/orders/{order}/invoice', [SalesOrderController::class, 'createInvoice'])->name('orders.create-invoice');
     Route::post('/orders/ai-extract', [App\Http\Controllers\Sales\POImportController::class, 'extract'])->name('orders.ai-extract');
     Route::post('/orders/analyze-fulfillment', [App\Http\Controllers\Sales\FulfillmentAnalysisController::class, 'analyze'])->name('orders.analyze-fulfillment');
-    Route::get('/information', function () {
-        return Inertia::render('Sales/Information');
-    })->name('sales.information');
+    Route::get('/information', [App\Http\Controllers\Sales\SalesInformationController::class, 'index'])->name('sales.information');
     
     // AI PO Extractor Page
     Route::get('/po-extractor', [App\Http\Controllers\Sales\POExtractorController::class, 'index'])->name('po-extractor');

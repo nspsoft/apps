@@ -1,6 +1,6 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import { 
     ZapIcon, 
@@ -17,14 +17,66 @@ import {
     FileTextIcon,
     PackageIcon,
     RotateCcwIcon,
-    BotIcon
+    BotIcon,
+    SearchIcon, 
 } from 'lucide-vue-next';
+
+const props = defineProps({
+    chartData: Object,
+    chartPercentages: Object,
+    searchResult: Object,
+    queryParams: Object,
+});
 
 const activeTab = ref('flow');
 const activeStep = ref(1);
 const simulationRunning = ref(false);
+const searchQuery = ref(props.queryParams?.search || '');
+
+const searchPO = () => {
+    router.get('/sales/information', { search: searchQuery.value }, {
+        preserveState: true,
+        preserveScroll: true,
+        only: ['searchResult']
+    });
+    activeTab.value = 'tracker'; // Auto switch
+};
 
 const stepsData = {
+    // ... (unchanged)
+};
+// ... (unchanged)
+</script>
+
+<template>
+    <AppLayout title="Information">
+        <!-- ... -->
+                <!-- Tab Switcher -->
+                <div class="flex justify-center mb-12">
+                    <div class="inline-flex p-1 bg-slate-200 dark:bg-slate-900 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
+                        <button 
+                            @click="activeTab = 'flow'"
+                            :class="activeTab === 'flow' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
+                            class="px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300"
+                        >
+                            Interactive Flow
+                        </button>
+                        <button 
+                            @click="activeTab = 'tracker'"
+                            :class="activeTab === 'tracker' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
+                            class="px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300 flex items-center gap-2"
+                        >
+                            <SearchIcon class="w-4 h-4" /> Live Tracker
+                        </button>
+                        <button 
+                            @click="activeTab = 'manual'"
+                            :class="activeTab === 'manual' ? 'bg-white dark:bg-slate-800 text-emerald-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
+                            class="px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300"
+                        >
+                            User Manual
+                        </button>
+                    </div>
+                </div>
     1: { 
         title: "PO Customer Diterima", 
         desc: "Admin input data manual atau via AI PO Extractor untuk data otomatis.", 
@@ -621,27 +673,156 @@ const getProgressWidth = () => {
                     </div>
 
                     <!-- Legend -->
-                    <div class="p-10 bg-indigo-600/5 border border-indigo-500/10 rounded-[40px] text-center">
-                        <h4 class="font-bold text-indigo-400 mb-6 uppercase tracking-widest text-xs">Indikator Warna Status Sistem</h4>
-                        <div class="flex flex-wrap justify-center gap-12">
-                            <div class="flex items-center gap-3">
-                                <span class="w-3.5 h-3.5 rounded-full bg-slate-400 ring-4 ring-slate-400/20 shadow-lg"></span> 
-                                <span class="text-sm font-bold text-slate-600 dark:text-slate-400">DRAFT</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3.5 h-3.5 rounded-full bg-blue-500 ring-4 ring-blue-500/20 shadow-lg"></span> 
-                                <span class="text-sm font-bold text-slate-600 dark:text-slate-400">PROCESSING / SHIPPED</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20 shadow-lg"></span> 
-                                <span class="text-sm font-bold text-slate-600 dark:text-slate-400">COMPLETED / PAID</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="w-3.5 h-3.5 rounded-full bg-red-500 ring-4 ring-red-500/20 shadow-lg"></span> 
-                                <span class="text-sm font-bold text-slate-600 dark:text-slate-400">CANCELLED</span>
+                <!-- SECTION 3: TRACKER SYSTEM -->
+                <div v-else-if="activeTab === 'tracker'" class="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700">
+                    
+                    <!-- Header -->
+                    <div class="text-center">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">
+                            <SearchIcon class="w-4 h-4" /> Live Tracking
+                        </div>
+                        <h1 class="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Track Customer PO</h1>
+                        <p class="text-slate-500 dark:text-slate-400">
+                            Pantau posisi order pelanggan secara real-time dari hulu ke hilir.
+                        </p>
+                    </div>
+
+                    <!-- Top Stats: Donut Chart -->
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] p-8 shadow-xl">
+                        <div class="md:col-span-5 flex justify-center">
+                           <!-- CSS Conic Gradient Donut -->
+                           <div class="relative w-64 h-64 rounded-full flex items-center justify-center transition-all duration-1000"
+                                :style="`background: conic-gradient(
+                                    #3b82f6 0% ${chartPercentages.processing}%, 
+                                    #10b981 ${chartPercentages.processing}% ${parseFloat(chartPercentages.processing) + parseFloat(chartPercentages.completed)}%, 
+                                    #ef4444 ${parseFloat(chartPercentages.processing) + parseFloat(chartPercentages.completed)}% ${parseFloat(chartPercentages.processing) + parseFloat(chartPercentages.completed) + parseFloat(chartPercentages.cancelled)}%, 
+                                    #cbd5e1 ${parseFloat(chartPercentages.processing) + parseFloat(chartPercentages.completed) + parseFloat(chartPercentages.cancelled)}% 100%
+                                )`">
+                                <div class="w-48 h-48 bg-white dark:bg-slate-900 rounded-full flex flex-col items-center justify-center shadow-inner">
+                                    <span class="text-4xl font-extrabold text-slate-800 dark:text-white">{{ chartData.processing + chartData.completed }}</span>
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Active Orders</span>
+                                </div>
+                           </div>
+                        </div>
+
+                        <div class="md:col-span-7">
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-6">Order Status Distribution</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/20">
+                                    <h4 class="text-blue-600 font-bold text-lg">{{ chartPercentages.processing }}%</h4>
+                                    <p class="text-xs text-slate-500 font-bold uppercase">Processing</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">{{ chartData.processing }} Orders</p>
+                                </div>
+                                <div class="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/20">
+                                    <h4 class="text-emerald-600 font-bold text-lg">{{ chartPercentages.completed }}%</h4>
+                                    <p class="text-xs text-slate-500 font-bold uppercase">Completed</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">{{ chartData.completed }} Orders</p>
+                                </div>
+                                <div class="p-4 bg-red-50 dark:bg-red-900/10 rounded-2xl border border-red-100 dark:border-red-900/20">
+                                    <h4 class="text-red-500 font-bold text-lg">{{ chartPercentages.cancelled }}%</h4>
+                                    <p class="text-xs text-slate-500 font-bold uppercase">Cancelled</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">{{ chartData.cancelled }} Orders</p>
+                                </div>
+                                <div class="p-4 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+                                    <h4 class="text-slate-600 dark:text-slate-300 font-bold text-lg">{{ chartPercentages.draft }}%</h4>
+                                    <p class="text-xs text-slate-500 font-bold uppercase">Draft</p>
+                                    <p class="text-[10px] text-slate-400 mt-1">{{ chartData.draft }} Orders</p>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Search Bar -->
+                    <div class="max-w-2xl mx-auto">
+                        <form @submit.prevent="searchPO" class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <SearchIcon class="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            </div>
+                            <input 
+                                v-model="searchQuery" 
+                                type="text" 
+                                placeholder="Masukkan No PO Customer atau No SO..." 
+                                class="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 shadow-lg"
+                            >
+                            <button 
+                                type="submit"
+                                class="absolute right-2 top-2 bottom-2 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors"
+                            >
+                                Cari
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Search Result: Timeline Pipeline -->
+                    <div v-if="searchResult" class="space-y-8 animate-in slide-in-from-bottom-5 duration-500">
+                        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[32px] p-8 shadow-2xl overflow-hidden relative">
+                            <!-- Header Result -->
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 border-b border-slate-100 dark:border-slate-800 pb-8">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Customer PO Number</p>
+                                    <h2 class="text-3xl font-extrabold text-blue-600">{{ searchResult.po_number }}</h2>
+                                    <p class="text-sm text-slate-500 mt-2">SO Ref: <span class="font-mono text-slate-700 dark:text-slate-300">{{ searchResult.so_number }}</span></p>
+                                </div>
+                                <div class="text-right mt-4 md:mt-0">
+                                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Customer</p>
+                                    <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ searchResult.customer }}</h3>
+                                    <div class="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-xs font-bold">
+                                        Total Lead Time: {{ searchResult.overall_lead_time }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Horizontal Steps -->
+                            <div class="relative">
+                                <!-- Connector Line -->
+                                <div class="hidden lg:block absolute top-[24px] left-0 right-0 h-[3px] bg-slate-200 dark:bg-slate-800 -z-0"></div>
+
+                                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                                    <div v-for="(step, idx) in searchResult.timeline" :key="idx" class="relative group">
+                                        <!-- Node -->
+                                        <div 
+                                            class="w-12 h-12 mx-auto rounded-full flex items-center justify-center border-4 z-10 relative bg-white dark:bg-slate-900 transition-all duration-300"
+                                            :class="step.status === 'Completed' || step.status === 'Paid' 
+                                                ? 'border-emerald-500 text-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+                                                : step.status === 'Pending' 
+                                                    ? 'border-slate-200 dark:border-slate-700 text-slate-300' 
+                                                    : 'border-blue-500 text-blue-500 animate-pulse'"
+                                        >
+                                            <CheckCircle2Icon v-if="step.status === 'Completed' || step.status === 'Paid'" class="w-6 h-6" />
+                                            <div v-else class="w-3 h-3 bg-current rounded-full"></div>
+                                        </div>
+
+                                        <!-- Content -->
+                                        <div class="text-center mt-6">
+                                            <h4 class="font-bold text-sm text-slate-900 dark:text-white mb-1">{{ step.step }}</h4>
+                                            
+                                            <!-- Date Badge -->
+                                            <div class="inline-block px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 text-xs font-mono text-slate-500 mb-2">
+                                                {{ step.date }}
+                                            </div>
+
+                                            <!-- Lead Time Info -->
+                                            <div v-if="idx > 0" class="text-[10px] text-slate-400 flex items-center justify-center gap-1">
+                                                <RotateCcwIcon class="w-3 h-3" />
+                                                {{ step.lead_time }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div v-else-if="!searchResult && searchQuery" class="text-center py-12">
+                        <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                            <SearchIcon class="w-8 h-8" />
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Data tidak ditemukan</h3>
+                        <p class="text-slate-500 text-sm">Coba periksa kembali No PO atau No SO Anda.</p>
+                    </div>
+
                 </div>
 
             </div>
