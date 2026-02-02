@@ -57,12 +57,6 @@ const isDark = ref(false);
 const flashSuccess = computed(() => page.props.flash?.success);
 const flashError = computed(() => page.props.flash?.error);
 const showFlash = ref(false);
-const isDark = ref(false);
-
-// Flash Notifications Logic
-const flashSuccess = computed(() => page.props.flash?.success);
-const flashError = computed(() => page.props.flash?.error);
-const showFlash = ref(false);
 
 watch([flashSuccess, flashError], ([newSuccess, newError]) => {
     if (newSuccess || newError) {
