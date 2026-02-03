@@ -136,7 +136,10 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
         'destroy' => 'purchase-returns.destroy',
         'edit' => 'purchase-returns.edit',
     ]);
-    Route::post('/returns/{purchase_return}/confirm', [PurchaseReturnController::class, 'confirm'])->name('purchase-returns.confirm');
+    // AI Delivery Note Extractor
+    Route::get('/dn-extractor', [App\Http\Controllers\Purchasing\DNExtractorController::class, 'index'])->name('dn-extractor');
+    Route::post('/dn-extract', [App\Http\Controllers\Purchasing\DNExtractorController::class, 'extract'])->name('dn-extractor.extract');
+    Route::post('/dn-create-gr', [App\Http\Controllers\Purchasing\DNExtractorController::class, 'storeGR'])->name('dn-extractor.store-gr');
 
     // Purchase Invoices
     Route::resource('invoices', App\Http\Controllers\Purchasing\PurchaseInvoiceController::class);
@@ -231,6 +234,7 @@ Route::prefix('manufacturing')->name('manufacturing.')->middleware(['auth'])->gr
     Route::get('/subcontract-orders/{subcontractOrder}/print', [SubcontractOrderController::class, 'print'])->name('subcontract-orders.print');
     Route::get('/subcontract-orders/{subcontractOrder}/print-delivery-note', [SubcontractOrderController::class, 'printDeliveryNote'])->name('subcontract-orders.print-delivery-note');
     Route::get('/subcontract-orders/{movement}/print-grn', [SubcontractOrderController::class, 'printGrn'])->name('subcontract-orders.print-grn');
+    Route::post('/subcontract-orders/{subcontractOrder}/generate-po', [SubcontractOrderController::class, 'generatePurchaseOrder'])->name('subcontract-orders.generate-po');
 
     Route::get('/production', [\App\Http\Controllers\Manufacturing\ProductionController::class, 'index'])->name('production.index');
     Route::get('/routing', [RoutingController::class, 'index'])->name('routing.index');

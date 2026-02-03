@@ -125,8 +125,10 @@ const formatDate = (date) => {
                                 <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Receipt Number</th>
                                 <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">PO Reference</th>
                                 <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Supplier</th>
+                                <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Warehouse</th>
                                 <th class="px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
                                 <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Items</th>
+                                <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Qty</th>
                                 <th class="px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                                 <th class="px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -150,10 +152,19 @@ const formatDate = (date) => {
                                     {{ receipt.supplier?.name || 'N/A' }}
                                 </td>
                                 <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
+                                    <div class="flex items-center gap-2">
+                                        <div class="h-2 w-2 rounded-full bg-blue-500"></div>
+                                        {{ receipt.warehouse?.name || 'N/A' }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">
                                     {{ formatDate(receipt.receipt_date) }}
                                 </td>
                                 <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-slate-600 dark:text-slate-300">
                                     {{ receipt.items_count }}
+                                </td>
+                                <td class="px-4 py-2 whitespace-nowrap text-center text-sm font-bold text-slate-900 dark:text-white">
+                                    {{ parseFloat(receipt.items_sum_qty_received || 0).toLocaleString() }}
                                 </td>
                                 <td class="px-4 py-2 whitespace-nowrap text-center">
                                     <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium" :class="getStatusBadge(receipt.status)">{{ receipt.status?.toUpperCase() }}</span>
@@ -165,7 +176,7 @@ const formatDate = (date) => {
                                 </td>
                             </tr>
                             <tr v-if="receipts.data && receipts.data.length === 0">
-                                <td colspan="7" class="px-4 py-12 text-center text-slate-500 italic">No goods receipts found.</td>
+                                <td colspan="9" class="px-4 py-12 text-center text-slate-500 italic">No goods receipts found.</td>
                             </tr>
                         </tbody>
                     </table>

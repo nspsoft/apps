@@ -163,6 +163,7 @@ const navigation = [
             { name: 'Purchase Requests', href: '/purchasing/requests', permission: 'purchasing.purchase_requests.view' },
             { name: 'Purchase Orders', href: '/purchasing/orders', permission: 'purchasing.purchase_orders.view' },
             { name: 'Goods Receipts', href: '/purchasing/receipts', permission: 'purchasing.goods_receipts.view' },
+            { name: 'AI Gen. Receipt', href: '/purchasing/dn-extractor', permission: 'purchasing.goods_receipts.view' },
             { name: 'Purchase Invoices', href: '/purchasing/invoices', permission: 'purchasing.purchase_invoices.view' },
             { name: 'Purchase Returns', href: '/purchasing/returns', permission: 'purchasing.purchase_returns.view' },
         ]

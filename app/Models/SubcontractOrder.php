@@ -22,6 +22,7 @@ class SubcontractOrder extends Model
     protected $fillable = [
         'work_order_id',
         'supplier_id',
+        'purchase_order_id',
         'order_number',
         'status',
         'service_fee',
@@ -36,5 +37,10 @@ class SubcontractOrder extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
     }
 }

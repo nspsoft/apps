@@ -142,6 +142,12 @@ const getMovementColor = (mv) => {
     return mv.qty > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500';
 };
 
+const generatePo = () => {
+    if (confirm('Create a Purchase Order Draft for this subcontract service?')) {
+        router.post(route('manufacturing.subcontract-orders.generate-po', props.order.id));
+    }
+};
+
 const canDispatch = computed(() => !['completed', 'cancelled'].includes(props.order.status));
 const canReceive = computed(() => ['sent', 'received'].includes(props.order.status));
 </script>
@@ -180,6 +186,22 @@ const canReceive = computed(() => ['sent', 'received'].includes(props.order.stat
                         <PrinterIcon class="h-5 w-5" />
                         Print Order
                     </a>
+                    <button 
+                        v-if="!order.purchase_order_id && order.status !== 'cancelled'"
+                        @click="generatePo"
+                        class="flex items-center gap-2 rounded-xl bg-slate-900 dark:bg-white px-4 py-2.5 text-sm font-semibold text-white dark:text-slate-900 hover:opacity-90 transition-all shadow-lg"
+                    >
+                        <BanknotesIcon class="h-5 w-5" />
+                        Generate Service PO
+                    </button>
+                    <Link
+                        v-if="order.purchase_order_id"
+                        :href="route('purchasing.orders.show', order.purchase_order_id)"
+                        class="flex items-center gap-2 rounded-xl bg-blue-500/10 px-4 py-2.5 text-sm font-semibold text-blue-500 border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all"
+                    >
+                        <BanknotesIcon class="h-5 w-5" />
+                        View PO: {{ order.purchase_order?.po_number }}
+                    </Link>
                     <a 
                         v-if="['sent', 'received', 'completed'].includes(order.status)"
                         :href="route('manufacturing.subcontract-orders.print-delivery-note', order.id)"

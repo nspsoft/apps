@@ -121,4 +121,92 @@ class GeminiService
 
         return null;
     }
+
+    /**
+     * Extract Delivery Note (Surat Jalan) data from an image or PDF.
+     *
+     * @param string $filePath Absolute path to the file
+     * @param string $mimeType Mime type of the file
+     * @return array|null Extracted data as an associative array
+     */
+    public function extractDeliveryNoteData(string $filePath, string $mimeType): ?array
+    {
+        if (!$this->apiKey) {
+            Log::error('Gemini API Key is not configured.');
+            return null;
+        }
+
+        $fileData = base64_encode(file_get_contents($filePath));
+
+        $prompt = "You are an expert document reader. Analyze this Delivery Note (Surat Jalan/DO) document carefully.
+        
+        The document is likely in Indonesian or English. Look for:
+        - The SUPPLIER/SENDER name (company with the letterhead/logo at the top)
+        - The PO Number reference (labeled as 'Ref PO', 'Your Order', 'No. PO', etc.)
+        - The Delivery Note Number (No. Surat Jalan)
+        - Date of the document
+        - All line items with quantities and units (Description, Qty, Unit)
+        
+        CRITICAL - IDENTIFYING THE SUPPLIER:
+        - The SUPPLIER is the company sending the goods (Letterhead/Logo at top).
+        - The 'To:' field is likely 'PT. SPINDO' (the receiver), do NOT extract that as supplier.
+        
+        Extract and return ONLY a valid JSON object with this exact structure:
+        {
+            \"supplier_name\": \"name of the SUPPLIER (from letterhead)\",
+            \"dn_number\": \"Delivery Note / Surat Jalan Number\",
+            \"po_number\": \"The referenced PO Number if visible, or null\",
+            \"date\": \"YYYY-MM-DD format or null\",
+            \"items\": [
+                {
+                    \"description\": \"product name/description\",
+                    \"qty\": 100,
+                    \"unit\": \"Pcs\",
+                    \"remarks\": \"any notes if available\"
+                }
+            ]
+        }
+        
+        Return pure JSON without any markdown formatting or backticks.";
+
+        try {
+            $response = Http::timeout(120)->post("{$this->baseUrl}?key={$this->apiKey}", [
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt],
+                            [
+                                'inline_data' => [
+                                    'mime_type' => $mimeType,
+                                    'data' => $fileData
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
+                'generationConfig' => [
+                    'response_mime_type' => 'application/json',
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $result = $response->json();
+                $text = $result['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                
+                Log::info('Gemini API Raw Response (DN): ' . substr($text ?? 'NULL', 0, 500));
+                
+                if ($text) {
+                    $text = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($text));
+                    $decoded = json_decode($text, true);
+                    return $decoded;
+                }
+            } else {
+                Log::error('Gemini API Error (DN): ' . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception in GeminiService (DN): ' . $e->getMessage());
+        }
+
+        return null;
+    }
 }

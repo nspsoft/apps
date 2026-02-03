@@ -22,6 +22,7 @@ class GoodsReceiptController extends Controller
     {
         $query = GoodsReceipt::with(['purchaseOrder', 'supplier', 'warehouse', 'receivedBy'])
             ->withCount('items')
+            ->withSum('items', 'qty_received')
             ->when($request->search, function ($q, $search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('grn_number', 'like', "%{$search}%")

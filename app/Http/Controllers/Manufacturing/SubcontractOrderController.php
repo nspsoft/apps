@@ -7,6 +7,8 @@ use App\Models\ProductStock;
 use App\Models\StockMovement;
 use App\Models\SubcontractOrder;
 use App\Models\WorkOrder;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -16,7 +18,7 @@ class SubcontractOrderController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = SubcontractOrder::with(['workOrder.product', 'supplier'])
+        $query = SubcontractOrder::with(['workOrder.product', 'supplier', 'purchaseOrder'])
             ->when($request->search, function ($q, $search) {
                 $q->where('order_number', 'like', "%{$search}%")
                   ->orWhereHas('workOrder', function ($wo) use ($search) {
@@ -59,7 +61,8 @@ class SubcontractOrderController extends Controller
             'workOrder.product',
             'workOrder.bom',
             'workOrder.components.product',
-            'supplier'
+            'supplier',
+            'purchaseOrder'
         ]);
 
         $stockMovements = StockMovement::where('reference_type', SubcontractOrder::class)
@@ -398,9 +401,49 @@ class SubcontractOrderController extends Controller
     {
         $movement = \App\Models\StockMovement::with(['product.unit', 'warehouse', 'reference.supplier', 'reference.workOrder.product'])
             ->findOrFail($id);
-
+    
         return view('print.public-subcontract-grn-validation', [
             'movement' => $movement
         ]);
+    }
+
+    public function generatePurchaseOrder(SubcontractOrder $subcontractOrder)
+    {
+        if ($subcontractOrder->purchase_order_id) {
+            return back()->with('error', 'Purchase Order already exists for this subcontract order.');
+        }
+
+        return DB::transaction(function () use ($subcontractOrder) {
+            $workOrder = $subcontractOrder->workOrder;
+            
+            // 1. Create Purchase Order
+            $po = PurchaseOrder::create([
+                'po_number' => PurchaseOrder::generatePoNumber(),
+                'supplier_id' => $subcontractOrder->supplier_id,
+                'warehouse_id' => $workOrder->warehouse_id,
+                'order_date' => now(),
+                'status' => 'draft',
+                'notes' => "Service PO for Subcont Order: {$subcontractOrder->order_number} (WO: {$workOrder->wo_number})",
+                'created_by' => auth()->id(),
+            ]);
+
+            // 2. Create PO Item (Service)
+            PurchaseOrderItem::create([
+                'purchase_order_id' => $po->id,
+                'product_id' => $workOrder->product_id,
+                'description' => "Subcontract Service: " . ($workOrder->product->name ?? 'Service'),
+                'qty' => $workOrder->qty_planned,
+                'unit_id' => $workOrder->product->unit_id ?? null,
+                'unit_price' => $subcontractOrder->service_fee ?? 0,
+                'discount_percent' => 0,
+            ]);
+
+            // 3. Link PO to Subcont Order
+            $subcontractOrder->update([
+                'purchase_order_id' => $po->id
+            ]);
+
+            return back()->with('success', 'Purchase Order Draft (Service) created successfully: ' . $po->po_number);
+        });
     }
 }
