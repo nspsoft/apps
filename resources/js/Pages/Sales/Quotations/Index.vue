@@ -13,6 +13,8 @@ import {
     ClipboardDocumentCheckIcon,
     ShieldCheckIcon,
     DocumentPlusIcon,
+    PencilSquareIcon,
+    TrashIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 import debounce from 'lodash/debounce';
@@ -52,6 +54,11 @@ const formatDate = (date) => {
     return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+const deleteQuotation = (q) => {
+    if (confirm(`Are you sure you want to delete quotation "${q.number}"?`)) {
+        router.delete(`/sales/quotations/${q.id}`);
+    }
+};
 </script>
 
 <template>
@@ -119,9 +126,17 @@ const formatDate = (date) => {
                                 <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium" :class="getStatusBadge(q.status)">{{ q.status?.toUpperCase() }}</span>
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <Link :href="`/sales/quotations/${q.id}`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
-                                    <EyeIcon class="h-4 w-4" />
-                                </Link>
+                                <div class="flex items-center justify-end gap-2">
+                                    <Link :href="`/sales/quotations/${q.id}`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="View Details">
+                                        <EyeIcon class="h-4 w-4" />
+                                    </Link>
+                                    <Link v-if="q.status === 'draft'" :href="`/sales/quotations/${q.id}/edit`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="Edit Quotation">
+                                        <PencilSquareIcon class="h-4 w-4" />
+                                    </Link>
+                                    <button v-if="q.status === 'draft'" @click="deleteQuotation(q)" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="Delete Quotation">
+                                        <TrashIcon class="h-4 w-4" />
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         <tr v-if="quotations.data.length === 0">

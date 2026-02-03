@@ -124,6 +124,17 @@ class SalesInvoiceController extends Controller
                         $soItem->qty_invoiced -= $item->qty;
                         $soItem->save();
                     }
+
+                    if ($item->delivery_order_id && $item->sales_order_item_id) {
+                        $doItem = \App\Models\DeliveryOrderItem::where('delivery_order_id', $item->delivery_order_id)
+                            ->where('sales_order_item_id', $item->sales_order_item_id)
+                            ->first();
+
+                        if ($doItem) {
+                            $doItem->qty_invoiced -= $item->qty;
+                            $doItem->save();
+                        }
+                    }
                 }
                 $salesInvoice->delete();
             });

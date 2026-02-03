@@ -58,6 +58,7 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth'])->group(func
     Route::resource('categories', App\Http\Controllers\Inventory\CategoryController::class);
     Route::get('/stocks', [App\Http\Controllers\Inventory\CurrentStockController::class, 'index'])->name('stocks.index');
     Route::resource('products', ProductController::class);
+    Route::resource('units', App\Http\Controllers\Inventory\UnitController::class);
     Route::get('/products-export', [ProductController::class, 'export'])->name('products.export');
     Route::post('/products-import', [ProductController::class, 'import'])->name('products.import');
     Route::get('/products-template', [ProductController::class, 'template'])->name('products.template');
@@ -169,6 +170,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     // AI PO Extractor Page
     Route::get('/po-extractor', [App\Http\Controllers\Sales\POExtractorController::class, 'index'])->name('po-extractor');
     Route::post('/po-extractor/store-product', [App\Http\Controllers\Sales\POImportController::class, 'storeProduct'])->name('po-extractor.store-product');
+    Route::post('/po-extractor/export', [App\Http\Controllers\Sales\POExtractorController::class, 'export'])->name('po-extractor.export');
 
     Route::resource('quotations', App\Http\Controllers\Sales\QuotationController::class);
     Route::post('/quotations/{quotation}/send', [App\Http\Controllers\Sales\QuotationController::class, 'send'])->name('quotations.send');

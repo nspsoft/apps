@@ -16,6 +16,7 @@ import {
     PlusIcon,
     TrashIcon,
     PencilIcon,
+    ArrowDownTrayIcon,
 } from '@heroicons/vue/24/outline';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
@@ -53,11 +54,24 @@ const openRegisterModal = (item, index) => {
         itemIndex: index
     };
     
-    // Try to auto-select unit based on name
+    // Try to auto-select unit based on name or code
     if (item.unit && props.units) {
-        const matchingUnit = props.units.find(u => u.name.toLowerCase() === item.unit.toLowerCase());
+        const search = item.unit.trim().toLowerCase();
+        const matchingUnit = props.units.find(u => 
+            u.name.toLowerCase() === search || 
+            (u.code && u.code.toLowerCase() === search)
+        );
         if (matchingUnit) {
             registerForm.value.unit_id = matchingUnit.id;
+        }
+    }
+
+    // Try to auto-generate SKU from first word of description
+    if (item.description) {
+        const firstWord = item.description.trim().split(/\s+/)[0];
+        // Basic heuristic: if it looks like a code (alphanumeric, >2 chars)
+        if (firstWord && firstWord.length >= 3) {
+            registerForm.value.sku = firstWord;
         }
     }
     
@@ -322,6 +336,37 @@ const steps = [
     { id: 3, name: 'Review', description: 'Verify extracted data' },
     { id: 4, name: 'Fulfillment', description: 'Stock analysis' },
 ];
+
+const exportToExcel = async () => {
+    if (!editableData.value || editableData.value.items.length === 0) return;
+
+    try {
+        const response = await axios.post('/sales/po-extractor/export', editableData.value, {
+            responseType: 'blob',
+        });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `PO_Extraction_${editableData.value.po_number || 'Draft'}.xlsx`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error(err);
+        if (err.response && err.response.data instanceof Blob) {
+            const text = await err.response.data.text();
+            try {
+                const json = JSON.parse(text);
+                alert('Export Failed: ' + (json.message || JSON.stringify(json)));
+            } catch (e) {
+                alert('Export Failed: ' + text.substring(0, 100));
+            }
+        } else {
+            alert('Failed to export Excel.');
+        }
+    }
+};
 </script>
 
 <template>
@@ -713,6 +758,14 @@ const steps = [
                                 class="py-3 px-6 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 transition-all"
                             >
                                 Try Again
+                            </button>
+                            <button 
+                                @click="exportToExcel"
+                                :disabled="editableData.items.length === 0"
+                                class="py-3 px-6 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all flex items-center justify-center gap-2"
+                            >
+                                <ArrowDownTrayIcon class="h-5 w-5" />
+                                Export Excel
                             </button>
                             <button 
                                 @click="analyzeFulfillment"

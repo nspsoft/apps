@@ -227,4 +227,15 @@ class QuotationController extends Controller
             'quotation' => $quotation
         ]);
     }
+    public function destroy(Quotation $quotation)
+    {
+        if ($quotation->status !== 'draft') {
+            return back()->with('error', 'Only draft quotations can be deleted.');
+        }
+
+        $quotation->delete();
+
+        return redirect()->route('sales.quotations.index')
+            ->with('success', 'Quotation deleted successfully.');
+    }
 }

@@ -177,6 +177,7 @@ const navigation = [
             { name: 'Command Center', href: '/inventory/dashboard', permission: 'inventory.view' },
             { name: 'Categories', href: '/inventory/categories', permission: 'inventory.categories.view' },
             { name: 'Products', href: '/inventory/products', permission: 'inventory.products.view' },
+            { name: 'Unit Management', href: '/inventory/units', permission: 'inventory.products.view' },
             { name: 'Current Stock', href: '/inventory/stocks', permission: 'inventory.current_stock.view' },
             { name: 'Warehouses', href: '/inventory/warehouses', permission: 'inventory.warehouses.view' },
             { name: 'Stock Movements', href: '/inventory/movements', permission: 'inventory.stock_movements.view' },
