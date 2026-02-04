@@ -78,6 +78,11 @@ class Supplier extends Model
         return $this->hasMany(SupplierContact::class);
     }
 
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
     /**
      * Get full address
      */

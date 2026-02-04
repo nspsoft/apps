@@ -417,3 +417,21 @@ Route::middleware(['auth'])->prefix('approvals')->name('approvals.')->group(func
     Route::post('/{approvalRequest}/approve', [App\Http\Controllers\ApprovalController::class, 'approve'])->name('approve');
     Route::post('/{approvalRequest}/reject', [App\Http\Controllers\ApprovalController::class, 'reject'])->name('reject');
 });
+
+// Supplier Portal Routes
+Route::middleware([
+    'auth:sanctum',
+    config('jetstream.auth_session'),
+    'verified',
+])->prefix('portal')->name('portal.')->group(function () {
+    
+    // Dashboard
+    Route::get('/dashboard', [App\Http\Controllers\Portal\PortalDashboardController::class, 'index'])->name('dashboard');
+
+    // Purchase Orders
+    Route::resource('purchase-orders', App\Http\Controllers\Portal\PortalPurchaseOrderController::class)->only(['index', 'show']);
+    Route::post('purchase-orders/{order}/acknowledge', [App\Http\Controllers\Portal\PortalPurchaseOrderController::class, 'acknowledge'])->name('purchase-orders.acknowledge');
+    Route::post('purchase-orders/{order}/reject', [App\Http\Controllers\Portal\PortalPurchaseOrderController::class, 'reject'])->name('purchase-orders.reject');
+
+});
+

@@ -32,7 +32,18 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'supplier_id',
     ];
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function getIsSupplierAttribute()
+    {
+        return !is_null($this->supplier_id);
+    }
 
     /**
      * The attributes that should be hidden for serialization.
