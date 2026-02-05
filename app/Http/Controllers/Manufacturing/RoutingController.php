@@ -27,7 +27,7 @@ class RoutingController extends Controller
         }
 
         return Inertia::render('Manufacturing/Routing/Index', [
-            'routings' => $query->paginate(10)->withQueryString(),
+            'routings' => $query->paginate(20)->withQueryString(),
             'filters' => $request->only(['search']),
         ]);
     }

@@ -187,7 +187,7 @@ const getOEEColor = (val) => {
                 </h3>
                 <Link href="/manufacturing/work-orders" class="text-[10px] font-black text-slate-500 hover:text-slate-900 dark:text-white uppercase tracking-widest">Historical Data →</Link>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50 dark:bg-slate-800/30">

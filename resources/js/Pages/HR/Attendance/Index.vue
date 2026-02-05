@@ -223,7 +223,7 @@ const getStatusColor = (status) => {
                     </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-white dark:bg-slate-950/30">

@@ -38,7 +38,7 @@ class EmployeeController extends Controller
         }
 
         return Inertia::render('HR/Employees/Index', [
-            'employees' => $query->paginate(10)->withQueryString(),
+            'employees' => $query->paginate(20)->withQueryString(),
             'departments' => Department::all(),
             'positions' => Position::all(),
             'filters' => $request->only(['search', 'department_id', 'status']),

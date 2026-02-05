@@ -32,7 +32,7 @@ class CustomerController extends Controller
             });
 
         $customers = $query->orderBy('name')
-            ->paginate(10)
+            ->paginate(9)
             ->withQueryString();
 
         return Inertia::render('Sales/Customers/Index', [

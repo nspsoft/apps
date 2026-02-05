@@ -31,7 +31,7 @@ class QuotationController extends Controller
             });
 
         $quotations = $query->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Sales/Quotations/Index', [

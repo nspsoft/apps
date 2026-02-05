@@ -35,7 +35,7 @@ class SupplierController extends Controller
             });
 
         $suppliers = $query->orderBy('name')
-            ->paginate(10)
+            ->paginate(9)
             ->withQueryString();
 
         return Inertia::render('Purchasing/Suppliers/Index', [

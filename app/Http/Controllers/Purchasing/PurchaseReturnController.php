@@ -24,7 +24,7 @@ class PurchaseReturnController extends Controller
                 $query->where('number', 'like', "%{$search}%");
             })
             ->orderBy('id', 'desc')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Purchasing/Returns/Index', [

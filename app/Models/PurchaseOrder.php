@@ -65,6 +65,8 @@ class PurchaseOrder extends Model
     const STATUS_SUBMITTED = 'submitted';
     const STATUS_APPROVED = 'approved';
     const STATUS_ORDERED = 'ordered';
+    const STATUS_ACKNOWLEDGED = 'acknowledged';
+    const STATUS_REJECTED = 'rejected';
     const STATUS_PARTIAL = 'partial';
     const STATUS_RECEIVED = 'received';
     const STATUS_CANCELLED = 'cancelled';
@@ -147,7 +149,7 @@ class PurchaseOrder extends Model
      */
     public function canReceive(): bool
     {
-        return in_array($this->status, [self::STATUS_APPROVED, self::STATUS_ORDERED, self::STATUS_PARTIAL]);
+        return in_array($this->status, [self::STATUS_APPROVED, self::STATUS_ORDERED, self::STATUS_ACKNOWLEDGED, self::STATUS_PARTIAL]);
     }
 
     /**
@@ -170,6 +172,8 @@ class PurchaseOrder extends Model
             self::STATUS_SUBMITTED => 'amber',
             self::STATUS_APPROVED => 'blue',
             self::STATUS_ORDERED => 'purple',
+            self::STATUS_ACKNOWLEDGED => 'teal',
+            self::STATUS_REJECTED => 'rose',
             self::STATUS_PARTIAL => 'orange',
             self::STATUS_RECEIVED => 'emerald',
             self::STATUS_CANCELLED => 'red',

@@ -265,32 +265,45 @@ class WorkOrderController extends Controller
         ]);
     }
 
-    public function productionEntryIndex(): Response
+    public function productionEntryIndex(Request $request): Response
     {
-        $workOrders = WorkOrder::with(['product', 'bom', 'components'])
+        $query = WorkOrder::with(['product', 'bom', 'components'])
             ->where('status', 'in_progress')
-            ->orderBy('planned_start', 'asc')
-            ->get()
-            ->map(function ($wo) {
-                $planned = (float) $wo->qty_planned;
-                $produced = (float) $wo->qty_produced;
-                $percent = $planned > 0 ? min(100, ($produced / $planned) * 100) : 0;
-                
-                return [
-                    'id' => $wo->id,
-                    'wo_number' => $wo->wo_number,
-                    'product_name' => $wo->product->name ?? 'Unknown Product',
-                    'product_sku' => $wo->product->sku ?? '-',
-                    'qty_planned' => $planned,
-                    'qty_produced' => $produced,
-                    'remaining' => max(0, $planned - $produced),
-                    'percent' => $percent,
-                    'planned_start' => $wo->planned_start,
-                ];
-            });
+            ->when($request->search, function ($q, $search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('wo_number', 'like', "%{$search}%")
+                      ->orWhereHas('product', function ($pq) use ($search) {
+                          $pq->where('name', 'like', "%{$search}%")
+                             ->orWhere('sku', 'like', "%{$search}%");
+                      });
+                });
+            })
+            ->orderBy('planned_start', 'asc');
+
+        $workOrders = $query->paginate(9)->withQueryString();
+        
+        // Transform data for frontend
+        $workOrders->getCollection()->transform(function ($wo) {
+            $planned = (float) $wo->qty_planned;
+            $produced = (float) $wo->qty_produced;
+            $percent = $planned > 0 ? min(100, ($produced / $planned) * 100) : 0;
+            
+            return [
+                'id' => $wo->id,
+                'wo_number' => $wo->wo_number,
+                'product_name' => $wo->product->name ?? 'Unknown Product',
+                'product_sku' => $wo->product->sku ?? '-',
+                'qty_planned' => $planned,
+                'qty_produced' => $produced,
+                'remaining' => max(0, $planned - $produced),
+                'percent' => $percent,
+                'planned_start' => $wo->planned_start,
+            ];
+        });
 
         return Inertia::render('Manufacturing/WorkOrders/ProductionEntryIndex', [
-            'workOrders' => $workOrders
+            'workOrders' => $workOrders,
+            'filters' => $request->only(['search']),
         ]);
     }
 

@@ -181,7 +181,7 @@ const formatDate = (date) => {
         </Transition>
 
         <div class="rounded-2xl glass-card overflow-hidden">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                 <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                     <thead>
                         <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">

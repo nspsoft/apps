@@ -46,7 +46,7 @@ class CurrentStockController extends Controller
 
         $stocks = $query->orderBy('products.name')
             ->orderBy('warehouse_id')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Inventory/Stocks/Index', [

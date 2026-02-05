@@ -123,7 +123,12 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
     Route::get('/requests/{request}/print', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'print'])->name('requests.print');
     Route::get('/requests', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'index'])->name('requests.index');
     Route::get('/receipts/po-items/{order}', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'getPoItems'])->name('receipts.po-items');
-    Route::resource('receipts', App\Http\Controllers\Purchasing\GoodsReceiptController::class);
+        Route::get('receipts/scan', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'scan'])->name('receipts.scan');
+        Route::post('receipts/scan/process', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'processScan'])->name('receipts.scan-process');
+        Route::get('receipts/{receipt}/check', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'check'])->name('receipts.check');
+        Route::post('receipts/{receipt}/confirm', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'confirmReceive'])->name('receipts.confirm');
+        
+        Route::resource('receipts', App\Http\Controllers\Purchasing\GoodsReceiptController::class);
     Route::post('/receipts/{receipt}/complete', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'complete'])->name('receipts.complete');
     Route::get('/receipts/{receipt}/print', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'print'])->name('receipts.print');
     Route::get('/returns/po-items/{order}', [PurchaseReturnController::class, 'getReturnableItems'])->name('purchase-returns.po-items');
@@ -420,7 +425,7 @@ Route::middleware(['auth'])->prefix('approvals')->name('approvals.')->group(func
 
 // Supplier Portal Routes
 Route::middleware([
-    'auth:sanctum',
+    'auth',
     config('jetstream.auth_session'),
     'verified',
 ])->prefix('portal')->name('portal.')->group(function () {
@@ -433,5 +438,39 @@ Route::middleware([
     Route::post('purchase-orders/{order}/acknowledge', [App\Http\Controllers\Portal\PortalPurchaseOrderController::class, 'acknowledge'])->name('purchase-orders.acknowledge');
     Route::post('purchase-orders/{order}/reject', [App\Http\Controllers\Portal\PortalPurchaseOrderController::class, 'reject'])->name('purchase-orders.reject');
 
-});
+    // Deliveries (Surat Jalan)
+    Route::get('deliveries/create/{order}', [App\Http\Controllers\Portal\PortalDeliveryController::class, 'create'])->name('deliveries.create');
+    Route::get('deliveries/{delivery}/print', [\App\Http\Controllers\Portal\PortalDeliveryController::class, 'print'])->name('deliveries.print');
+    Route::resource('deliveries', \App\Http\Controllers\Portal\PortalDeliveryController::class);
 
+    // Invoices
+    Route::resource('invoices', App\Http\Controllers\Portal\PortalInvoiceController::class);
+
+    // Schedule
+    Route::get('schedule', [App\Http\Controllers\Portal\PortalScheduleController::class, 'index'])->name('schedule.index');
+
+    // Analytics
+    Route::get('analytics', [App\Http\Controllers\Portal\PortalAnalyticsController::class, 'index'])->name('analytics.index');
+
+    // Documents
+    Route::get('documents', [App\Http\Controllers\Portal\PortalDocumentController::class, 'index'])->name('documents.index');
+    Route::post('documents', [App\Http\Controllers\Portal\PortalDocumentController::class, 'store'])->name('documents.store');
+    Route::get('documents/{document}/download', [App\Http\Controllers\Portal\PortalDocumentController::class, 'download'])->name('documents.download');
+    Route::delete('documents/{document}', [App\Http\Controllers\Portal\PortalDocumentController::class, 'destroy'])->name('documents.destroy');
+
+    // Notifications
+    Route::get('notifications', [App\Http\Controllers\Portal\PortalNotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/{id}/read', [App\Http\Controllers\Portal\PortalNotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('notifications/mark-all-read', [App\Http\Controllers\Portal\PortalNotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+
+    // Returns
+    Route::get('returns', [App\Http\Controllers\Portal\PortalReturnController::class, 'index'])->name('returns.index');
+    Route::get('returns/{return}', [App\Http\Controllers\Portal\PortalReturnController::class, 'show'])->name('returns.show');
+
+    // RFQ
+    Route::get('rfq', [App\Http\Controllers\Portal\PortalRfqController::class, 'index'])->name('rfq.index');
+    Route::get('rfq/{id}', [App\Http\Controllers\Portal\PortalRfqController::class, 'show'])->name('rfq.show');
+    // Help / User Guide
+    Route::get('help', [App\Http\Controllers\Portal\PortalHelpController::class, 'index'])->name('help.index');
+
+});

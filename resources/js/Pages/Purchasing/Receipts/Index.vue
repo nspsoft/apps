@@ -14,6 +14,7 @@ import {
     ClipboardDocumentCheckIcon,
     ArchiveBoxArrowDownIcon,
     ShieldCheckIcon,
+    QrCodeIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import Pagination from '@/Components/Pagination.vue';
@@ -87,13 +88,22 @@ const formatDate = (date) => {
                     </button>
                 </div>
                 
-                <Link
-                    href="/purchasing/receipts/create"
-                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all"
-                >
-                    <PlusIcon class="h-5 w-5" />
-                    New Receipt
-                </Link>
+                <div class="flex gap-2">
+                    <Link
+                        :href="route('purchasing.receipts.scan')"
+                        class="inline-flex items-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                    >
+                        <QrCodeIcon class="h-5 w-5" />
+                        Scan Inbound
+                    </Link>
+                    <Link
+                        href="/purchasing/receipts/create"
+                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all"
+                    >
+                        <PlusIcon class="h-5 w-5" />
+                        New Receipt
+                    </Link>
+                </div>
             </div>
 
             <Transition
@@ -118,7 +128,7 @@ const formatDate = (date) => {
             </Transition>
 
             <div class="rounded-2xl glass-card overflow-hidden">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                     <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                         <thead>
                             <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">

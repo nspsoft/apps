@@ -114,7 +114,7 @@ const getStageColor = (stage) => {
                     </div>
 
                     <!-- Table -->
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="text-xs text-slate-500 font-bold uppercase tracking-wider border-b border-white/10">

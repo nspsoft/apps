@@ -26,7 +26,7 @@ class PurchaseRequestController extends Controller
             });
 
         $requests = $query->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Purchasing/Requests/Index', [

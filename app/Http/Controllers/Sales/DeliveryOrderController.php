@@ -39,7 +39,7 @@ class DeliveryOrderController extends Controller
             });
 
         $deliveryOrders = $query->orderByDesc('delivery_date')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString()
             ->through(function ($do) {
                 $do->makeHidden('items');

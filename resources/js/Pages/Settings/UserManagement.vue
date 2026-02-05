@@ -10,13 +10,15 @@ import {
     MagnifyingGlassIcon,
     ExclamationTriangleIcon,
     ShieldCheckIcon,
-    XMarkIcon
+    XMarkIcon,
+    BuildingOfficeIcon
 } from '@heroicons/vue/24/outline';
 import { Dialog, DialogPanel, DialogTitle, TransitionChild, TransitionRoot } from '@headlessui/vue';
 
 const props = defineProps({
     users: Array,
     roles: Array,
+    suppliers: Array,
 });
 
 const searchQuery = ref('');
@@ -29,7 +31,8 @@ const userToDelete = ref(null);
 const filteredUsers = computed(() => {
     return props.users.filter(user => 
         user.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.value.toLowerCase())
+        user.email.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        (user.supplier && user.supplier.name.toLowerCase().includes(searchQuery.value.toLowerCase()))
     );
 });
 
@@ -39,6 +42,7 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     role: '',
+    supplier_id: '',
 });
 
 const openCreateModal = () => {
@@ -63,6 +67,7 @@ const openEditModal = (user) => {
     form.password = '';
     form.password_confirmation = '';
     form.role = user.roles && user.roles.length > 0 ? user.roles[0].name : '';
+    form.supplier_id = user.supplier_id || '';
     showEditModal.value = true;
 };
 
@@ -150,6 +155,10 @@ const deleteUser = () => {
                                         <div>
                                             <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ user.name }}</div>
                                             <div class="text-xs text-slate-500">{{ user.email }}</div>
+                                            <div v-if="user.supplier" class="text-xs text-blue-500 font-medium flex items-center gap-1 mt-0.5">
+                                                <BuildingOfficeIcon class="h-3 w-3" />
+                                                {{ user.supplier.name }}
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -204,7 +213,7 @@ const deleteUser = () => {
                     <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
                         <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" enter-to="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200" leave-from="opacity-100 translate-y-0 sm:scale-100" leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
                             <DialogPanel class="relative transform overflow-hidden rounded-2xl glass-card text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                                <form @submit.prevent="createUser">
+                                <form @submit.prevent="createUser" autocomplete="off">
                                     <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
                                         <DialogTitle as="h3" class="text-lg font-bold text-slate-900 dark:text-white">Add New User</DialogTitle>
                                         <button @click="showCreateModal = false" type="button" class="text-slate-500 hover:text-slate-900 dark:text-white transition-colors">
@@ -214,13 +223,21 @@ const deleteUser = () => {
                                     <div class="p-6 space-y-4">
                                         <div>
                                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Full Name</label>
-                                            <input v-model="form.name" type="text" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="Enter full name" />
+                                            <input v-model="form.name" type="text" autocomplete="off" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="Enter full name" />
                                             <p v-if="form.errors.name" class="mt-1.5 text-xs text-red-500">{{ form.errors.name }}</p>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Email Address</label>
-                                            <input v-model="form.email" type="email" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="user@company.com" />
+                                            <input v-model="form.email" type="email" autocomplete="off" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="user@company.com" />
                                             <p v-if="form.errors.email" class="mt-1.5 text-xs text-red-500">{{ form.errors.email }}</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Link to Supplier (Optional)</label>
+                                            <select v-model="form.supplier_id" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all">
+                                                <option value="" class="text-slate-400">Select Supplier</option>
+                                                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">{{ supplier.name }}</option>
+                                            </select>
+                                            <p class="mt-1 text-xs text-slate-400">If selected, this user will access the Vendor Portal.</p>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Assigned Role</label>
@@ -233,11 +250,11 @@ const deleteUser = () => {
                                         <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Password</label>
-                                                <input v-model="form.password" type="password" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="••••••••" />
+                                                <input v-model="form.password" type="password" autocomplete="new-password" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="••••••••" />
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Confirm Password</label>
-                                                <input v-model="form.password_confirmation" type="password" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="••••••••" />
+                                                <input v-model="form.password_confirmation" type="password" autocomplete="new-password" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="••••••••" />
                                             </div>
                                             <p v-if="form.errors.password" class="col-span-2 mt-0.5 text-xs text-red-500">{{ form.errors.password }}</p>
                                         </div>
@@ -287,6 +304,14 @@ const deleteUser = () => {
                                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Email Address</label>
                                             <input v-model="form.email" type="email" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" />
                                             <p v-if="form.errors.email" class="mt-1.5 text-xs text-red-500">{{ form.errors.email }}</p>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Link to Supplier (Optional)</label>
+                                            <select v-model="form.supplier_id" class="block w-full px-4 py-2.5 glass-card rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all">
+                                                <option value="" class="text-slate-400">Select Supplier</option>
+                                                <option v-for="supplier in suppliers" :key="supplier.id" :value="supplier.id">{{ supplier.name }}</option>
+                                            </select>
+                                            <p class="mt-1 text-xs text-slate-400">If selected, this user will access the Vendor Portal.</p>
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1.5">Assigned Role</label>

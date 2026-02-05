@@ -15,8 +15,14 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(): Response
+    public function index()
     {
+        $user = auth()->user();
+
+        // Redirect Suppliers to their portal
+        if ($user && $user->supplier_id) {
+            return redirect()->route('portal.dashboard');
+        }
         // Summary Stats
         $stats = [
             'products' => Product::where('is_active', true)->count(),

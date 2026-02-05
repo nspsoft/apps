@@ -73,6 +73,11 @@ class Customer extends Model
         return $this->hasMany(SalesInvoice::class);
     }
 
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(CustomerContact::class);
+    }
+
     public function getFullAddressAttribute(): string
     {
         $parts = array_filter([

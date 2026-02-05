@@ -28,7 +28,7 @@ class SalesInvoiceController extends Controller
             });
 
         $invoices = $query->orderByDesc('invoice_date')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Sales/Invoices/Index', [

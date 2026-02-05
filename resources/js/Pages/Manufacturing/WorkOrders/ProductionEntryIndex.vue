@@ -1,28 +1,30 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { 
     CubeIcon, 
     ArrowRightIcon, 
     ClockIcon,
     MagnifyingGlassIcon
 } from '@heroicons/vue/24/outline';
-import { ref, computed } from 'vue';
+import { ref, watch } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatNumber } from '@/helpers';
+import debounce from 'lodash/debounce';
 
 const props = defineProps({
-    workOrders: Array,
+    workOrders: Object,
+    filters: Object,
 });
 
-const search = ref('');
+const search = ref(props.filters?.search || '');
 
-const filteredWOs = computed(() => {
-    if (!search.value) return props.workOrders;
-    return props.workOrders.filter(wo => 
-        wo.wo_number.toLowerCase().includes(search.value.toLowerCase()) ||
-        wo.product_name.toLowerCase().includes(search.value.toLowerCase())
-    );
-});
+const applyFilters = debounce(() => {
+    router.get(route('manufacturing.work-orders.production-entry'), {
+        search: search.value || undefined,
+    }, { preserveState: true, replace: true });
+}, 300);
+
+watch(search, applyFilters);
 
 </script>
 
@@ -30,7 +32,7 @@ const filteredWOs = computed(() => {
     <Head title="Input Produksi" />
     
     <AppLayout title="Input Produksi">
-        <div class="max-w-7xl mx-auto">
+        <div class="w-full">
             <!-- PWA Style Header for Mobile -->
             <div class="mb-6 lg:mb-8">
                 <div class="relative">
@@ -44,7 +46,7 @@ const filteredWOs = computed(() => {
                 </div>
             </div>
 
-            <div v-if="filteredWOs.length === 0" class="text-center py-12">
+            <div v-if="workOrders.data.length === 0" class="text-center py-12">
                 <div class="h-24 w-24 mx-auto rounded-full glass-card flex items-center justify-center mb-4">
                     <CubeIcon class="h-10 w-10 text-slate-500" />
                 </div>
@@ -54,7 +56,7 @@ const filteredWOs = computed(() => {
 
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Link 
-                    v-for="wo in filteredWOs" 
+                    v-for="wo in workOrders.data" 
                     :key="wo.id"
                     :href="route('manufacturing.work-orders.record-production-form', wo.id)"
                     class="block glass-card rounded-3xl p-5 hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10 transition-all active:scale-[0.98]"
@@ -100,9 +102,27 @@ const filteredWOs = computed(() => {
                     </div>
                 </Link>
             </div>
+
+            <!-- Pagination -->
+            <div v-if="workOrders.last_page > 1" class="mt-8 flex items-center justify-between">
+                <p class="text-sm text-slate-500 dark:text-slate-400">
+                    Showing {{ workOrders.from }} to {{ workOrders.to }} of {{ workOrders.total }} work orders
+                </p>
+                <div class="flex items-center gap-2">
+                    <Link
+                        v-for="link in workOrders.links"
+                        :key="link.label"
+                        :href="link.url || '#'"
+                        class="px-3 py-1.5 rounded-lg text-sm transition-colors"
+                        :class="link.active 
+                            ? 'bg-cyan-600 text-white' 
+                            : link.url 
+                                ? 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50' 
+                                : 'text-slate-300 dark:text-slate-600 cursor-not-allowed'"
+                        v-html="link.label"
+                    />
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>
-
-
-

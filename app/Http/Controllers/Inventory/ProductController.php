@@ -42,7 +42,7 @@ class ProductController extends Controller
             });
 
         $products = $query->orderBy('name')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         // Transform products to include computed stock data

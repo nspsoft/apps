@@ -25,7 +25,7 @@ class VehicleController extends Controller
                 $q->where('status', $status);
             })
             ->orderBy('license_plate')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Logistics/Vehicle/Index', [

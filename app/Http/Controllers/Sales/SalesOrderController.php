@@ -39,7 +39,7 @@ class SalesOrderController extends Controller
             });
 
         $salesOrders = $query->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         // Calculate stats based on the same query filters

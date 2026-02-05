@@ -31,7 +31,7 @@ class StockMovementController extends Controller
             });
 
         $movements = $query->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Inventory/Movements/Index', [

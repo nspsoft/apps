@@ -80,7 +80,8 @@ class RoleSeeder extends Seeder
             'Finance Manager',
             'HR & Payroll',
             'Director',
-            'Production Operator'
+            'Production Operator',
+            'Supplier'
         ];
 
         foreach ($roles as $roleName) {

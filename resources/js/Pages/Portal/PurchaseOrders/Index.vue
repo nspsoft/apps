@@ -19,7 +19,7 @@ const props = defineProps({
 
         <!-- Orders Table -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                 <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
                     <thead class="bg-slate-50 dark:bg-slate-700/50 uppercase text-xs font-bold text-slate-500">
                         <tr>
@@ -38,13 +38,13 @@ const props = defineProps({
                             <td class="px-6 py-4">{{ new Date(po.order_date).toLocaleDateString() }}</td>
                             <td class="px-6 py-4">{{ po.warehouse?.name || '-' }}</td>
                             <td class="px-6 py-4">{{ po.items?.length || 0 }} Items</td>
-                            <td class="px-6 py-4 font-bold">Rp {{ Number(po.total_amount).toLocaleString('id-ID') }}</td>
+                            <td class="px-6 py-4 font-bold">Rp {{ Number(po.total).toLocaleString('id-ID') }}</td>
                             <td class="px-6 py-4">
                                 <span class="px-2 py-1 rounded-full text-xs font-bold capitalize"
                                     :class="{
-                                        'bg-blue-100 text-blue-700': po.status === 'draft',
-                                        'bg-emerald-100 text-emerald-700': po.status === 'confirmed',
-                                        'bg-red-100 text-red-700': po.status === 'cancelled',
+                                        'bg-purple-100 text-purple-700': po.status === 'ordered' || po.status === 'approved',
+                                        'bg-teal-100 text-teal-700': po.status === 'acknowledged',
+                                        'bg-rose-100 text-rose-700': po.status === 'rejected',
                                     }">
                                     {{ po.status }}
                                 </span>

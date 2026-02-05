@@ -254,7 +254,7 @@ const bulkReorder = () => {
 
             <!-- Stocks List -->
             <div class="rounded-2xl glass-card overflow-hidden">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                     <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
                         <thead class="bg-white dark:bg-slate-950 text-slate-200 font-medium border-b border-slate-200 dark:border-slate-800">
                             <tr>

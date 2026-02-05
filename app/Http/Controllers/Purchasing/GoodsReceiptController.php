@@ -36,7 +36,7 @@ class GoodsReceiptController extends Controller
             });
 
         $receipts = $query->orderByDesc('created_at')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Purchasing/Receipts/Index', [
@@ -210,5 +210,86 @@ class GoodsReceiptController extends Controller
         return view('print.public-goods-receipt-validation', [
             'receipt' => $receipt
         ]);
+    }
+
+    // --- Inbound Scanner Methods ---
+
+    public function scan()
+    {
+        return Inertia::render('Purchasing/Inbound/Scanner');
+    }
+
+    public function processScan(Request $request)
+    {
+        $request->validate(['barcode' => 'required']);
+        
+        // Try to find by GRN Number
+        $gr = GoodsReceipt::where('grn_number', $request->barcode)->first();
+        
+        // Try to find by ID if barcode is just ID (unlikely but possible) or "GRN-..."
+        if (!$gr && str_starts_with($request->barcode, 'DN:')) {
+             $id = substr($request->barcode, 3);
+             $gr = GoodsReceipt::find($id);
+        }
+
+        if (!$gr) {
+             return back()->withErrors(['message' => 'Delivery Note not found.']);
+        }
+
+        if ($gr->status === 'completed') {
+             return redirect()->route('purchasing.receipts.show', $gr->id)->with('info', 'This delivery has already been received.');
+        }
+
+        return redirect()->route('purchasing.receipts.check', $gr->id);
+    }
+
+    public function check(GoodsReceipt $receipt)
+    {
+        if ($receipt->status === 'completed') {
+            return redirect()->route('purchasing.receipts.show', $receipt->id);
+        }
+
+        $receipt->load(['purchaseOrder', 'supplier', 'warehouse', 'items.product.unit']);
+
+        return Inertia::render('Purchasing/Receipts/Check', [
+            'receipt' => $receipt
+        ]);
+    }
+
+    public function confirmReceive(Request $request, GoodsReceipt $receipt)
+    {
+        if ($receipt->status === 'completed') {
+            return back()->with('error', 'Receipt is already completed.');
+        }
+
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:goods_receipt_items,id',
+            'items.*.qty_received' => 'required|numeric|min:0',
+            'notes' => 'nullable|string'
+        ]);
+
+        DB::transaction(function () use ($request, $receipt) {
+            // Update items
+            foreach ($request->items as $itemData) {
+                $item = $receipt->items()->find($itemData['id']);
+                if ($item) {
+                    $item->qty_received = $itemData['qty_received'];
+                    $item->save();
+                }
+            }
+
+            // Update notes
+            if ($request->notes) {
+                $receipt->notes = $request->notes;
+                $receipt->save();
+            }
+
+            // Complete and Stock Up
+            $receipt->complete();
+        });
+
+        return redirect()->route('purchasing.receipts.show', $receipt->id)
+            ->with('success', 'Goods received and stock updated successfully.');
     }
 }

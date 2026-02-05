@@ -29,7 +29,7 @@ class CategoryController extends Controller
 
         $categories = $query->with('parent')
             ->orderBy('name')
-            ->paginate(10)
+            ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Inventory/Categories/Index', [

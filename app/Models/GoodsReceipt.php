@@ -35,6 +35,8 @@ class GoodsReceipt extends Model
         'invoice_date',
         'notes',
         'received_by',
+        'driver_name',
+        'truck_number',
     ];
 
     protected $casts = [
@@ -44,6 +46,7 @@ class GoodsReceipt extends Model
 
     // Status constants
     const STATUS_DRAFT = 'draft';
+    const STATUS_DISPATCHED = 'dispatched';
     const STATUS_RECEIVED = 'received';
     const STATUS_INSPECTED = 'inspected';
     const STATUS_COMPLETED = 'completed';
@@ -163,6 +166,7 @@ class GoodsReceipt extends Model
     {
         return match($this->status) {
             self::STATUS_DRAFT => 'slate',
+            self::STATUS_DISPATCHED => 'orange',
             self::STATUS_RECEIVED => 'blue',
             self::STATUS_INSPECTED => 'amber',
             self::STATUS_COMPLETED => 'emerald',

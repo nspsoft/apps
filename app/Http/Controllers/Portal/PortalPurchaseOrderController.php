@@ -20,26 +20,26 @@ class PortalPurchaseOrderController extends Controller
         $orders = PurchaseOrder::where('supplier_id', $user->supplier_id)
             ->with(['items.product', 'warehouse'])
             ->latest()
-            ->paginate(10);
+            ->paginate(20);
 
         return Inertia::render('Portal/PurchaseOrders/Index', [
             'orders' => $orders
         ]);
     }
 
-    public function show(PurchaseOrder $order)
+    public function show(PurchaseOrder $purchaseOrder)
     {
         $user = auth()->user();
 
         // Security Check: Suppliers can only view their own POs
-        if ($order->supplier_id !== $user->supplier_id) {
+        if ($purchaseOrder->supplier_id != $user->supplier_id) {
             abort(403, 'Unauthorized access to this Purchase Order.');
         }
 
-        $order->load(['items.product', 'items.unit', 'warehouse']);
+        $purchaseOrder->load(['items.product', 'items.unit', 'warehouse']);
 
         return Inertia::render('Portal/PurchaseOrders/Show', [
-            'order' => $order
+            'order' => $purchaseOrder
         ]);
     }
 
@@ -47,20 +47,20 @@ class PortalPurchaseOrderController extends Controller
     {
         $user = auth()->user();
 
-        if ($order->supplier_id !== $user->supplier_id) {
+        if ($order->supplier_id != $user->supplier_id) {
             abort(403);
         }
 
-        $order->update(['status' => 'confirmed']); // Or 'acknowledged' if added to ENUM
+        $order->update(['status' => PurchaseOrder::STATUS_ACKNOWLEDGED]);
 
-        return back()->with('success', 'Purchase Order confirmed successfully.');
+        return back()->with('success', 'Purchase Order acknowledged successfully.');
     }
     
     public function reject(PurchaseOrder $order, Request $request)
     {
         $user = auth()->user();
 
-        if ($order->supplier_id !== $user->supplier_id) {
+        if ($order->supplier_id != $user->supplier_id) {
             abort(403);
         }
         
@@ -69,7 +69,7 @@ class PortalPurchaseOrderController extends Controller
         ]);
 
         $order->update([
-            'status' => 'cancelled', // Or specific 'rejected' status
+            'status' => PurchaseOrder::STATUS_REJECTED,
             'notes' => $order->notes . "\n[REJECTED by Supplier: {$request->reason}]"
         ]);
 

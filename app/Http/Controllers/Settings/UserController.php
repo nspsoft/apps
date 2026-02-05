@@ -17,8 +17,9 @@ class UserController extends Controller
     public function index()
     {
         return Inertia::render('Settings/UserManagement', [
-            'users' => User::with('roles')->latest()->get(),
+            'users' => User::with(['roles', 'supplier'])->latest()->get(),
             'roles' => \Spatie\Permission\Models\Role::all(),
+            'suppliers' => \App\Models\Supplier::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -32,12 +33,14 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|string|exists:roles,name',
+            'supplier_id' => 'nullable|exists:suppliers,id',
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'supplier_id' => $validated['supplier_id'] ?? null,
         ]);
 
         $user->assignRole($validated['role']);
@@ -61,10 +64,12 @@ class UserController extends Controller
             ],
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|string|exists:roles,name',
+            'supplier_id' => 'nullable|exists:suppliers,id',
         ]);
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];
+        $user->supplier_id = $validated['supplier_id'] ?? null;
 
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
