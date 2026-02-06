@@ -209,4 +209,104 @@ class GeminiService
 
         return null;
     }
+
+    /**
+     * Analyze customer intent from WhatsApp message
+     */
+    public function analyzeCustomerIntent(string $message, ?array $customerContext = null): array
+    {
+        if (!$this->apiKey) {
+            return ['intent' => 'unknown', 'parameters' => []];
+        }
+
+        $contextInfo = $customerContext ? "Customer Name: {$customerContext['name']}" : "Unknown customer";
+
+        $prompt = "You are a customer service intent classifier for PT SPINDO, a steel pipe manufacturing company.
+
+Analyze this customer message and classify the intent.
+
+Customer Context: {$contextInfo}
+Message: \"{$message}\"
+
+Possible intents:
+- greeting: Customer is saying hello or greeting
+- order_status: Customer wants to check order/shipment status
+- invoice_check: Customer wants to check invoice/payment/tagihan
+- product_catalog: Customer asking about products/prices
+- faq: General questions about company, business hours, address, etc
+- unknown: Cannot determine intent
+
+Extract any relevant parameters like order numbers (SO-xxx, PO-xxx format).
+
+Return ONLY a valid JSON object:
+{
+    \"intent\": \"one of the intents above\",
+    \"parameters\": {
+        \"order_number\": \"extracted order number or null\",
+        \"product_name\": \"extracted product name or null\"
+    },
+    \"confidence\": 0.0 to 1.0
+}";
+
+        try {
+            $response = Http::timeout(30)->post("{$this->baseUrl}?key={$this->apiKey}", [
+                'contents' => [['parts' => [['text' => $prompt]]]],
+                'generationConfig' => ['response_mime_type' => 'application/json'],
+            ]);
+
+            if ($response->successful()) {
+                $text = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                if ($text) {
+                    $text = preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim($text));
+                    return json_decode($text, true) ?? ['intent' => 'unknown', 'parameters' => []];
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Gemini Intent Analysis Error: ' . $e->getMessage());
+        }
+
+        return ['intent' => 'unknown', 'parameters' => []];
+    }
+
+    /**
+     * Generate FAQ response using AI
+     */
+    public function generateFAQResponse(string $question): string
+    {
+        if (!$this->apiKey) {
+            return "Maaf, saya tidak bisa memproses pertanyaan Anda saat ini. Silakan hubungi CS kami di 021-xxx-xxxx.";
+        }
+
+        $prompt = "You are a helpful customer service assistant for PT SPINDO, a leading steel pipe manufacturer in Indonesia.
+
+Company Info:
+- Name: PT SPINDO Tbk
+- Industry: Steel pipe manufacturing
+- Products: Steel pipes, galvanized pipes, ERW pipes
+- Business Hours: Monday-Friday 08:00-17:00 WIB
+- Address: Jl. Kalibutuh 189-191, Surabaya
+- Phone: 031-5321234
+
+Answer this customer question in Indonesian, friendly and concise (max 200 chars):
+Question: \"{$question}\"
+
+If you don't know the answer, politely suggest contacting sales team.";
+
+        try {
+            $response = Http::timeout(30)->post("{$this->baseUrl}?key={$this->apiKey}", [
+                'contents' => [['parts' => [['text' => $prompt]]]],
+            ]);
+
+            if ($response->successful()) {
+                $text = $response->json()['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                if ($text) {
+                    return trim($text);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Gemini FAQ Response Error: ' . $e->getMessage());
+        }
+
+        return "Terima kasih atas pertanyaan Anda. Untuk informasi lebih lanjut, silakan hubungi tim sales kami di 021-xxx-xxxx atau email ke sales@spindo.co.id";
+    }
 }

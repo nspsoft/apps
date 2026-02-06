@@ -39,4 +39,9 @@ return [
         'key' => env('GEMINI_API_KEY'),
     ],
 
+    'fonnte' => [
+        'token' => env('FONNTE_API_TOKEN'),
+        'device' => env('FONNTE_DEVICE'),
+    ],
+
 ];

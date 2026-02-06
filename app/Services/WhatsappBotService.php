@@ -1,0 +1,264 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Customer;
+use App\Models\SalesOrder;
+use App\Models\SalesInvoice;
+use App\Models\WhatsappMessage;
+use Illuminate\Support\Facades\Log;
+
+class WhatsappBotService
+{
+    protected FonnteService $fonnte;
+    protected GeminiService $gemini;
+
+    public function __construct(FonnteService $fonnte, GeminiService $gemini)
+    {
+        $this->fonnte = $fonnte;
+        $this->gemini = $gemini;
+    }
+
+    /**
+     * Handle incoming WhatsApp message
+     */
+    public function handleIncomingMessage(string $phone, string $message): string
+    {
+        // Find customer by phone
+        $customer = $this->findCustomerByPhone($phone);
+        
+        // Log incoming message
+        $this->logMessage($phone, $message, 'incoming', $customer?->id);
+
+        // Analyze intent using Gemini
+        $intent = $this->gemini->analyzeCustomerIntent($message, $customer ? [
+            'name' => $customer->name,
+            'has_orders' => $customer->salesOrders()->exists(),
+        ] : null);
+
+        Log::info('WhatsApp Bot Intent', ['phone' => $phone, 'intent' => $intent]);
+
+        // Handle based on intent
+        $response = match ($intent['intent'] ?? 'unknown') {
+            'order_status' => $this->handleOrderStatus($customer, $intent['parameters'] ?? []),
+            'invoice_check' => $this->handleInvoiceCheck($customer),
+            'product_catalog' => $this->handleProductCatalog($intent['parameters'] ?? []),
+            'greeting' => $this->handleGreeting($customer),
+            'faq' => $this->handleFAQ($message),
+            default => $this->handleUnknown($customer),
+        };
+
+        // Log outgoing message
+        $this->logMessage($phone, $response, 'outgoing', $customer?->id, $intent['intent'] ?? null);
+
+        // Send response via Fonnte
+        $this->fonnte->sendMessage($phone, $response);
+
+        return $response;
+    }
+
+    /**
+     * Find customer by phone number
+     */
+    protected function findCustomerByPhone(string $phone): ?Customer
+    {
+        // Normalize phone number
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        
+        // Try different formats
+        $variations = [
+            $phone,
+            '0' . substr($phone, 2), // 62xxx -> 0xxx
+            substr($phone, 2), // Remove 62
+        ];
+
+        return Customer::where(function ($q) use ($variations) {
+            foreach ($variations as $p) {
+                $q->orWhere('phone', 'like', "%{$p}%")
+                  ->orWhere('mobile', 'like', "%{$p}%");
+            }
+        })->first();
+    }
+
+    /**
+     * Handle order status inquiry
+     */
+    protected function handleOrderStatus(?Customer $customer, array $params): string
+    {
+        if (!$customer) {
+            return "Maaf, nomor Anda belum terdaftar sebagai customer kami.\n\nUntuk mendaftar, silakan hubungi sales kami di 021-xxx-xxxx.";
+        }
+
+        $orderNumber = $params['order_number'] ?? null;
+
+        if ($orderNumber) {
+            // Find specific order
+            $order = SalesOrder::where('so_number', 'like', "%{$orderNumber}%")
+                ->where('customer_id', $customer->id)
+                ->with(['deliveryOrders'])
+                ->first();
+
+            if (!$order) {
+                return "Pesanan dengan nomor *{$orderNumber}* tidak ditemukan.\n\nPastikan nomor pesanan sudah benar.";
+            }
+
+            return $this->formatOrderStatus($order);
+        }
+
+        // Get recent orders
+        $orders = SalesOrder::where('customer_id', $customer->id)
+            ->whereNotIn('status', ['cancelled', 'completed'])
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return "Anda tidak memiliki pesanan aktif saat ini.\n\nUntuk melakukan pemesanan baru, silakan hubungi sales kami.";
+        }
+
+        $response = "📦 *Pesanan Aktif Anda*\n\n";
+        foreach ($orders as $order) {
+            $status = $this->translateStatus($order->status);
+            $response .= "• *{$order->so_number}*\n";
+            $response .= "  Status: {$status}\n";
+            $response .= "  Tanggal: " . $order->order_date->format('d M Y') . "\n\n";
+        }
+
+        $response .= "Ketik nomor SO untuk detail lengkap.";
+        return $response;
+    }
+
+    /**
+     * Handle invoice/payment inquiry
+     */
+    protected function handleInvoiceCheck(?Customer $customer): string
+    {
+        if (!$customer) {
+            return "Maaf, nomor Anda belum terdaftar sebagai customer kami.\n\nUntuk informasi tagihan, silakan hubungi bagian finance kami.";
+        }
+
+        $invoices = SalesInvoice::where('customer_id', $customer->id)
+            ->where('status', 'unpaid')
+            ->orderBy('due_date')
+            ->get();
+
+        if ($invoices->isEmpty()) {
+            return "✅ Tidak ada tagihan yang tertunggak.\n\nTerima kasih telah menjadi pelanggan setia kami!";
+        }
+
+        $total = $invoices->sum('total_amount');
+        $response = "📄 *Invoice Outstanding*\n\n";
+
+        foreach ($invoices as $invoice) {
+            $dueDate = $invoice->due_date->format('d M Y');
+            $isOverdue = $invoice->due_date->isPast();
+            $status = $isOverdue ? "⚠️ JATUH TEMPO" : "📅 {$dueDate}";
+            
+            $response .= "• *{$invoice->invoice_number}*\n";
+            $response .= "  Rp " . number_format($invoice->total_amount, 0, ',', '.') . "\n";
+            $response .= "  {$status}\n\n";
+        }
+
+        $response .= "━━━━━━━━━━━━━━━\n";
+        $response .= "*Total: Rp " . number_format($total, 0, ',', '.') . "*\n\n";
+        $response .= "Untuk pembayaran, transfer ke:\n";
+        $response .= "BCA 123-456-789\n";
+        $response .= "a.n. PT SPINDO Tbk";
+
+        return $response;
+    }
+
+    /**
+     * Handle product catalog inquiry
+     */
+    protected function handleProductCatalog(array $params): string
+    {
+        return "🔧 *Katalog Produk*\n\nUntuk informasi produk dan harga terbaru, silakan hubungi sales kami di:\n📞 021-xxx-xxxx\n📧 sales@spindo.co.id\n\nAtau kunjungi website kami di spindo.co.id";
+    }
+
+    /**
+     * Handle greeting
+     */
+    protected function handleGreeting(?Customer $customer): string
+    {
+        $name = $customer ? $customer->name : 'Bapak/Ibu';
+        
+        return "Halo {$name}! 👋\n\nSelamat datang di layanan WhatsApp *PT SPINDO*.\n\nSaya bisa membantu Anda untuk:\n• Cek status pesanan\n• Cek tagihan/invoice\n• Informasi produk\n\nSilakan ketik pertanyaan Anda.";
+    }
+
+    /**
+     * Handle FAQ
+     */
+    protected function handleFAQ(string $message): string
+    {
+        // Use Gemini to generate FAQ response
+        return $this->gemini->generateFAQResponse($message);
+    }
+
+    /**
+     * Handle unknown intent
+     */
+    protected function handleUnknown(?Customer $customer): string
+    {
+        return "Maaf, saya tidak mengerti pertanyaan Anda.\n\nSaya bisa membantu untuk:\n• Cek status pesanan (ketik: status SO-xxx)\n• Cek tagihan (ketik: cek tagihan)\n• Jam operasional dan info umum\n\nAtau hubungi CS kami di 021-xxx-xxxx.";
+    }
+
+    /**
+     * Format order status response
+     */
+    protected function formatOrderStatus(SalesOrder $order): string
+    {
+        $status = $this->translateStatus($order->status);
+        $items = $order->items->take(3)->map(fn($i) => "• {$i->product->name} ({$i->quantity} {$i->unit})")->join("\n");
+        
+        $response = "📦 *Status Pesanan*\n\n";
+        $response .= "*{$order->so_number}*\n";
+        $response .= "Status: {$status}\n";
+        $response .= "Tanggal: " . $order->order_date->format('d M Y') . "\n\n";
+        $response .= "*Item:*\n{$items}\n";
+
+        if ($order->deliveryOrders->isNotEmpty()) {
+            $do = $order->deliveryOrders->last();
+            $response .= "\n*Pengiriman:*\n";
+            $response .= "No. DO: {$do->do_number}\n";
+            $response .= "Tanggal: " . ($do->delivery_date?->format('d M Y') ?? '-') . "\n";
+        }
+
+        return $response;
+    }
+
+    /**
+     * Translate status to Indonesian
+     */
+    protected function translateStatus(string $status): string
+    {
+        return match ($status) {
+            'draft' => '📝 Draft',
+            'confirmed' => '✅ Dikonfirmasi',
+            'processing' => '🔄 Diproses',
+            'shipped' => '🚚 Dikirim',
+            'delivered' => '📬 Terkirim',
+            'completed' => '✅ Selesai',
+            'cancelled' => '❌ Dibatalkan',
+            default => ucfirst($status),
+        };
+    }
+
+    /**
+     * Log message to database
+     */
+    protected function logMessage(string $phone, string $message, string $direction, ?int $customerId = null, ?string $intent = null): void
+    {
+        try {
+            WhatsappMessage::create([
+                'phone' => $phone,
+                'customer_id' => $customerId,
+                'direction' => $direction,
+                'message' => $message,
+                'intent' => $intent,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log WhatsApp message: ' . $e->getMessage());
+        }
+    }
+}
