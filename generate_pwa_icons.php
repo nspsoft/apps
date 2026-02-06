@@ -13,10 +13,9 @@ $sizes = [72, 96, 128, 144, 152, 192, 384, 512];
 // Check for source image
 $sourceImage = null;
 $possibleSources = [
+    __DIR__ . '/storage/app/public/logos/I6NDeR6IqJPabj72WVvbUp5A6J1ZkHv68wvQ2ZNY.png',
     __DIR__ . '/storage/app/public/logos/logo.png',
     __DIR__ . '/public/images/jri-official-logo.png',
-    __DIR__ . '/public/images/jicos_logo.png',
-    __DIR__ . '/public/logo.png',
 ];
 
 foreach ($possibleSources as $source) {
