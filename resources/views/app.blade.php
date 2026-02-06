@@ -13,8 +13,8 @@
 
         <!-- Branding & PWA -->
         <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-        <link rel="apple-touch-icon" href="/images/icon-192x192.png">
-        <link rel="manifest" href="/build/manifest.webmanifest">
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+        <link rel="manifest" href="/manifest.webmanifest">
 
         <!-- Scripts -->
         @php echo app(\Tighten\Ziggy\BladeRouteGenerator::class)->generate(); @endphp
