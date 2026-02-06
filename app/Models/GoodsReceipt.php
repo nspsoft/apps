@@ -109,11 +109,16 @@ class GoodsReceipt extends Model
      */
     public function complete(): void
     {
+        // Ensure items and their relations are loaded
+        $this->load(['items.purchaseOrderItem', 'items.product', 'purchaseOrder.items']);
+        
         foreach ($this->items as $item) {
-            // Update PO item received qty
+            // Update PO item received qty (if linked to a PO item)
             $poItem = $item->purchaseOrderItem;
-            $poItem->qty_received += $item->qty_received;
-            $poItem->save();
+            if ($poItem) {
+                $poItem->qty_received += $item->qty_received;
+                $poItem->save();
+            }
 
             // Update product stock
             $stock = ProductStock::firstOrCreate(
