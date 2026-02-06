@@ -136,6 +136,7 @@ const navigation = [
             { name: 'ℹ️ Information', href: '/sales/information', permission: 'sales_crm.view' },
             { name: '📍 PO Tracking', href: '/sales/po-tracking', permission: 'sales_crm.view' },
             { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.ai_po_extractor.view' },
+            { name: '💬 WhatsApp Center', href: '/sales/whatsapp', permission: 'sales_crm.view' },
         ]
     },
     { 

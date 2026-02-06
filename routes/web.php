@@ -210,6 +210,11 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::get('/returns/{sales_return}/print', [App\Http\Controllers\Sales\SalesReturnController::class, 'print'])->name('returns.print');
     Route::resource('returns', SalesReturnController::class);
     Route::post('/returns/{sales_return}/confirm', [SalesReturnController::class, 'confirm'])->name('returns.confirm');
+
+    // WhatsApp Center
+    Route::get('/whatsapp', [App\Http\Controllers\Sales\WhatsappCenterController::class, 'index'])->name('whatsapp.index');
+    Route::get('/whatsapp/history/{phone}', [App\Http\Controllers\Sales\WhatsappCenterController::class, 'history'])->name('whatsapp.history');
+    Route::post('/whatsapp/send', [App\Http\Controllers\Sales\WhatsappCenterController::class, 'send'])->name('whatsapp.send');
 });
 
 // Manufacturing Module
