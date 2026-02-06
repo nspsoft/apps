@@ -17,7 +17,9 @@ import {
     MoonIcon,
     ArchiveBoxIcon,
     ClipboardDocumentListIcon,
-    QuestionMarkCircleIcon
+    QuestionMarkCircleIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -26,6 +28,7 @@ const props = defineProps({
 
 const sidebarOpen = ref(false);
 const notificationDropdownOpen = ref(false);
+const isSidebarCollapsed = ref(false); // Default false, will sync on mounted
 
 const navigation = [
     { name: 'Dashboard', href: '/portal/dashboard', icon: HomeIcon },
@@ -42,6 +45,11 @@ const navigation = [
 
 const logout = () => {
     router.post(route('logout'));
+};
+
+const toggleSidebar = () => {
+    isSidebarCollapsed.value = !isSidebarCollapsed.value;
+    localStorage.setItem('sidebarCollapsed', isSidebarCollapsed.value);
 };
 
 // Get notifications from shared props
@@ -87,6 +95,7 @@ const toggleTheme = () => {
 };
 
 onMounted(() => {
+    // Theme Sync
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         isDarkMode.value = true;
         document.documentElement.classList.add('dark');
@@ -94,11 +103,16 @@ onMounted(() => {
         isDarkMode.value = false;
         document.documentElement.classList.remove('dark');
     }
+
+    // Sidebar State Sync
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        isSidebarCollapsed.value = true;
+    }
 });
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
         <Head :title="title" />
 
         <!-- Mobile Sidebar -->
@@ -135,9 +149,17 @@ onMounted(() => {
         </div>
 
         <!-- Desktop Sidebar -->
-        <div class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
-            <div class="flex items-center justify-center py-8 border-b border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/10">
-                <div class="flex flex-col items-center gap-3">
+        <div 
+            class="hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-all duration-300 z-30"
+            :class="isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'"
+        >
+            <div class="flex items-center justify-center border-b border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-900/10 transition-all duration-300"
+                :class="isSidebarCollapsed ? 'py-4 h-[73px]' : 'py-8 h-[120px]'"
+            >
+                <div v-if="isSidebarCollapsed" class="w-10 h-10 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.3)] shrink-0 overflow-hidden cursor-pointer" @click="toggleSidebar">
+                     <img :src="$page.props.company?.logo || '/images/jicos.png'" alt="Logo" class="w-full h-full object-cover" />
+                </div>
+                <div v-else class="flex flex-col items-center gap-3 fade-in">
                     <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-500 hover:shadow-[0_0_30px_rgba(6,182,212,0.7)] hover:border-cyan-500/50 overflow-hidden group">
                         <img :src="$page.props.company?.logo || '/images/jicos.png'" alt="Logo" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                     </div>
@@ -147,31 +169,58 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
-            <nav class="flex-1 p-4 space-y-2">
+
+            <nav class="flex-1 p-3 space-y-2 overflow-y-auto overflow-x-hidden no-scrollbar">
                 <Link
                     v-for="item in navigation"
                     :key="item.name"
                     :href="item.href"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors"
-                    :class="$page.url.startsWith(item.href) ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'"
+                    class="flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative"
+                    :class="[
+                        $page.url.startsWith(item.href) ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700',
+                        isSidebarCollapsed ? 'justify-center' : ''
+                    ]"
                 >
-                    <component :is="item.icon" class="h-5 w-5" />
-                    {{ item.name }}
+                    <component :is="item.icon" class="h-6 w-6 shrink-0" />
+                    <span v-if="!isSidebarCollapsed" class="whitespace-nowrap transition-opacity duration-300">{{ item.name }}</span>
+                    
+                    <!-- Tooltip -->
+                    <div v-if="isSidebarCollapsed" class="absolute left-full ml-3 px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-slate-700 transition-opacity translate-x-1 group-hover:translate-x-0">
+                        {{ item.name }}
+                    </div>
                 </Link>
             </nav>
-            <div class="p-4 border-t border-slate-200 dark:border-slate-700">
+
+            <div class="p-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                 <!-- Collapse Toggle -->
+                 <button 
+                    @click="toggleSidebar" 
+                    class="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group relative"
+                    :class="isSidebarCollapsed ? 'justify-center' : ''"
+                    title="Toggle Sidebar"
+                >
+                    <ChevronRightIcon v-if="isSidebarCollapsed" class="h-5 w-5" />
+                    <ChevronLeftIcon v-else class="h-5 w-5" />
+                    <span v-if="!isSidebarCollapsed" class="text-sm">Collapse</span>
+                </button>
+
                 <button
                     @click="logout"
-                    class="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    class="flex w-full items-center gap-3 px-3 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors group relative"
+                    :class="isSidebarCollapsed ? 'justify-center' : ''"
                 >
-                    <ArrowRightOnRectangleIcon class="h-5 w-5" />
-                    Logout
+                    <ArrowRightOnRectangleIcon class="h-5 w-5 shrink-0" />
+                    <span v-if="!isSidebarCollapsed" class="whitespace-nowrap">Logout</span>
+                     <!-- Tooltip -->
+                     <div v-if="isSidebarCollapsed" class="absolute left-full ml-3 px-3 py-1.5 bg-red-900 text-white text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl border border-red-800">
+                        Logout
+                    </div>
                 </button>
             </div>
         </div>
 
         <!-- Main Content -->
-        <div class="lg:pl-64">
+        <div class="transition-all duration-300 min-h-screen flex flex-col" :class="isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'">
             <!-- Header -->
             <header class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-700 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
                 <button @click="sidebarOpen = true" class="lg:hidden p-2 text-slate-500">
@@ -253,7 +302,7 @@ onMounted(() => {
             <div v-if="notificationDropdownOpen" class="fixed inset-0 z-30" @click="notificationDropdownOpen = false"></div>
 
             <!-- Page Content -->
-            <main class="py-10">
+            <main class="py-10 flex-1">
                 <div class="px-4 sm:px-6 lg:px-8">
                     <slot />
                 </div>
@@ -261,3 +310,20 @@ onMounted(() => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+</style>
