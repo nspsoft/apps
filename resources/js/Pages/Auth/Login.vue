@@ -136,7 +136,7 @@ onUnmounted(() => {
                         <p class="text-slate-400 text-sm font-medium tracking-wide">JIDOKA INTEGRATED CONTROL SYSTEM</p>
                     </div>
 
-                    <div class="glass-card rounded-[2.5rem] p-10 border border-white/20 relative overflow-hidden backdrop-blur-3xl bg-slate-950/90 shadow-2xl">
+                    <div class="glass-card rounded-[2.5rem] p-6 border border-white/20 relative overflow-hidden backdrop-blur-3xl bg-slate-950/90 shadow-2xl">
                         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent"></div>
                         
                         <form @submit.prevent="submitLogin" class="space-y-6">
@@ -215,7 +215,7 @@ onUnmounted(() => {
                         <p class="text-slate-400 text-sm font-medium tracking-wide">Access Request for Management System</p>
                     </div>
 
-                    <div class="glass-card rounded-[2.5rem] p-10 border border-white/20 relative overflow-hidden backdrop-blur-3xl bg-slate-950/90 shadow-2xl">
+                    <div class="glass-card rounded-[2.5rem] p-6 border border-white/20 relative overflow-hidden backdrop-blur-3xl bg-slate-950/90 shadow-2xl">
                         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent"></div>
                         
                         <form @submit.prevent="submitRegister" class="space-y-4">
