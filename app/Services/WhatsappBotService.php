@@ -43,6 +43,7 @@ class WhatsappBotService
             'order_status' => $this->handleOrderStatus($customer, $intent['parameters'] ?? []),
             'invoice_check' => $this->handleInvoiceCheck($customer),
             'product_catalog' => $this->handleProductCatalog($intent['parameters'] ?? []),
+            'request_quotation' => $this->handleRequestQuotation($customer, $intent['parameters'] ?? []),
             'greeting' => $this->handleGreeting($customer),
             'faq' => $this->handleFAQ($message),
             default => $this->handleUnknown($customer),
@@ -173,7 +174,67 @@ class WhatsappBotService
      */
     protected function handleProductCatalog(array $params): string
     {
-        return "🔧 *Katalog Produk*\n\nUntuk informasi produk dan harga terbaru, silakan hubungi sales kami di:\n📞 021-xxx-xxxx\n📧 sales@spindo.co.id\n\nAtau kunjungi website kami di spindo.co.id";
+        $search = $params['product_name'] ?? null;
+
+        if (!$search) {
+            return "🔧 *Katalog Produk*\n\nSilakan sebutkan nama produk yang Anda cari.\nContoh: \"Harga pipa 2 inch\" atau \"Stok besi beton\"";
+        }
+
+        $products = \App\Models\Product::where('is_active', true)
+            ->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            })
+            ->limit(5)
+            ->get();
+
+        if ($products->isEmpty()) {
+            return "Maaf, produk *\"{$search}\"* tidak ditemukan.\n\nSilakan coba kata kunci lain atau hubungi sales kami.";
+        }
+
+        $response = "🔧 *Hasil Pencarian: \"{$search}\"*\n\n";
+
+        foreach ($products as $product) {
+            $stock = $product->available_stock; 
+            $price = $product->selling_price > 0 
+                ? "Rp " . number_format($product->selling_price, 0, ',', '.') 
+                : "Call for Price";
+            $unit = $product->unit->name ?? 'Pcs';
+
+            $response .= "• *{$product->name}* ({$product->sku})\n";
+            $response .= "  Harga: {$price}\n";
+            $response .= "  Stok: " . number_format($stock) . " {$unit}\n\n";
+        }
+
+        $response .= "Ketik \"Minta penawaran [Nama Produk]\" untuk request harga khusus.";
+        return $response;
+    }
+
+    /**
+     * Handle request quotation
+     */
+    protected function handleRequestQuotation(?Customer $customer, array $params): string
+    {
+        $productName = $params['product_name'] ?? null;
+        $quantity = $params['quantity'] ?? null;
+
+        if (!$productName) {
+            return "Untuk meminta penawaran, silakan sebutkan nama produk dan jumlahnya.\nContoh: \"Minta penawaran Pipa Besi 100 batang\"";
+        }
+
+        // Log potential lead / RFQ (Simplified for now)
+        $customerName = $customer ? $customer->name : 'Calon Customer (via WA)';
+        $phone = $customer ? $customer->phone : 'Unknown';
+        
+        Log::info("New RFQ from WhatsApp", [
+            'customer' => $customerName,
+            'product' => $productName,
+            'qty' => $quantity
+        ]);
+
+        // In real implementation, create RFQ record in database here
+        
+        return "✅ Permintaan penawaran untuk *{$productName}* " . ($quantity ? "({$quantity})" : "") . " telah kami terima.\n\nTim sales kami akan segera menghubungi Anda dengan penawaran resmi.\n\nTerima kasih!";
     }
 
     /**

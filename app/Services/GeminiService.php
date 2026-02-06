@@ -232,18 +232,23 @@ Possible intents:
 - greeting: Customer is saying hello or greeting
 - order_status: Customer wants to check order/shipment status
 - invoice_check: Customer wants to check invoice/payment/tagihan
-- product_catalog: Customer asking about products/prices
+- product_catalog: Customer asking about products/prices (e.g. 'harga pipa', 'stok besi')
+- request_quotation: Customer wants to request a price quote/penawaran (e.g. 'minta penawaran', 'pesan pipa')
 - faq: General questions about company, business hours, address, etc
 - unknown: Cannot determine intent
 
-Extract any relevant parameters like order numbers (SO-xxx, PO-xxx format).
+Extract any relevant parameters:
+- order_number: SO-xxx, PO-xxx format
+- product_name: Name of the product mentioned
+- quantity: Number/amount mentioned (numeric)
 
 Return ONLY a valid JSON object:
 {
     \"intent\": \"one of the intents above\",
     \"parameters\": {
         \"order_number\": \"extracted order number or null\",
-        \"product_name\": \"extracted product name or null\"
+        \"product_name\": \"extracted product name or null\",
+        \"quantity\": \"extracted quantity number or null\"
     },
     \"confidence\": 0.0 to 1.0
 }";
