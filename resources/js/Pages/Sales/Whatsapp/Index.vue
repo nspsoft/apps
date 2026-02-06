@@ -124,9 +124,9 @@ onMounted(() => {
                         v-model="search"
                         type="text" 
                         placeholder="Search chats..." 
-                        class="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/50 font-sans"
+                        class="w-full bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-cyan-500/50 font-sans"
                     />
-                    <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+                    <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-slate-500" />
                 </div>
 
                 <!-- Contact List -->
@@ -137,14 +137,14 @@ onMounted(() => {
                         @click="selectContact(contact)"
                         class="w-full text-left p-4 rounded-2xl border transition-all duration-200 group relative overflow-hidden"
                         :class="activeContact?.phone === contact.phone 
-                            ? 'bg-cyan-500/10 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.15)]' 
-                            : 'bg-slate-900/40 border-slate-800 hover:border-slate-600 hover:bg-slate-800/40'"
+                            ? 'bg-cyan-50 dark:bg-cyan-500/10 border-cyan-500 dark:border-cyan-500/50 shadow-lg dark:shadow-[0_0_20px_rgba(6,182,212,0.15)]' 
+                            : 'bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/40'"
                     >
                         <!-- Glow Effect -->
                         <div v-if="activeContact?.phone === contact.phone" class="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-transparent opacity-50"></div>
 
                         <div class="relative flex justify-between items-start mb-1">
-                            <h3 class="font-bold text-slate-200 group-hover:text-white transition-colors">
+                            <h3 class="font-bold text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                                 {{ contact.customer?.name || contact.phone }}
                             </h3>
                             <span class="text-[10px] text-slate-500 font-mono mt-1">
@@ -152,12 +152,12 @@ onMounted(() => {
                             </span>
                         </div>
                         
-                        <p class="text-sm text-slate-400 line-clamp-1 group-hover:text-cyan-200/70 transition-colors">
+                        <p class="text-sm text-slate-600 dark:text-slate-400 line-clamp-1 group-hover:text-cyan-700 dark:group-hover:text-cyan-200/70 transition-colors">
                             {{ contact.last_message }}
                         </p>
 
                         <div class="mt-2 flex items-center gap-2">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                 {{ contact.last_intent || 'Unknown' }}
                             </span>
                         </div>
@@ -172,38 +172,38 @@ onMounted(() => {
             <!-- Chat Area (Center & Right) -->
             <div class="flex-1 flex gap-6">
                 <!-- Main Chat Window -->
-                <div class="flex-1 bg-slate-900/40 border border-slate-800 rounded-3xl flex flex-col overflow-hidden relative backdrop-blur-sm">
+                <div class="flex-1 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl flex flex-col overflow-hidden relative backdrop-blur-sm shadow-lg dark:shadow-none">
                     
                     <div v-if="activeContact" class="flex flex-col h-full">
                         <!-- Header -->
-                        <div class="p-4 border-b border-slate-800 bg-slate-900/80 flex justify-between items-center backdrop-blur-md z-10">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 flex justify-between items-center backdrop-blur-md z-10">
                             <div class="flex items-center gap-3">
                                 <div class="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-cyan-500/20">
                                     {{ (activeContact.customer?.name || activeContact.phone).charAt(0) }}
                                 </div>
                                 <div>
-                                    <h2 class="font-bold text-white text-lg">
+                                    <h2 class="font-bold text-slate-900 dark:text-white text-lg">
                                         {{ activeContact.customer?.name || activeContact.phone }}
                                     </h2>
-                                    <p class="text-xs text-cyan-400 font-mono flex items-center gap-1">
+                                    <p class="text-xs text-cyan-600 dark:text-cyan-400 font-mono flex items-center gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                         WhatsApp Connected
                                     </p>
                                 </div>
                             </div>
-                            <button @click="selectContact(activeContact)" class="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
+                            <button @click="selectContact(activeContact)" class="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors">
                                 <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': isLoadingMessages }" />
                             </button>
                         </div>
 
                         <!-- Messages -->
-                        <div ref="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-dots-pattern">
+                        <div ref="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50 dark:bg-transparent bg-dots-pattern-light dark:bg-dots-pattern">
                             <div v-for="msg in messages" :key="msg.id" class="flex flex-col" :class="msg.direction === 'outgoing' ? 'items-end' : 'items-start'">
                                 <div 
                                     class="max-w-[70%] p-4 rounded-2xl relative group transition-all duration-300 hover:scale-[1.01]"
                                     :class="msg.direction === 'outgoing' 
                                         ? 'bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-tr-sm shadow-[0_5px_15px_rgba(8,145,178,0.2)]' 
-                                        : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-tl-sm shadow-lg'"
+                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-sm shadow-lg'"
                                 >
                                     <p class="whitespace-pre-wrap leading-relaxed">{{ msg.message }}</p>
                                     
@@ -214,7 +214,7 @@ onMounted(() => {
 
                                     <!-- Intent Badge for Incoming -->
                                     <div v-if="msg.direction === 'incoming' && msg.intent" class="absolute -top-2 -right-2">
-                                        <span class="bg-slate-950 border border-slate-700 text-[10px] px-2 py-0.5 rounded-full text-cyan-400 shadow-xl">
+                                        <span class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 text-[10px] px-2 py-0.5 rounded-full text-cyan-600 dark:text-cyan-400 shadow-xl">
                                             {{ msg.intent }}
                                         </span>
                                     </div>
@@ -223,13 +223,13 @@ onMounted(() => {
                         </div>
 
                         <!-- Input -->
-                        <div class="p-4 bg-slate-900/80 border-t border-slate-800 backdrop-blur-md">
+                        <div class="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 backdrop-blur-md">
                             <form @submit.prevent="sendMessage" class="relative">
                                 <input 
                                     v-model="form.message"
                                     type="text" 
                                     placeholder="Type a message to reply manually..." 
-                                    class="w-full bg-slate-950 border-0 rounded-xl py-4 pl-4 pr-14 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-cyan-500/50 shadow-inner"
+                                    class="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-0 rounded-xl py-4 pl-4 pr-14 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-2 focus:ring-cyan-500/50 shadow-inner"
                                     :disabled="form.processing"
                                 />
                                 <button 
@@ -248,25 +248,25 @@ onMounted(() => {
 
                     <!-- Empty State -->
                     <div v-else class="h-full flex flex-col items-center justify-center text-slate-500 p-8 text-center">
-                        <div class="h-40 w-40 rounded-full bg-slate-800/50 flex items-center justify-center mb-6 border border-slate-700 shadow-2xl animate-pulse-slow">
-                            <ChatBubbleLeftRightIcon class="h-20 w-20 text-slate-600" />
+                        <div class="h-40 w-40 rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center mb-6 border border-slate-200 dark:border-slate-700 shadow-2xl animate-pulse-slow">
+                            <ChatBubbleLeftRightIcon class="h-20 w-20 text-slate-400 dark:text-slate-600" />
                         </div>
-                        <h3 class="text-xl font-bold text-white mb-2">Select a Conversation</h3>
-                        <p class="max-w-xs mx-auto">Click on a contact from the left panel to view history and chat manually.</p>
+                        <h3 class="text-xl font-bold text-slate-800 dark:text-white mb-2">Select a Conversation</h3>
+                        <p class="max-w-xs mx-auto text-slate-500">Click on a contact from the left panel to view history and chat manually.</p>
                     </div>
                 </div>
 
                 <!-- Info Panel (Right) - Only visible when chat active -->
                 <div v-if="activeContact" class="w-80 hidden xl:flex flex-col gap-4">
                     <!-- Customer Card -->
-                    <div class="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 backdrop-blur-sm">
+                    <div class="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 backdrop-blur-sm shadow-lg dark:shadow-none">
                         <div class="flex items-center gap-4 mb-6">
-                            <div class="h-16 w-16 rounded-2xl bg-slate-800 flex items-center justify-center text-cyan-400">
+                            <div class="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
                                 <UserCircleIcon class="h-10 w-10" />
                             </div>
                             <div>
                                 <div class="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">Customer</div>
-                                <h3 class="text-lg font-bold text-white leading-tight">
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white leading-tight">
                                     {{ activeContact.customer?.name || 'Unregistered' }}
                                 </h3>
                             </div>
@@ -275,14 +275,14 @@ onMounted(() => {
                         <div class="space-y-4">
                             <div>
                                 <span class="text-xs text-slate-500 block mb-1">Phone Number</span>
-                                <span class="text-sm font-mono text-cyan-300 bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50">
+                                <span class="text-sm font-mono text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/30 px-2 py-1 rounded border border-cyan-200 dark:border-cyan-900/50">
                                     {{ activeContact.phone }}
                                 </span>
                             </div>
                             
                             <div v-if="activeContact.last_intent">
                                 <span class="text-xs text-slate-500 block mb-1">Last Detected Intent</span>
-                                <span class="text-xs font-bold text-white bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 inline-block">
+                                <span class="text-xs font-bold text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 inline-block">
                                     ✨ {{ activeContact.last_intent }}
                                 </span>
                             </div>
@@ -290,16 +290,16 @@ onMounted(() => {
                     </div>
 
                     <!-- Quick Actions (Placeholder) -->
-                    <div class="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/20 rounded-3xl p-6 backdrop-blur-sm">
-                        <h4 class="text-sm font-bold text-indigo-300 mb-4 flex items-center gap-2">
+                    <div class="bg-gradient-to-br from-indigo-50 dark:from-indigo-900/20 to-purple-50 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-500/20 rounded-3xl p-6 backdrop-blur-sm">
+                        <h4 class="text-sm font-bold text-indigo-700 dark:text-indigo-300 mb-4 flex items-center gap-2">
                              Quick Actions
                         </h4>
                         <div class="space-y-2">
-                            <button class="w-full text-left px-4 py-3 rounded-xl bg-slate-900/50 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/50 text-sm text-slate-300 transition-all flex items-center justify-between group">
+                            <button class="w-full text-left px-4 py-3 rounded-xl bg-white dark:bg-slate-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 text-sm text-slate-700 dark:text-slate-300 transition-all flex items-center justify-between group">
                                 Create Sales Order
                                 <ArrowPathIcon class="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
-                            <button class="w-full text-left px-4 py-3 rounded-xl bg-slate-900/50 hover:bg-indigo-500/20 border border-slate-700 hover:border-indigo-500/50 text-sm text-slate-300 transition-all flex items-center justify-between group">
+                            <button class="w-full text-left px-4 py-3 rounded-xl bg-white dark:bg-slate-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-slate-200 dark:border-slate-700 hover:border-indigo-300 dark:hover:border-indigo-500/50 text-sm text-slate-700 dark:text-slate-300 transition-all flex items-center justify-between group">
                                 View Profile
                                 <ArrowPathIcon class="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
@@ -319,16 +319,30 @@ onMounted(() => {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: #94a3b8;
     border-radius: 4px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #475569;
+}
+:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
 }
 
 .bg-dots-pattern {
     background-image: radial-gradient(#334155 1px, transparent 1px);
     background-size: 20px 20px;
+}
+.bg-dots-pattern-light {
+    background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+.dark .bg-dots-pattern-light {
+    background-image: none;
 }
 .animate-pulse-slow {
     animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;

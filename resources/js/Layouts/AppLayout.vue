@@ -126,6 +126,7 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
+            { name: '💬 WhatsApp Center', href: '/sales/whatsapp' },
             { name: 'Sales Hub', href: '/sales/dashboard', permission: 'sales_crm.view' },
             { name: 'Customers', href: '/sales/customers', permission: 'sales_crm.customers.view' },
             { name: 'Quotations', href: '/sales/quotations', permission: 'sales_crm.quotations.view' },
@@ -136,7 +137,6 @@ const navigation = [
             { name: 'ℹ️ Information', href: '/sales/information', permission: 'sales_crm.view' },
             { name: '📍 PO Tracking', href: '/sales/po-tracking', permission: 'sales_crm.view' },
             { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.ai_po_extractor.view' },
-            { name: '💬 WhatsApp Center', href: '/sales/whatsapp', permission: 'sales_crm.view' },
         ]
     },
     { 
@@ -294,6 +294,7 @@ const navigation = [
             { name: 'Import & Export', href: '/settings/io', permission: 'settings.import_&_export.view' },
             { name: 'Database Management', href: '/settings/database', permission: 'settings.database_management.view' },
             { name: 'Activity Logs', href: '/admin/activity-logs', permission: 'settings.activity_logs.view' },
+            { name: '💬 WhatsApp Bot', href: '/settings/whatsapp', permission: 'settings.company_profile.view' },
         ]
     },
 ];

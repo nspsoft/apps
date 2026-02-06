@@ -263,7 +263,7 @@ const openMap = (address, city) => {
                             </div>
                             <div>
                                 <h3 class="text-lg font-semibold text-slate-900 dark:text-white">{{ customer.name }}</h3>
-                                <p class="text-sm text-slate-500">{{ customer.code }}</p>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-400">{{ customer.code }}</p>
                             </div>
                         </div>
                         <span 
@@ -276,15 +276,15 @@ const openMap = (address, city) => {
                     </div>
 
                     <div class="space-y-2 mb-4">
-                        <div v-if="customer.contact_person" class="text-sm text-slate-500 dark:text-slate-400">
+                        <div v-if="customer.contact_person" class="text-sm text-slate-700 dark:text-slate-400">
                             <span class="font-medium">Contact:</span> {{ customer.contact_person }}
                         </div>
-                        <div v-if="customer.phone" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                            <PhoneIcon class="h-4 w-4" />
+                        <div v-if="customer.phone" class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                            <PhoneIcon class="h-4 w-4 text-slate-500 dark:text-slate-500" />
                             {{ customer.phone }}
                         </div>
-                        <div v-if="customer.email" class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                            <EnvelopeIcon class="h-4 w-4" />
+                        <div v-if="customer.email" class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-400">
+                            <EnvelopeIcon class="h-4 w-4 text-slate-500 dark:text-slate-500" />
                             {{ customer.email }}
                         </div>
                     </div>
@@ -302,26 +302,26 @@ const openMap = (address, city) => {
                             <button
                                 v-if="customer.address"
                                 @click="openMap(customer.address, customer.city)"
-                                class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                                class="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
                                 title="View on Map"
                             >
                                 <MapPinIcon class="h-4 w-4" />
                             </button>
                             <Link
                                 :href="`/sales/customers/${customer.id}`"
-                                class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                                class="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
                             >
                                 <EyeIcon class="h-4 w-4" />
                             </Link>
                             <Link
                                 :href="`/sales/customers/${customer.id}/edit`"
-                                class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                                class="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
                             >
                                 <PencilSquareIcon class="h-4 w-4" />
                             </Link>
                             <button
                                 @click="deleteCustomer(customer)"
-                                class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                                class="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
                             >
                                 <TrashIcon class="h-4 w-4" />
                             </button>

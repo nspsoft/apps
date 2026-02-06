@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppSetting;
 use App\Models\Customer;
 use App\Models\SalesOrder;
 use App\Models\SalesInvoice;
@@ -10,13 +11,22 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsappBotService
 {
-    protected FonnteService $fonnte;
+    protected $gateway;
     protected GeminiService $gemini;
+    protected string $provider;
 
-    public function __construct(FonnteService $fonnte, GeminiService $gemini)
+    public function __construct(GeminiService $gemini)
     {
-        $this->fonnte = $fonnte;
         $this->gemini = $gemini;
+        
+        // Get provider from settings
+        $this->provider = AppSetting::get('whatsapp_provider', 'fonnte');
+        
+        // Initialize the appropriate gateway service
+        $this->gateway = match ($this->provider) {
+            'wablas' => app(WablasService::class),
+            default => app(FonnteService::class),
+        };
     }
 
     /**
@@ -52,8 +62,8 @@ class WhatsappBotService
         // Log outgoing message
         $this->logMessage($phone, $response, 'outgoing', $customer?->id, $intent['intent'] ?? null);
 
-        // Send response via Fonnte
-        $this->fonnte->sendMessage($phone, $response);
+        // Send response via selected gateway
+        $this->gateway->sendMessage($phone, $response);
 
         return $response;
     }

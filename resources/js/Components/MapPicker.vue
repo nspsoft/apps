@@ -21,7 +21,7 @@ watch(() => props.show, (val) => {
                 initMap();
                 if (props.initialAddress) {
                     searchQuery.value = props.initialAddress;
-                    searchLocation();
+                    searchLocation(true);
                 }
             }, 100);
         });
@@ -79,8 +79,8 @@ const initMap = () => {
         await reverseGeocode(e.latlng.lat, e.latlng.lng);
     });
     
-    // Try to get user location
-    if (navigator.geolocation) {
+    // Try to get user location ONLY IF no initial address
+    if (!props.initialAddress && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(position => {
             const { latitude, longitude } = position.coords;
             const latLng = [latitude, longitude];
@@ -111,14 +111,50 @@ const reverseGeocode = async (lat, lng) => {
     }
 };
 
-const searchLocation = async () => {
+const searchLocation = async (autoSelect = false) => {
     if (!searchQuery.value) return;
     
     isSearching.value = true;
+    
+    // Helper function for fetching
+    const performSearch = async (query) => {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+            return await response.json();
+        } catch (e) {
+            console.error("Fetch error for query:", query, e);
+            return [];
+        }
+    };
+
     try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery.value)}`);
-        const data = await response.json();
+        // 1. Try exact search
+        let data = await performSearch(searchQuery.value);
+        
+        // 2. Fallback: If no results & auto-selecting, try simplifying the address (take last 2 parts usually city/state)
+        if (autoSelect && data.length === 0 && searchQuery.value.includes(',')) {
+            const parts = searchQuery.value.split(',').filter(p => p.trim().length > 0);
+            
+            // Try last part (usually zip/country) + second last (city/state)
+            if (parts.length >= 2) {
+                const simpleQuery = parts.slice(-2).join(', ');
+                console.log("Retrying with simple query:", simpleQuery);
+                data = await performSearch(simpleQuery);
+            } 
+            // If still failing or only 1 part valuable, try just the last part
+            if (data.length === 0 && parts.length > 0) {
+                 const lastPart = parts[parts.length - 1];
+                 console.log("Retrying with last part:", lastPart);
+                 data = await performSearch(lastPart);
+            }
+        }
+
         searchResults.value = data;
+
+        // Auto select first result if requested
+        if (autoSelect && data.length > 0) {
+            selectResult(data[0]);
+        }
     } catch (error) {
         console.error('Search error:', error);
     } finally {
@@ -136,7 +172,7 @@ const selectResult = (result) => {
     reverseGeocode(lat, lon);
     
     searchResults.value = [];
-    searchQuery.value = '';
+    // Keep search query to what user typed or initial for context, don't clear it
 };
 
 const confirmSelection = () => {

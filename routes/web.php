@@ -50,7 +50,11 @@ Route::post('/login', [App\Http\Controllers\Auth\AuthController::class, 'login']
 Route::post('/register', [App\Http\Controllers\Auth\AuthController::class, 'register'])->name('register');
 
 // Dashboard
-Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+// Landing Page
+Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome');
+
+// Dashboard (Protected)
+Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware(['auth']);
 
 // Inventory Module
 Route::prefix('inventory')->name('inventory.')->middleware(['auth'])->group(function () {
@@ -405,6 +409,11 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::post('/database/run-migrations', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'runMigrations'])->name('database.run-migrations');
     Route::post('/database/clear-cache', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'clearCache'])->name('database.clear-cache');
     Route::get('/database/info/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'backupInfo'])->name('database.info');
+
+    // WhatsApp / Fonnte Settings
+    Route::get('/whatsapp', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'index'])->name('whatsapp.index');
+    Route::post('/whatsapp', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'update'])->name('whatsapp.update');
+    Route::post('/whatsapp/test', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'testConnection'])->name('whatsapp.test');
 });
 
 // Admin

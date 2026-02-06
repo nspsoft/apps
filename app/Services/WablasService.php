@@ -6,39 +6,38 @@ use App\Models\AppSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class FonnteService
+class WablasService
 {
     protected string $apiToken;
-    protected string $baseUrl = 'https://api.fonnte.com';
+    protected string $baseUrl = 'https://pati.wablas.com';
 
     public function __construct()
     {
         // Try to get from database first, fallback to .env config
-        $this->apiToken = AppSetting::get('fonnte_api_token') ?: config('services.fonnte.token', '');
+        $this->apiToken = AppSetting::get('wablas_api_token') ?: config('services.wablas.token', '');
     }
 
     /**
-     * Send a text message via Fonnte
+     * Send a text message via Wablas
      */
     public function sendMessage(string $phone, string $message): array
     {
         if (empty($this->apiToken)) {
-            Log::error('Fonnte API Token is not configured');
+            Log::error('Wablas API Token is not configured');
             return ['success' => false, 'error' => 'API Token not configured'];
         }
 
         try {
             $response = Http::withHeaders([
                 'Authorization' => $this->apiToken,
-            ])->post("{$this->baseUrl}/send", [
-                'target' => $this->formatPhone($phone),
+            ])->post("{$this->baseUrl}/api/send-message", [
+                'phone' => $this->formatPhone($phone),
                 'message' => $message,
-                'countryCode' => '62',
             ]);
 
             $result = $response->json();
             
-            Log::info('Fonnte Send Response', [
+            Log::info('Wablas Send Response', [
                 'phone' => $phone,
                 'status' => $result['status'] ?? 'unknown',
             ]);
@@ -48,7 +47,7 @@ class FonnteService
                 'data' => $result,
             ];
         } catch (\Exception $e) {
-            Log::error('Fonnte Send Error: ' . $e->getMessage());
+            Log::error('Wablas Send Error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -65,11 +64,10 @@ class FonnteService
         try {
             $response = Http::withHeaders([
                 'Authorization' => $this->apiToken,
-            ])->post("{$this->baseUrl}/send", [
-                'target' => $this->formatPhone($phone),
-                'message' => $caption,
-                'url' => $imageUrl,
-                'countryCode' => '62',
+            ])->post("{$this->baseUrl}/api/send-image", [
+                'phone' => $this->formatPhone($phone),
+                'image' => $imageUrl,
+                'caption' => $caption,
             ]);
 
             return [
@@ -77,7 +75,7 @@ class FonnteService
                 'data' => $response->json(),
             ];
         } catch (\Exception $e) {
-            Log::error('Fonnte Send Image Error: ' . $e->getMessage());
+            Log::error('Wablas Send Image Error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -108,8 +106,6 @@ class FonnteService
      */
     public function validateWebhook(array $payload): bool
     {
-        // Fonnte doesn't require signature validation by default
-        // Add custom validation logic if needed
         return true;
     }
 }
