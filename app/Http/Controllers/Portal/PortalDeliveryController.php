@@ -158,6 +158,7 @@ class PortalDeliveryController extends Controller
             'delivery' => $delivery,
             'company' => \App\Models\Company::find($delivery->company_id),
             'supplier' => $delivery->supplier,
+            'verification_url' => route('purchasing.receipts.public-validate', $delivery->id),
         ]);
     }
 }

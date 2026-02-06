@@ -6,6 +6,7 @@ const props = defineProps({
     delivery: Object,
     company: Object, // The buying company (Jidoka)
     supplier: Object, // The vendor
+    verification_url: String, // Verification URL
 });
 
 const print = () => {
@@ -87,7 +88,7 @@ const print = () => {
 
                 <!-- QR Code & Info -->
                 <div class="w-40 flex flex-col items-center justify-center">
-                    <qrcode-vue :value="delivery.grn_number" :size="100" level="H" render-as="svg" foreground="#312e81" />
+                    <qrcode-vue :value="verification_url || delivery.grn_number" :size="100" level="H" render-as="svg" foreground="#312e81" />
                     <p class="text-xs font-mono mt-2 text-indigo-900 font-bold">SCAN VERIFY</p>
                 </div>
 

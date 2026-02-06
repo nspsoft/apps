@@ -57,6 +57,33 @@
                 </div>
             </div>
 
+            <div class="mt-6 border-t border-slate-800/50 pt-6">
+                <h3 class="text-xs font-bold text-emerald-400 mb-4 uppercase tracking-widest">Detail Pengiriman</h3>
+                <div class="overflow-hidden rounded-xl border border-slate-800">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-800/50 text-slate-400 uppercase tracking-wider font-bold">
+                            <tr>
+                                <th class="px-4 py-3">Produk</th>
+                                <th class="px-4 py-3 text-center">Dikirim</th>
+                                <th class="px-4 py-3 text-center">Satuan</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800 bg-slate-900/30">
+                            @foreach ($receipt->items as $item)
+                            <tr class="hover:bg-slate-800/30 transition-colors">
+                                <td class="px-4 py-3">
+                                    <div class="font-bold text-white mb-0.5">{{ $item->product->name ?? $item->product_name }}</div>
+                                    <div class="text-[10px] text-slate-500 font-mono tracking-wide">{{ $item->product->sku ?? '-' }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-center font-black text-white text-sm">{{ number_format($item->qty_ordered, 0, ',', '.') }}</td>
+                                <td class="px-4 py-3 text-center text-cyan-500 font-bold text-[10px] uppercase">{{ $item->product->unit->code ?? 'PCS' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
             <div class="pt-6 text-center">
                 <p class="text-[9px] text-slate-500 italic">Verifikasi dilakukan secara real-time pada {{ date('d/m/Y H:i:s') }}. Dokumen ini terdaftar secara sah dalam manajemen rantai pasok Jidoka.</p>
             </div>
