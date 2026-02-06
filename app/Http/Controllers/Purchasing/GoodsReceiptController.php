@@ -204,12 +204,109 @@ class GoodsReceiptController extends Controller
 
     public function publicValidate($id)
     {
-        $receipt = GoodsReceipt::with(['supplier', 'warehouse', 'items.product.unit', 'receivedBy'])
+        $receipt = GoodsReceipt::with(['supplier', 'warehouse', 'items.product.unit', 'receivedBy', 'purchaseOrder'])
             ->findOrFail($id);
 
         return view('print.public-goods-receipt-validation', [
-            'receipt' => $receipt
+            'receipt' => $receipt,
+            'isAuthenticated' => auth()->check(),
+            'user' => auth()->user(),
         ]);
+    }
+
+    /**
+     * Process confirmation from public QR scan page (requires authentication)
+     */
+    public function publicConfirmReceive(Request $request, $id)
+    {
+        // Must be authenticated
+        if (!auth()->check()) {
+            return redirect()->route('login')->with('error', 'Silakan login untuk mengkonfirmasi penerimaan barang.');
+        }
+
+        $receipt = GoodsReceipt::with(['items', 'purchaseOrder', 'supplier'])->findOrFail($id);
+
+        if ($receipt->status === 'completed') {
+            return back()->with('error', 'Penerimaan barang sudah selesai diproses.');
+        }
+
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|exists:goods_receipt_items,id',
+            'items.*.qty_received' => 'required|numeric|min:0',
+            'items.*.is_match' => 'nullable|boolean',
+            'notes' => 'nullable|string'
+        ]);
+
+        DB::transaction(function () use ($request, $receipt) {
+            // Update items with actual received quantities
+            foreach ($request->items as $itemData) {
+                $item = $receipt->items()->find($itemData['id']);
+                if ($item) {
+                    $item->qty_received = $itemData['qty_received'];
+                    $item->save();
+                }
+            }
+
+            // Update notes
+            if ($request->notes) {
+                $receipt->notes = ($receipt->notes ? $receipt->notes . "\n" : '') . "[Konfirmasi] " . $request->notes;
+            }
+            $receipt->received_by = auth()->id();
+            $receipt->save();
+
+            // Complete the receipt (stock posting + PO update)
+            $receipt->complete();
+
+            // Send notification to supplier
+            $this->notifySupplierOnReceive($receipt);
+        });
+
+        return back()->with('success', 'Barang berhasil diterima! Stok telah diperbarui dan notifikasi telah dikirim ke supplier.');
+    }
+
+    /**
+     * Send notification to supplier when goods are received
+     */
+    private function notifySupplierOnReceive(GoodsReceipt $receipt)
+    {
+        try {
+            $supplier = $receipt->supplier;
+            if (!$supplier || !$supplier->phone) {
+                return;
+            }
+
+            $message = "✅ *KONFIRMASI PENERIMAAN BARANG*\n\n";
+            $message .= "Yth. {$supplier->name},\n\n";
+            $message .= "Barang dengan Surat Jalan *{$receipt->delivery_note_number}* telah diterima di gudang kami.\n\n";
+            $message .= "📦 *Detail Penerimaan:*\n";
+            $message .= "• GRN: {$receipt->grn_number}\n";
+            $message .= "• Tanggal: " . now()->format('d/m/Y H:i') . "\n";
+            $message .= "• PO: " . ($receipt->purchaseOrder->po_number ?? '-') . "\n\n";
+            
+            $message .= "📋 *Item Diterima:*\n";
+            foreach ($receipt->items as $item) {
+                $productName = $item->product->name ?? $item->product_name ?? 'Unknown';
+                $message .= "- {$productName}: " . number_format($item->qty_received, 0, ',', '.') . " " . ($item->product->unit->code ?? 'pcs') . "\n";
+            }
+            
+            $message .= "\nTerima kasih atas kerjasamanya.\n\n";
+            $message .= "_Pesan otomatis dari JICOS ERP_";
+
+            // Send via Fonnte if configured
+            $fonnteToken = config('services.fonnte.token');
+            if ($fonnteToken) {
+                \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => $fonnteToken
+                ])->post('https://api.fonnte.com/send', [
+                    'target' => $supplier->phone,
+                    'message' => $message,
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log but don't fail the transaction
+            \Illuminate\Support\Facades\Log::warning('Failed to send supplier notification: ' . $e->getMessage());
+        }
     }
 
     // --- Inbound Scanner Methods ---
