@@ -126,7 +126,6 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
-            { name: '💬 WhatsApp Center', href: '/sales/whatsapp' },
             { name: 'Sales Hub', href: '/sales/dashboard', permission: 'sales_crm.view' },
             { name: 'Customers', href: '/sales/customers', permission: 'sales_crm.customers.view' },
             { name: 'Quotations', href: '/sales/quotations', permission: 'sales_crm.quotations.view' },
@@ -146,6 +145,7 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
+            { name: '💬 WhatsApp Center', href: '/sales/whatsapp' },
             { name: 'CRM Intelligence', href: '/crm/dashboard', permission: 'sales_crm.leads_management.view' },
             { name: 'Leads Management', href: '/crm/leads', permission: 'sales_crm.leads_management.view' },
             { name: 'Opportunity Tracking', href: '/crm/opportunities', permission: 'sales_crm.opportunity_tracking.view' },

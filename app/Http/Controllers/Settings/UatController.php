@@ -36,6 +36,25 @@ class UatController extends Controller
         ]);
     }
 
+    public function export()
+    {
+        $scenarios = UatScenario::orderBy('custom_order')->get();
+        $groupedScenarios = $scenarios->groupBy('module');
+
+        $stats = [
+            'total' => $scenarios->count(),
+            'passed' => $scenarios->where('status', 'passed')->count(),
+            'failed' => $scenarios->where('status', 'failed')->count(),
+            'pending' => $scenarios->where('status', 'pending')->count(),
+            'progress' => $scenarios->count() > 0 ? round(($scenarios->where('status', 'passed')->count() / $scenarios->count()) * 100) : 0,
+        ];
+
+        return Inertia::render('Settings/Uat/Export', [
+            'groupedScenarios' => $groupedScenarios,
+            'stats' => $stats,
+        ]);
+    }
+
     public function update(Request $request, $id)
     {
         $request->validate([

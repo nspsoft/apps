@@ -10,7 +10,9 @@ import {
     ChevronDownIcon,
     ChevronUpIcon,
     PencilSquareIcon,
+    ArrowDownTrayIcon,
 } from '@heroicons/vue/24/outline';
+import { Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     groupedScenarios: Object,
@@ -99,6 +101,22 @@ const progressColor = computed(() => {
 
     <AppLayout title="Pengujian Sistem (UAT)">
         <div class="max-w-7xl mx-auto">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Pengujian Sistem (UAT)</h1>
+                    <p class="text-sm text-slate-500">Pantau dan verifikasi kesiapan fitur sistem JICOS ERP.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <Link 
+                        :href="route('settings.uat.export')" 
+                        class="px-5 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold text-sm shadow-lg shadow-slate-900/20 dark:shadow-white/10 hover:scale-105 transition-all flex items-center gap-2"
+                    >
+                        <ArrowDownTrayIcon class="h-4 w-4" />
+                        Export Laporan
+                    </Link>
+                </div>
+            </div>
+
             <!-- Header Stats -->
             <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="glass-card p-6 rounded-2xl flex flex-col items-center justify-center text-center">

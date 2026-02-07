@@ -88,7 +88,7 @@ const settingsSections = [
                     <span class="text-xl font-bold text-slate-900 dark:text-white">JICOS ERP</span>
                 </div>
                 <p class="text-sm text-slate-500">Version 1.0.0</p>
-                <p class="text-xs text-slate-600 mt-2">© 2026 PT SPINDO Tbk. All rights reserved.</p>
+                <p class="text-xs text-slate-600 mt-2">© 2026 PT JIDOKA. All rights reserved.</p>
             </div>
         </div>
     </AppLayout>

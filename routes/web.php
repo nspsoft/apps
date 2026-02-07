@@ -363,6 +363,7 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
 
     // UAT Scenarios
     Route::get('/uat', [App\Http\Controllers\Settings\UatController::class, 'index'])->name('uat');
+    Route::get('/uat/export', [App\Http\Controllers\Settings\UatController::class, 'export'])->name('uat.export');
     Route::put('/uat/{id}', [App\Http\Controllers\Settings\UatController::class, 'update'])->name('uat.update');
     Route::get('/company', [App\Http\Controllers\Settings\CompanyController::class, 'index'])->name('company');
     Route::post('/company', [App\Http\Controllers\Settings\CompanyController::class, 'update'])->name('company.update');
