@@ -14,6 +14,13 @@ class AuthController extends Controller
         return Inertia::render('Auth/Login');
     }
 
+    public function showRegister()
+    {
+        return Inertia::render('Auth/Login', [
+            'startRegister' => true
+        ]);
+    }
+
     public function login(Request $request)
     {
         $credentials = $request->validate([

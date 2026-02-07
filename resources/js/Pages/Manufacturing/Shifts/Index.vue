@@ -92,11 +92,11 @@ const deleteShift = (shift) => {
                 <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                     <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                         <thead>
-                            <tr class="bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-left">
-                                <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nama Shift</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Waktu</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
-                                <th class="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Aksi</th>
+                            <tr class="border-b border-slate-200 dark:border-slate-700">
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nama Shift</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Waktu</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Status</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">

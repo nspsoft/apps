@@ -190,14 +190,14 @@ const getOEEColor = (val) => {
             <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="bg-slate-50 dark:bg-slate-800/30">
-                            <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Time</th>
-                            <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Work Order</th>
-                            <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Product</th>
-                            <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Machine</th>
-                            <th class="p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Shift</th>
-                            <th class="p-4 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Qty Produced</th>
-                            <th class="p-4 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Reject</th>
+                        <tr class="border-b border-slate-200 dark:border-slate-700">
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Time</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Work Order</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Product</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Machine</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm p-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Shift</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm p-4 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Qty Produced</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm p-4 text-right text-[10px] font-black text-slate-500 uppercase tracking-widest">Reject</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">

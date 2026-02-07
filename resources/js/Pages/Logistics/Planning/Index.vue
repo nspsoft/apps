@@ -115,20 +115,20 @@ const getStatusColor = (status) => {
                 <!-- List -->
                 <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all">
                     <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
-                        <thead class="bg-slate-50/50 dark:bg-slate-800/50">
+                        <thead class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm bg-slate-50/50 dark:bg-slate-800/50">
                             <tr>
-                                <th scope="col" class="px-6 py-4 text-left">
+                                <th scope="col" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left">
                                     <input 
                                         type="checkbox" 
                                         class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 dark:bg-slate-900" 
                                         @change="toggleSelectAll"
                                     />
                                 </th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider w-10"></th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">DO Info</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Customer & Alamat</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Armada (DO)</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider w-10"></th>
+                                <th scope="col" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">DO Info</th>
+                                <th scope="col" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Customer & Alamat</th>
+                                <th scope="col" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Armada (DO)</th>
+                                <th scope="col" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-wider">Status</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">

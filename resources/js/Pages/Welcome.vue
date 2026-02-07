@@ -145,6 +145,11 @@ const initCanvas = () => {
     };
 };
 
+const visitFeatures = (e) => {
+    // Force standard navigation
+    window.location.href = '/features';
+};
+
 let cleanup;
 
 onMounted(() => {
@@ -213,8 +218,9 @@ onBeforeUnmount(() => {
                 </Link>
                 
                 <a 
-                    href="#features" 
-                    class="px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold rounded-xl border border-slate-700 hover:border-slate-600 transition-all backdrop-blur-sm"
+                    href="/features"
+                    @click="visitFeatures"
+                    class="relative z-50 cursor-pointer px-8 py-4 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold rounded-xl border border-slate-700 hover:border-slate-600 transition-all backdrop-blur-md shadow-lg"
                 >
                     Explore Features
                 </a>

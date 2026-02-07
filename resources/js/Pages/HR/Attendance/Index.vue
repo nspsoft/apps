@@ -227,12 +227,12 @@ const getStatusColor = (status) => {
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-white dark:bg-slate-950/30">
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Employee</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Department</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Clock In</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Clock Out</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Status</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Actions</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Employee</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Department</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Clock In</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Clock Out</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Status</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">

@@ -256,9 +256,9 @@ const bulkReorder = () => {
             <div class="rounded-2xl glass-card overflow-hidden">
                 <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                     <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
-                        <thead class="bg-white dark:bg-slate-950 text-slate-200 font-medium border-b border-slate-200 dark:border-slate-800">
+                        <thead class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm bg-white dark:bg-slate-950 text-slate-200 font-medium border-b border-slate-200 dark:border-slate-800">
                             <tr>
-                                <th class="pl-6 pr-3 py-4 w-10">
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm pl-6 pr-3 py-4 w-10">
                                     <input 
                                         type="checkbox" 
                                         :checked="selected.length === stocks.data.length && stocks.data.length > 0"
@@ -266,12 +266,12 @@ const bulkReorder = () => {
                                         class="rounded border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-600 focus:ring-blue-500/50"
                                     />
                                 </th>
-                                <th class="px-4 py-3">Product Info</th>
-                                <th class="px-4 py-3">Category</th>
-                                <th class="px-4 py-3">Type</th>
-                                <th class="px-4 py-3">Warehouse</th>
-                                <th class="px-4 py-3 text-right">Levels (Min / Reorder / Max)</th>
-                                <th class="px-4 py-3 text-center">
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Product Info</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Category</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Type</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Warehouse</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Levels (Min / Reorder / Max)</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center">
                                     <div class="flex items-center justify-center gap-2">
                                         Action / Recommendation
                                         <div class="group relative cursor-help">
@@ -293,10 +293,10 @@ const bulkReorder = () => {
                                         </div>
                                     </div>
                                 </th>
-                                <th class="px-4 py-3 text-right text-blue-400">On Order</th>
-                                <th class="px-4 py-3 text-right">Qty On Hand</th>
-                                <th class="px-4 py-3 text-right">Reserved</th>
-                                <th class="px-4 py-3 text-right">Available</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-blue-400">On Order</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Qty On Hand</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Reserved</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Available</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">

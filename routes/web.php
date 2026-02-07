@@ -48,11 +48,13 @@ use Inertia\Inertia;
 // Auth Routes
 Route::get('/login', [App\Http\Controllers\Auth\AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [App\Http\Controllers\Auth\AuthController::class, 'login']);
-Route::post('/register', [App\Http\Controllers\Auth\AuthController::class, 'register'])->name('register');
+Route::get('/register', [App\Http\Controllers\Auth\AuthController::class, 'showRegister'])->name('register');
+Route::post('/register', [App\Http\Controllers\Auth\AuthController::class, 'register']);
 
 // Dashboard
 // Landing Page
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome');
+Route::view('/features', 'features')->name('features');
 
 // Dashboard (Protected)
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware(['auth']);
@@ -358,6 +360,10 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::post('/roles', [App\Http\Controllers\Settings\RoleController::class, 'store'])->name('roles.store');
     Route::put('/roles/{role}', [App\Http\Controllers\Settings\RoleController::class, 'update'])->name('roles.update');
     Route::delete('/roles/{role}', [App\Http\Controllers\Settings\RoleController::class, 'destroy'])->name('roles.destroy');
+
+    // UAT Scenarios
+    Route::get('/uat', [App\Http\Controllers\Settings\UatController::class, 'index'])->name('uat');
+    Route::put('/uat/{id}', [App\Http\Controllers\Settings\UatController::class, 'update'])->name('uat.update');
     Route::get('/company', [App\Http\Controllers\Settings\CompanyController::class, 'index'])->name('company');
     Route::post('/company', [App\Http\Controllers\Settings\CompanyController::class, 'update'])->name('company.update');
     Route::get('/ai', [App\Http\Controllers\Settings\CompanyController::class, 'aiSettings'])->name('ai.index');

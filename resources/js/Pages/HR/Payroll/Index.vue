@@ -132,12 +132,12 @@ const getStatusStyle = (status) => {
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-white dark:bg-slate-950/30">
-                            <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Employee</th>
-                            <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Basic Salary</th>
-                            <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Allowances</th>
-                            <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Net Pay</th>
-                            <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center">Status</th>
-                            <th class="px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right"></th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Employee</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Basic Salary</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Allowances</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Net Pay</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-center">Status</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">

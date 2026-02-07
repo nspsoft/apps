@@ -115,11 +115,11 @@ const getStatusColor = (status) => {
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="text-xs text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-white/10">
-                                    <th class="px-4 py-3">Name / Company</th>
-                                    <th class="px-4 py-3">Contact</th>
-                                    <th class="px-4 py-3">Source</th>
-                                    <th class="px-4 py-3">Status</th>
-                                    <th class="px-4 py-3 text-right">Actions</th>
+                                    <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Name / Company</th>
+                                    <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Contact</th>
+                                    <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Source</th>
+                                    <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Status</th>
+                                    <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 dark:divide-white/5">

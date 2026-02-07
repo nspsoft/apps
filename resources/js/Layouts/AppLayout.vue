@@ -294,6 +294,7 @@ const navigation = [
             { name: 'Import & Export', href: '/settings/io', permission: 'settings.import_&_export.view' },
             { name: 'Database Management', href: '/settings/database', permission: 'settings.database_management.view' },
             { name: 'Activity Logs', href: '/admin/activity-logs', permission: 'settings.activity_logs.view' },
+            { name: 'System Testing (UAT)', href: '/settings/uat', permission: 'settings.view' },
             { name: '💬 WhatsApp Bot', href: '/settings/whatsapp', permission: 'settings.company_profile.view' },
         ]
     },

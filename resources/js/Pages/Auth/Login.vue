@@ -13,8 +13,12 @@ import {
     ArrowLeftIcon
 } from '@heroicons/vue/24/outline';
 
+const props = defineProps({
+    startRegister: Boolean
+});
+
 // State Management
-const isRegister = ref(false);
+const isRegister = ref(props.startRegister || false);
 const showPassword = ref(false);
 const showRegisterPassword = ref(false);
 

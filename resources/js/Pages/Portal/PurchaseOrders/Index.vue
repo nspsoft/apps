@@ -21,15 +21,15 @@ const props = defineProps({
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                 <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                    <thead class="bg-slate-50 dark:bg-slate-700/50 uppercase text-xs font-bold text-slate-500">
+                    <thead class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm bg-slate-50 dark:bg-slate-700/50 uppercase text-xs font-bold text-slate-500">
                         <tr>
-                            <th class="px-6 py-4">PO Number</th>
-                            <th class="px-6 py-4">Date</th>
-                            <th class="px-6 py-4">Destination</th>
-                            <th class="px-6 py-4">Items</th>
-                            <th class="px-6 py-4">Total Amount</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4">Action</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4">PO Number</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4">Date</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4">Destination</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4">Items</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4">Total Amount</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4">Status</th>
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
