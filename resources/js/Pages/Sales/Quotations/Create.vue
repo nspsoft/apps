@@ -21,10 +21,14 @@ const form = useForm({
 });
 
 const productOptions = computed(() => 
-    props.products.map(p => ({
-        id: p.id,
-        label: `${p.name} (${p.sku || '#' + p.id})`
-    }))
+    props.products
+        ? props.products
+            .filter(p => p && !p.name.startsWith('SO-'))
+            .map(p => ({
+                id: p.id,
+                label: `[${p.sku || '#' + p.id}] ${p.name}`
+            }))
+        : []
 );
 
 const addItem = () => {

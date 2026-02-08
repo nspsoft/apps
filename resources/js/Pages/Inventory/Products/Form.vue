@@ -73,6 +73,19 @@ const addInitialStock = () => {
 const removeInitialStock = (index) => {
     form.initial_stocks.splice(index, 1);
 };
+
+// Auto Calculate Selling Price
+const autoCalculate = ref(false);
+const profitMargin = ref(0);
+
+import { watch } from 'vue';
+
+watch([() => form.cost_price, profitMargin, autoCalculate], ([newCost, newMargin, isAuto]) => {
+    if (isAuto && newCost > 0) {
+        const marginValue = (newCost * newMargin) / 100;
+        form.selling_price = Math.round(newCost + marginValue);
+    }
+});
 </script>
 
 <template>
@@ -249,7 +262,7 @@ const removeInitialStock = (index) => {
                             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Pricing & Stock</h2>
                         </div>
                         <div class="p-6 space-y-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Unit of Measure</label>
                                     <select
@@ -273,17 +286,38 @@ const removeInitialStock = (index) => {
                                     />
                                 </div>
                                 <div>
+                                    <label class="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
+                                        Margin (%)
+                                        <input 
+                                            v-model="autoCalculate" 
+                                            type="checkbox" 
+                                            class="rounded border-slate-600 bg-slate-50 dark:bg-slate-800 text-blue-500 focus:ring-blue-500/50"
+                                            title="Auto Calculate Selling Price"
+                                        >
+                                    </label>
+                                    <input
+                                        v-model.number="profitMargin"
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        :disabled="!autoCalculate"
+                                        class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        placeholder="0"
+                                    />
+                                </div>
+                                <div>
                                     <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Selling Price (IDR)</label>
                                     <input
                                         v-model.number="form.selling_price"
                                         type="number"
                                         step="1"
                                         min="0"
+                                        :readonly="autoCalculate"
+                                        :class="{'opacity-75 cursor-not-allowed': autoCalculate}"
                                         class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500/50"
                                     />
                                 </div>
                             </div>
-
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                                 <div>
                                     <label class="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">

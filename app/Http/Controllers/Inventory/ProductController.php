@@ -45,14 +45,7 @@ class ProductController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        // Transform products to include computed stock data
-        $products->getCollection()->transform(function ($product) {
-            $product->total_stock = $product->total_stock;
-            $product->available_stock = $product->available_stock;
-            $product->is_low_stock = $product->is_low_stock;
-            return $product;
-        });
-
+        // Attributes are now handled via $appends in the Product model
         return Inertia::render('Inventory/Products/Index', [
             'products' => $products,
             'categories' => Category::where('type', 'product')->orderBy('name')->get(),
@@ -190,9 +183,12 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        // Check if product has stock
-        if ($product->total_stock > 0) {
-            return back()->with('error', 'Cannot delete product with existing stock.');
+        // Check if product can be safely deleted
+        if (!$product->can_delete) {
+            $message = $product->total_stock > 0 
+                ? 'Cannot delete product with existing stock.' 
+                : 'Cannot delete product that has been used in transactions.';
+            return back()->with('error', $message);
         }
 
         $product->delete();
@@ -220,5 +216,12 @@ class ProductController extends Controller
     public function template()
     {
         return Excel::download(new ProductTemplateExport, 'products_template.xlsx');
+    }
+
+    public function usage(Product $product)
+    {
+        return response()->json([
+            'usage' => $product->getUsageSummary()
+        ]);
     }
 }

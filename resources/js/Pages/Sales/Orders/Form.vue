@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import Pagination from '@/Components/Pagination.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { formatNumber, formatCurrency } from '@/helpers';
 import {
     ArrowLeftIcon,
@@ -79,6 +80,17 @@ watch(syncWithCustomer, (val) => {
 });
 
 // Computed for Items Processing
+const productOptions = computed(() => 
+    props.products
+        ? props.products
+            .filter(p => p && !p.name.startsWith('SO-'))
+            .map(p => ({
+                id: p.id,
+                label: `[${p.sku || '#' + p.id}] ${p.name}`
+            }))
+        : []
+);
+
 const enrichedItems = computed(() => {
     const products = props.products || [];
     return form.items.map(item => {
@@ -230,17 +242,12 @@ const submit = () => {
                                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                                         <tr v-for="(item, index) in form.items" :key="index">
                                             <td class="px-4 py-2">
-                                                <select
+                                                <SearchableSelect
                                                     v-model="item.product_id"
+                                                    :options="productOptions"
+                                                    placeholder="Search Product..."
                                                     @change="onProductChange(item, index)"
-                                                    class="block w-full rounded-lg border-0 bg-slate-50 dark:bg-slate-800 py-1.5 px-2 text-sm text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500"
-                                                    required
-                                                >
-                                                    <option value="" disabled>Select Product</option>
-                                                    <option v-for="p in products" :key="p.id" :value="p.id">
-                                                        {{ p.name }} ({{ p.sku }})
-                                                    </option>
-                                                </select>
+                                                />
                                             </td>
                                             <td class="px-4 py-2">
                                                 <input

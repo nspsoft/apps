@@ -64,6 +64,7 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth'])->group(func
     Route::get('/dashboard', [App\Http\Controllers\Inventory\InventoryDashboardController::class, 'index'])->name('dashboard');
     Route::resource('categories', App\Http\Controllers\Inventory\CategoryController::class);
     Route::get('/stocks', [App\Http\Controllers\Inventory\CurrentStockController::class, 'index'])->name('stocks.index');
+    Route::get('/products/{product}/usage', [ProductController::class, 'usage'])->name('products.usage');
     Route::resource('products', ProductController::class);
     Route::resource('units', App\Http\Controllers\Inventory\UnitController::class);
     Route::get('/products-export', [ProductController::class, 'export'])->name('products.export');

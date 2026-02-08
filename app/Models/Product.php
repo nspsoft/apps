@@ -61,6 +61,13 @@ class Product extends Model
         'notes',
     ];
 
+    protected $appends = [
+        'total_stock',
+        'available_stock',
+        'is_low_stock',
+        'can_delete'
+    ];
+
     protected $casts = [
         'cost_price' => 'double',
         'selling_price' => 'double',
@@ -191,5 +198,102 @@ class Product extends Model
     public function scopeStockManaged($query)
     {
         return $query->whereIn('type', ['product', 'consumable']);
+    }
+
+    /**
+     * Check if product has any transaction history
+     */
+    public function hasTransactions(): bool
+    {
+        // Critical transaction tables
+        $tables = [
+            'sales_order_items',
+            'purchase_order_items',
+            'quotation_items',
+            'stock_movements',
+            'goods_receipt_items',
+            'delivery_order_items',
+            'stock_adjustment_items',
+            'stock_opname_items',
+            'work_orders',
+            'work_order_components',
+            'bom_components',
+            'boms',
+            'material_consumptions',
+            'sales_return_items',
+            'purchase_return_items',
+            'rfq_items',
+            'purchase_request_items',
+            'sales_invoice_items',
+            'purchase_invoice_items',
+        ];
+
+        foreach ($tables as $table) {
+            if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                if (\DB::table($table)->where('product_id', $this->id)->exists()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get usage summary for the product
+     */
+    public function getUsageSummary(): array
+    {
+        $summary = [];
+        
+        // Critical transaction tables with human readable names
+        $tables = [
+            'sales_order_items' => 'Sales Orders',
+            'purchase_order_items' => 'Purchase Orders',
+            'quotation_items' => 'Quotations',
+            'stock_movements' => 'Stock Movements',
+            'goods_receipt_items' => 'Goods Receipts',
+            'delivery_order_items' => 'Delivery Orders',
+            'stock_adjustment_items' => 'Stock Adjustments',
+            'stock_opname_items' => 'Stock Opnames',
+            'work_orders' => 'Work Orders',
+            'work_order_components' => 'Work Order Components',
+            'bom_components' => 'Bill of Materials',
+            'material_consumptions' => 'Material Consumptions',
+            'sales_return_items' => 'Sales Returns',
+            'purchase_return_items' => 'Purchase Returns',
+            'rfq_items' => 'RFQs',
+            'purchase_request_items' => 'Purchase Requests',
+            'sales_invoice_items' => 'Sales Invoices',
+            'purchase_invoice_items' => 'Purchase Invoices',
+        ];
+
+        foreach ($tables as $table => $label) {
+            if (\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                $count = \DB::table($table)->where('product_id', $this->id)->count();
+                if ($count > 0) {
+                    $summary[] = [
+                        'type' => $label,
+                        'count' => $count
+                    ];
+                }
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Determine if product can be deleted
+     */
+    public function getCanDeleteAttribute(): bool
+    {
+        // 1. Must have zero stock
+        if ($this->total_stock > 0) {
+            return false;
+        }
+
+        // 2. Must not have any transaction history
+        return !$this->hasTransactions();
     }
 }

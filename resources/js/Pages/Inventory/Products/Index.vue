@@ -108,6 +108,33 @@ const getProductTypeLabel = (type) => {
     return labels[type] || type;
 };
 
+const showUsageModal = ref(false);
+const usageLoading = ref(false);
+const usageData = ref([]);
+const selectedProduct = ref(null);
+
+const checkUsage = async (product) => {
+    selectedProduct.value = product;
+    usageLoading.value = true;
+    showUsageModal.value = true;
+    usageData.value = [];
+    
+    try {
+        const response = await axios.get(route('inventory.products.usage', product.id));
+        usageData.value = response.data.usage;
+    } catch (error) {
+        console.error('Failed to fetch usage data', error);
+    } finally {
+        usageLoading.value = false;
+    }
+};
+
+const closeUsageModal = () => {
+    showUsageModal.value = false;
+    selectedProduct.value = null;
+    usageData.value = [];
+};
+
 </script>
 
 <template>
@@ -160,6 +187,59 @@ const getProductTypeLabel = (type) => {
                 </Link>
             </div>
         </div>
+
+        <!-- Usage Summary Modal -->
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div v-if="showUsageModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white dark:bg-slate-950/80 backdrop-blur-sm">
+                <div class="glass-card rounded-2xl w-full max-w-md p-6 shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Product Usage</h3>
+                        <button @click="closeUsageModal" class="text-slate-500 hover:text-slate-900 dark:text-white transition-colors">
+                            <XMarkIcon class="h-6 w-6" />
+                        </button>
+                    </div>
+                    
+                    <div v-if="usageLoading" class="min-h-[150px] flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+
+                    <div v-else>
+                        <div class="mb-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                            <p class="text-sm text-blue-800 dark:text-blue-200">
+                                <span class="font-bold">{{ selectedProduct?.name }}</span> cannot be deleted because it is used in the following records:
+                            </p>
+                        </div>
+
+                        <div class="space-y-2 max-h-[300px] overflow-y-auto">
+                             <div v-if="selectedProduct?.total_stock > 0" class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Remaining Stock</span>
+                                <span class="text-sm font-bold text-slate-900 dark:text-white">{{ formatNumber(selectedProduct.total_stock) }} {{ selectedProduct.unit?.symbol }}</span>
+                            </div>
+                            <div v-for="(item, index) in usageData" :key="index" class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ item.type }}</span>
+                                <span class="text-sm font-bold text-slate-900 dark:text-white">{{ item.count }} records</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex justify-end">
+                            <button 
+                                @click="closeUsageModal"
+                                class="rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-2 text-sm font-semibold hover:opacity-90 transition-opacity"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
 
         <!-- Import Modal -->
         <Transition
@@ -374,6 +454,22 @@ const getProductTypeLabel = (type) => {
                                     <Link :href="route('inventory.products.edit', product.id)" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors">
                                         <PencilSquareIcon class="h-4 w-4" />
                                     </Link>
+                                    <button 
+                                        v-if="product.can_delete"
+                                        @click="deleteProduct(product)" 
+                                        class="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                        title="Delete Product"
+                                    >
+                                        <TrashIcon class="h-4 w-4" />
+                                    </button>
+                                    <button 
+                                        v-else
+                                        @click="checkUsage(product)"
+                                        class="p-2 rounded-lg text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800/50 transition-colors"
+                                        title="Cannot delete. Click to see usage."
+                                    >
+                                        <ExclamationTriangleIcon class="h-4 w-4" />
+                                    </button>
                                 </div>
                             </td>
                         </tr>

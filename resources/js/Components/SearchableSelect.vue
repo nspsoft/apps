@@ -90,7 +90,7 @@ const selectedOption = computed({
                                     'text-slate-600 dark:text-slate-300': !active,
                                 }"
                             >
-                                <span class="block truncate" :class="{ 'font-medium': selected, 'font-normal': !selected }">
+                                <span class="block" :class="{ 'font-medium': selected, 'font-normal': !selected }">
                                     {{ option.label }}
                                 </span>
                                 <span
