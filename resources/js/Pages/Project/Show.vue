@@ -18,7 +18,8 @@ import {
     TrashIcon,
     XMarkIcon,
     PaperClipIcon,
-    ArrowDownTrayIcon
+    ArrowDownTrayIcon,
+    PrinterIcon
 } from '@heroicons/vue/24/outline';
 import { formatDate } from '@/helpers';
 
@@ -186,7 +187,7 @@ const getMemberTaskCount = (memberId) => {
                 <!-- Header -->
                 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-4 backdrop-blur-sm">
                     <div class="flex items-center gap-4">
-                        <Link :href="route('projects.index')" class="p-2 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-cyan-400 transition-all">
+                        <Link :href="route('projects.index')" class="p-2 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-cyan-400 transition-all print:hidden">
                             <ChevronLeftIcon class="h-6 w-6" />
                         </Link>
                         <div>
@@ -198,6 +199,16 @@ const getMemberTaskCount = (memberId) => {
                                 {{ project.name }}
                             </h1>
                         </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 print:hidden">
+                        <button 
+                            @click="window.print()"
+                            class="flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-cyan-400 hover:bg-white/10 transition-all uppercase tracking-widest"
+                        >
+                            <PrinterIcon class="h-5 w-5" />
+                            Print Blueprint
+                        </button>
                     </div>
                 </div>
 
@@ -494,8 +505,153 @@ const getMemberTaskCount = (memberId) => {
                 </div>
             </div>
         </div>
+
+        <!-- Official Print Layout (Hidden on screen) -->
+        <div class="hidden print:block bg-white text-black p-10 font-sans min-h-screen">
+            <div class="border-b-4 border-black pb-6 mb-8 flex justify-between items-end">
+                <div>
+                    <h1 class="text-4xl font-black uppercase tracking-tighter mb-2">Project Implementation Blueprint</h1>
+                    <p class="text-xs font-bold uppercase tracking-widest text-slate-600">ID: JICOS-PRJ-{{ project.id.toString().padStart(4, '0') }} | Generated: {{ new Date().toLocaleString() }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xl font-bold">JICOS CORE ERP</p>
+                    <p class="text-[10px] uppercase font-bold tracking-widest text-slate-500">Official Strategic Document</p>
+                </div>
+            </div>
+
+            <!-- Project Details Grid -->
+            <div class="grid grid-cols-2 gap-8 mb-10">
+                <div class="space-y-4">
+                    <div class="border-l-4 border-black pl-4">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Project Name</p>
+                        <p class="text-lg font-black uppercase">{{ project.name }}</p>
+                    </div>
+                    <div class="border-l-4 border-black pl-4">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Objective</p>
+                        <p class="text-sm font-medium">{{ project.description }}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-100 p-4 rounded-lg">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mission Commander</p>
+                        <p class="text-sm font-black">{{ project.manager?.name || 'ADMINISTRATOR' }}</p>
+                    </div>
+                    <div class="bg-slate-100 p-4 rounded-lg">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Operational Status</p>
+                        <p class="text-sm font-black uppercase">{{ project.status }}</p>
+                    </div>
+                    <div class="bg-slate-100 p-4 rounded-lg">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Initial Deployment</p>
+                        <p class="text-sm font-black">{{ formatDate(project.start_date) }}</p>
+                    </div>
+                    <div class="bg-slate-100 p-4 rounded-lg">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Final Milestone</p>
+                        <p class="text-sm font-black">{{ formatDate(project.end_date) }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task manifest -->
+            <div class="mb-10">
+                <h3 class="text-sm font-black uppercase tracking-[0.2em] border-b-2 border-black pb-2 mb-4">Task Manifest & Activity Plan</h3>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-black">
+                            <th class="py-3 text-[10px] font-black uppercase">Activity / Milestone</th>
+                            <th class="py-3 text-[10px] font-black uppercase">Plan Window</th>
+                            <th class="py-3 text-[10px] font-black uppercase">Progress</th>
+                            <th class="py-3 text-[10px] font-black uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        <template v-for="task in project.tasks" :key="task.id">
+                            <!-- Phase Header (if no parent) -->
+                            <tr v-if="!task.parent_id" class="bg-slate-50 font-bold">
+                                <td class="py-3 text-sm uppercase">{{ task.name }}</td>
+                                <td class="py-3 text-[10px]">{{ formatDate(task.start_date_plan) }} - {{ formatDate(task.end_date_plan) }}</td>
+                                <td class="py-3 text-xs font-black">{{ Math.round(task.progress) }}%</td>
+                                <td class="py-3 text-[10px] uppercase font-bold text-slate-600">{{ task.status }}</td>
+                            </tr>
+                            <!-- Sub-tasks -->
+                            <tr v-for="sub in project.tasks.filter(t => t.parent_id === task.id)" :key="sub.id">
+                                <td class="py-3 pl-8 text-xs">• {{ sub.name }}</td>
+                                <td class="py-3 text-[10px]">{{ formatDate(sub.start_date_plan) }} - {{ formatDate(sub.end_date_plan) }}</td>
+                                <td class="py-3 text-[10px] font-bold">{{ Math.round(sub.progress) }}%</td>
+                                <td class="py-3 text-[10px] uppercase text-slate-500">{{ sub.status }}</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Timeline Visualization -->
+            <div class="mb-10 page-break-before">
+                <h3 class="text-sm font-black uppercase tracking-[0.2em] border-b-2 border-black pb-2 mb-6">Visual Timeline Manifest</h3>
+                <div class="relative pt-10 border border-slate-200 rounded-xl p-6">
+                    <!-- Timeline Header -->
+                    <div class="absolute top-0 left-0 right-0 h-10 border-b border-slate-200 grid grid-cols-5 text-[8px] font-bold items-center px-4 bg-slate-50">
+                        <div class="text-center border-r border-slate-100 uppercase">Preparation</div>
+                        <div class="text-center border-r border-slate-100 uppercase">Blueprinting</div>
+                        <div class="text-center border-r border-slate-100 uppercase">Realization</div>
+                        <div class="text-center border-r border-slate-100 uppercase">Final Prep</div>
+                        <div class="text-center uppercase">Go-Live</div>
+                    </div>
+                    
+                    <div class="space-y-4 pt-4">
+                        <div v-for="task in project.tasks.filter(t => !t.parent_id)" :key="'print_'+task.id" class="flex items-center gap-4">
+                            <div class="w-48 text-[10px] font-bold uppercase truncate">{{ task.name }}</div>
+                            <div class="flex-1 h-8 relative bg-slate-100 rounded border border-slate-200 overflow-hidden">
+                                <!-- Progress Bar -->
+                                <div class="absolute inset-y-0 left-0 bg-slate-800" :style="{ width: `${task.progress}%` }"></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-[8px] font-black mix-blend-difference text-white">
+                                    {{ Math.round(task.progress) }}% COMPLETE
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-[8px] italic text-slate-500 mt-4 text-center">*Bars represent development intensity and progress status relative to the 01 March milestone.</p>
+            </div>
+
+            <!-- Signature block -->
+            <div class="mt-20 flex justify-end gap-20">
+                <div class="text-center w-48">
+                    <div class="h-px bg-black mb-2"></div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest">Authorized By</p>
+                    <p class="text-[8px] text-slate-500 mt-1 uppercase">SPINDO Strategic Planning</p>
+                </div>
+                <div class="text-center w-48">
+                    <div class="h-px bg-black mb-2"></div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest">Project Manager</p>
+                    <p class="text-[8px] text-slate-500 mt-1 uppercase">{{ project.manager?.name || 'Mission Commander' }}</p>
+                </div>
+            </div>
+        </div>
     </AppLayout>
 </template>
+
+<style>
+@media print {
+    @page {
+        size: landscape;
+        margin: 0;
+    }
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    .print\:hidden {
+        display: none !important;
+    }
+    .print\:block {
+        display: block !important;
+    }
+    /* Simple reset for print */
+    main {
+        padding: 0 !important;
+    }
+}
+</style>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
