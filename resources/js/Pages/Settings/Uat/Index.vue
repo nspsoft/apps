@@ -167,7 +167,18 @@ const progressColor = computed(() => {
                                 {{ scenarios.length }} Skenario
                             </span>
                         </div>
-                        <component :is="openModule === module ? ChevronUpIcon : ChevronDownIcon" class="h-5 w-5 text-slate-400" />
+                        <div class="flex items-center gap-3">
+                            <a 
+                                :href="route('settings.uat.export', { module: module })" 
+                                target="_blank"
+                                class="p-1 px-3 rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 text-xs font-bold transition-colors flex items-center gap-1"
+                                @click.stop
+                            >
+                                <component :is="ArrowDownTrayIcon" class="h-3 w-3" />
+                                Export
+                            </a>
+                            <component :is="openModule === module ? ChevronUpIcon : ChevronDownIcon" class="h-5 w-5 text-slate-400" />
+                        </div>
                     </button>
 
                     <!-- Scenarios Body -->

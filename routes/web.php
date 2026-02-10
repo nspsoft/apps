@@ -36,6 +36,9 @@ use App\Http\Controllers\Sales\SalesReturnController;
 use App\Http\Controllers\CRM\LeadController;
 use App\Http\Controllers\CRM\OpportunityController;
 use App\Http\Controllers\CRM\CampaignController;
+use App\Http\Controllers\Project\ProjectController;
+use App\Http\Controllers\Project\ProjectTaskController;
+use App\Http\Controllers\Project\ProjectMemberController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -183,6 +186,16 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::get('/information', [App\Http\Controllers\Sales\SalesInformationController::class, 'index'])->name('sales.information');
     Route::get('/po-tracking', [App\Http\Controllers\Sales\PoTrackingController::class, 'index'])->name('sales.po-tracking');
     
+    // Sales Planning
+    Route::prefix('planning')->name('planning.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Sales\Planning\SalesPlanningController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard/details', [App\Http\Controllers\Sales\Planning\SalesPlanningController::class, 'details'])->name('dashboard.details');
+        Route::get('/forecast', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'index'])->name('forecast.index');
+        Route::post('/forecast/import', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'import'])->name('forecast.import');
+        Route::get('/schedule', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'index'])->name('schedule.index');
+        Route::post('/schedule/import', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'import'])->name('schedule.import');
+    });
+
     // AI PO Extractor Page
     Route::get('/po-extractor', [App\Http\Controllers\Sales\POExtractorController::class, 'index'])->name('po-extractor');
     Route::post('/po-extractor/store-product', [App\Http\Controllers\Sales\POImportController::class, 'storeProduct'])->name('po-extractor.store-product');
@@ -334,6 +347,27 @@ Route::middleware(['auth'])->prefix('crm')->name('crm.')->group(function () {
     Route::resource('leads', LeadController::class);
     Route::resource('opportunities', OpportunityController::class);
     Route::resource('campaigns', CampaignController::class);
+});
+
+// Project Management Module
+Route::prefix('projects')->name('projects.')->middleware(['auth'])->group(function () {
+    Route::get('/', [ProjectController::class, 'index'])->name('index');
+    Route::get('/create', [ProjectController::class, 'create'])->name('create');
+    Route::post('/', [ProjectController::class, 'store'])->name('store');
+    Route::get('/{project}', [ProjectController::class, 'show'])->name('show');
+    Route::put('/{project}', [ProjectController::class, 'update'])->name('update');
+    Route::delete('/{project}', [ProjectController::class, 'destroy'])->name('destroy');
+
+    // Tasks
+    Route::post('/{project}/tasks', [ProjectTaskController::class, 'store'])->name('tasks.store');
+    Route::put('/tasks/{task}', [ProjectTaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/tasks/{task}', [ProjectTaskController::class, 'destroy'])->name('tasks.destroy');
+    Route::post('/tasks/{task}/attachments', [ProjectTaskController::class, 'storeAttachment'])->name('tasks.attachments.store');
+    Route::delete('/tasks/attachments/{attachment}', [ProjectTaskController::class, 'destroyAttachment'])->name('tasks.attachments.destroy');
+
+    // Members
+    Route::post('/{project}/members', [ProjectMemberController::class, 'store'])->name('members.store');
+    Route::delete('/{project}/members/{user}', [ProjectMemberController::class, 'destroy'])->name('members.destroy');
 });
 
 // Costing

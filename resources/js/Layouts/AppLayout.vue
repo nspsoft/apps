@@ -32,6 +32,7 @@ import {
     SunIcon,
     MoonIcon,
     CpuChipIcon,
+    BriefcaseIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -127,6 +128,9 @@ const navigation = [
         permission: 'sales_crm.view',
         children: [
             { name: 'Sales Hub', href: '/sales/dashboard', permission: 'sales_crm.view' },
+            { name: '📊 Planning Dashboard', href: '/sales/planning/dashboard', permission: 'sales_crm.view' },
+            { name: '📅 Forecast', href: '/sales/planning/forecast', permission: 'sales_crm.view' },
+            { name: '🚚 Delivery Schedule', href: '/sales/planning/schedule', permission: 'sales_crm.view' },
             { name: 'Customers', href: '/sales/customers', permission: 'sales_crm.customers.view' },
             { name: 'Quotations', href: '/sales/quotations', permission: 'sales_crm.quotations.view' },
             { name: 'Sales Orders', href: '/sales/orders', permission: 'sales_crm.sales_orders.view' },
@@ -277,6 +281,16 @@ const navigation = [
         ]
     },
     { 
+        name: 'Project Matrix', 
+        href: '#', 
+        icon: BriefcaseIcon, 
+        current: false,
+        children: [
+            { name: 'Project Dashboard', href: '/projects' },
+            { name: 'Initiate Project', href: '/projects/create' },
+        ]
+    },
+    { 
         name: 'Settings', 
         href: '#', 
         icon: Cog6ToothIcon, 
@@ -294,7 +308,7 @@ const navigation = [
             { name: 'Import & Export', href: '/settings/io', permission: 'settings.import_&_export.view' },
             { name: 'Database Management', href: '/settings/database', permission: 'settings.database_management.view' },
             { name: 'Activity Logs', href: '/admin/activity-logs', permission: 'settings.activity_logs.view' },
-            { name: 'System Testing (UAT)', href: '/settings/uat', permission: 'settings.view' },
+            { name: 'System Testing (UAT)', href: '/settings/uat', permission: 'settings.view', target: '_blank' },
             { name: '💬 WhatsApp Bot', href: '/settings/whatsapp', permission: 'settings.company_profile.view' },
         ]
     },
@@ -508,12 +522,14 @@ const toggleTheme = () => {
                                 >
                                     <ul v-if="expandedMenus[item.name]" class="mt-1 space-y-1 pl-10">
                                         <li v-for="child in item.children" :key="child.name">
-                                            <Link
+                                            <component
+                                                :is="child.target ? 'a' : Link"
                                                 :href="child.href"
+                                                :target="child.target"
                                                 class="block rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-900 hover:text-white transition-colors"
                                             >
                                                 {{ child.name }}
-                                            </Link>
+                                            </component>
                                         </li>
                                     </ul>
                                 </Transition>
@@ -599,14 +615,16 @@ const toggleTheme = () => {
                                         <div class="px-4 py-2 text-xs font-semibold text-slate-500 border-b border-white/5 mb-1">
                                             {{ item.name }}
                                         </div>
-                                        <Link
+                                        <component
                                             v-for="child in item.children" 
                                             :key="child.name"
+                                            :is="child.target ? 'a' : Link"
                                             :href="child.href"
+                                            :target="child.target"
                                             class="block px-4 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
                                         >
                                             {{ child.name }}
-                                        </Link>
+                                        </component>
                                     </div>
 
                                     <Transition
@@ -620,12 +638,14 @@ const toggleTheme = () => {
                                     >
                                         <ul v-if="expandedMenus[item.name]" class="mt-1 space-y-1 pl-10">
                                             <li v-for="child in item.children" :key="child.name">
-                                                <Link
+                                                <component
+                                                    :is="child.target ? 'a' : Link"
                                                     :href="child.href"
+                                                    :target="child.target"
                                                     class="block rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800/50 hover:text-white transition-colors"
                                                 >
                                                     {{ child.name }}
-                                                </Link>
+                                                </component>
                                             </li>
                                         </ul>
                                     </Transition>

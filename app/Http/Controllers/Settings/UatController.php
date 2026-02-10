@@ -12,7 +12,7 @@ class UatController extends Controller
     public function index()
     {
         // Fetch all scenarios ordered by custom_order
-        $scenarios = UatScenario::orderBy('custom_order')->get();
+        $scenarios = UatScenario::with('tester')->orderBy('custom_order')->get();
 
         // Group by module for display
         $groupedScenarios = $scenarios->groupBy('module');
@@ -36,9 +36,15 @@ class UatController extends Controller
         ]);
     }
 
-    public function export()
+    public function export(Request $request)
     {
-        $scenarios = UatScenario::orderBy('custom_order')->get();
+        $query = UatScenario::with('tester')->orderBy('custom_order');
+
+        if ($request->has('module') && $request->module) {
+            $query->where('module', $request->module);
+        }
+
+        $scenarios = $query->get();
         $groupedScenarios = $scenarios->groupBy('module');
 
         $stats = [
@@ -52,6 +58,7 @@ class UatController extends Controller
         return Inertia::render('Settings/Uat/Export', [
             'groupedScenarios' => $groupedScenarios,
             'stats' => $stats,
+            'filterModule' => $request->module,
         ]);
     }
 

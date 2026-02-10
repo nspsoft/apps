@@ -1,0 +1,529 @@
+<script setup>
+import { ref, computed } from 'vue';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
+import TimelineChart from './Partials/TimelineChart.vue';
+import {
+    BriefcaseIcon,
+    ChevronLeftIcon,
+    PlusIcon,
+    CalendarIcon,
+    UserCircleIcon,
+    CheckCircleIcon,
+    ArrowPathIcon,
+    UsersIcon,
+    ListBulletIcon,
+    ChartPieIcon,
+    PencilSquareIcon,
+    TrashIcon,
+    XMarkIcon,
+    PaperClipIcon,
+    ArrowDownTrayIcon
+} from '@heroicons/vue/24/outline';
+import { formatDate } from '@/helpers';
+
+const props = defineProps({
+    project: Object,
+    users: Array
+});
+
+const activeTab = ref('tasks');
+const showTaskModal = ref(false);
+const showMemberModal = ref(false);
+const editingTask = ref(null);
+
+const taskForm = useForm({
+    name: '',
+    description: '',
+    start_date_plan: '',
+    end_date_plan: '',
+    priority: 'medium',
+    status: 'draft',
+    progress: 0,
+    members: []
+});
+
+const memberForm = useForm({
+    user_id: '',
+    role: 'Member'
+});
+
+const openCreateTaskModal = () => {
+    editingTask.value = null;
+    taskForm.reset();
+    // Default dates to project window if empty
+    taskForm.start_date_plan = props.project.start_date; 
+    taskForm.end_date_plan = props.project.end_date;
+    showTaskModal.value = true;
+};
+
+const openEditTaskModal = (task) => {
+    editingTask.value = task;
+    taskForm.name = task.name;
+    taskForm.description = task.description;
+    taskForm.start_date_plan = task.start_date_plan;
+    taskForm.end_date_plan = task.end_date_plan;
+    taskForm.priority = task.priority;
+    taskForm.status = task.status;
+    taskForm.progress = task.progress;
+    taskForm.members = task.members.map(m => m.id);
+    showTaskModal.value = true;
+};
+
+const submitTask = () => {
+    if (editingTask.value) {
+        taskForm.put(route('projects.tasks.update', editingTask.value.id), {
+            onSuccess: () => showTaskModal.value = false
+        });
+    } else {
+        taskForm.post(route('projects.tasks.store', props.project.id), {
+            onSuccess: () => showTaskModal.value = false
+        });
+    }
+};
+
+const deleteTask = (task) => {
+    if (confirm('Are you sure you want to delete this task?')) {
+        router.delete(route('projects.tasks.destroy', task.id));
+    }
+};
+
+const submitMember = () => {
+    memberForm.post(route('projects.members.store', props.project.id), {
+        onSuccess: () => {
+            showMemberModal.value = false;
+            memberForm.reset();
+        }
+    });
+};
+
+const removeMember = (user) => {
+    if (confirm(`Remove ${user.name} from the project?`)) {
+        router.delete(route('projects.members.destroy', [props.project.id, user.id]));
+    }
+};
+
+const getStatusColor = (status) => {
+    const s = status.toLowerCase();
+    if (['completed', 'active'].includes(s)) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    if (['in_progress', 'active'].includes(s)) return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+    return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+    return 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+};
+
+const fileForm = useForm({
+    file: null
+});
+
+const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    fileForm.file = file;
+    fileForm.post(route('projects.tasks.attachments.store', editingTask.value.id), {
+        onSuccess: () => {
+            fileForm.reset();
+            // Refresh editing task data
+            if (editingTask.value) {
+                const updatedTask = props.project.tasks.find(t => t.id === editingTask.value.id);
+                if (updatedTask) editingTask.value = updatedTask;
+            }
+        },
+        preserveScroll: true
+    });
+};
+
+const deleteAttachment = (attachment) => {
+    if (confirm('Delete this attachment?')) {
+        router.delete(route('projects.tasks.attachments.destroy', attachment.id), {
+             onSuccess: () => {
+                // Refresh editing task data
+                if (editingTask.value) {
+                    const updatedTask = props.project.tasks.find(t => t.id === editingTask.value.id);
+                    if (updatedTask) editingTask.value = updatedTask;
+                }
+            },
+            preserveScroll: true
+        });
+    }
+};
+
+const getMemberProgress = (memberId) => {
+    if (!props.project.tasks || props.project.tasks.length === 0) return 0;
+    
+    // Find all tasks assigned to this member
+    const memberTasks = props.project.tasks.filter(task => 
+        task.members && task.members.some(m => m.id === memberId)
+    );
+    
+    if (memberTasks.length === 0) return 0;
+    
+    // Calculate average progress
+    const totalProgress = memberTasks.reduce((sum, task) => sum + (parseFloat(task.progress) || 0), 0);
+    return Math.round(totalProgress / memberTasks.length);
+};
+
+const getMemberTaskCount = (memberId) => {
+    if (!props.project.tasks) return 0;
+    return props.project.tasks.filter(task => 
+        task.members && task.members.some(m => m.id === memberId)
+    ).length;
+};
+</script>
+
+<template>
+    <Head :title="project.name" />
+
+    <AppLayout :title="project.name" :render-header="false">
+        <div class="min-h-screen bg-[#050510] relative overflow-hidden font-mono text-cyan-50">
+            <!-- Dynamic Background -->
+            <div class="fixed inset-0 z-0 pointer-events-none">
+                <div class="absolute inset-0 bg-gradient-to-b from-cyan-950/20 to-[#050510]"></div>
+                <div class="perspective-grid absolute inset-0 opacity-20"></div>
+            </div>
+
+            <div class="relative z-10 p-6 space-y-8">
+                <!-- Header -->
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-4 backdrop-blur-sm">
+                    <div class="flex items-center gap-4">
+                        <Link :href="route('projects.index')" class="p-2 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-cyan-400 transition-all">
+                            <ChevronLeftIcon class="h-6 w-6" />
+                        </Link>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[8px] bg-cyan-500/10 border border-cyan-500/20 rounded text-cyan-400 uppercase tracking-widest">PROJECT_ID: {{ project.id }}</span>
+                                <span class="px-2 py-0.5 text-[8px] rounded border uppercase tracking-widest" :class="getStatusColor(project.status)">{{ project.status }}</span>
+                            </div>
+                            <h1 class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-indigo-400 tracking-widest uppercase glow-text">
+                                {{ project.name }}
+                            </h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="hud-panel p-4 bg-white/5 border border-white/5 rounded-xl">
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">COMPLETION_PHASE</p>
+                        <div class="flex items-end gap-2">
+                            <span class="text-2xl font-black text-white glow-text">{{ Math.round(project.progress || 0) }}%</span>
+                            <div class="flex-1 mb-2 h-1 bg-slate-900 rounded-full overflow-hidden">
+                                <div class="h-full bg-cyan-500" :style="{ width: `${project.progress}%` }"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hud-panel p-4 bg-white/5 border border-white/5 rounded-xl">
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">TASK_COUNT</p>
+                        <span class="text-2xl font-black text-white glow-text">{{ project.tasks?.length || 0 }}</span>
+                    </div>
+                    <div class="hud-panel p-4 bg-white/5 border border-white/5 rounded-xl">
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">CREW_COMPLEMENT</p>
+                        <span class="text-2xl font-black text-white glow-text">{{ project.members?.length || 0 }}</span>
+                    </div>
+                    <div class="hud-panel p-4 bg-white/5 border border-white/5 rounded-xl">
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">TARGET_WINDOW</p>
+                        <span class="text-lg font-black text-cyan-400 truncate">{{ formatDate(project.end_date) }}</span>
+                    </div>
+                </div>
+
+                <!-- Main Content Tabs -->
+                <div class="hud-panel bg-[#0a0a16]/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden min-h-[500px]">
+                    <div class="flex border-b border-white/5">
+                        <button v-for="tab in ['tasks', 'timeline', 'team']" :key="tab" @click="activeTab = tab"
+                            :class="[activeTab === tab ? 'text-cyan-400 border-b-2 border-cyan-500 bg-white/5' : 'text-slate-500', 'px-8 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all hover:bg-white/5']"
+                        >
+                            {{ tab }}
+                        </button>
+                    </div>
+
+                    <div class="p-8">
+                        <!-- Tasks View -->
+                        <div v-if="activeTab === 'tasks'" class="space-y-8">
+                            <div class="flex justify-between items-center">
+                                <h3 class="flex items-center gap-2 text-sm font-bold text-cyan-300 tracking-widest uppercase">
+                                    <ListBulletIcon class="h-4 w-4" /> TASK_MANIFEST
+                                </h3>
+                                <button @click="openCreateTaskModal" class="hud-btn flex items-center gap-2 px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-[10px] text-cyan-400 hover:bg-cyan-500/20 transition-all font-bold tracking-widest">
+                                    <PlusIcon class="h-3.5 w-3.5" /> ADD_TASK
+                                </button>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-4">
+                                <div v-for="task in project.tasks" :key="task.id" @click="openEditTaskModal(task)" class="p-5 bg-white/5 border border-white/5 rounded-xl hover:border-cyan-500/30 transition-all group cursor-pointer">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <div class="flex items-center gap-3 mb-1">
+                                                <h4 class="text-sm font-black text-white uppercase">{{ task.name }}</h4>
+                                                <span class="text-[8px] px-1.5 py-0.5 rounded text-slate-400 border border-white/10 uppercase">{{ task.status }}</span>
+                                            </div>
+                                            <p class="text-xs text-slate-500 line-clamp-2">{{ task.description }}</p>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            <button @click.stop="openEditTaskModal(task)" class="p-1.5 hover:bg-white/5 rounded text-slate-500 hover:text-cyan-400 transition-colors">
+                                                <PencilSquareIcon class="h-4 w-4" />
+                                            </button>
+                                            <button @click.stop="deleteTask(task)" class="p-1.5 hover:bg-white/5 rounded text-slate-500 hover:text-rose-400 transition-colors">
+                                                <TrashIcon class="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center gap-6 text-[10px] text-slate-500 font-mono mb-3">
+                                        <span class="flex items-center gap-1.5">
+                                            <CalendarIcon class="h-3 w-3" /> {{ formatDate(task.start_date_plan) }} > {{ formatDate(task.end_date_plan) }}
+                                        </span>
+                                        <span class="flex items-center gap-1.5 uppercase" :class="{'text-rose-400': task.priority === 'urgent', 'text-cyan-400': task.priority === 'high'}">
+                                            <CheckCircleIcon class="h-3 w-3" /> {{ task.priority }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Assigned Members -->
+                                    <div class="flex items-center gap-2 mb-4">
+                                         <div class="flex items-center -space-x-2">
+                                            <div v-for="member in task.members" :key="member.id" 
+                                                class="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center text-[8px] font-bold text-indigo-300 ring-2 ring-[#0a0a16] relative group/member" 
+                                                :title="member.name">
+                                                {{ member.name.substring(0, 2).toUpperCase() }}
+                                            </div>
+                                        </div>
+                                        <span v-if="!task.members || task.members.length === 0" class="text-[10px] text-slate-600 italic flex items-center gap-1">
+                                            <UserCircleIcon class="h-3 w-3" /> UNASSIGNED
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-1.5 flex-1 bg-slate-900 rounded-full overflow-hidden">
+                                            <div class="h-full transition-all duration-700 bg-cyan-500 shadow-[0_0_10px_rgba(34,211,238,0.3)]" :style="{ width: `${task.progress}%` }"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black w-8 text-right" :class="task.progress == 100 ? 'text-emerald-400' : 'text-cyan-400'">{{ Math.round(task.progress) }}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timeline View -->
+                        <div v-if="activeTab === 'timeline'">
+                            <TimelineChart :tasks="project.tasks" :projectStart="project.start_date" :projectEnd="project.end_date" />
+                        </div>
+
+                        <!-- Team View -->
+                        <div v-if="activeTab === 'team'" class="space-y-6">
+                            <div class="flex justify-between items-center">
+                                <h3 class="flex items-center gap-2 text-sm font-bold text-indigo-300 tracking-widest uppercase">
+                                    <UsersIcon class="h-4 w-4" /> UNIT_CREW
+                                </h3>
+                                <button @click="showMemberModal = true" class="hud-btn flex items-center gap-2 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded text-[10px] text-indigo-400 hover:bg-indigo-500/20 transition-all font-bold tracking-widest">
+                                    <PlusIcon class="h-3.5 w-3.5" /> RECRUIT_UNIT
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div v-for="member in project.members" :key="member.id" class="p-4 bg-white/5 border border-white/5 rounded-xl flex items-center justify-between group">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                            <UserCircleIcon class="h-8 w-8" />
+                                        </div>
+                                        <div>
+                                            <p class="text-xs font-black text-white uppercase">{{ member.name }}</p>
+                                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">{{ member.pivot?.role || 'Member' }}</p>
+                                            
+                                            <!-- Member Progress -->
+                                            <div class="mt-2 w-32">
+                                                <div class="flex justify-between text-[8px] mb-1 font-mono">
+                                                    <span class="text-slate-500">{{ getMemberTaskCount(member.id) }} TASKS</span>
+                                                    <span class="text-cyan-400 font-bold">{{ getMemberProgress(member.id) }}%</span>
+                                                </div>
+                                                <div class="h-1 bg-slate-900 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-cyan-500 transition-all duration-1000" :style="{ width: `${getMemberProgress(member.id)}%` }"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button @click="removeMember(member)" class="p-2 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-400 transition-all">
+                                        <XMarkIcon class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modals -->
+            
+            <!-- Task Modal -->
+            <div v-if="showTaskModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div class="w-full max-w-2xl bg-[#0a0a16] border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative">
+                    <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                        <h3 class="text-sm font-black text-cyan-400 uppercase tracking-widest">{{ editingTask ? 'UPDATE_PROTOCOL' : 'INITIATE_TASK' }}</h3>
+                        <button @click="showTaskModal = false" class="text-slate-500 hover:text-white"><XMarkIcon class="h-6 w-6" /></button>
+                    </div>
+                    <form @submit.prevent="submitTask" class="p-6 space-y-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">TASK_IDENTIFIER</label>
+                                <input v-model="taskForm.name" type="text" required class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1" />
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">PARAMETERS</label>
+                                <textarea v-model="taskForm.description" rows="3" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1 resize-none"></textarea>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">T_START_PLAN</label>
+                                    <input v-model="taskForm.start_date_plan" type="date" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1" />
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">T_END_PLAN</label>
+                                    <input v-model="taskForm.end_date_plan" type="date" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1" />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">PRIORITY_LEVEL</label>
+                                    <select v-model="taskForm.priority" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1 bg-[#0a0a16]">
+                                        <option value="low">LOW</option>
+                                        <option value="medium">MEDIUM</option>
+                                        <option value="high">HIGH</option>
+                                        <option value="urgent">URGENT</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">STATUS</label>
+                                    <select v-model="taskForm.status" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1 bg-[#0a0a16]">
+                                        <option value="todo">TODO</option>
+                                        <option value="in_progress">IN PROGRESS</option>
+                                        <option value="completed">COMPLETED</option>
+                                        <option value="on_hold">ON HOLD</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">ASSIGN_OPERATIVES</label>
+                                <div class="grid grid-cols-2 gap-2 mt-1 max-h-32 overflow-y-auto">
+                                    <label v-for="member in project.members" :key="member.id" class="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded cursor-pointer hover:bg-white/10">
+                                        <input type="checkbox" :value="member.id" v-model="taskForm.members" class="rounded border-white/20 bg-slate-900 text-cyan-500 focus:ring-0" />
+                                        <span class="text-xs font-bold text-white uppercase">{{ member.name }}</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div v-if="editingTask">
+                                <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">COMPLETION_PERCENTAGE</label>
+                                <div class="flex items-center gap-4 mt-1">
+                                    <input v-model="taskForm.progress" type="range" min="0" max="100" class="flex-1 accent-cyan-500" />
+                                    <span class="text-sm font-black text-cyan-400 w-12 text-right">{{ taskForm.progress }}%</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Attachments Section -->
+                            <div v-if="editingTask" class="pt-4 border-t border-white/5">
+                                <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-2 block flex justify-between items-center">
+                                    <span>DATA_LINKS (ATTACHMENTS)</span>
+                                    <span v-if="fileForm.processing" class="text-cyan-400 text-[10px] animate-pulse">UPLOADING...</span>
+                                </label>
+                                
+                                <div class="space-y-2 mb-3">
+                                    <div v-for="file in editingTask.attachments" :key="file.id" class="flex items-center justify-between p-2 bg-white/5 border border-white/10 rounded hover:bg-white/10 transition-colors group">
+                                        <div class="flex items-center gap-2 overflow-hidden">
+                                            <PaperClipIcon class="h-4 w-4 text-slate-400 flex-shrink-0" />
+                                            <div class="flex flex-col min-w-0">
+                                                <a :href="'/storage/' + file.file_path" target="_blank" class="text-xs font-bold text-cyan-400 truncate hover:underline hover:text-cyan-300">
+                                                    {{ file.file_name }}
+                                                </a>
+                                                <span class="text-[8px] text-slate-500 uppercase">
+                                                    {{ (file.file_size / 1024).toFixed(1) }}KB • BY {{ file.uploader?.name }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <a :href="'/storage/' + file.file_path" download class="p-1 hover:text-cyan-400 transition-colors text-slate-500">
+                                                <ArrowDownTrayIcon class="h-3.5 w-3.5" />
+                                            </a>
+                                            <button type="button" @click="deleteAttachment(file)" class="p-1 hover:text-rose-400 transition-colors text-slate-500">
+                                                <XMarkIcon class="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div v-if="!editingTask.attachments?.length" class="text-[10px] text-slate-600 italic">NO_DATA_LINKED</div>
+                                </div>
+
+                                <div class="relative">
+                                    <label class="flex items-center justify-center gap-2 w-full p-2 border-2 border-dashed border-white/10 rounded-lg hover:border-cyan-500/30 hover:bg-cyan-500/5 transition-all cursor-pointer text-slate-400 hover:text-cyan-400">
+                                        <PaperClipIcon class="h-4 w-4" />
+                                        <span class="text-xs font-bold uppercase tracking-wider">UPLOAD_DATA</span>
+                                        <input type="file" class="hidden" @change="handleFileUpload" />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-white/5 flex justify-end gap-4">
+                            <button type="button" @click="showTaskModal = false" class="px-4 py-2 text-slate-500 hover:text-white uppercase text-xs font-bold tracking-wider">CANCEL</button>
+                            <button type="submit" class="px-6 py-2 bg-cyan-600/20 border border-cyan-500/50 rounded-lg text-cyan-400 hover:bg-cyan-500/30 transition-all uppercase text-xs font-bold tracking-widest shadow-[0_0_10px_rgba(34,211,238,0.2)]">EXECUTE</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Member Modal -->
+            <div v-if="showMemberModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div class="w-full max-w-md bg-[#0a0a16] border border-white/10 rounded-2xl overflow-hidden shadow-2xl relative">
+                    <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+                        <h3 class="text-sm font-black text-indigo-400 uppercase tracking-widest">RECRUIT_UNIT</h3>
+                        <button @click="showMemberModal = false" class="text-slate-500 hover:text-white"><XMarkIcon class="h-6 w-6" /></button>
+                    </div>
+                    <form @submit.prevent="submitMember" class="p-6 space-y-6">
+                         <div class="space-y-4">
+                            <div>
+                                <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">OPERATIVE</label>
+                                <select v-model="memberForm.user_id" required class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1 bg-[#0a0a16]">
+                                    <option value="" disabled>SELECT PERSONNEL...</option>
+                                    <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">DESIGNATION</label>
+                                <input v-model="memberForm.role" type="text" placeholder="e.g. Lead Developer" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-cyan-50 focus:border-cyan-500/50 transition-all font-bold mt-1" />
+                            </div>
+                        </div>
+                        <div class="pt-4 border-t border-white/5 flex justify-end gap-4">
+                            <button type="button" @click="showMemberModal = false" class="px-4 py-2 text-slate-500 hover:text-white uppercase text-xs font-bold tracking-wider">CANCEL</button>
+                            <button type="submit" class="px-6 py-2 bg-indigo-600/20 border border-indigo-500/50 rounded-lg text-indigo-400 hover:bg-indigo-500/30 transition-all uppercase text-xs font-bold tracking-widest shadow-[0_0_10px_rgba(99,102,241,0.2)]">ASSIGN</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </AppLayout>
+</template>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+.font-mono {
+    font-family: 'Space Mono', monospace;
+}
+
+.perspective-grid {
+    background-image: 
+        linear-gradient(to right, rgba(34, 211, 238, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(34, 211, 238, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    transform: perspective(500px) rotateX(60deg) translateY(-100px) scale(2);
+    animation: grid-move 20s linear infinite;
+    transform-origin: top;
+}
+
+@keyframes grid-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 40px; }
+}
+
+.hud-panel {
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.glow-text {
+    text-shadow: 0 0 10px currentColor;
+}
+</style>
