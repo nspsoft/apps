@@ -12,8 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Move scenarios from 'Sales' to 'CRM' for features that now belong to CRM
-        $featuresToMove = ['Sales Hub', 'WhatsApp Center', 'AI Auto Extractor'];
+        // Move specifically 'WhatsApp Center' and 'AI Auto Extractor' which were missed
+        $featuresToMove = ['WhatsApp Center', 'AI Auto Extractor'];
         
         DB::table('uat_scenarios')
             ->where('module', 'Sales')
@@ -26,7 +26,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $featuresToMove = ['Sales Hub', 'WhatsApp Center', 'AI Auto Extractor'];
+        $featuresToMove = ['WhatsApp Center', 'AI Auto Extractor'];
 
         DB::table('uat_scenarios')
             ->where('module', 'CRM')
