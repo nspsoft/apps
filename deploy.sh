@@ -3,6 +3,10 @@
 # Deployment script for JICOS ERP (aaPanel/Linux)
 
 echo "Starting deployment..."
+PROJECT_PATH="/www/wwwroot/jicos.jidoka.co.id"
+
+# Ensure script is run from project root
+cd $PROJECT_PATH || { echo "Directory not found! ($PROJECT_PATH)"; exit 1; }
 
 # 1. Pull latest changes
 echo "Pulling latest changes from Git..."
