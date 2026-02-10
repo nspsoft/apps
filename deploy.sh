@@ -1,27 +1,30 @@
 #!/bin/bash
-
-# Deployment script for JICOS ERP (aaPanel/Linux)
-
-echo "Starting deployment..."
 PROJECT_PATH="/www/wwwroot/jicos.jidoka.co.id"
+PHP_BIN="/www/server/php/84/bin/php"
 
-# Ensure script is run from project root
 cd $PROJECT_PATH || { echo "Directory not found! ($PROJECT_PATH)"; exit 1; }
 
-# 1. Pull latest changes
-echo "Pulling latest changes from Git..."
-git pull origin main
+# === MODE RESET & BUILD ===
+echo "--- 🔄 MULAI SINKRONISASI (Updated via Git) ---"
 
-# 2. Update dependencies (optional, uncomment if needed)
-# composer install --no-interaction --prefer-dist --optimize-autoloader
+# 1. Reset Kode
+git fetch --all
+git reset --hard origin/main
 
-# 3. Run migrations
-echo "Running database migrations..."
-php artisan migrate --force
+# 2. Update Database (Hanya Struktur Tabel Baru)
+$PHP_BIN artisan migrate --force
 
-# 4. Clear and optimize cache
-echo "Optimizing application..."
-php artisan optimize:clear
-php artisan optimize
+# 3. Build Ulang Frontend (Opsional - karena aset sudah di-push, tapi aman dijalankan)
+# npm install
+# npm run build
 
-echo "Deployment finished successfully!"
+# 4. Bersihkan Cache
+$PHP_BIN artisan view:clear
+$PHP_BIN artisan config:clear
+$PHP_BIN artisan route:clear
+
+# 5. Fix Permission
+chown -R www:www $PROJECT_PATH
+chmod -R 777 $PROJECT_PATH/storage
+
+echo "--- ✅ DEPLOY SELESAI & AMAN ---"
