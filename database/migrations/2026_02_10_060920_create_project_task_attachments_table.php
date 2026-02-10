@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('project_task_attachments', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('project_task_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained(); // Uploader
-            $table->string('file_path');
-            $table->string('file_name');
-            $table->string('file_type')->nullable(); // Mime type
-            $table->unsignedBigInteger('file_size')->nullable(); // Bytes
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('project_task_attachments')) {
+            Schema::create('project_task_attachments', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('project_task_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained(); // Uploader
+                $table->string('file_path');
+                $table->string('file_name');
+                $table->string('file_type')->nullable(); // Mime type
+                $table->unsignedBigInteger('file_size')->nullable(); // Bytes
+                $table->timestamps();
+            });
+        }
     }
 
     /**

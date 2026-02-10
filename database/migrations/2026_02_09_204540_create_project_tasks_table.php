@@ -11,21 +11,23 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('project_tasks', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
-            $table->string('name');
-            $table->text('description')->nullable();
-            $table->date('start_date_plan')->nullable();
-            $table->date('end_date_plan')->nullable();
-            $table->date('start_date_actual')->nullable();
-            $table->date('end_date_actual')->nullable();
-            $table->decimal('progress', 5, 2)->default(0); // 0-100%
-            $table->string('status')->default('todo'); // todo, in_progress, review, completed, blocked
-            $table->string('priority')->default('medium'); // low, medium, high, urgent
-            $table->foreignId('parent_id')->nullable()->constrained('project_tasks')->onDelete('cascade');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('project_tasks')) {
+            Schema::create('project_tasks', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('project_id')->constrained('projects')->onDelete('cascade');
+                $table->string('name');
+                $table->text('description')->nullable();
+                $table->date('start_date_plan')->nullable();
+                $table->date('end_date_plan')->nullable();
+                $table->date('start_date_actual')->nullable();
+                $table->date('end_date_actual')->nullable();
+                $table->decimal('progress', 5, 2)->default(0); // 0-100%
+                $table->string('status')->default('todo'); // todo, in_progress, review, completed, blocked
+                $table->string('priority')->default('medium'); // low, medium, high, urgent
+                $table->foreignId('parent_id')->nullable()->constrained('project_tasks')->onDelete('cascade');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
