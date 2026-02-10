@@ -96,12 +96,12 @@ const formatTime = (dateTime) => {
 
 const getStatusColor = (status) => {
     const colors = {
-        present: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-        late: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-        absent: 'text-red-400 bg-red-500/10 border-red-500/20',
-        leave: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
+        present: 'text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+        late: 'text-amber-700 dark:text-amber-400 bg-amber-500/10 border-amber-500/20',
+        absent: 'text-red-700 dark:text-red-400 bg-red-500/10 border-red-500/20',
+        leave: 'text-indigo-700 dark:text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
     };
-    return colors[status] || 'text-slate-500 dark:text-slate-400 bg-slate-500/10 border-slate-500/20';
+    return colors[status] || 'text-slate-700 dark:text-slate-400 bg-slate-500/10 border-slate-500/20';
 };
 </script>
 
@@ -135,20 +135,20 @@ const getStatusColor = (status) => {
             <!-- Stats & Quick Actions -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <!-- Self Clocking Panel (Demo) -->
-                <div class="lg:col-span-2 bg-gradient-to-br from-indigo-600/20 to-purple-600/10 border border-indigo-500/20 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                <div class="lg:col-span-2 bg-indigo-50 dark:bg-gradient-to-br dark:from-indigo-600/20 dark:to-purple-600/10 border border-indigo-100 dark:border-indigo-500/20 rounded-[2.5rem] p-8 relative overflow-hidden group transition-colors">
                     <div class="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <ClockIcon class="h-32 w-32 text-indigo-400" />
+                        <ClockIcon class="h-32 w-32 text-indigo-400 dark:text-indigo-400" />
                     </div>
                     
                     <div class="relative z-10">
                         <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Daily Timekeeping</h3>
-                        <p class="text-sm text-indigo-200/70 max-w-md leading-relaxed mb-8">Record your daily presence. Ensure point of entry and exit are captured accurately for payroll processing.</p>
+                        <p class="text-sm text-indigo-700/70 dark:text-indigo-200/70 max-w-md leading-relaxed mb-8">Record your daily presence. Ensure point of entry and exit are captured accurately for payroll processing.</p>
                         
                         <!-- Manual Entry for Demo (In real app, employee_id would be auto-detected) -->
                         <div class="flex flex-col sm:flex-row items-end gap-4 max-w-xl">
                             <div class="flex-1 w-full space-y-2">
-                                <label class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest ml-1">Select Employee (Self-Service Mock)</label>
-                                <select v-model="clockInForm.employee_id" class="w-full bg-white dark:bg-slate-950/50 border-indigo-500/30 rounded-2xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                                <label class="text-[10px] font-bold text-indigo-600 dark:text-indigo-300 uppercase tracking-widest ml-1">Select Employee (Self-Service Mock)</label>
+                                <select v-model="clockInForm.employee_id" class="w-full bg-white dark:bg-slate-950/50 border border-indigo-200 dark:border-indigo-500/30 rounded-2xl py-3 px-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all">
                                     <option value="">Choose profile...</option>
                                     <!-- In production this list would be limited or auto-selected -->
                                     <option value="1">Ahmad Subkont (Sample)</option>
@@ -157,7 +157,7 @@ const getStatusColor = (status) => {
                             <button 
                                 @click="performClockIn(clockInForm.employee_id)"
                                 :disabled="!clockInForm.employee_id || clockInForm.processing"
-                                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-8 py-3.5 text-sm font-bold text-slate-900 dark:text-white shadow-xl shadow-indigo-900/20 hover:bg-indigo-500 disabled:opacity-50 transition-all hover:-translate-y-0.5"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-8 py-3.5 text-sm font-bold text-white shadow-xl shadow-indigo-600/20 dark:shadow-indigo-900/40 hover:bg-indigo-500 disabled:opacity-50 transition-all hover:-translate-y-1"
                             >
                                 <ArrowRightOnRectangleIcon class="h-5 w-5" />
                                 Record Clock-In
@@ -175,19 +175,19 @@ const getStatusColor = (status) => {
                     <div class="space-y-6">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                                <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                                     <CheckCircleIcon class="h-5 w-5" />
                                 </div>
-                                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Present</span>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Present</span>
                             </div>
                             <span class="text-xl font-bold text-slate-900 dark:text-white font-mono">--</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
-                                <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400">
+                                <div class="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                                     <ExclamationCircleIcon class="h-5 w-5" />
                                 </div>
-                                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">Late</span>
+                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Late</span>
                             </div>
                             <span class="text-xl font-bold text-slate-900 dark:text-white font-mono">--</span>
                         </div>
@@ -226,13 +226,13 @@ const getStatusColor = (status) => {
                 <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-white dark:bg-slate-950/30">
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Employee</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Department</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Clock In</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Clock Out</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">Status</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest text-right">Actions</th>
+                            <tr class="bg-slate-50 dark:bg-slate-950/30">
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-900 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Employee</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-900 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Department</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-900 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Clock In</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-900 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Clock Out</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-900 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800">Status</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-8 py-4 text-[10px] font-bold text-slate-900 dark:text-slate-400 uppercase tracking-widest border-b border-slate-200 dark:border-slate-800 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
