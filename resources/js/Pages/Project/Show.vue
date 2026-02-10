@@ -513,13 +513,16 @@ const handlePrint = () => {
         <!-- Official Print Layout (Hidden on screen) -->
         <div class="hidden print:block bg-white text-black p-10 font-sans min-h-screen">
             <div class="border-b-4 border-black pb-6 mb-8 flex justify-between items-end">
-                <div>
-                    <h1 class="text-4xl font-black uppercase tracking-tighter mb-2">Project Implementation Blueprint</h1>
-                    <p class="text-xs font-bold uppercase tracking-widest text-slate-600">ID: JICOS-PRJ-{{ project.id.toString().padStart(4, '0') }} | Generated: {{ new Date().toLocaleString() }}</p>
+                <div class="flex items-center gap-6">
+                    <img :src="$page.props.company?.logo || '/images/jicos.png'" class="h-16 w-16 object-contain" />
+                    <div>
+                        <h1 class="text-3xl font-black uppercase tracking-tighter mb-1">Project Implementation Blueprint</h1>
+                        <p class="text-xs font-bold uppercase tracking-widest text-slate-600">{{ $page.props.company?.name || 'JICOS CORE ERP' }}</p>
+                    </div>
                 </div>
                 <div class="text-right">
-                    <p class="text-xl font-bold">JICOS CORE ERP</p>
-                    <p class="text-[10px] uppercase font-bold tracking-widest text-slate-500">Official Strategic Document</p>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-600">ID: JICOS-PRJ-{{ project.id.toString().padStart(4, '0') }}</p>
+                    <p class="text-[8px] uppercase font-bold tracking-widest text-slate-500">Official Strategic Document • {{ new Date().toLocaleString() }}</p>
                 </div>
             </div>
 
