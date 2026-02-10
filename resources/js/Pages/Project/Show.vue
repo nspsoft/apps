@@ -180,7 +180,7 @@ const handlePrint = () => {
     <Head :title="project.name" />
 
     <AppLayout :title="project.name" :render-header="false">
-        <div class="min-h-screen bg-[#050510] relative overflow-hidden font-mono text-cyan-50">
+        <div class="min-h-screen bg-[#050510] relative overflow-hidden font-mono text-cyan-50 print:hidden">
             <!-- Dynamic Background -->
             <div class="fixed inset-0 z-0 pointer-events-none print:hidden">
                 <div class="absolute inset-0 bg-gradient-to-b from-cyan-950/20 to-[#050510]"></div>
@@ -641,44 +641,49 @@ const handlePrint = () => {
 @media print {
     @page {
         size: landscape;
-        margin: 1cm;
+        margin: 1cm !important;
     }
     html, body {
         background: white !important;
+        background-color: white !important;
         color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
-    /* Hide everything in AppLayout that isn't the main content slot */
-    nav, aside, header, footer, .fixed, .print\:hidden {
+    /* Absolute suppression of screen-only elements */
+    .print\:hidden, nav, aside, header, footer, button, .hud-btn, .fixed, .absolute.inset-0, .perspective-grid {
         display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
     }
     .print\:block {
         display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
     }
-    /* Ensure the print layout spans full width and height */
-    .min-h-screen {
-        min-height: auto !important;
-    }
+    /* Reset layout for print */
     main {
         padding: 0 !important;
         margin: 0 !important;
+        width: 100% !important;
     }
-    /* Remove any background filters or gradients */
+    .min-h-screen {
+        min-height: auto !important;
+        background: transparent !important;
+    }
+    /* Branding and Typography */
+    .text-black { color: black !important; }
+    .bg-white { background-color: white !important; }
+    .bg-slate-50 { background-color: #f8fafc !important; }
+    .bg-slate-100 { background-color: #f1f5f9 !important; }
+    .page-break-before { page-break-before: always; }
+    
+    /* Force background colors */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        background-color: transparent !important;
-    }
-    .bg-white {
-        background-color: white !important;
-    }
-    .bg-slate-50 {
-        background-color: #f8fafc !important;
-    }
-    .bg-slate-100 {
-        background-color: #f1f5f9 !important;
-    }
-    .bg-slate-800 {
-        background-color: #1e293b !important;
     }
 }
 </style>
