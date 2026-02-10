@@ -170,6 +170,10 @@ const getMemberTaskCount = (memberId) => {
         task.members && task.members.some(m => m.id === memberId)
     ).length;
 };
+
+const handlePrint = () => {
+    window.print();
+};
 </script>
 
 <template>
@@ -203,7 +207,7 @@ const getMemberTaskCount = (memberId) => {
 
                     <div class="flex items-center gap-3 print:hidden">
                         <button 
-                            @click="window.print()"
+                            @click="handlePrint"
                             class="flex items-center gap-2 px-6 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-cyan-400 hover:bg-white/10 transition-all uppercase tracking-widest"
                         >
                             <PrinterIcon class="h-5 w-5" />
