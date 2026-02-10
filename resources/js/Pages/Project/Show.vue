@@ -182,12 +182,12 @@ const handlePrint = () => {
     <AppLayout :title="project.name" :render-header="false">
         <div class="min-h-screen bg-[#050510] relative overflow-hidden font-mono text-cyan-50">
             <!-- Dynamic Background -->
-            <div class="fixed inset-0 z-0 pointer-events-none">
+            <div class="fixed inset-0 z-0 pointer-events-none print:hidden">
                 <div class="absolute inset-0 bg-gradient-to-b from-cyan-950/20 to-[#050510]"></div>
                 <div class="perspective-grid absolute inset-0 opacity-20"></div>
             </div>
 
-            <div class="relative z-10 p-6 space-y-8">
+            <div class="relative z-10 p-6 space-y-8 print:hidden">
                 <!-- Header -->
                 <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-4 backdrop-blur-sm">
                     <div class="flex items-center gap-4">
@@ -641,21 +641,44 @@ const handlePrint = () => {
 @media print {
     @page {
         size: landscape;
-        margin: 0;
+        margin: 1cm;
     }
-    body {
+    html, body {
         background: white !important;
         color: black !important;
     }
-    .print\:hidden {
+    /* Hide everything in AppLayout that isn't the main content slot */
+    nav, aside, header, footer, .fixed, .print\:hidden {
         display: none !important;
     }
     .print\:block {
         display: block !important;
     }
-    /* Simple reset for print */
+    /* Ensure the print layout spans full width and height */
+    .min-h-screen {
+        min-height: auto !important;
+    }
     main {
         padding: 0 !important;
+        margin: 0 !important;
+    }
+    /* Remove any background filters or gradients */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        background-color: transparent !important;
+    }
+    .bg-white {
+        background-color: white !important;
+    }
+    .bg-slate-50 {
+        background-color: #f8fafc !important;
+    }
+    .bg-slate-100 {
+        background-color: #f1f5f9 !important;
+    }
+    .bg-slate-800 {
+        background-color: #1e293b !important;
     }
 }
 </style>
