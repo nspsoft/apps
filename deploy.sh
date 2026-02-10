@@ -14,9 +14,9 @@ git reset --hard origin/main
 # 2. Update Database (Hanya Struktur Tabel Baru)
 $PHP_BIN artisan migrate --force
 
-# 3. Build Ulang Frontend (Opsional - karena aset sudah di-push, tapi aman dijalankan)
-# npm install
-# npm run build
+# 3. Build Ulang Frontend
+npm install
+npm run build
 
 # 4. Bersihkan Cache
 $PHP_BIN artisan view:clear
