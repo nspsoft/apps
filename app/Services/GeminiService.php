@@ -358,4 +358,107 @@ Question: \"{$question}\"";
 
         return "Terima kasih atas pertanyaan Anda. Silakan hubungi CS kami.";
     }
+
+    /**
+     * Analyze forecast accuracy and provide AI-powered recommendations.
+     *
+     * @param array $forecastData Array of forecast rows with keys: customer, product, period, forecast, actual, accuracy
+     * @return string Markdown-formatted analysis text
+     */
+    public function analyzeForecastAccuracy(array $forecastData): string
+    {
+        // Build data table for the prompt
+        $dataRows = '';
+        foreach ($forecastData as $row) {
+            $gap = $row['actual'] - $row['forecast'];
+            $gapPct = $row['forecast'] > 0 ? round(($gap / $row['forecast']) * 100, 1) : 0;
+            $direction = $gap >= 0 ? 'OVER' : 'UNDER';
+            $dataRows .= "| {$row['customer']} | {$row['product']} | {$row['period']} | " .
+                         number_format($row['forecast'], 0) . " | " .
+                         number_format($row['actual'], 0) . " | " .
+                         "{$row['accuracy']}% | {$direction} {$gapPct}% |\n";
+        }
+
+        $totalFc = array_sum(array_column($forecastData, 'forecast'));
+        $totalAct = array_sum(array_column($forecastData, 'actual'));
+        $overallAcc = $totalFc > 0 ? round(($totalAct / $totalFc) * 100, 1) : 0;
+        $totalGap = $totalAct - $totalFc;
+
+        $prompt = "You are a senior demand planning analyst at PT SPINDO, a steel pipe manufacturer in Indonesia.
+Analyze the following Sales Forecast vs Actual Order data and provide actionable insights.
+
+## Data Summary
+- **Overall Forecast Accuracy**: {$overallAcc}%
+- **Total Forecast**: " . number_format($totalFc, 0) . "
+- **Total Actual Orders**: " . number_format($totalAct, 0) . "
+- **Total Gap**: " . number_format($totalGap, 0) . " (" . ($totalGap >= 0 ? 'over' : 'under') . "-forecast)
+
+## Detailed Data
+| Customer | Product | Period | Forecast | Actual | Accuracy | Gap |
+|----------|---------|--------|----------|--------|----------|-----|
+{$dataRows}
+
+## Instructions
+Respond in **Bahasa Indonesia** with markdown formatting. Provide a comprehensive analysis with these sections:
+
+### 📊 Ringkasan Akurasi
+- Overall performance assessment
+- Top performing & worst performing customers/products
+
+### 🔍 Pola yang Teridentifikasi
+- Over-forecast vs under-forecast patterns
+- Seasonal or customer-specific trends
+- Products with consistent deviation
+
+### 🎯 Root Cause Analysis
+- Likely reasons for forecast inaccuracies
+- External factors that may have contributed
+
+### 💡 Rekomendasi Perbaikan
+- Specific, actionable recommendations per customer/product
+- Process improvements for better forecasting
+- Suggested adjustments for next period
+
+### 📈 Strategi Peningkatan Akurasi
+- Short-term quick wins
+- Medium-term process changes
+- Long-term systemic improvements
+
+Keep the analysis practical, data-driven, and focused on actionable insights. Use bullet points for clarity.";
+
+        if ($this->driver === 'ollama') {
+            try {
+                $payload = [
+                    'model' => $this->ollamaModel,
+                    'prompt' => $prompt,
+                    'stream' => false,
+                ];
+                $url = rtrim($this->ollamaUrl, '/');
+                $res = Http::timeout(120)->post("{$url}/api/generate", $payload);
+                if ($res->successful()) {
+                    return $res->json()['response'] ?? 'Maaf, gagal menganalisis data.';
+                }
+            } catch (\Exception $e) {
+                Log::error('Forecast Analysis Ollama Error: ' . $e->getMessage());
+            }
+            return 'Maaf, layanan AI sedang tidak tersedia. Silakan coba lagi nanti.';
+        }
+
+        // Gemini
+        try {
+            $response = Http::timeout(120)->post("{$this->baseUrl}?key={$this->apiKey}", [
+                'contents' => [['parts' => [['text' => $prompt]]]],
+            ]);
+            if ($response->successful()) {
+                return $response->json()['candidates'][0]['content']['parts'][0]['text']
+                    ?? 'Maaf, gagal menganalisis data.';
+            } else {
+                Log::error('Forecast Analysis Gemini Error: ' . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error('Forecast Analysis Exception: ' . $e->getMessage());
+        }
+
+        return 'Maaf, layanan AI sedang tidak tersedia. Silakan coba lagi nanti.';
+    }
 }

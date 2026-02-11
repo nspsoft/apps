@@ -269,4 +269,68 @@ class SalesForecastController extends Controller
 
         return response()->json(['error' => 'Invalid parameters'], 400);
     }
+
+    /**
+     * AI-powered forecast accuracy analysis.
+     */
+    public function analyzeAccuracy(Request $request)
+    {
+        $search = $request->search;
+        $month = $request->month;
+
+        $query = SalesForecast::with(['customer', 'product']);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('customer', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('product', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
+            });
+        }
+        if ($month) {
+            $query->whereDate('period', $month . '-01');
+        }
+
+        $forecasts = $query->get();
+
+        if ($forecasts->isEmpty()) {
+            return response()->json([
+                'analysis' => 'Tidak ada data forecast untuk dianalisis. Silakan import data forecast terlebih dahulu.',
+            ]);
+        }
+
+        // Prepare data for AI analysis
+        $forecastData = [];
+        foreach ($forecasts as $fc) {
+            $startOfMonth = \Carbon\Carbon::parse($fc->period)->startOfMonth();
+            $endOfMonth = \Carbon\Carbon::parse($fc->period)->endOfMonth();
+
+            $actualQty = \App\Models\SalesOrderItem::whereHas('salesOrder', function($q) use ($startOfMonth, $endOfMonth, $fc) {
+                $q->whereBetween('order_date', [$startOfMonth, $endOfMonth])
+                  ->where('customer_id', $fc->customer_id)
+                  ->whereNotIn('status', ['cancelled']);
+            })->where('product_id', $fc->product_id)->sum('qty');
+
+            $accuracy = $fc->qty_forecast > 0
+                ? round((1 - abs($fc->qty_forecast - (float) $actualQty) / $fc->qty_forecast) * 100, 1)
+                : 0;
+
+            $forecastData[] = [
+                'customer' => $fc->customer->name ?? 'Unknown',
+                'product' => $fc->product->name ?? 'Unknown',
+                'period' => \Carbon\Carbon::parse($fc->period)->format('M Y'),
+                'forecast' => (float) $fc->qty_forecast,
+                'actual' => (float) $actualQty,
+                'accuracy' => max(0, $accuracy),
+            ];
+        }
+
+        try {
+            $gemini = new \App\Services\GeminiService();
+            $analysis = $gemini->analyzeForecastAccuracy($forecastData);
+        } catch (\Exception $e) {
+            $analysis = 'Error: Gagal menghubungi layanan AI. ' . $e->getMessage();
+        }
+
+        return response()->json(['analysis' => $analysis]);
+    }
 }

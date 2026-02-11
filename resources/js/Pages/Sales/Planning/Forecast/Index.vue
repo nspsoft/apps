@@ -13,6 +13,7 @@ import {
     ChartBarIcon,
     TableCellsIcon,
     ArrowLeftCircleIcon,
+    SparklesIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber } from '@/helpers';
 import {
@@ -154,6 +155,46 @@ const comboChartOpts = computed(() => ({
         y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
     },
 }));
+
+// ─── AI Analysis State ───
+const aiAnalyzing = ref(false);
+const aiResult = ref('');
+const showAiPanel = ref(false);
+
+const runAiAnalysis = async () => {
+    aiAnalyzing.value = true;
+    showAiPanel.value = true;
+    aiResult.value = '';
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const res = await fetch(route('sales.planning.forecast.analyze'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: JSON.stringify({ search: search.value, month: month.value }),
+        });
+        const data = await res.json();
+        aiResult.value = data.analysis || 'Tidak ada hasil analisis.';
+    } catch (e) {
+        aiResult.value = 'Error: Gagal menghubungi layanan AI. Silakan coba lagi.';
+    } finally {
+        aiAnalyzing.value = false;
+    }
+};
+
+// Simple markdown to HTML converter
+const renderMarkdown = (text) => {
+    if (!text) return '';
+    return text
+        .replace(/### (.+)/g, '<h3 class="text-base font-bold text-slate-800 dark:text-slate-200 mt-5 mb-2">$1</h3>')
+        .replace(/## (.+)/g, '<h2 class="text-lg font-bold text-slate-900 dark:text-white mt-6 mb-3">$1</h2>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^- (.+)/gm, '<li class="ml-4 text-sm text-slate-600 dark:text-slate-400">$1</li>')
+        .replace(/(<li.*<\/li>\n?)+/g, '<ul class="list-disc space-y-1 my-2">$&</ul>')
+        .replace(/\n{2,}/g, '<br/><br/>')
+        .replace(/\n/g, '<br/>');
+};
+
 const fileInput = ref(null);
 
 const form = useForm({
@@ -289,6 +330,14 @@ const formatDateShort = (date) => {
                                 <ArrowUpTrayIcon class="w-4 h-4" />
                                 Import
                             </button>
+                            <button 
+                                @click="runAiAnalysis"
+                                :disabled="aiAnalyzing"
+                                class="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white px-4 py-2 rounded-lg transition-all text-sm shadow-md hover:shadow-lg disabled:opacity-50"
+                            >
+                                <SparklesIcon class="w-4 h-4" :class="{ 'animate-spin': aiAnalyzing }" />
+                                {{ aiAnalyzing ? 'Analyzing...' : 'AI Analysis' }}
+                            </button>
                         </div>
                     </div>
 
@@ -346,6 +395,49 @@ const formatDateShort = (date) => {
                         </div>
                         <p v-if="chartLevel !== 'item'" class="text-center text-[10px] text-slate-400 mt-3 italic">Click a bar to drill down into details</p>
                     </div>
+
+                    <!-- ═══ AI ANALYSIS PANEL ═══ -->
+                    <Transition
+                        enter-active-class="transition-all duration-300 ease-out"
+                        enter-from-class="opacity-0 -translate-y-4 scale-95"
+                        enter-to-class="opacity-100 translate-y-0 scale-100"
+                        leave-active-class="transition-all duration-200 ease-in"
+                        leave-from-class="opacity-100 translate-y-0 scale-100"
+                        leave-to-class="opacity-0 -translate-y-2 scale-95"
+                    >
+                        <div v-if="showAiPanel" class="rounded-2xl p-6 mb-6 border border-violet-200 dark:border-violet-800/50 shadow-xl bg-gradient-to-br from-violet-50/80 to-purple-50/50 dark:from-violet-950/30 dark:to-purple-950/20 backdrop-blur-sm">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <SparklesIcon class="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                                    <h3 class="text-sm font-bold text-violet-800 dark:text-violet-300 uppercase tracking-wider">AI Forecast Analysis</h3>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button v-if="!aiAnalyzing" @click="runAiAnalysis" class="text-xs text-violet-600 dark:text-violet-400 hover:text-violet-800 font-medium flex items-center gap-1 transition-colors">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                        Re-analyze
+                                    </button>
+                                    <button @click="showAiPanel = false" class="p-1 rounded-full hover:bg-violet-200 dark:hover:bg-violet-800 transition-colors">
+                                        <XMarkIcon class="w-4 h-4 text-violet-500" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div v-if="aiAnalyzing" class="flex flex-col items-center justify-center py-12 gap-4">
+                                <div class="relative">
+                                    <div class="w-12 h-12 rounded-full border-4 border-violet-200 dark:border-violet-800 border-t-violet-600 dark:border-t-violet-400 animate-spin"></div>
+                                    <SparklesIcon class="w-5 h-5 text-violet-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-sm font-medium text-violet-700 dark:text-violet-300">AI sedang menganalisis data forecast...</p>
+                                    <p class="text-xs text-violet-500 dark:text-violet-400 mt-1">Ini mungkin memerlukan beberapa detik</p>
+                                </div>
+                            </div>
+
+                            <!-- Results -->
+                            <div v-else-if="aiResult" class="prose prose-sm dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed" v-html="renderMarkdown(aiResult)"></div>
+                        </div>
+                    </Transition>
 
                     <!-- Table Wrapper -->
                     <div v-show="activeView === 'table'" class="rounded-2xl glass-card overflow-hidden">
