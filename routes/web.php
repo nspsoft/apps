@@ -200,6 +200,10 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
         Route::get('/forecast/export', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'export'])->name('forecast.export');
         Route::get('/schedule', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'index'])->name('schedule.index');
         Route::post('/schedule/import', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'import'])->name('schedule.import');
+        Route::get('/schedule/template', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'template'])->name('schedule.template');
+        Route::get('/schedule/export', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'export'])->name('schedule.export');
+        Route::get('/schedule/comparison', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'comparison'])->name('schedule.comparison');
+        Route::get('/schedule/print', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'printSchedule'])->name('schedule.print');
     });
 
     // AI PO Extractor Page

@@ -15,6 +15,8 @@ class DeliverySchedule extends Model
         'po_number',
         'reference_number',
         'notes',
+        'created_by',
+        'sales_name',
     ];
 
     protected $casts = [
@@ -30,5 +32,10 @@ class DeliverySchedule extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function created_by_user()
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }

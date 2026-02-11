@@ -13,6 +13,13 @@ use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class DeliveryScheduleImport implements ToModel, WithHeadingRow, WithValidation
 {
+    protected $sales_name;
+
+    public function __construct($sales_name = null)
+    {
+        $this->sales_name = $sales_name;
+    }
+
     public function model(array $row)
     {
         $customer = Customer::where('code', $row['customer_code'])->first();
@@ -44,6 +51,8 @@ class DeliveryScheduleImport implements ToModel, WithHeadingRow, WithValidation
                 'qty_scheduled' => $row['qty'],
                 'reference_number' => $row['reference_number'] ?? null,
                 'notes' => $row['notes'] ?? null,
+                'created_by' => auth()->id(),
+                'sales_name' => $this->sales_name,
             ]
         );
     }
