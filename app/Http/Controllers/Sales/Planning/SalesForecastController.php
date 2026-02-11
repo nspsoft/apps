@@ -275,6 +275,8 @@ class SalesForecastController extends Controller
      */
     public function analyzeAccuracy(Request $request)
     {
+        set_time_limit(120); // Extend execution time for AI processing
+
         $search = $request->search;
         $month = $request->month;
 
