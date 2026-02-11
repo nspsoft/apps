@@ -29,7 +29,7 @@ class PurchaseRequestController extends Controller
         $direction = $request->input('direction', 'desc');
 
         // Whitelist allowed sort columns
-        $allowedSorts = ['pr_number', 'request_date', 'department', 'requester', 'status', 'created_at', 'items_count'];
+        $allowedSorts = ['pr_number', 'request_date', 'department', 'requester', 'status', 'created_at'];
         if (!in_array($sort, $allowedSorts)) {
             $sort = 'created_at';
         }

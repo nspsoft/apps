@@ -57,10 +57,12 @@ class PurchaseOrderController extends Controller
             $query->join('warehouses', 'purchase_orders.warehouse_id', '=', 'warehouses.id')
                   ->orderBy('warehouses.name', $direction)
                   ->select('purchase_orders.*');
-        } elseif (in_array($sort, ['items_count', 'total_qty', 'total_received', 'total_returned', 'total'])) {
+        } elseif (in_array($sort, ['total_qty', 'total_received', 'total_returned', 'total'])) {
+            $query->orderBy($sort, $direction);
+        } elseif (in_array($sort, ['po_number', 'order_date', 'expected_date', 'status', 'created_at'])) {
             $query->orderBy($sort, $direction);
         } else {
-            $query->orderBy($sort, $direction);
+            $query->orderBy('created_at', $direction);
         }
 
         $purchaseOrders = $query->paginate(20)->withQueryString();
