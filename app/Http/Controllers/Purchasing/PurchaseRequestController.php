@@ -25,16 +25,7 @@ class PurchaseRequestController extends Controller
                   ->orWhere('department', 'like', "%{$search}%");
             });
 
-        $sort = $request->input('sort', 'created_at');
-        $direction = $request->input('direction', 'desc');
-
-        // Whitelist allowed sort columns
-        $allowedSorts = ['pr_number', 'request_date', 'department', 'requester', 'status', 'created_at'];
-        if (!in_array($sort, $allowedSorts)) {
-            $sort = 'created_at';
-        }
-
-        $requests = $query->orderBy($sort, $direction)
+        $requests = $query->latest()
             ->paginate(20)
             ->withQueryString();
 
