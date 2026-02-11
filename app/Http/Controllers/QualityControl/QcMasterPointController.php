@@ -14,7 +14,7 @@ class QcMasterPointController extends Controller
             ->paginate(10);
         
         // Also get all products for the dropdown
-        $allProducts = \App\Models\Product::select('id', 'name', 'code')->get();
+        $allProducts = \App\Models\Product::select('id', 'name', 'sku')->get();
 
         return inertia('QualityControl/MasterPoints/Index', [
             'products' => $products,

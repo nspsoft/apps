@@ -13,6 +13,13 @@ use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class SalesForecastImport implements ToModel, WithHeadingRow, WithValidation
 {
+    protected $salesName;
+
+    public function __construct($salesName = null)
+    {
+        $this->salesName = $salesName;
+    }
+
     public function model(array $row)
     {
         $customer = Customer::where('code', $row['customer_code'])->first();
@@ -33,16 +40,25 @@ class SalesForecastImport implements ToModel, WithHeadingRow, WithValidation
             return null;
         }
 
+        $data = [
+            'qty_forecast' => $row['qty'],
+            'notes' => $row['notes'] ?? null,
+            'sales_name' => $this->salesName,
+        ];
+
+        // Only set created_by if record is being created (not perfect for updateOrCreate but following pattern)
+        // Better: always set it to the user performing the import
+        if (auth()->check()) {
+            $data['created_by'] = auth()->id();
+        }
+
         return SalesForecast::updateOrCreate(
             [
                 'customer_id' => $customer->id,
                 'product_id' => $product->id,
                 'period' => $period,
             ],
-            [
-                'qty_forecast' => $row['qty'],
-                'notes' => $row['notes'] ?? null,
-            ]
+            $data
         );
     }
 

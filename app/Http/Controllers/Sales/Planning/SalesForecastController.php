@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 
 use App\Models\SalesForecast;
 use App\Imports\SalesForecastImport;
+use App\Exports\Template\SalesForecastTemplateExport;
+use App\Exports\SalesForecastExport;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -17,10 +19,11 @@ class SalesForecastController extends Controller
         $sort = $request->input('sort', 'period');
         $direction = $request->input('direction', 'desc');
 
-        $query = SalesForecast::with(['customer', 'product.unit'])
+        $query = SalesForecast::with(['customer', 'product.unit', 'created_by_user'])
             ->when($request->search, function ($query, $search) {
                 $query->whereHas('customer', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
+                      ->orWhereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"))
+                      ->orWhere('sales_name', 'like', "%{$search}%");
             })
             ->when($request->month, function ($query, $month) {
                 $query->whereDate('period', $month . '-01');
@@ -67,13 +70,24 @@ class SalesForecastController extends Controller
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
+            'sales_name' => 'nullable|string|max:255',
         ]);
 
         try {
-            Excel::import(new SalesForecastImport, $request->file('file'));
+            Excel::import(new SalesForecastImport($request->sales_name), $request->file('file'));
             return back()->with('success', 'Sales Forecast imported successfully.');
         } catch (\Exception $e) {
             return back()->with('error', 'Error importing file: ' . $e->getMessage());
         }
+    }
+
+    public function template()
+    {
+        return Excel::download(new SalesForecastTemplateExport, 'sales_forecast_template.xlsx');
+    }
+
+    public function export(Request $request)
+    {
+        return Excel::download(new SalesForecastExport($request->all()), 'sales_forecast_' . now()->format('Y-m-d') . '.xlsx');
     }
 }

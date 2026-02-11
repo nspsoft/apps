@@ -271,7 +271,6 @@ const formatDate = (date) => {
                                             <ChevronDownIcon v-else class="h-3 w-3" />
                                         </span>
                                     </div>
-                                    </div>
                                 </th>
                                 <th @click="sort('items_count')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
                                     <div class="flex items-center justify-center gap-1">

@@ -21,6 +21,15 @@ const generateCoa = (so) => {
         form.post(route('qc.coa.store'));
     }
 };
+
+const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    });
+};
 </script>
 
 <template>
@@ -57,7 +66,7 @@ const generateCoa = (so) => {
                                         {{ so.so_number }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ so.order_date }}
+                                        {{ formatDate(so.order_date) }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {{ so.customer?.name }}

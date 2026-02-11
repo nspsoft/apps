@@ -79,7 +79,7 @@ const filteredProducts = computed(() => {
     if (!search.value) return props.products.data;
     return props.products.data.filter(product => 
         product.name.toLowerCase().includes(search.value.toLowerCase()) ||
-        product.code.toLowerCase().includes(search.value.toLowerCase())
+        product.sku.toLowerCase().includes(search.value.toLowerCase())
     );
 });
 </script>
@@ -127,7 +127,7 @@ const filteredProducts = computed(() => {
                                     <tr v-for="point in product.qc_master_points" :key="point.id">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900 dark:text-white">{{ product.name }}</div>
-                                            <div class="text-sm text-gray-500">{{ product.code }}</div>
+                                            <div class="text-sm text-gray-500">{{ product.sku }}</div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                             {{ point.parameter_name }}
@@ -169,7 +169,7 @@ const filteredProducts = computed(() => {
                         <select v-model="form.product_id" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                             <option value="">Select Product...</option>
                             <option v-for="p in allProducts" :key="p.id" :value="p.id">
-                                {{ p.code }} - {{ p.name }}
+                                {{ p.sku }} - {{ p.name }}
                             </option>
                         </select>
                          <div v-if="form.errors.product_id" class="text-red-500 text-xs mt-1">{{ form.errors.product_id }}</div>

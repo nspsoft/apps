@@ -196,6 +196,8 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
         Route::get('/dashboard/details', [App\Http\Controllers\Sales\Planning\SalesPlanningController::class, 'details'])->name('dashboard.details');
         Route::get('/forecast', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'index'])->name('forecast.index');
         Route::post('/forecast/import', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'import'])->name('forecast.import');
+        Route::get('/forecast/template', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'template'])->name('forecast.template');
+        Route::get('/forecast/export', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'export'])->name('forecast.export');
         Route::get('/schedule', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'index'])->name('schedule.index');
         Route::post('/schedule/import', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'import'])->name('schedule.import');
     });

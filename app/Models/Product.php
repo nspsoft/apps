@@ -127,6 +127,11 @@ class Product extends Model
         return $this->hasMany(ProductStock::class);
     }
 
+    public function qcMasterPoints(): HasMany
+    {
+        return $this->hasMany(QcMasterPoint::class);
+    }
+
     /**
      * Get total stock across all warehouses
      */

@@ -104,6 +104,11 @@ class SalesOrder extends Model
         return $this->hasMany(SalesReturn::class);
     }
 
+    public function coaDocuments(): HasMany
+    {
+        return $this->hasMany(CoaDocument::class);
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

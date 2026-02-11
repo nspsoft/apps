@@ -9,7 +9,9 @@ import {
     XMarkIcon,
     ChevronUpIcon,
     ChevronDownIcon,
+    UserIcon,
 } from '@heroicons/vue/24/outline';
+import { formatNumber } from '@/helpers';
 
 const props = defineProps({
     forecasts: Object,
@@ -25,6 +27,7 @@ const fileInput = ref(null);
 
 const form = useForm({
     file: null,
+    sales_name: '',
 });
 
 const sort = (field) => {
@@ -38,7 +41,7 @@ const sort = (field) => {
 };
 
 const handleSearch = () => {
-    router.get(route('planning.forecast.index'), { 
+    router.get(route('sales.planning.forecast.index'), { 
         search: search.value, 
         month: month.value,
         sort: sortField.value,
@@ -51,23 +54,44 @@ watch([search, month], () => {
 });
 
 const openImportModal = () => {
-    console.log('Opening Forecast Import Modal');
     importModalOpen.value = true;
 };
 
 const closeImportModal = () => {
-    console.log('Closing Forecast Import Modal');
     importModalOpen.value = false;
     form.reset();
 };
 
 const submitImport = () => {
-    if (fileInput.value.files[0]) {
-        form.file = fileInput.value.files[0];
-        form.post(route('planning.forecast.import'), {
+    if (form.file) {
+        form.post(route('sales.planning.forecast.import'), {
             onSuccess: () => closeImportModal(),
         });
     }
+};
+
+const getAccuracyColor = (accuracy) => {
+    if (accuracy >= 90) return '#10b981'; // emerald-500
+    if (accuracy >= 75) return '#3b82f6'; // blue-500
+    if (accuracy >= 50) return '#f59e0b'; // amber-500
+    return '#ef4444'; // red-500
+};
+
+const getAccuracyClass = (accuracy) => {
+    if (accuracy >= 90) return 'text-emerald-600 dark:text-emerald-400';
+    if (accuracy >= 75) return 'text-blue-600 dark:text-blue-400';
+    if (accuracy >= 50) return 'text-amber-600 dark:text-amber-400';
+    return 'text-red-600 dark:text-red-400';
+};
+
+const formatMonth = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
+};
+
+const formatDateShort = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
 };
 </script>
 
@@ -81,9 +105,10 @@ const submitImport = () => {
             </h2>
         </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white dark:bg-slate-800 overflow-hidden shadow-xl sm:rounded-lg p-6">
+        <div class="p-4 sm:p-6 lg:p-8">
+            <!-- Main Container -->
+            <div class="glass-card rounded-2xl overflow-hidden p-6">
+                    <!-- Actions Row -->
                     <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                         <div class="flex gap-4 w-full md:w-auto">
                             <div class="relative w-full md:w-64">
@@ -102,161 +127,221 @@ const submitImport = () => {
                             >
                         </div>
                         
-                        <button 
-                            @click="openImportModal"
-                            class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
-                        >
-                            <ArrowUpTrayIcon class="w-5 h-5" />
-                            Import Excel
-                        </button>
+                        <div class="flex gap-2">
+                            <a 
+                                :href="route('sales.planning.forecast.export', { search, month })"
+                                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Export Excel
+                            </a>
+                            <button 
+                                @click="openImportModal"
+                                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
+                            >
+                                <ArrowUpTrayIcon class="w-5 h-5" />
+                                Import Excel
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                            <thead class="bg-slate-50 dark:bg-slate-700/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-300">
-                                <tr>
-                                    <th @click="sort('period')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                        <div class="flex items-center gap-1">
-                                            Period
-                                            <span v-if="sortField === 'period'" class="text-blue-600 dark:text-blue-400">
-                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
-                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                    <!-- Table Wrapper -->
+                    <div class="rounded-2xl glass-card overflow-hidden">
+                        <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
+                            <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
+                                <thead class="bg-slate-50 dark:bg-slate-700/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-300">
+                                    <tr class="border-b border-slate-200 dark:border-slate-700">
+                                        <th @click="sort('period')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">
+                                            <div class="flex items-center gap-1">
+                                                Period
+                                                <span v-if="sortField === 'period'" class="text-blue-600 dark:text-blue-400">
+                                                    <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                    <ChevronDownIcon v-else class="h-3 w-3" />
+                                                </span>
+                                            </div>
+                                        </th>
+                                        <th @click="sort('customer_name')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">
+                                            <div class="flex items-center gap-1">
+                                                Customer
+                                                <span v-if="sortField === 'customer_name'" class="text-blue-600 dark:text-blue-400">
+                                                    <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                    <ChevronDownIcon v-else class="h-3 w-3" />
+                                                </span>
+                                            </div>
+                                        </th>
+                                        <th @click="sort('product_name')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">
+                                            <div class="flex items-center gap-1">
+                                                Product
+                                                <span v-if="sortField === 'product_name'" class="text-blue-600 dark:text-blue-400">
+                                                    <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                    <ChevronDownIcon v-else class="h-3 w-3" />
+                                                </span>
+                                            </div>
+                                        </th>
+                                        <th @click="sort('qty_forecast')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">
+                                            <div class="flex items-center justify-end gap-1">
+                                                Qty Forecast
+                                                <span v-if="sortField === 'qty_forecast'" class="text-blue-600 dark:text-blue-400">
+                                                    <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                    <ChevronDownIcon v-else class="h-3 w-3" />
+                                                </span>
+                                            </div>
+                                        </th>
+                                        <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">Qty PO (Actual)</th>
+                                        <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">Accuracy</th>
+                                        <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">Sales Name</th>
+                                        <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">Unit</th>
+                                        <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm">Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr v-for="forecast in forecasts.data" :key="forecast.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800/30 transition-colors">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 uppercase font-medium">
+                                            {{ formatMonth(forecast.period) }}
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ forecast.customer?.name }}</div>
+                                            <div class="text-[10px] text-slate-500 font-mono tracking-tight">{{ forecast.customer?.code }}</div>
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <div class="text-sm font-medium text-slate-900 dark:text-white">{{ forecast.product?.name }}</div>
+                                            <div class="text-[10px] text-slate-500 font-mono tracking-tight">{{ forecast.product?.sku }}</div>
+                                        </td>
+                                        <td class="px-4 py-2 text-right font-mono text-sm text-slate-900 dark:text-white">
+                                            {{ formatNumber(forecast.qty_forecast) }}
+                                        </td>
+                                        <td class="px-4 py-2 text-right font-mono text-sm">
+                                            <span :class="{
+                                                'text-blue-500 font-bold': forecast.qty_actual > 0,
+                                                'text-slate-400': forecast.qty_actual === 0
+                                            }">
+                                                {{ formatNumber(forecast.qty_actual) }}
                                             </span>
-                                        </div>
-                                    </th>
-                                    <th @click="sort('customer_name')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                        <div class="flex items-center gap-1">
-                                            Customer
-                                            <span v-if="sortField === 'customer_name'" class="text-blue-600 dark:text-blue-400">
-                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
-                                                <ChevronDownIcon v-else class="h-3 w-3" />
-                                            </span>
-                                        </div>
-                                    </th>
-                                    <th @click="sort('product_name')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                        <div class="flex items-center gap-1">
-                                            Product
-                                            <span v-if="sortField === 'product_name'" class="text-blue-600 dark:text-blue-400">
-                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
-                                                <ChevronDownIcon v-else class="h-3 w-3" />
-                                            </span>
-                                        </div>
-                                    </th>
-                                    <th @click="sort('qty_forecast')" class="px-6 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                                        <div class="flex items-center justify-end gap-1">
-                                            Qty Forecast
-                                            <span v-if="sortField === 'qty_forecast'" class="text-blue-600 dark:text-blue-400">
-                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
-                                                <ChevronDownIcon v-else class="h-3 w-3" />
-                                            </span>
-                                        </div>
-                                    </th>
-                                    <th class="px-6 py-3 text-right">Qty PO (Actual)</th>
-                                    <th class="px-6 py-3">Unit</th>
-                                    <th class="px-6 py-3">Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                                <tr v-for="forecast in forecasts.data" :key="forecast.id" class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                    <td class="px-6 py-2">{{ new Date(forecast.period).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' }) }}</td>
-                                    <td class="px-6 py-2 font-medium text-slate-900 dark:text-white">{{ forecast.customer?.name }}</td>
-                                    <td class="px-6 py-2">
-                                        <div class="font-medium text-slate-900 dark:text-white">{{ forecast.product?.name }}</div>
-                                        <div class="text-xs text-slate-500">{{ forecast.product?.sku }}</div>
-                                    </td>
-                                    <td class="px-6 py-2 text-right font-mono">{{ Number(forecast.qty_forecast).toLocaleString('id-ID') }}</td>
-                                    <td class="px-6 py-2 text-right font-mono">
-                                        <span :class="{
-                                            'text-blue-600 dark:text-blue-400 font-bold': forecast.qty_actual > 0,
-                                            'text-slate-400': forecast.qty_actual === 0
-                                        }">
-                                            {{ Number(forecast.qty_actual).toLocaleString('id-ID') }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-2">{{ forecast.product?.unit?.code }}</td>
-                                    <td class="px-6 py-2 text-xs italic">{{ forecast.notes || '-' }}</td>
-                                </tr>
-                                <tr v-if="forecasts.data.length === 0">
-                                    <td colspan="7" class="px-6 py-8 text-center text-slate-500">
-                                        No forecast data found. Import Excel to get started.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                        </td>
+                                        <td class="px-4 py-2 text-center">
+                                            <div class="flex flex-col items-center">
+                                                <span :class="getAccuracyClass(forecast.accuracy)" class="font-bold text-[10px] tracking-tighter">
+                                                    {{ forecast.accuracy }}%
+                                                </span>
+                                                <div class="w-12 h-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-0.5">
+                                                    <div 
+                                                        class="h-full transition-all duration-500" 
+                                                        :style="{ width: forecast.accuracy + '%', backgroundColor: getAccuracyColor(forecast.accuracy) }"
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <div class="text-sm font-medium text-slate-900 dark:text-white truncate max-w-[120px]" :title="forecast.sales_name">{{ forecast.sales_name || '-' }}</div>
+                                            <div class="text-[9px] text-slate-500 uppercase flex items-center gap-1" v-if="forecast.created_by">
+                                                <UserIcon class="w-2.5 h-2.5" />
+                                                {{ forecast.created_by_user?.name || 'User' }} • {{ formatDateShort(forecast.created_at) }}
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-2 text-sm text-slate-500 font-mono">{{ forecast.product?.unit?.code }}</td>
+                                        <td class="px-4 py-2 text-[11px] italic text-slate-500 dark:text-slate-400 line-clamp-1 truncate max-w-[150px]" :title="forecast.notes">{{ forecast.notes || '-' }}</td>
+                                    </tr>
+                                    <tr v-if="forecasts.data.length === 0">
+                                        <td colspan="9" class="px-4 py-12 text-center text-slate-500 whitespace-nowrap">
+                                            No forecast data found. Import Excel to get started.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
+                    <!-- Pagination Wrapper -->
                     <div class="mt-6">
                         <Pagination :links="forecasts.links" />
                     </div>
                 </div>
             </div>
-        </div>
 
         <!-- Import Modal -->
-        <div v-if="importModalOpen" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" aria-hidden="true" @click="closeImportModal"></div>
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div v-if="importModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white">
+                            Import Forecast Data
+                        </h3>
+                        <button @click="closeImportModal" class="text-slate-500 hover:text-slate-900 dark:text-white transition-colors">
+                            <XMarkIcon class="h-6 w-6" />
+                        </button>
+                    </div>
 
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-                <div class="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <div class="bg-white dark:bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
-                            <h3 class="text-lg leading-6 font-bold text-slate-900 dark:text-white" id="modal-title">
-                                Import Forecast Data
-                            </h3>
-                            <button @click="closeImportModal" class="text-slate-400 hover:text-slate-500 transition-colors">
-                                <XMarkIcon class="w-6 h-6" />
-                            </button>
-                        </div>
-                        <div class="sm:flex sm:items-start">
-                            <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                                <div class="mt-2">
-                                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                                        Upload an Excel file (.xlsx, .xls) with columns: 
-                                        <code class="bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded">customer_code</code>, 
-                                        <code class="bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded">product_sku</code>, 
-                                        <code class="bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded">period</code>, 
-                                        <code class="bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded">qty</code>, 
-                                        <code class="bg-slate-100 dark:bg-slate-700 px-1 py-0.5 rounded">notes</code>.
-                                    </p>
-                                    <input 
-                                        ref="fileInput"
-                                        type="file" 
-                                        class="block w-full text-sm text-slate-500
-                                            file:mr-4 file:py-2 file:px-4
-                                            file:rounded-full file:border-0
-                                            file:text-sm file:font-semibold
-                                            file:bg-emerald-50 file:text-emerald-700
-                                            hover:file:bg-emerald-100
-                                            dark:file:bg-emerald-900/30 dark:file:text-emerald-400
-                                        "
-                                        accept=".xlsx, .xls, .csv"
-                                    />
-                                    <div v-if="form.errors.file" class="text-red-500 text-xs mt-2">{{ form.errors.file }}</div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Sales Name</label>
+                        <input 
+                            v-model="form.sales_name" 
+                            type="text"
+                            placeholder="Enter salesperson name"
+                            class="w-full rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                        >
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Excel/CSV File</label>
+                        <div class="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl p-8 hover:border-blue-500/50 transition-all relative group bg-slate-50/50 dark:bg-slate-900/50">
+                            <input 
+                                type="file" 
+                                ref="fileInput"
+                                @change="(e) => form.file = e.target.files[0]"
+                                class="absolute inset-0 opacity-0 cursor-pointer z-20"
+                                accept=".xlsx,.xls,.csv"
+                            />
+                            <div class="flex flex-col items-center transition-transform group-hover:scale-105 duration-300">
+                                <div class="p-3 rounded-full bg-blue-50 dark:bg-blue-900/30 mb-3">
+                                    <ArrowUpTrayIcon class="h-8 w-8 text-blue-600 dark:text-blue-400" />
                                 </div>
+                                <p class="text-sm text-slate-600 dark:text-slate-300 font-semibold mb-1">
+                                    {{ form.file ? form.file.name : 'Click or drag file to upload' }}
+                                </p>
+                                <p class="text-xs text-slate-500">Maximum size: 2MB</p>
+                            </div>
+                            
+                            <div class="mt-4 z-30 relative py-1 px-3 rounded-lg bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800/50">
+                                <a 
+                                    :href="route('sales.planning.forecast.template')"
+                                    class="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                    Download Template
+                                </a>
                             </div>
                         </div>
+                        <div v-if="form.errors.file" class="text-red-500 text-xs mt-2 font-medium">{{ form.errors.file }}</div>
                     </div>
-                    <div class="bg-slate-50 dark:bg-slate-700/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+
+                    <div class="flex items-center gap-3">
                         <button 
-                            @click="submitImport" 
-                            type="button" 
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm"
-                            :disabled="form.processing"
+                            @click="submitImport"
+                            :disabled="!form.file || form.processing"
+                            class="flex-1 rounded-xl bg-blue-600 py-3 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
                         >
-                            {{ form.processing ? 'Importing...' : 'Import' }}
+                            {{ form.processing ? 'Importing...' : 'Start Import' }}
                         </button>
                         <button 
-                            @click="closeImportModal" 
-                            type="button" 
-                            class="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-800 text-base font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                            @click="closeImportModal"
+                            class="flex-1 rounded-xl bg-slate-100 dark:bg-slate-700 py-3 text-sm font-bold text-slate-600 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all font-mono uppercase tracking-wider"
                         >
                             Cancel
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </Transition>
     </AppLayout>
 </template>

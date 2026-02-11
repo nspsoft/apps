@@ -268,9 +268,12 @@ const navigation = [
         current: false,
         permission: 'qc.view',
         children: [
+            { name: 'QC Dashboard', href: '/qc/dashboard', icon: PresentationChartBarIcon, permission: 'qc.view' },
             { name: 'Incoming Inspection', href: '/qc/incoming', icon: ArrowDownOnSquareIcon, permission: 'qc.incoming_inspection.view' },
             { name: 'In-Process QC', href: '/qc/in-process', icon: ArrowPathIcon, permission: 'qc.in-process_qc.view' },
-            { name: 'Quality Checklists', href: '/qc/checklists', icon: ClipboardDocumentCheckIcon, permission: 'qc.quality_checklists.view' },
+            { name: 'Defect Management (NCR)', href: '/qc/ncr', icon: ShieldExclamationIcon, permission: 'qc.ncr.view' },
+            { name: 'COA Generator', href: '/qc/coa/create', icon: DocumentTextIcon, permission: 'qc.coa.view' },
+            { name: 'Master Data', href: '/qc/master-points', icon: TagIcon, permission: 'qc.master_data.view' },
         ]
     },
     { 
