@@ -198,6 +198,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
         Route::post('/forecast/import', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'import'])->name('forecast.import');
         Route::get('/forecast/template', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'template'])->name('forecast.template');
         Route::get('/forecast/export', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'export'])->name('forecast.export');
+        Route::get('/forecast/chart-data', [App\Http\Controllers\Sales\Planning\SalesForecastController::class, 'forecastChart'])->name('forecast.chart-data');
         Route::get('/schedule', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'index'])->name('schedule.index');
         Route::post('/schedule/import', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'import'])->name('schedule.import');
         Route::get('/schedule/template', [App\Http\Controllers\Sales\Planning\DeliveryScheduleController::class, 'template'])->name('schedule.template');

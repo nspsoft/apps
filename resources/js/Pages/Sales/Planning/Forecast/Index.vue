@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import Pagination from '@/Components/Pagination.vue';
-import { ref, watch } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { 
     MagnifyingGlassIcon, 
     ArrowUpTrayIcon,
@@ -10,8 +10,19 @@ import {
     ChevronUpIcon,
     ChevronDownIcon,
     UserIcon,
+    ChartBarIcon,
+    TableCellsIcon,
+    ArrowLeftCircleIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber } from '@/helpers';
+import {
+    Chart as ChartJS,
+    CategoryScale, LinearScale, PointElement, LineElement, BarElement,
+    Title, Tooltip, Legend, Filler,
+} from 'chart.js';
+import { Bar } from 'vue-chartjs';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 const props = defineProps({
     forecasts: Object,
@@ -23,6 +34,126 @@ const month = ref(props.filters.month || '');
 const sortField = ref(props.filters.sort || 'period');
 const sortDirection = ref(props.filters.direction || 'desc');
 const importModalOpen = ref(false);
+const activeView = ref('chart');
+
+// ─── Chart State ───
+const chartLevel = ref('summary');
+const chartData = ref(null);
+const chartLoading = ref(false);
+const chartBreadcrumb = ref([{ label: 'All Customers', level: 'summary' }]);
+const selectedCustomerId = ref(null);
+const selectedProductId = ref(null);
+
+const loadChartData = async () => {
+    chartLoading.value = true;
+    try {
+        const params = new URLSearchParams({
+            search: search.value || '',
+            level: chartLevel.value,
+        });
+        if (selectedCustomerId.value) params.set('customer_id', selectedCustomerId.value);
+        if (selectedProductId.value) params.set('product_id', selectedProductId.value);
+        const res = await fetch(route('sales.planning.forecast.chart-data') + '?' + params.toString());
+        chartData.value = await res.json();
+    } catch (e) {
+        console.error('Chart fetch error:', e);
+    } finally {
+        chartLoading.value = false;
+    }
+};
+
+const drillDown = (item) => {
+    if (chartLevel.value === 'summary') {
+        chartLevel.value = 'customer';
+        selectedCustomerId.value = item.id;
+        chartBreadcrumb.value.push({ label: item.name, level: 'customer', id: item.id });
+        loadChartData();
+    } else if (chartLevel.value === 'customer') {
+        chartLevel.value = 'item';
+        selectedProductId.value = item.id;
+        chartBreadcrumb.value.push({ label: item.name, level: 'item', id: item.id });
+        loadChartData();
+    }
+};
+
+const drillUp = (index) => {
+    const target = chartBreadcrumb.value[index];
+    chartBreadcrumb.value = chartBreadcrumb.value.slice(0, index + 1);
+    chartLevel.value = target.level;
+    if (target.level === 'summary') { selectedCustomerId.value = null; selectedProductId.value = null; }
+    else if (target.level === 'customer') { selectedProductId.value = null; }
+    loadChartData();
+};
+
+onMounted(() => { loadChartData(); });
+
+// ─── Chart.js Configs ───
+const summaryChartData = computed(() => {
+    if (!chartData.value || chartData.value.level !== 'summary') return null;
+    const d = chartData.value.data;
+    return {
+        labels: d.map(c => c.name),
+        datasets: [
+            { label: 'Forecast', data: d.map(c => c.forecast), backgroundColor: 'rgba(139,92,246,0.7)', borderRadius: 4, barThickness: 22 },
+            { label: 'Actual (Order)', data: d.map(c => c.actual), backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 4, barThickness: 22 },
+        ],
+    };
+});
+
+const customerChartData = computed(() => {
+    if (!chartData.value || chartData.value.level !== 'customer') return null;
+    const d = chartData.value.data;
+    return {
+        labels: d.map(p => p.name),
+        datasets: [
+            { label: 'Forecast', data: d.map(p => p.forecast), backgroundColor: 'rgba(139,92,246,0.7)', borderRadius: 4 },
+            { label: 'Actual (Order)', data: d.map(p => p.actual), backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 4 },
+        ],
+    };
+});
+
+const itemChartData = computed(() => {
+    if (!chartData.value || chartData.value.level !== 'item') return null;
+    const d = chartData.value.data;
+    return {
+        labels: d.map(t => t.label),
+        datasets: [
+            { type: 'bar', label: 'Forecast', data: d.map(t => t.forecast), backgroundColor: 'rgba(139,92,246,0.4)', borderRadius: 3, order: 2 },
+            { type: 'bar', label: 'Actual', data: d.map(t => t.actual), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 3, order: 2 },
+            { type: 'line', label: 'Cum. Forecast', data: d.map(t => t.cum_forecast), borderColor: '#8b5cf6', borderDash: [6,3], borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#8b5cf6', fill: false, tension: 0.3, order: 1 },
+            { type: 'line', label: 'Cum. Actual', data: d.map(t => t.cum_actual), borderColor: '#10b981', borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#10b981', fill: false, tension: 0.3, order: 1 },
+        ],
+    };
+});
+
+const horizontalBarOpts = computed(() => ({
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    onClick: (evt, elements) => { if (elements.length && chartData.value) drillDown(chartData.value.data[elements[0].index]); },
+    plugins: { legend: { position: 'top', labels: { color: '#64748b', font: { size: 11, weight: 'bold' } } }, tooltip: { padding: 10 } },
+    scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { color: '#334155', font: { size: 11, weight: '600' } } },
+    },
+}));
+
+const verticalBarOpts = computed(() => ({
+    responsive: true, maintainAspectRatio: false,
+    onClick: (evt, elements) => { if (elements.length && chartData.value) drillDown(chartData.value.data[elements[0].index]); },
+    plugins: { legend: { position: 'top', labels: { color: '#64748b', font: { size: 11, weight: 'bold' } } }, tooltip: { padding: 10 } },
+    scales: {
+        x: { grid: { display: false }, ticks: { color: '#334155', font: { size: 10, weight: '600' }, maxRotation: 45 } },
+        y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+    },
+}));
+
+const comboChartOpts = computed(() => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { color: '#64748b', font: { size: 11, weight: 'bold' } } }, tooltip: { padding: 10 } },
+    scales: {
+        x: { grid: { display: false }, ticks: { color: '#334155', font: { size: 10 }, maxRotation: 45 } },
+        y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+    },
+}));
 const fileInput = ref(null);
 
 const form = useForm({
@@ -51,6 +182,7 @@ const handleSearch = () => {
 
 watch([search, month], () => {
     handleSearch();
+    loadChartData();
 });
 
 const openImportModal = () => {
@@ -127,28 +259,96 @@ const formatDateShort = (date) => {
                             >
                         </div>
                         
-                        <div class="flex gap-2">
+                        <div class="flex items-center gap-3">
+                            <!-- View Toggle -->
+                            <div class="flex items-center bg-slate-200 dark:bg-slate-700 rounded-lg p-0.5">
+                                <button @click="activeView = 'chart'" 
+                                    :class="activeView === 'chart' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+                                    class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1">
+                                    <ChartBarIcon class="w-3.5 h-3.5" /> Chart
+                                </button>
+                                <button @click="activeView = 'table'" 
+                                    :class="activeView === 'table' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+                                    class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1">
+                                    <TableCellsIcon class="w-3.5 h-3.5" /> Table
+                                </button>
+                            </div>
                             <a 
                                 :href="route('sales.planning.forecast.export', { search, month })"
-                                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                                 </svg>
-                                Export Excel
+                                Export
                             </a>
                             <button 
                                 @click="openImportModal"
-                                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
                             >
-                                <ArrowUpTrayIcon class="w-5 h-5" />
-                                Import Excel
+                                <ArrowUpTrayIcon class="w-4 h-4" />
+                                Import
                             </button>
                         </div>
                     </div>
 
+                    <!-- ═══ CHART SECTION ═══ -->
+                    <div v-if="activeView === 'chart'" class="rounded-2xl p-6 mb-6 border border-slate-200 dark:border-slate-700/50 shadow-lg bg-white/50 dark:bg-slate-800/30">
+                        <!-- Breadcrumb -->
+                        <div class="flex items-center gap-2 mb-4 text-sm">
+                            <template v-for="(crumb, idx) in chartBreadcrumb" :key="idx">
+                                <span v-if="idx > 0" class="text-slate-400">/</span>
+                                <button @click="drillUp(idx)" 
+                                    :class="idx === chartBreadcrumb.length - 1 ? 'text-violet-600 dark:text-violet-400 font-bold' : 'text-slate-500 hover:text-violet-600 dark:hover:text-slate-300'"
+                                    class="transition-colors">
+                                    {{ crumb.label }}
+                                </button>
+                            </template>
+                            <button v-if="chartBreadcrumb.length > 1" @click="drillUp(chartBreadcrumb.length - 2)" class="ml-2 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                                <ArrowLeftCircleIcon class="w-5 h-5 text-slate-400" />
+                            </button>
+                        </div>
+
+                        <!-- KPI Cards -->
+                        <div v-if="chartData && chartData.kpi" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-violet-50 dark:bg-violet-900/30 border border-violet-200 dark:border-violet-800 rounded-xl p-4 text-center">
+                                <p class="text-[10px] text-violet-500 dark:text-violet-400 font-bold uppercase tracking-wider">Total Forecast</p>
+                                <p class="text-2xl font-black text-violet-700 dark:text-violet-300 mt-1">{{ formatNumber(chartData.kpi.total_forecast) }}</p>
+                            </div>
+                            <div class="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 text-center">
+                                <p class="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold uppercase tracking-wider">Total Actual (Order)</p>
+                                <p class="text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-1">{{ formatNumber(chartData.kpi.total_actual) }}</p>
+                            </div>
+                            <div class="border rounded-xl p-4 text-center" :class="chartData.kpi.achievement >= 90 ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800' : chartData.kpi.achievement >= 70 ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'">
+                                <p class="text-[10px] font-bold uppercase tracking-wider" :class="chartData.kpi.achievement >= 90 ? 'text-green-500' : chartData.kpi.achievement >= 70 ? 'text-amber-500' : 'text-red-500'">Achievement</p>
+                                <p class="text-2xl font-black mt-1" :class="chartData.kpi.achievement >= 90 ? 'text-green-700 dark:text-green-300' : chartData.kpi.achievement >= 70 ? 'text-amber-700 dark:text-amber-300' : 'text-red-700 dark:text-red-300'">{{ chartData.kpi.achievement }}%</p>
+                            </div>
+                            <div class="border rounded-xl p-4 text-center" :class="chartData.kpi.gap < 0 ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'">
+                                <p class="text-[10px] font-bold uppercase tracking-wider" :class="chartData.kpi.gap < 0 ? 'text-red-500' : 'text-slate-500'">Gap</p>
+                                <p class="text-2xl font-black mt-1" :class="chartData.kpi.gap < 0 ? 'text-red-700 dark:text-red-300' : 'text-slate-700 dark:text-slate-300'">{{ formatNumber(chartData.kpi.gap) }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Chart Area -->
+                        <div class="relative" style="height: 380px;">
+                            <div v-if="chartLoading" class="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-slate-900/60 z-10 rounded-xl">
+                                <div class="flex items-center gap-3 text-slate-500">
+                                    <svg class="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    <span class="text-sm font-medium">Loading chart data...</span>
+                                </div>
+                            </div>
+                            <Bar v-if="chartLevel === 'summary' && summaryChartData" :key="'fc-summary'" :data="summaryChartData" :options="horizontalBarOpts" />
+                            <Bar v-else-if="chartLevel === 'customer' && customerChartData" :key="'fc-customer-' + selectedCustomerId" :data="customerChartData" :options="verticalBarOpts" />
+                            <Bar v-else-if="chartLevel === 'item' && itemChartData" :key="'fc-item-' + selectedProductId" :data="itemChartData" :options="comboChartOpts" />
+                            <div v-else-if="!chartLoading" class="flex items-center justify-center h-full text-slate-400">
+                                <p class="text-sm">No forecast data available.</p>
+                            </div>
+                        </div>
+                        <p v-if="chartLevel !== 'item'" class="text-center text-[10px] text-slate-400 mt-3 italic">Click a bar to drill down into details</p>
+                    </div>
+
                     <!-- Table Wrapper -->
-                    <div class="rounded-2xl glass-card overflow-hidden">
+                    <div v-show="activeView === 'table'" class="rounded-2xl glass-card overflow-hidden">
                         <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                             <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
                                 <thead class="bg-slate-50 dark:bg-slate-700/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-300">
