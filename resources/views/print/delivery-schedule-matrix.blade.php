@@ -215,7 +215,7 @@
                 @foreach($customer['products'] as $pIdx => $product)
                     {{-- Schedule Row --}}
                     <tr style="border-top: 1.5pt solid #000;">
-                        @if($pIdx === 0)
+                        @if($loop->first)
                         <td class="customer-cell" rowspan="{{ count($customer['products']) * 3 }}">
                             {{ $customer['customer_name'] }}
                             <div style="font-size: 6pt; color: #777; font-weight: normal; margin-top: 3px; font-family: monospace;">{{ $customer['customer_code'] }}</div>
