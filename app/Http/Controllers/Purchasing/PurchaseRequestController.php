@@ -28,6 +28,12 @@ class PurchaseRequestController extends Controller
         $sort = $request->input('sort', 'created_at');
         $direction = $request->input('direction', 'desc');
 
+        // Whitelist allowed sort columns
+        $allowedSorts = ['pr_number', 'request_date', 'department', 'requester', 'status', 'created_at', 'items_count'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'created_at';
+        }
+
         $requests = $query->orderBy($sort, $direction)
             ->paginate(20)
             ->withQueryString();
