@@ -41,15 +41,29 @@ class ProductController extends Controller
                 $q->where('is_active', $request->status === 'active');
             });
 
-        $products = $query->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
+        if ($sort === 'category_name') {
+            $query->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+                  ->orderBy('categories.name', $direction)
+                  ->select('products.*');
+        } elseif ($sort === 'unit_name') {
+            $query->leftJoin('units', 'products.unit_id', '=', 'units.id')
+                  ->orderBy('units.name', $direction)
+                  ->select('products.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $products = $query->paginate(20)->withQueryString();
 
         // Attributes are now handled via $appends in the Product model
         return Inertia::render('Inventory/Products/Index', [
             'products' => $products,
             'categories' => Category::where('type', 'product')->orderBy('name')->get(),
-            'filters' => $request->only(['search', 'category', 'product_type', 'status']),
+            'filters' => $request->only(['search', 'category', 'product_type', 'status', 'sort', 'direction']),
             'productTypes' => [
                 ['value' => 'raw_material', 'label' => 'Raw Material'],
                 ['value' => 'wip', 'label' => 'Work in Progress'],
