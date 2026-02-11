@@ -277,9 +277,26 @@ Route::prefix('manufacturing')->name('manufacturing.')->middleware(['auth'])->gr
 
 // Quality Control
 Route::middleware(['auth'])->prefix('qc')->name('qc.')->group(function () {
-    Route::get('/incoming', fn () => Inertia::render('Blueprints/QC', ['title' => 'Incoming Inspection']))->name('incoming');
-    Route::get('/in-process', fn () => Inertia::render('Blueprints/QC', ['title' => 'In-Process QC']))->name('in-process');
-    Route::get('/checklists', fn () => Inertia::render('Blueprints/QC', ['title' => 'Quality Checklists']))->name('checklists');
+    Route::get('/incoming', [App\Http\Controllers\QualityControl\IncomingInspectionController::class, 'index'])->name('incoming.index');
+    Route::get('/incoming/{id}', [App\Http\Controllers\QualityControl\IncomingInspectionController::class, 'show'])->name('incoming.show');
+    Route::post('/incoming/{id}', [App\Http\Controllers\QualityControl\IncomingInspectionController::class, 'store'])->name('incoming.store');
+    Route::get('/in-process', [App\Http\Controllers\QualityControl\InProcessInspectionController::class, 'index'])->name('in-process.index');
+    Route::get('/in-process/{id}', [App\Http\Controllers\QualityControl\InProcessInspectionController::class, 'show'])->name('in-process.show');
+    Route::post('/in-process/{id}', [App\Http\Controllers\QualityControl\InProcessInspectionController::class, 'store'])->name('in-process.store');
+    Route::get('/dashboard', [App\Http\Controllers\QualityControl\QcDashboardController::class, 'index'])->name('dashboard');
+    // Route::get('/checklists', fn () => Inertia::render('Blueprints/QC', ['title' => 'Quality Checklists']))->name('checklists');
+    
+    Route::get('/coa/create', [App\Http\Controllers\QualityControl\CoaController::class, 'create'])->name('coa.create');
+    Route::post('/coa', [App\Http\Controllers\QualityControl\CoaController::class, 'store'])->name('coa.store');
+    Route::get('/coa/{id}', [App\Http\Controllers\QualityControl\CoaController::class, 'show'])->name('coa.show');
+    Route::get('/coa/{id}/print', [App\Http\Controllers\QualityControl\CoaController::class, 'print'])->name('coa.print');
+
+    Route::get('/ncr', [App\Http\Controllers\QualityControl\NcrController::class, 'index'])->name('ncr.index');
+    Route::get('/ncr/{id}', [App\Http\Controllers\QualityControl\NcrController::class, 'show'])->name('ncr.show');
+    Route::put('/ncr/{id}', [App\Http\Controllers\QualityControl\NcrController::class, 'update'])->name('ncr.update');
+
+    // Master Data
+    Route::resource('master-points', App\Http\Controllers\QualityControl\QcMasterPointController::class);
 });
 
 // Maintenance

@@ -1,5 +1,5 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { CheckBadgeIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
 
@@ -12,17 +12,62 @@ defineProps({
     <Head :title="title" />
     
     <AppLayout :title="title">
-        <div class="rounded-2xl glass-card p-12 text-center">
-            <div class="flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10 text-emerald-400 mx-auto mb-6">
-                <CheckBadgeIcon class="h-10 w-10" />
-            </div>
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">{{ title }}</h3>
-            <p class="text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
-                This Quality Control module is currently in the <strong>Blueprinting Phase</strong>. It will eventually handle incoming inspections, in-process quality checks, and automated compliance reports.
-            </p>
-            <div class="inline-flex items-center gap-2 text-slate-500 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
-                <WrenchScrewdriverIcon class="h-4 w-4" />
-                <span class="text-xs font-bold uppercase tracking-widest">Future Capability</span>
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Incoming Inspection -->
+                    <Link :href="route('qc.incoming.index')" class="transform hover:scale-105 transition-all duration-200">
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-6 border-l-4 border-blue-500">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-500 dark:text-blue-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Incoming Inspection</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Verify goods from suppliers (IQC)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    <!-- In-Process QC -->
+                    <Link :href="route('qc.in-process.index')" class="transform hover:scale-105 transition-all duration-200">
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-6 border-l-4 border-amber-500">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-500 dark:text-amber-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">In-Process QC</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Inspect active production lines (IPQC)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                    <!-- Master Data -->
+                    <Link :href="route('qc.master-points.index')" class="transform hover:scale-105 transition-all duration-200">
+                        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-6 border-l-4 border-emerald-500">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-500 dark:text-emerald-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">QC Standards</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage Inspection Checklists</p>
+                                </div>
+                            </div>
+                        </div>
+                    </Link>
+
+                </div>
             </div>
         </div>
     </AppLayout>
