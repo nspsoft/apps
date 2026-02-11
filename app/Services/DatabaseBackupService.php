@@ -88,6 +88,27 @@ class DatabaseBackupService
             'document_numbering',
             'ai_settings',
         ],
+        'projects' => [
+            'projects',
+            'project_tasks',
+            'project_members',
+            'task_members',
+            'project_task_attachments',
+        ],
+        'crm' => [
+            'leads',
+            'opportunities',
+            'sales_forecasts',
+        ],
+        'logistics' => [
+            'vehicles',
+        ],
+        'maintenance' => [
+            'maintenance_schedules',
+            'maintenance_logs',
+            'spareparts',
+            'maintenance_sparepart_usage',
+        ],
     ];
 
     /**

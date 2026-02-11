@@ -69,6 +69,10 @@ const moduleLabels = {
     hr: { name: 'HR & Payroll', icon: '👥', desc: 'Employees, Attendance, Payrolls' },
     finance: { name: 'Finance', icon: '💰', desc: 'Accounts, Journals, Ledgers' },
     settings: { name: 'Settings', icon: '⚙️', desc: 'Users, Roles, Company Settings' },
+    projects: { name: 'Projects', icon: '🚀', desc: 'Projects, Tasks, Members' },
+    crm: { name: 'CRM', icon: '🤝', desc: 'Leads, Opportunities, Campaigns' },
+    logistics: { name: 'Logistics', icon: '🚚', desc: 'Fleet, Delivery Schedules' },
+    maintenance: { name: 'Maintenance', icon: '🔧', desc: 'Schedules, Logs, Spareparts' },
 };
 
 // Computed
