@@ -27,14 +27,27 @@ class CategoryController extends Controller
                 $q->where('type', 'product'); 
             });
 
-        $categories = $query->with('parent')
-            ->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
+        if (in_array($sort, ['name', 'code'])) {
+            $categories = $query->with('parent')
+                ->withCount('products')
+                ->orderBy($sort, $direction)
+                ->paginate(20)
+                ->withQueryString();
+        } else {
+            $categories = $query->with('parent')
+                ->withCount('products')
+                ->orderBy('name', 'asc')
+                ->paginate(20)
+                ->withQueryString();
+        }
 
         return Inertia::render('Inventory/Categories/Index', [
             'categories' => $categories,
-            'filters' => $request->only(['search', 'type']),
+            'filters' => $request->only(['search', 'type', 'sort', 'direction']),
         ]);
     }
 

@@ -27,8 +27,18 @@ class SalesInvoiceController extends Controller
                 $q->where('status', $status);
             });
 
-        $invoices = $query->orderByDesc('invoice_date')
-            ->paginate(20)
+        $sort = $request->input('sort', 'invoice_date');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'customer_name') {
+            $query->leftJoin('customers', 'sales_invoices.customer_id', '=', 'customers.id')
+                  ->orderBy('customers.name', $direction)
+                  ->select('sales_invoices.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $invoices = $query->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Sales/Invoices/Index', [

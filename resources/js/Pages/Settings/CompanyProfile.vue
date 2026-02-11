@@ -131,7 +131,7 @@ const submit = () => {
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Website URL</label>
                                 <div class="relative group">
                                     <GlobeAltIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
-                                    <input v-model="form.website" type="url" class="form-input pl-10" placeholder="https://..." />
+                                    <input v-model="form.website" type="url" class="form-input !pl-12" placeholder="https://..." />
                                 </div>
                             </div>
                         </div>
@@ -149,14 +149,14 @@ const submit = () => {
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Official Email</label>
                                 <div class="relative group">
                                     <EnvelopeIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
-                                    <input v-model="form.email" type="email" class="form-input pl-10" placeholder="hq@company.com" />
+                                    <input v-model="form.email" type="email" class="form-input !pl-12" placeholder="hq@company.com" />
                                 </div>
                             </div>
                             <div class="space-y-1.5">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Official Phone</label>
                                 <div class="relative group">
                                     <PhoneIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
-                                    <input v-model="form.phone" type="text" class="form-input pl-10" placeholder="+62 21..." />
+                                    <input v-model="form.phone" type="text" class="form-input !pl-12" placeholder="+62 21..." />
                                 </div>
                             </div>
                         </div>
@@ -202,7 +202,7 @@ const submit = () => {
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Base Currency</label>
                                 <div class="relative">
                                     <BanknotesIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                                    <select v-model="form.currency" class="form-input pl-10 appearance-none bg-inherit">
+                                    <select v-model="form.currency" class="form-input !pl-12 appearance-none bg-inherit">
                                         <option value="IDR">Indonesian Rupiah (IDR)</option>
                                         <option value="USD">US Dollar (USD)</option>
                                         <option value="SGD">Singapore Dollar (SGD)</option>
@@ -213,7 +213,7 @@ const submit = () => {
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">System Timezone</label>
                                 <div class="relative">
                                     <ClockIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-                                    <select v-model="form.timezone" class="form-input pl-10 appearance-none bg-inherit">
+                                    <select v-model="form.timezone" class="form-input !pl-12 appearance-none bg-inherit">
                                         <option value="Asia/Jakarta">Jakarta (GMT+7)</option>
                                         <option value="Asia/Makassar">Makassar (GMT+8)</option>
                                         <option value="Asia/Jayapura">Jayapura (GMT+9)</option>

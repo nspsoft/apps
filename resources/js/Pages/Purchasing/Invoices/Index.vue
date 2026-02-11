@@ -11,6 +11,8 @@ import {
     BanknotesIcon,
     ClockIcon,
     CheckBadgeIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import { formatNumber, formatCurrency } from '@/helpers';
@@ -26,20 +28,36 @@ const props = defineProps({
 const search = ref(props.filters?.search || '');
 const selectedStatus = ref(props.filters?.status || '');
 const selectedSupplier = ref(props.filters?.supplier || '');
+const sortField = ref(props.filters?.sort || 'invoice_date');
+const sortDirection = ref(props.filters?.direction || 'desc');
 const showFilters = ref(false);
+
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
 
 const applyFilters = debounce(() => {
     router.get('/purchasing/invoices', {
         search: search.value || undefined,
         status: selectedStatus.value || undefined,
         supplier: selectedSupplier.value || undefined,
+        sort: sortField.value,
+        direction: sortDirection.value,
     }, {
         preserveState: true,
         replace: true,
     });
 }, 300);
 
-watch([search, selectedStatus, selectedSupplier], applyFilters);
+watch([search, selectedStatus, selectedSupplier], () => {
+    applyFilters();
+});
 
 const getStatusBadge = (status) => {
     if (!status) return 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30';
@@ -140,20 +158,60 @@ const isOverdue = (invoice) => {
                     <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-left">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-700">
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Invoice Info</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Supplier</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dates</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Amount</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-4 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                                <th @click="sort('invoice_number')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Invoice Info
+                                        <span v-if="sortField === 'invoice_number'" class="text-emerald-600 dark:text-emerald-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('supplier_name')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Supplier
+                                        <span v-if="sortField === 'supplier_name'" class="text-emerald-600 dark:text-emerald-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('invoice_date')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Dates
+                                        <span v-if="sortField === 'invoice_date'" class="text-emerald-600 dark:text-emerald-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('total_amount')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-end gap-1">
+                                        Amount
+                                        <span v-if="sortField === 'total_amount'" class="text-emerald-600 dark:text-emerald-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('status')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-center gap-1">
+                                        Status
+                                        <span v-if="sortField === 'status'" class="text-emerald-600 dark:text-emerald-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                             <tr v-for="invoice in invoices.data" :key="invoice.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800/30 transition-colors">
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-4 py-2 whitespace-nowrap">
                                     <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                                            <DocumentTextIcon class="h-5 w-5" />
+                                        <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                                            <DocumentTextIcon class="h-4 w-4" />
                                         </div>
                                         <div>
                                             <div class="text-sm font-bold text-slate-900 dark:text-white">{{ invoice.invoice_number }}</div>
@@ -163,11 +221,11 @@ const isOverdue = (invoice) => {
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-4 py-2 whitespace-nowrap">
                                     <div class="text-sm font-medium text-slate-900 dark:text-white">{{ invoice.supplier?.name || 'Unknown' }}</div>
                                     <div class="text-[10px] text-slate-500 mt-0.5">{{ invoice.supplier?.code }}</div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
+                                <td class="px-4 py-2 whitespace-nowrap">
                                     <div class="flex flex-col gap-1">
                                         <div class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
                                             <span class="text-slate-500 text-[10px] font-bold uppercase w-8">Inv</span>
@@ -180,17 +238,17 @@ const isOverdue = (invoice) => {
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                <td class="px-4 py-2 whitespace-nowrap text-right">
                                     <div class="text-sm font-bold text-slate-900 dark:text-white">{{ formatCurrency(invoice.total_amount) }}</div>
                                     <div class="text-[10px] text-slate-500 mt-0.5">{{ invoice.items_count }} items</div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-center text-xs">
+                                <td class="px-4 py-2 whitespace-nowrap text-center text-xs">
                                     <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-bold uppercase tracking-wider scale-90" :class="getStatusBadge(invoice.status)">
                                         {{ invoice.status }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-right">
-                                    <Link :underline="false" :href="`/purchasing/invoices/${invoice.id}`" class="p-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:border-slate-700">
+                                <td class="px-4 py-2 whitespace-nowrap text-right">
+                                    <Link :underline="false" :href="`/purchasing/invoices/${invoice.id}`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-all border border-transparent hover:border-slate-200 dark:border-slate-700">
                                         <EyeIcon class="h-4 w-4" />
                                     </Link>
                                 </td>

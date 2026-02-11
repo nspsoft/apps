@@ -44,14 +44,24 @@ class StockAdjustmentController extends Controller
                 $q->where('warehouse_id', $warehouse);
             });
 
-        $adjustments = $query->orderByDesc('created_at')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'inv_stock_adjustments.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('inv_stock_adjustments.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $adjustments = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Inventory/Adjustments/Index', [
             'adjustments' => $adjustments,
             'warehouses' => Warehouse::active()->orderBy('name')->get(['id', 'name']),
-            'filters' => $request->only(['search', 'status', 'warehouse_id']),
+            'filters' => $request->only(['search', 'status', 'warehouse_id', 'sort', 'direction']),
             'statuses' => [
                 ['value' => 'draft', 'label' => 'Draft'],
                 ['value' => 'completed', 'label' => 'Completed'],

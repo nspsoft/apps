@@ -13,6 +13,8 @@ import {
     ArrowPathIcon,
     ArrowsRightLeftIcon,
     ClockIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 
@@ -26,6 +28,8 @@ const props = defineProps({
 const search = ref(props.filters.search || '');
 const selectedType = ref(props.filters.type || '');
 const selectedWarehouse = ref(props.filters.warehouse_id || '');
+const sortField = ref(props.filters.sort || 'created_at');
+const sortDirection = ref(props.filters.direction || 'desc');
 const showFilters = ref(false);
 
 const applyFilters = debounce(() => {
@@ -33,6 +37,8 @@ const applyFilters = debounce(() => {
         search: search.value || undefined,
         type: selectedType.value || undefined,
         warehouse_id: selectedWarehouse.value || undefined,
+        sort: sortField.value,
+        direction: sortDirection.value,
     }, {
         preserveState: true,
         replace: true,
@@ -41,10 +47,23 @@ const applyFilters = debounce(() => {
 
 watch([search, selectedType, selectedWarehouse], applyFilters);
 
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
+
 const clearFilters = () => {
     search.value = '';
     selectedType.value = '';
     selectedWarehouse.value = '';
+    sortField.value = 'created_at';
+    sortDirection.value = 'desc';
+    applyFilters();
 };
 
 const formatDate = (date) => {
@@ -146,9 +165,51 @@ const getTypeColor = (type, qty) => {
                 <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-700">
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Product</th>
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Warehouse</th>
+                            <th 
+                                @click="sort('created_at')"
+                                class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+                            >
+                                <div class="flex items-center gap-2">
+                                    Date
+                                    <span v-if="sortField === 'created_at'" class="text-blue-500">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                    <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ChevronUpIcon class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th 
+                                @click="sort('product_name')"
+                                class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+                            >
+                                <div class="flex items-center gap-2">
+                                    Product
+                                    <span v-if="sortField === 'product_name'" class="text-blue-500">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                    <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ChevronUpIcon class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th 
+                                @click="sort('warehouse_name')"
+                                class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+                            >
+                                <div class="flex items-center gap-2">
+                                    Warehouse
+                                    <span v-if="sortField === 'warehouse_name'" class="text-blue-500">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                    <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ChevronUpIcon class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
                             <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</th>
                             <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Qty</th>
                             <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Balance</th>

@@ -23,13 +23,34 @@ class PurchaseReturnController extends Controller
             ->when($request->search, function($query, $search) {
                 $query->where('number', 'like', "%{$search}%");
             })
-            ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->withQueryString();
+            ->when($request->status, function($q, $status) {
+                $q->where('status', $status);
+            });
+
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'supplier_name') {
+            $returns->join('suppliers', 'purchase_returns.supplier_id', '=', 'suppliers.id')
+                  ->orderBy('suppliers.name', $direction)
+                  ->select('purchase_returns.*');
+        } elseif ($sort === 'warehouse_name') {
+            $returns->join('warehouses', 'purchase_returns.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('purchase_returns.*');
+        } elseif ($sort === 'po_number') {
+            $returns->leftJoin('purchase_orders', 'purchase_returns.purchase_order_id', '=', 'purchase_orders.id')
+                  ->orderBy('purchase_orders.po_number', $direction)
+                  ->select('purchase_returns.*');
+        } else {
+            $returns->orderBy($sort, $direction);
+        }
+
+        $returns = $returns->paginate(20)->withQueryString();
 
         return Inertia::render('Purchasing/Returns/Index', [
             'returns' => $returns,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'status', 'sort', 'direction']),
         ]);
     }
 

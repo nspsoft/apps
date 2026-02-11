@@ -20,17 +20,31 @@ class SalesReturnController extends Controller
 {
     public function index(Request $request): Response
     {
-        $returns = SalesReturn::with(['customer', 'warehouse', 'creator'])
+        $sort = $request->input('sort', 'id');
+        $direction = $request->input('direction', 'desc');
+
+        $query = SalesReturn::with(['customer', 'warehouse', 'creator'])
             ->when($request->search, function($query, $search) {
                 $query->where('number', 'like', "%{$search}%");
-            })
-            ->orderBy('id', 'desc')
-            ->paginate(20)
-            ->withQueryString();
+            });
+
+        if ($sort === 'customer_name') {
+            $query->join('customers', 'sales_returns.customer_id', '=', 'customers.id')
+                  ->orderBy('customers.name', $direction)
+                  ->select('sales_returns.*');
+        } elseif ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'sales_returns.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('sales_returns.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $returns = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Sales/Returns/Index', [
             'returns' => $returns,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
     }
 

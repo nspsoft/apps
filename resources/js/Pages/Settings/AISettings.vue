@@ -21,8 +21,11 @@ const props = defineProps({
 const showKey = ref(false);
 
 const form = useForm({
+    ai_driver: props.settings?.ai_driver || 'gemini',
     gemini_api_key: props.settings?.gemini_api_key || '',
     gemini_model: props.settings?.gemini_model || 'gemini-1.5-flash',
+    ollama_url: props.settings?.ollama_url || 'http://localhost:11434',
+    ollama_model: props.settings?.ollama_model || 'llama3',
 });
 
 const submit = () => {
@@ -39,6 +42,17 @@ const geminiModels = [
     { label: 'Gemini 2.5 Pro (Most Intelligent)', value: 'gemini-2.5-pro' },
     { label: 'Gemini 2.0 Flash (Fast)', value: 'gemini-2.0-flash' },
     { label: 'Gemini 1.5 Flash (Stable)', value: 'gemini-1.5-flash' },
+];
+
+const ollamaModels = [
+    { label: 'Qwen 3 VL (8B)', value: 'qwen3-vl:8b' },
+    { label: 'Qwen 2.5 (7B)', value: 'qwen2.5:7b' },
+    { label: 'Gemma 3 (4B)', value: 'gemma3:4b' },
+];
+
+const aiDrivers = [
+    { label: 'Google Gemini (Cloud)', value: 'gemini' },
+    { label: 'Ollama (Local)', value: 'ollama' },
 ];
 </script>
 
@@ -67,53 +81,116 @@ const geminiModels = [
             </div>
 
             <form @submit.prevent="submit" class="space-y-6">
-                <!-- Gemini Engine Settings -->
+                <!-- AI Engine Settings -->
                 <div class="glass-card rounded-2xl p-8 border border-white/5 shadow-2xl">
                     <div class="flex items-center gap-3 text-blue-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
                         <CpuChipIcon class="h-6 w-6" />
-                        <h4 class="text-sm font-black uppercase tracking-widest">Gemini Engine Settings</h4>
+                        <h4 class="text-sm font-black uppercase tracking-widest">AI Engine Settings</h4>
                     </div>
 
                     <div class="space-y-8">
-                        <!-- API KEY -->
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                <KeyIcon class="h-3 w-3" />
-                                Gemini API Key
-                            </label>
-                            <div class="relative group">
-                                <input 
-                                    v-model="form.gemini_api_key" 
-                                    :type="showKey ? 'text' : 'password'" 
-                                    class="form-input pr-12" 
-                                    placeholder="Enter your Google AI Studio API Key..." 
-                                    required 
-                                />
-                                <button 
-                                    type="button"
-                                    @click="showKey = !showKey"
-                                    class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-400 transition-colors"
-                                >
-                                    <EyeIcon v-if="!showKey" class="h-5 w-5" />
-                                    <EyeSlashIcon v-else class="h-5 w-5" />
-                                </button>
-                            </div>
-                            <p class="text-[10px] text-slate-500 mt-2 px-1">
-                                Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a>.
-                            </p>
-                        </div>
-
-                        <!-- MODEL SELECTION -->
+                        <!-- DRIVER SELECTION -->
                         <div class="space-y-2">
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
                                 <CpuChipIcon class="h-3 w-3" />
-                                Model Name
+                                AI Provider
                             </label>
-                            <select v-model="form.gemini_model" class="form-input appearance-none bg-inherit">
-                                <option v-for="model in geminiModels" :key="model.value" :value="model.value">
-                                    {{ model.label }}
+                            <select v-model="form.ai_driver" class="form-input appearance-none bg-inherit">
+                                <option v-for="driver in aiDrivers" :key="driver.value" :value="driver.value">
+                                    {{ driver.label }}
                                 </option>
                             </select>
+                        </div>
+
+                        <!-- GEMINI SETTINGS -->
+                        <div v-if="form.ai_driver === 'gemini'" class="space-y-8 animate-fade-in-up">
+                            <!-- API KEY -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <KeyIcon class="h-3 w-3" />
+                                    Gemini API Key
+                                </label>
+                                <div class="relative group">
+                                    <input 
+                                        v-model="form.gemini_api_key" 
+                                        :type="showKey ? 'text' : 'password'" 
+                                        class="form-input pr-12" 
+                                        placeholder="Enter your Google AI Studio API Key..." 
+                                        required 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showKey = !showKey"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-400 transition-colors"
+                                    >
+                                        <EyeIcon v-if="!showKey" class="h-5 w-5" />
+                                        <EyeSlashIcon v-else class="h-5 w-5" />
+                                    </button>
+                                </div>
+                                <p class="text-[10px] text-slate-500 mt-2 px-1">
+                                    Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-blue-400 hover:underline">Google AI Studio</a>.
+                                </p>
+                            </div>
+
+                            <!-- MODEL SELECTION -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <CpuChipIcon class="h-3 w-3" />
+                                    Model Name
+                                </label>
+                                <select v-model="form.gemini_model" class="form-input appearance-none bg-inherit">
+                                    <option v-for="model in geminiModels" :key="model.value" :value="model.value">
+                                        {{ model.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- OLLAMA SETTINGS -->
+                        <div v-if="form.ai_driver === 'ollama'" class="space-y-8 animate-fade-in-up">
+                            <!-- SERVER URL -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <GlobeAltIcon class="h-3 w-3" />
+                                    Ollama Server URL
+                                </label>
+                                <input 
+                                    v-model="form.ollama_url" 
+                                    type="text" 
+                                    class="form-input" 
+                                    placeholder="http://localhost:11434" 
+                                    required 
+                                />
+                                <p class="text-[10px] text-slate-500 mt-2 px-1">
+                                    Ensure your Ollama instance is running and accessible. Default: <code>http://localhost:11434</code>
+                                </p>
+                            </div>
+
+                            <!-- MODEL NAME -->
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <CpuChipIcon class="h-3 w-3" />
+                                    Ollama Model Name
+                                </label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.ollama_model" 
+                                        type="text" 
+                                        list="ollama-models"
+                                        class="form-input" 
+                                        placeholder="e.g. llama3, mistral, qwen2" 
+                                        required 
+                                    />
+                                    <datalist id="ollama-models">
+                                        <option v-for="model in ollamaModels" :key="model.value" :value="model.value">
+                                            {{ model.label }}
+                                        </option>
+                                    </datalist>
+                                </div>
+                                <p class="text-[10px] text-slate-500 mt-2 px-1">
+                                    Select a recommended model or type your own (must be pulled locally via <code>ollama pull</code>).
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

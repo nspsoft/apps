@@ -35,13 +35,30 @@ class GoodsReceiptController extends Controller
                 $q->where('status', $status);
             });
 
-        $receipts = $query->orderByDesc('created_at')
-            ->paginate(20)
-            ->withQueryString();
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'supplier_name') {
+            $query->join('suppliers', 'goods_receipts.supplier_id', '=', 'suppliers.id')
+                  ->orderBy('suppliers.name', $direction)
+                  ->select('goods_receipts.*');
+        } elseif ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'goods_receipts.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('goods_receipts.*');
+        } elseif ($sort === 'po_number') {
+            $query->leftJoin('purchase_orders', 'goods_receipts.purchase_order_id', '=', 'purchase_orders.id')
+                  ->orderBy('purchase_orders.po_number', $direction)
+                  ->select('goods_receipts.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $receipts = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Purchasing/Receipts/Index', [
             'receipts' => $receipts,
-            'filters' => $request->only(['search', 'status']),
+            'filters' => $request->only(['search', 'status', 'sort', 'direction']),
             'statuses' => [
                 ['value' => 'draft', 'label' => 'Draft'],
                 ['value' => 'received', 'label' => 'Received'],

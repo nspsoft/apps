@@ -30,8 +30,18 @@ class QuotationController extends Controller
                 $q->where('status', $status);
             });
 
-        $quotations = $query->orderByDesc('created_at')
-            ->paginate(20)
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'customer_name') {
+            $query->join('customers', 'quotations.customer_id', '=', 'customers.id')
+                  ->orderBy('customers.name', $direction)
+                  ->select('quotations.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $quotations = $query->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Sales/Quotations/Index', [

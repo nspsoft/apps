@@ -14,7 +14,10 @@ class DeliveryScheduleController extends Controller
 {
     public function index(Request $request)
     {
-        $schedules = DeliverySchedule::with(['customer', 'product.unit'])
+        $sort = $request->input('sort', 'delivery_date');
+        $direction = $request->input('direction', 'asc');
+
+        $query = DeliverySchedule::with(['customer', 'product.unit'])
             ->when($request->search, function ($query, $search) {
                 $query->whereHas('customer', fn($q) => $q->where('name', 'like', "%{$search}%"))
                       ->orWhereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"))
@@ -22,14 +25,25 @@ class DeliveryScheduleController extends Controller
             })
             ->when($request->date, function ($query, $date) {
                 $query->whereDate('delivery_date', $date);
-            })
-            ->orderBy('delivery_date')
-            ->paginate(10)
-            ->withQueryString();
+            });
+
+        if ($sort === 'customer_name') {
+            $query->join('customers', 'delivery_schedules.customer_id', '=', 'customers.id')
+                  ->orderBy('customers.name', $direction)
+                  ->select('delivery_schedules.*');
+        } elseif ($sort === 'product_name') {
+            $query->join('products', 'delivery_schedules.product_id', '=', 'products.id')
+                  ->orderBy('products.name', $direction)
+                  ->select('delivery_schedules.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $schedules = $query->paginate(10)->withQueryString();
 
         return Inertia::render('Sales/Planning/Schedule/Index', [
             'schedules' => $schedules,
-            'filters' => $request->only(['search', 'date']),
+            'filters' => $request->only(['search', 'date', 'sort', 'direction']),
         ]);
     }
 

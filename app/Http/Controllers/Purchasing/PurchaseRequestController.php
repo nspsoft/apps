@@ -25,13 +25,16 @@ class PurchaseRequestController extends Controller
                   ->orWhere('department', 'like', "%{$search}%");
             });
 
-        $requests = $query->orderByDesc('created_at')
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        $requests = $query->orderBy($sort, $direction)
             ->paginate(20)
             ->withQueryString();
 
         return Inertia::render('Purchasing/Requests/Index', [
             'requests' => $requests,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
     }
 

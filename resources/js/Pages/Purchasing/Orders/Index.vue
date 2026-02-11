@@ -21,6 +21,8 @@ import {
     ClockIcon,
     ArrowDownTrayIcon,
     PrinterIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import Pagination from '@/Components/Pagination.vue';
@@ -37,25 +39,44 @@ const props = defineProps({
 const search = ref(props.filters?.search || '');
 const selectedStatus = ref(props.filters?.status || '');
 const selectedSupplier = ref(props.filters?.supplier || '');
+const sortField = ref(props.filters?.sort || 'created_at');
+const sortDirection = ref(props.filters?.direction || 'desc');
 const showFilters = ref(false);
+
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
 
 const applyFilters = debounce(() => {
     router.get('/purchasing/orders', {
         search: search.value || undefined,
         status: selectedStatus.value || undefined,
         supplier: selectedSupplier.value || undefined,
+        sort: sortField.value,
+        direction: sortDirection.value,
     }, {
         preserveState: true,
         replace: true,
     });
 }, 300);
 
-watch([search, selectedStatus, selectedSupplier], applyFilters);
+watch([search, selectedStatus, selectedSupplier], () => {
+    // Reset page to 1 when filters change? Usually Inertia handles this if we don't preserve state, but here we preserve state.
+    // Ideally we should reset page, but for now let's just trigger filters.
+    applyFilters();
+});
 
 const clearFilters = () => {
     search.value = '';
     selectedStatus.value = '';
     selectedSupplier.value = '';
+    // Optional: reset sort?
 };
 
 const deletePO = (po) => {
@@ -224,16 +245,89 @@ const formatDate = (date) => {
                     <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-700">
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">PO Number</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Supplier</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order Date</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Items</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Qty</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Recv</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Return</th>
+                                <th @click="sort('po_number')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        PO Number
+                                        <span v-if="sortField === 'po_number'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('supplier_name')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Supplier
+                                        <span v-if="sortField === 'supplier_name'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('order_date')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Order Date
+                                        <span v-if="sortField === 'order_date'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                    </div>
+                                </th>
+                                <th @click="sort('items_count')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-center gap-1">
+                                        Items
+                                        <span v-if="sortField === 'items_count'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('total_qty')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-center gap-1">
+                                        Qty
+                                        <span v-if="sortField === 'total_qty'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('total_received')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-center gap-1">
+                                        Recv
+                                        <span v-if="sortField === 'total_received'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('total_returned')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-center gap-1">
+                                        Return
+                                        <span v-if="sortField === 'total_returned'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Balance</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                <th @click="sort('total')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-end gap-1">
+                                        Total
+                                        <span v-if="sortField === 'total'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('status')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-center gap-1">
+                                        Status
+                                        <span v-if="sortField === 'status'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>

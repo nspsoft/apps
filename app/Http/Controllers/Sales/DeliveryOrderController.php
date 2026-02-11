@@ -38,7 +38,22 @@ class DeliveryOrderController extends Controller
                 $q->invoiceStatus($status);
             });
 
-        $deliveryOrders = $query->orderByDesc('delivery_date')
+        $sort = $request->input('sort', 'delivery_date');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'customer_name') {
+            $query->leftJoin('customers', 'delivery_orders.customer_id', '=', 'customers.id')
+                  ->orderBy('customers.name', $direction)
+                  ->select('delivery_orders.*');
+        } elseif ($sort === 'so_number') {
+            $query->leftJoin('sales_orders', 'delivery_orders.sales_order_id', '=', 'sales_orders.id')
+                  ->orderBy('sales_orders.so_number', $direction)
+                  ->select('delivery_orders.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $deliveryOrders = $query
             ->paginate(20)
             ->withQueryString()
             ->through(function ($do) {

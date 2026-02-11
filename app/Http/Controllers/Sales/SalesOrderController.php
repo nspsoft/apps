@@ -38,8 +38,22 @@ class SalesOrderController extends Controller
                 $q->where('customer_id', $customer);
             });
 
-        $salesOrders = $query->orderByDesc('created_at')
-            ->paginate(20)
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'customer_name') {
+            $query->join('customers', 'sales_orders.customer_id', '=', 'customers.id')
+                  ->orderBy('customers.name', $direction)
+                  ->select('sales_orders.*');
+        } elseif ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'sales_orders.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('sales_orders.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $salesOrders = $query->paginate(20)
             ->withQueryString();
 
         // Calculate stats based on the same query filters

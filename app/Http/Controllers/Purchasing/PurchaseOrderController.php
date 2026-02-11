@@ -46,9 +46,24 @@ class PurchaseOrderController extends Controller
                 $q->where('supplier_id', $supplier);
             });
 
-        $purchaseOrders = $query->orderByDesc('created_at')
-            ->paginate(20)
-            ->withQueryString();
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'supplier_name') {
+            $query->join('suppliers', 'purchase_orders.supplier_id', '=', 'suppliers.id')
+                  ->orderBy('suppliers.name', $direction)
+                  ->select('purchase_orders.*');
+        } elseif ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'purchase_orders.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('purchase_orders.*');
+        } elseif (in_array($sort, ['items_count', 'total_qty', 'total_received', 'total_returned', 'total'])) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $purchaseOrders = $query->paginate(20)->withQueryString();
 
         // Calculate stats based on the same query filters
         $statsQuery = clone $query;
@@ -63,7 +78,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrders' => $purchaseOrders,
             'stats' => $stats,
             'suppliers' => Supplier::active()->orderBy('name')->get(['id', 'name', 'code']),
-            'filters' => $request->only(['search', 'status', 'supplier']),
+            'filters' => $request->only(['search', 'status', 'supplier', 'sort', 'direction']),
             'statuses' => [
                 ['value' => 'outstanding', 'label' => 'Outstanding (Open)'],
                 ['value' => 'draft', 'label' => 'Draft'],

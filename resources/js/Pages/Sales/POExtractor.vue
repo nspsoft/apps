@@ -603,11 +603,11 @@ const exportToExcel = async () => {
                                     <tr>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[4%]">No</th>
                                         <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[20%]">Description</th>
-                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Qty</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">Qty</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Stock</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[6%]">Unit</th>
                                         <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">PO Price</th>
-                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[22%]">Price Comparison</th>
+                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[18%]">Price Comparison</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Act</th>
                                     </tr>
                                 </thead>
@@ -631,7 +631,7 @@ const exportToExcel = async () => {
                                                 />
                                             </td>
                                             <!-- Qty -->
-                                            <td class="px-2 py-2 w-[8%]">
+                                            <td class="px-2 py-2 w-[12%]">
                                                 <input 
                                                     v-model.number="item.qty"
                                                     type="number"
@@ -674,7 +674,7 @@ const exportToExcel = async () => {
                                                 />
                                             </td>
                                             <!-- Price Comparison Column -->
-                                            <td class="px-2 py-2 w-[22%]">
+                                            <td class="px-2 py-2 w-[18%]">
                                                 <div v-if="item.db_price > 0" class="space-y-1">
                                                     <div class="flex items-center gap-2 text-xs">
                                                         <span class="text-slate-400 w-12">PO:</span>

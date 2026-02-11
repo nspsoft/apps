@@ -14,17 +14,31 @@ class SalesForecastController extends Controller
 {
     public function index(Request $request)
     {
-        $forecasts = SalesForecast::with(['customer', 'product.unit'])
+        $sort = $request->input('sort', 'period');
+        $direction = $request->input('direction', 'desc');
+
+        $query = SalesForecast::with(['customer', 'product.unit'])
             ->when($request->search, function ($query, $search) {
                 $query->whereHas('customer', fn($q) => $q->where('name', 'like', "%{$search}%"))
                       ->orWhereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
             })
             ->when($request->month, function ($query, $month) {
                 $query->whereDate('period', $month . '-01');
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            });
+
+        if ($sort === 'customer_name') {
+            $query->join('customers', 'sales_forecasts.customer_id', '=', 'customers.id')
+                  ->orderBy('customers.name', $direction)
+                  ->select('sales_forecasts.*');
+        } elseif ($sort === 'product_name') {
+            $query->join('products', 'sales_forecasts.product_id', '=', 'products.id')
+                  ->orderBy('products.name', $direction)
+                  ->select('sales_forecasts.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $forecasts = $query->paginate(10)->withQueryString();
 
         // Calculate actual Qty for the period
         $forecasts->getCollection()->transform(function ($forecast) {
@@ -45,7 +59,7 @@ class SalesForecastController extends Controller
 
         return Inertia::render('Sales/Planning/Forecast/Index', [
             'forecasts' => $forecasts,
-            'filters' => $request->only(['search', 'month']),
+            'filters' => $request->only(['search', 'month', 'sort', 'direction']),
         ]);
     }
 

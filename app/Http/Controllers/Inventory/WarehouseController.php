@@ -29,13 +29,21 @@ class WarehouseController extends Controller
                 $q->where('type', $type);
             });
 
-        $warehouses = $query->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
+        if (in_array($sort, ['code', 'name', 'type', 'location', 'is_active'])) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+
+        $warehouses = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Inventory/Warehouses/Index', [
             'warehouses' => $warehouses,
-            'filters' => $request->only(['search', 'type']),
+            'filters' => $request->only(['search', 'type', 'sort', 'direction']),
             'warehouseTypes' => [
                 ['value' => 'warehouse', 'label' => 'Warehouse'],
                 ['value' => 'production', 'label' => 'Production'],

@@ -15,6 +15,8 @@ import {
     DocumentPlusIcon,
     PencilSquareIcon,
     TrashIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 import debounce from 'lodash/debounce';
@@ -28,14 +30,28 @@ const props = defineProps({
 
 const search = ref(props.filters.search || '');
 const selectedStatus = ref(props.filters.status || '');
+const sortField = ref(props.filters.sort || 'created_at');
+const sortDirection = ref(props.filters.direction || 'desc');
 const showFilters = ref(false);
 
 const applyFilters = debounce(() => {
     router.get('/sales/quotations', {
         search: search.value || undefined,
         status: selectedStatus.value || undefined,
+        sort: sortField.value,
+        direction: sortDirection.value,
     }, { preserveState: true, replace: true });
 }, 300);
+
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
 
 watch([search, selectedStatus], applyFilters);
 
@@ -99,18 +115,75 @@ const deleteQuotation = (q) => {
                 <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-100 dark:divide-slate-800">
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-700">
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider">Number</th>
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider">Customer</th>
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider">Valid Until</th>
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
-                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                            <th @click="sort('number')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center gap-1">
+                                    Number
+                                    <span v-if="sortField === 'number'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('customer_name')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center gap-1">
+                                    Customer
+                                    <span v-if="sortField === 'customer_name'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('quotation_date')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center gap-1">
+                                    Date
+                                    <span v-if="sortField === 'quotation_date'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('items_count')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center justify-center gap-1">
+                                    Items
+                                    <span v-if="sortField === 'items_count'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('valid_until')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center gap-1">
+                                    Valid Until
+                                    <span v-if="sortField === 'valid_until'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('total')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center justify-end gap-1">
+                                    Total
+                                    <span v-if="sortField === 'total'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('status')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center justify-center gap-1">
+                                    Status
+                                    <span v-if="sortField === 'status'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
                             <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-100 dark:divide-slate-800">
                         <tr v-for="q in quotations.data" :key="q.id" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 dark:bg-slate-800/30 transition-colors">
-                            <td class="px-4 py-4 whitespace-nowrap">
+                            <td class="px-4 py-2 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
                                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-900 dark:bg-slate-800">
                                         <DocumentDuplicateIcon class="h-5 w-5 text-indigo-500 dark:text-indigo-400" />
@@ -118,14 +191,17 @@ const deleteQuotation = (q) => {
                                     <div class="text-sm font-medium text-slate-900 dark:text-white">{{ q.number }}</div>
                                 </div>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-white">{{ q.customer?.name }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-600 dark:text-slate-300">{{ formatDate(q.quotation_date) }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-600 dark:text-slate-300">{{ formatDate(q.valid_until) }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-right text-slate-900 dark:text-white font-medium">{{ formatCurrency(q.total) }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-700 dark:text-white">{{ q.customer?.name }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-500 dark:text-slate-600 dark:text-slate-300">{{ formatDate(q.quotation_date) }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-slate-600 dark:text-slate-300">
+                                {{ q.items_count }}
+                            </td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-500 dark:text-slate-600 dark:text-slate-300">{{ formatDate(q.valid_until) }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-sm text-right text-slate-900 dark:text-white font-medium">{{ formatCurrency(q.total) }}</td>
+                            <td class="px-4 py-2 whitespace-nowrap text-center">
                                 <span class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium" :class="getStatusBadge(q.status)">{{ q.status?.toUpperCase() }}</span>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
+                            <td class="px-4 py-2 whitespace-nowrap text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <Link :href="`/sales/quotations/${q.id}`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="View Details">
                                         <EyeIcon class="h-4 w-4" />

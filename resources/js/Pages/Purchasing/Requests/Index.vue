@@ -14,13 +14,39 @@ import {
     DocumentCheckIcon,
     ShoppingCartIcon,
     ClipboardDocumentListIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 import Pagination from '@/Components/Pagination.vue';
+import debounce from 'lodash/debounce';
 
 const props = defineProps({
     requests: Object,
     filters: Object,
 });
+
+const sortField = ref(props.filters?.sort || 'created_at');
+const sortDirection = ref(props.filters?.direction || 'desc');
+
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
+
+const applyFilters = debounce(() => {
+    router.get('/purchasing/requests', {
+        sort: sortField.value,
+        direction: sortDirection.value,
+    }, {
+        preserveState: true,
+        replace: true,
+    });
+}, 300);
 
 const getStatusBadge = (status) => {
     if (!status) return 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30';
@@ -75,12 +101,52 @@ const formatDate = (date) => {
                     <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-700">
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">PR Number</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Department</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Requester</th>
+                                <th @click="sort('pr_number')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        PR Number
+                                        <span v-if="sortField === 'pr_number'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('request_date')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Date
+                                        <span v-if="sortField === 'request_date'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('department')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Department
+                                        <span v-if="sortField === 'department'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th @click="sort('requester')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center gap-1">
+                                        Requester
+                                        <span v-if="sortField === 'requester'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Items</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                                <th @click="sort('status')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors">
+                                    <div class="flex items-center justify-center gap-1">
+                                        Status
+                                        <span v-if="sortField === 'status'" class="text-blue-600 dark:text-blue-400">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>

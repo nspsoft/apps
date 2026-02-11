@@ -6,7 +6,9 @@ import { ref, watch } from 'vue';
 import { 
     MagnifyingGlassIcon, 
     ArrowUpTrayIcon,
-    XMarkIcon
+    XMarkIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -16,6 +18,8 @@ const props = defineProps({
 
 const search = ref(props.filters.search || '');
 const month = ref(props.filters.month || '');
+const sortField = ref(props.filters.sort || 'period');
+const sortDirection = ref(props.filters.direction || 'desc');
 const importModalOpen = ref(false);
 const fileInput = ref(null);
 
@@ -23,8 +27,23 @@ const form = useForm({
     file: null,
 });
 
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    handleSearch();
+};
+
 const handleSearch = () => {
-    router.get(route('planning.forecast.index'), { search: search.value, month: month.value }, { preserveState: true, replace: true });
+    router.get(route('planning.forecast.index'), { 
+        search: search.value, 
+        month: month.value,
+        sort: sortField.value,
+        direction: sortDirection.value,
+    }, { preserveState: true, replace: true });
 };
 
 watch([search, month], () => {
@@ -96,10 +115,42 @@ const submitImport = () => {
                         <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
                             <thead class="bg-slate-50 dark:bg-slate-700/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-300">
                                 <tr>
-                                    <th class="px-6 py-3">Period</th>
-                                    <th class="px-6 py-3">Customer</th>
-                                    <th class="px-6 py-3">Product</th>
-                                    <th class="px-6 py-3 text-right">Qty Forecast</th>
+                                    <th @click="sort('period')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center gap-1">
+                                            Period
+                                            <span v-if="sortField === 'period'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th @click="sort('customer_name')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center gap-1">
+                                            Customer
+                                            <span v-if="sortField === 'customer_name'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th @click="sort('product_name')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center gap-1">
+                                            Product
+                                            <span v-if="sortField === 'product_name'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th @click="sort('qty_forecast')" class="px-6 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center justify-end gap-1">
+                                            Qty Forecast
+                                            <span v-if="sortField === 'qty_forecast'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
                                     <th class="px-6 py-3 text-right">Qty PO (Actual)</th>
                                     <th class="px-6 py-3">Unit</th>
                                     <th class="px-6 py-3">Notes</th>
@@ -107,14 +158,14 @@ const submitImport = () => {
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                                 <tr v-for="forecast in forecasts.data" :key="forecast.id" class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                    <td class="px-6 py-4">{{ new Date(forecast.period).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' }) }}</td>
-                                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">{{ forecast.customer?.name }}</td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-2">{{ new Date(forecast.period).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' }) }}</td>
+                                    <td class="px-6 py-2 font-medium text-slate-900 dark:text-white">{{ forecast.customer?.name }}</td>
+                                    <td class="px-6 py-2">
                                         <div class="font-medium text-slate-900 dark:text-white">{{ forecast.product?.name }}</div>
                                         <div class="text-xs text-slate-500">{{ forecast.product?.sku }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-right font-mono">{{ Number(forecast.qty_forecast).toLocaleString('id-ID') }}</td>
-                                    <td class="px-6 py-4 text-right font-mono">
+                                    <td class="px-6 py-2 text-right font-mono">{{ Number(forecast.qty_forecast).toLocaleString('id-ID') }}</td>
+                                    <td class="px-6 py-2 text-right font-mono">
                                         <span :class="{
                                             'text-blue-600 dark:text-blue-400 font-bold': forecast.qty_actual > 0,
                                             'text-slate-400': forecast.qty_actual === 0
@@ -122,8 +173,8 @@ const submitImport = () => {
                                             {{ Number(forecast.qty_actual).toLocaleString('id-ID') }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">{{ forecast.product?.unit?.code }}</td>
-                                    <td class="px-6 py-4 text-xs italic">{{ forecast.notes || '-' }}</td>
+                                    <td class="px-6 py-2">{{ forecast.product?.unit?.code }}</td>
+                                    <td class="px-6 py-2 text-xs italic">{{ forecast.notes || '-' }}</td>
                                 </tr>
                                 <tr v-if="forecasts.data.length === 0">
                                     <td colspan="7" class="px-6 py-8 text-center text-slate-500">

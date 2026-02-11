@@ -41,6 +41,11 @@ class POImportController extends Controller
             ], 422);
         }
 
+        // Handle array response (if Gemini returns a list of POs, take the first one)
+        if (array_key_exists(0, $extractedData) && is_array($extractedData[0])) {
+            $extractedData = $extractedData[0];
+        }
+
         // 2. Intelligent Auto-Matching
         $processedData = $this->autoMatchData($extractedData);
 

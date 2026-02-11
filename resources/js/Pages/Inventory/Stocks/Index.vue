@@ -9,6 +9,8 @@ import {
     QuestionMarkCircleIcon,
     ExclamationTriangleIcon,
     ShoppingCartIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 import Pagination from '@/Components/Pagination.vue';
 import debounce from 'lodash/debounce';
@@ -24,6 +26,8 @@ const props = defineProps({
 const search = ref(props.filters.search || '');
 const selectedWarehouse = ref(props.filters.warehouse_id || '');
 const selectedCategory = ref(props.filters.category || '');
+const sortField = ref(props.filters.sort || 'product_name');
+const sortDirection = ref(props.filters.direction || 'asc');
 const showFilters = ref(false);
 
 const applyFilters = debounce(() => {
@@ -31,6 +35,8 @@ const applyFilters = debounce(() => {
         search: search.value || undefined,
         warehouse_id: selectedWarehouse.value || undefined,
         category: selectedCategory.value || undefined,
+        sort: sortField.value,
+        direction: sortDirection.value,
     }, {
         preserveState: true,
         replace: true,
@@ -39,10 +45,23 @@ const applyFilters = debounce(() => {
 
 watch([search, selectedWarehouse, selectedCategory], applyFilters);
 
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
+
 const clearFilters = () => {
     search.value = '';
     selectedWarehouse.value = '';
     selectedCategory.value = '';
+    sortField.value = 'product_name';
+    sortDirection.value = 'asc';
+    applyFilters();
 };
 
 
@@ -266,10 +285,38 @@ const bulkReorder = () => {
                                         class="rounded border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-blue-600 focus:ring-blue-500/50"
                                     />
                                 </th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Product Info</th>
+                                <th 
+                                    @click="sort('product_name')"
+                                    class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        Product Info
+                                        <span v-if="sortField === 'product_name'" class="text-blue-500">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                        <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ChevronUpIcon class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Category</th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Type</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3">Warehouse</th>
+                                <th 
+                                    @click="sort('warehouse_name')"
+                                    class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        Warehouse
+                                        <span v-if="sortField === 'warehouse_name'" class="text-blue-500">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                        <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ChevronUpIcon class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Levels (Min / Reorder / Max)</th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-center">
                                     <div class="flex items-center justify-center gap-2">
@@ -294,9 +341,37 @@ const bulkReorder = () => {
                                     </div>
                                 </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right text-blue-400">On Order</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Qty On Hand</th>
+                                <th 
+                                    @click="sort('qty_on_hand')"
+                                    class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
+                                >
+                                    <div class="flex items-center justify-end gap-2">
+                                        Qty On Hand
+                                        <span v-if="sortField === 'qty_on_hand'" class="text-blue-500">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                        <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ChevronUpIcon class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Reserved</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right">Available</th>
+                                <th 
+                                    @click="sort('available')"
+                                    class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-right cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
+                                >
+                                    <div class="flex items-center justify-end gap-2">
+                                        Available
+                                        <span v-if="sortField === 'available'" class="text-blue-500">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                        <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ChevronUpIcon class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">

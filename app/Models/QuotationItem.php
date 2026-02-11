@@ -24,6 +24,13 @@ class QuotationItem extends Model
         'subtotal' => 'double',
     ];
 
+    protected $appends = ['product_name'];
+
+    public function getProductNameAttribute()
+    {
+        return $this->product->name ?? 'Unknown Product';
+    }
+
     public function quotation()
     {
         return $this->belongsTo(Quotation::class);

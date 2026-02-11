@@ -34,13 +34,16 @@ class SupplierController extends Controller
                 $q->where('is_active', $request->status === 'active');
             });
 
-        $suppliers = $query->orderBy('name')
-            ->paginate(9)
-            ->withQueryString();
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
+        $query->orderBy($sort, $direction);
+
+        $suppliers = $query->paginate(9)->withQueryString();
 
         return Inertia::render('Purchasing/Suppliers/Index', [
             'suppliers' => $suppliers,
-            'filters' => $request->only(['search', 'status']),
+            'filters' => $request->only(['search', 'status', 'sort', 'direction']),
         ]);
     }
 

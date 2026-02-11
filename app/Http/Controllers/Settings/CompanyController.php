@@ -61,26 +61,39 @@ class CompanyController extends Controller
     public function aiSettings()
     {
         $company = Company::first();
+        $defaultSettings = [
+            'ai_driver' => 'gemini',
+            'gemini_api_key' => '',
+            'gemini_model' => 'gemini-2.5-flash', // Updated default
+            'ollama_url' => 'http://localhost:11434',
+            'ollama_model' => 'llama3',
+        ];
+
         return Inertia::render('Settings/AISettings', [
-            'settings' => $company->settings['ai'] ?? [
-                'gemini_api_key' => '',
-                'gemini_model' => 'gemini-1.5-flash'
-            ]
+            'settings' => array_merge($defaultSettings, $company->settings['ai'] ?? [])
         ]);
     }
 
     public function updateAiSettings(Request $request)
     {
         $request->validate([
-            'gemini_api_key' => 'required|string',
-            'gemini_model' => 'required|string'
+            'ai_driver' => 'required|in:gemini,ollama',
+            'gemini_api_key' => 'nullable|required_if:ai_driver,gemini|string',
+            'gemini_model' => 'nullable|required_if:ai_driver,gemini|string',
+            'ollama_url' => 'nullable|required_if:ai_driver,ollama|url',
+            'ollama_model' => 'nullable|required_if:ai_driver,ollama|string',
         ]);
 
         $company = Company::first();
         $settings = $company->settings ?? [];
+        
+        // Preserve existing structure but update AI settings
         $settings['ai'] = [
+            'ai_driver' => $request->ai_driver,
             'gemini_api_key' => $request->gemini_api_key,
             'gemini_model' => $request->gemini_model,
+            'ollama_url' => $request->ollama_url,
+            'ollama_model' => $request->ollama_model,
         ];
 
         $company->settings = $settings;

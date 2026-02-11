@@ -35,14 +35,27 @@ class PurchaseInvoiceController extends Controller
                 $q->where('supplier_id', $supplier);
             });
 
-        $invoices = $query->orderByDesc('invoice_date')
-            ->paginate(20)
-            ->withQueryString();
+        $sort = $request->input('sort', 'invoice_date');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'supplier_name') {
+            $query->join('suppliers', 'purchase_invoices.supplier_id', '=', 'suppliers.id')
+                  ->orderBy('suppliers.name', $direction)
+                  ->select('purchase_invoices.*');
+        } elseif ($sort === 'po_number') {
+            $query->leftJoin('purchase_orders', 'purchase_invoices.purchase_order_id', '=', 'purchase_orders.id')
+                  ->orderBy('purchase_orders.po_number', $direction)
+                  ->select('purchase_invoices.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $invoices = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Purchasing/Invoices/Index', [
             'invoices' => $invoices,
             'suppliers' => Supplier::active()->orderBy('name')->get(['id', 'name', 'code']),
-            'filters' => $request->only(['search', 'status', 'supplier']),
+            'filters' => $request->only(['search', 'status', 'supplier', 'sort', 'direction']),
             'statuses' => [
                 ['value' => 'unpaid', 'label' => 'Unpaid'],
                 ['value' => 'partial', 'label' => 'Partial'],

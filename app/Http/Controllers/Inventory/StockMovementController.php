@@ -30,14 +30,28 @@ class StockMovementController extends Controller
                 $q->where('warehouse_id', $warehouse);
             });
 
-        $movements = $query->orderByDesc('created_at')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'product_name') {
+            $query->join('products', 'stock_movements.product_id', '=', 'products.id')
+                  ->orderBy('products.name', $direction)
+                  ->select('stock_movements.*');
+        } elseif ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'stock_movements.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('stock_movements.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $movements = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Inventory/Movements/Index', [
             'movements' => $movements,
             'warehouses' => Warehouse::active()->orderBy('name')->get(['id', 'name']),
-            'filters' => $request->only(['search', 'type', 'warehouse_id']),
+            'filters' => $request->only(['search', 'type', 'warehouse_id', 'sort', 'direction']),
             'types' => [
                 ['value' => 'adjustment', 'label' => 'Adjustment'],
                 ['value' => 'po_receive', 'label' => 'PO Receive'],

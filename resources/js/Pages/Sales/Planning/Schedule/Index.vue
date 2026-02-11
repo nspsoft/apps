@@ -7,7 +7,9 @@ import {
     MagnifyingGlassIcon, 
     ArrowUpTrayIcon, 
     CalendarDaysIcon,
-    XMarkIcon
+    XMarkIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -17,6 +19,8 @@ const props = defineProps({
 
 const search = ref(props.filters.search || '');
 const date = ref(props.filters.date || '');
+const sortField = ref(props.filters.sort || 'delivery_date');
+const sortDirection = ref(props.filters.direction || 'asc');
 const importModalOpen = ref(false);
 const fileInput = ref(null);
 
@@ -24,8 +28,23 @@ const form = useForm({
     file: null,
 });
 
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    handleSearch();
+};
+
 const handleSearch = () => {
-    router.get(route('planning.schedule.index'), { search: search.value, date: date.value }, { preserveState: true, replace: true });
+    router.get(route('planning.schedule.index'), {
+        search: search.value, 
+        date: date.value,
+        sort: sortField.value,
+        direction: sortDirection.value,
+    }, { preserveState: true, replace: true });
 };
 
 watch([search, date], () => {
@@ -111,30 +130,70 @@ const isUpcoming = (schedule) => {
                         <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
                             <thead class="bg-slate-50 dark:bg-slate-700/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-300">
                                 <tr>
-                                    <th class="px-6 py-3">Delivery Date</th>
-                                    <th class="px-6 py-3">Customer</th>
-                                    <th class="px-6 py-3">PO Number</th>
-                                    <th class="px-6 py-3">Product</th>
-                                    <th class="px-6 py-3 text-right">Qty Scheduled</th>
+                                    <th @click="sort('delivery_date')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center gap-1">
+                                            Delivery Date
+                                            <span v-if="sortField === 'delivery_date'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th @click="sort('customer_name')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center gap-1">
+                                            Customer
+                                            <span v-if="sortField === 'customer_name'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th @click="sort('po_number')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center gap-1">
+                                            PO Number
+                                            <span v-if="sortField === 'po_number'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th @click="sort('product_name')" class="px-6 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center gap-1">
+                                            Product
+                                            <span v-if="sortField === 'product_name'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
+                                    <th @click="sort('qty_scheduled')" class="px-6 py-3 text-right cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                                        <div class="flex items-center justify-end gap-1">
+                                            Qty Scheduled
+                                            <span v-if="sortField === 'qty_scheduled'" class="text-blue-600 dark:text-blue-400">
+                                                <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                                <ChevronDownIcon v-else class="h-3 w-3" />
+                                            </span>
+                                        </div>
+                                    </th>
                                     <th class="px-6 py-3">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
                                 <tr v-for="schedule in schedules.data" :key="schedule.id" class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-2">
                                         <div class="flex items-center gap-2">
                                             <CalendarDaysIcon class="w-4 h-4 text-slate-400" />
                                             {{ new Date(schedule.delivery_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) }}
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 font-medium text-slate-900 dark:text-white">{{ schedule.customer?.name }}</td>
-                                    <td class="px-6 py-4 font-mono text-xs">{{ schedule.po_number || '-' }}</td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-2 font-medium text-slate-900 dark:text-white">{{ schedule.customer?.name }}</td>
+                                    <td class="px-6 py-2 font-mono text-xs">{{ schedule.po_number || '-' }}</td>
+                                    <td class="px-6 py-2">
                                         <div class="font-medium text-slate-900 dark:text-white">{{ schedule.product?.name }}</div>
                                         <div class="text-xs text-slate-500">{{ schedule.product?.sku }}</div>
                                     </td>
-                                    <td class="px-6 py-4 text-right font-mono">{{ Number(schedule.qty_scheduled).toLocaleString('id-ID') }} {{ schedule.product?.unit?.code }}</td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-2 text-right font-mono">{{ Number(schedule.qty_scheduled).toLocaleString('id-ID') }} {{ schedule.product?.unit?.code }}</td>
+                                    <td class="px-6 py-2">
                                         <span v-if="isDelayed(schedule)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800/20 dark:text-red-400">
                                             Delayed
                                         </span>

@@ -30,7 +30,7 @@ class POExtractorController extends Controller
             'items' => 'required|array',
         ]);
 
-        $fileName = 'PO_Extraction_' . ($data['po_number'] ?? 'Draft') . '.xlsx';
+        $fileName = 'PO_Extraction_' . str_replace(['/', '\\'], '_', $data['po_number'] ?? 'Draft') . '.xlsx';
 
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\PoExtractionExport($data), $fileName);
     }

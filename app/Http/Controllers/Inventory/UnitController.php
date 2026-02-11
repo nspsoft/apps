@@ -19,13 +19,21 @@ class UnitController extends Controller
                 ->orWhere('code', 'like', "%{$request->search}%");
         }
 
-        $units = $query->orderBy('name')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+
+        if (in_array($sort, ['name', 'code', 'symbol', 'is_active'])) {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+
+        $units = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Inventory/Units/Index', [
             'units' => $units,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction']),
         ]);
     }
 

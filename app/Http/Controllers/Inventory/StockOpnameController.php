@@ -29,14 +29,24 @@ class StockOpnameController extends Controller
                 $q->where('warehouse_id', $warehouse);
             });
 
-        $opnames = $query->orderByDesc('created_at')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+
+        if ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'inv_stock_opnames.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('inv_stock_opnames.*');
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $opnames = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Inventory/Opname/Index', [
             'opnames' => $opnames,
             'warehouses' => Warehouse::active()->orderBy('name')->get(['id', 'name']),
-            'filters' => $request->only(['search', 'status', 'warehouse_id']),
+            'filters' => $request->only(['search', 'status', 'warehouse_id', 'sort', 'direction']),
             'statuses' => [
                 ['value' => 'draft', 'label' => 'Draft'],
                 ['value' => 'in_progress', 'label' => 'In Progress'],

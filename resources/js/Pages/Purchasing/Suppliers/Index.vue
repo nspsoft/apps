@@ -11,12 +11,9 @@ import {
     BuildingOffice2Icon,
     PhoneIcon,
     EnvelopeIcon,
-    ArrowDownTrayIcon,
-    ArrowUpTrayIcon,
-    XMarkIcon,
-    MapPinIcon,
-    UserGroupIcon,
-    ShieldCheckIcon,
+    ArrowDownIcon,
+    BarsArrowUpIcon,
+    BarsArrowDownIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import MapPicker from '@/Components/MapPicker.vue';
@@ -27,6 +24,8 @@ const props = defineProps({
 });
 
 const search = ref(props.filters.search || '');
+const sortField = ref(props.filters.sort || 'name');
+const sortDirection = ref(props.filters.direction || 'asc');
 const showImportModal = ref(false);
 const importType = ref('supplier'); // 'supplier' or 'contact'
 const importFile = ref(null);
@@ -35,13 +34,23 @@ const importing = ref(false);
 const applyFilters = debounce(() => {
     router.get('/purchasing/suppliers', {
         search: search.value || undefined,
+        sort: sortField.value,
+        direction: sortDirection.value,
     }, {
         preserveState: true,
         replace: true,
     });
 }, 300);
 
-watch(search, applyFilters);
+const setSort = (field, direction) => {
+    sortField.value = field;
+    sortDirection.value = direction;
+    applyFilters();
+};
+
+watch(search, () => {
+    applyFilters();
+});
 
 const deleteSupplier = (supplier) => {
     if (confirm(`Are you sure you want to delete "${supplier.name}"?`)) {
@@ -119,6 +128,27 @@ const openMap = (address, city) => {
             
             <div class="flex items-center gap-3">
                 <div class="flex gap-2">
+                    <!-- Sort Dropdown -->
+                    <div class="relative group">
+                        <button class="inline-flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors">
+                            <BarsArrowUpIcon v-if="sortDirection === 'asc'" class="h-5 w-5" />
+                            <BarsArrowDownIcon v-else class="h-5 w-5" />
+                            Sort
+                        </button>
+                        <div class="absolute right-0 pt-2 w-48 hidden group-hover:block z-20">
+                            <div class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden py-1">
+                                <button @click="setSort('name', 'asc')" class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800" :class="sortField === 'name' && sortDirection === 'asc' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20' : 'text-slate-600 dark:text-slate-300'">Name (A-Z)</button>
+                                <button @click="setSort('name', 'desc')" class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800" :class="sortField === 'name' && sortDirection === 'desc' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20' : 'text-slate-600 dark:text-slate-300'">Name (Z-A)</button>
+                                <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+                                <button @click="setSort('code', 'asc')" class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800" :class="sortField === 'code' && sortDirection === 'asc' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20' : 'text-slate-600 dark:text-slate-300'">Code (A-Z)</button>
+                                <button @click="setSort('code', 'desc')" class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800" :class="sortField === 'code' && sortDirection === 'desc' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20' : 'text-slate-600 dark:text-slate-300'">Code (Z-A)</button>
+                                <div class="h-px bg-slate-100 dark:bg-slate-800 my-1"></div>
+                                <button @click="setSort('is_active', 'desc')" class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800" :class="sortField === 'is_active' && sortDirection === 'desc' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20' : 'text-slate-600 dark:text-slate-300'">Active First</button>
+                                <button @click="setSort('is_active', 'asc')" class="block w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800" :class="sortField === 'is_active' && sortDirection === 'asc' ? 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20' : 'text-slate-600 dark:text-slate-300'">Inactive First</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="relative group">
                         <button class="inline-flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors">
                             <ArrowDownTrayIcon class="h-5 w-5" />

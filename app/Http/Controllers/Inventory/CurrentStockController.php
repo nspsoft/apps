@@ -44,16 +44,34 @@ class CurrentStockController extends Controller
                     ->whereIn('purchase_orders.status', ['ordered', 'partial'])
             ]);
 
-        $stocks = $query->orderBy('products.name')
-            ->orderBy('warehouse_id')
-            ->paginate(20)
-            ->withQueryString();
+        // Dynamic Sorting
+        $sort = $request->input('sort', 'product_name');
+        $direction = $request->input('direction', 'asc');
+
+        if ($sort === 'product_name') {
+            $query->orderBy('products.name', $direction);
+        } elseif ($sort === 'product_sku') {
+            $query->orderBy('products.sku', $direction);
+        } elseif ($sort === 'warehouse_name') {
+            $query->join('warehouses', 'product_stocks.warehouse_id', '=', 'warehouses.id')
+                  ->orderBy('warehouses.name', $direction)
+                  ->select('product_stocks.*'); // Ensure we keep main table columns
+        } elseif ($sort === 'qty_on_hand') {
+            $query->orderBy('qty_on_hand', $direction);
+        } elseif ($sort === 'available') {
+            $query->orderByRaw('(qty_on_hand - qty_reserved) ' . $direction);
+        } else {
+            $query->orderBy('products.name', 'asc')
+                  ->orderBy('warehouse_id', 'asc');
+        }
+
+        $stocks = $query->paginate(20)->withQueryString();
 
         return Inertia::render('Inventory/Stocks/Index', [
             'stocks' => $stocks,
             'warehouses' => Warehouse::orderBy('name')->get(),
             'categories' => Category::where('type', 'product')->orderBy('name')->get(),
-            'filters' => $request->only(['search', 'warehouse_id', 'category']),
+            'filters' => $request->only(['search', 'warehouse_id', 'category', 'sort', 'direction']),
         ]);
     }
 }

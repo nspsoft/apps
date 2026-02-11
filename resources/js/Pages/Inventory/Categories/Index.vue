@@ -12,6 +12,8 @@ import {
     FingerPrintIcon,
     ChartBarIcon,
     FunnelIcon,
+    ChevronUpIcon,
+    ChevronDownIcon,
 } from '@heroicons/vue/24/outline';
 import Pagination from '@/Components/Pagination.vue';
 import { onMounted } from 'vue';
@@ -22,14 +24,39 @@ const props = defineProps({
 });
 
 const search = ref(props.filters.search || '');
+const sortField = ref(props.filters.sort || 'name');
+const sortDirection = ref(props.filters.direction || 'asc');
 
 watch(search, (value) => {
     router.get(
         '/inventory/categories',
-        { search: value },
+        { 
+            search: value,
+            sort: sortField.value,
+            direction: sortDirection.value
+        },
         { preserveState: true, replace: true }
     );
 });
+
+const sort = (field) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    
+    router.get(
+        '/inventory/categories',
+        { 
+            search: search.value,
+            sort: sortField.value,
+            direction: sortDirection.value
+        },
+        { preserveState: true, replace: true }
+    );
+};
 
 const editCategory = (category) => {
     // Implement edit logic or redirect
@@ -77,8 +104,36 @@ const deleteCategory = (category) => {
                     <table class="w-full text-left text-sm text-slate-500 dark:text-slate-400">
                         <thead>
                             <tr class="border-b border-slate-200 dark:border-slate-700">
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Category Name</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Code</th>
+                                <th 
+                                    @click="sort('name')"
+                                    class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        Category Name
+                                        <span v-if="sortField === 'name'" class="text-blue-500">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                        <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ChevronUpIcon class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
+                                <th 
+                                    @click="sort('code')"
+                                    class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        Code
+                                        <span v-if="sortField === 'code'" class="text-blue-500">
+                                            <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                            <ChevronDownIcon v-else class="h-3 w-3" />
+                                        </span>
+                                        <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <ChevronUpIcon class="h-3 w-3" />
+                                        </span>
+                                    </div>
+                                </th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Products</th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
                             </tr>
