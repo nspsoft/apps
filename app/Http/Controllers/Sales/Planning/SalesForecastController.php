@@ -324,10 +324,20 @@ class SalesForecastController extends Controller
             ];
         }
 
+        Log::info("AI Analysis Request: Search='{$search}', Month='{$month}'. Found " . $forecasts->count() . " records.");
+
         try {
             $gemini = new \App\Services\GeminiService();
             $analysis = $gemini->analyzeForecastAccuracy($forecastData);
+            
+            Log::info("AI Analysis Result Length: " . strlen($analysis));
+            
+            if (empty($analysis)) {
+                $analysis = "Maaf, analisis kosong. Cek log server.";
+                Log::warning("AI Analysis returned empty string.");
+            }
         } catch (\Exception $e) {
+            Log::error("Controller AI Error: " . $e->getMessage());
             $analysis = 'Error: Gagal menghubungi layanan AI. ' . $e->getMessage();
         }
 

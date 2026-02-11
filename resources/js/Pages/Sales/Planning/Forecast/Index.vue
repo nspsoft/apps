@@ -173,9 +173,15 @@ const runAiAnalysis = async () => {
             body: JSON.stringify({ search: search.value, month: month.value }),
         });
         const data = await res.json();
-        aiResult.value = data.analysis || 'Tidak ada hasil analisis.';
+        
+        if (data.error) {
+            aiResult.value = `### ⚠️ Error\n${data.error}`;
+        } else {
+            aiResult.value = data.analysis || 'Tidak ada hasil analisis dari AI.';
+        }
     } catch (e) {
-        aiResult.value = 'Error: Gagal menghubungi layanan AI. Silakan coba lagi.';
+        aiResult.value = '### ⚠️ Connection Error\nGagal menghubungi server. Pastikan koneksi internet stabil.';
+        console.error(e);
     } finally {
         aiAnalyzing.value = false;
     }
