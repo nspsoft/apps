@@ -202,9 +202,13 @@
                 <th style="width: 140px;" rowspan="2">CUSTOMER</th>
                 <th style="width: 170px;" rowspan="2">PRODUCT</th>
                 <th style="width: 55px;" rowspan="2">DATA</th>
-                @foreach($dates as $date)
-                    <th class="{{ $date === $today ? 'today-header' : '' }}">
-                        {{ \Carbon\Carbon::parse($date)->format('d-M') }}
+                @foreach($headers as $header)
+                    <th class="{{ ($mode === 'daily' && $header === $today) ? 'today-header' : '' }}">
+                        @if($mode === 'weekly')
+                            {!! nl2br(e($header['label'])) !!}
+                        @else
+                            {{ \Carbon\Carbon::parse($header)->format('d-M') }}
+                        @endif
                     </th>
                 @endforeach
                 <th style="width: 50px; background-color: #d0d5dd;" rowspan="2">TOTAL</th>
@@ -229,9 +233,10 @@
                             @endif
                         </td>
                         <td class="label-cell label-sch">SCHEDULE</td>
-                        @foreach($dates as $date)
+                        @foreach($headers as $header)
+                            @php   $key = $mode === 'weekly' ? $header['key'] : $header;   @endphp
                             <td class="text-right">
-                                {{ ($product['daily'][$date]['sch'] ?? 0) > 0 ? number_format($product['daily'][$date]['sch'], 1, ',', '.') : '-' }}
+                                {{ ($product['daily'][$key]['sch'] ?? 0) > 0 ? number_format($product['daily'][$key]['sch'], 1, ',', '.') : '-' }}
                             </td>
                         @endforeach
                         <td class="text-right total-cell">{{ number_format($product['totals']['sch'], 1, ',', '.') }}</td>
@@ -239,9 +244,10 @@
                     {{-- Delivery Row --}}
                     <tr>
                         <td class="label-cell label-del">DELIVERY</td>
-                        @foreach($dates as $date)
+                        @foreach($headers as $header)
+                            @php   $key = $mode === 'weekly' ? $header['key'] : $header;   @endphp
                             <td class="text-right cell-delivery">
-                                {{ ($product['daily'][$date]['act'] ?? 0) > 0 ? number_format($product['daily'][$date]['act'], 1, ',', '.') : '-' }}
+                                {{ ($product['daily'][$key]['act'] ?? 0) > 0 ? number_format($product['daily'][$key]['act'], 1, ',', '.') : '-' }}
                             </td>
                         @endforeach
                         <td class="text-right total-cell cell-delivery">{{ number_format($product['totals']['act'], 1, ',', '.') }}</td>
@@ -249,9 +255,10 @@
                     {{-- Balance Row --}}
                     <tr class="balance-row">
                         <td class="label-cell label-bal">BALANCE</td>
-                        @foreach($dates as $date)
+                        @foreach($headers as $header)
                             @php
-                                $bal = $product['daily'][$date]['bal'] ?? 0;
+                                $key = $mode === 'weekly' ? $header['key'] : $header;
+                                $bal = $product['daily'][$key]['bal'] ?? 0;
                             @endphp
                             <td class="text-right {{ $bal < 0 ? 'cell-balance-neg' : ($bal > 0 ? 'cell-balance-pos' : '') }}">
                                 {{ $bal != 0 ? number_format($bal, 1, ',', '.') : '-' }}

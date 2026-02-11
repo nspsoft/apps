@@ -13,18 +13,21 @@ import { formatNumber } from '@/helpers';
 const props = defineProps({
     dates: Array,
     matrix: Array,
+    weeks: { type: Array, default: () => [] },
     filters: Object,
 });
 
 const search = ref(props.filters.search || '');
 const startDate = ref(props.filters.start_date || '');
 const endDate = ref(props.filters.end_date || '');
+const mode = ref(props.filters.mode || 'daily');
 
 const handleSearch = () => {
     router.get(route('sales.planning.schedule.comparison'), {
         search: search.value, 
         start_date: startDate.value,
         end_date: endDate.value,
+        mode: mode.value,
     }, { preserveState: true, replace: true });
 };
 
@@ -32,11 +35,28 @@ watch([search, startDate, endDate], () => {
     handleSearch();
 });
 
+const toggleMode = (newMode) => {
+    mode.value = newMode;
+    handleSearch();
+};
+
 const formatDateShort = (dateStr) => {
+    // For weekly mode, show the week label
+    if (mode.value === 'weekly') {
+        const week = props.weeks.find(w => w.key === dateStr);
+        return week ? week.label : dateStr;
+    }
     const d = new Date(dateStr);
     const day = d.getDate().toString().padStart(2, '0');
     const month = d.toLocaleString('en-US', { month: 'short' });
     return `${day}-${month}`;
+};
+
+const formatColumnHeader = (dateStr) => {
+    if (mode.value === 'weekly') {
+        return dateStr; // W1, W2, etc.
+    }
+    return formatDateShort(dateStr);
 };
 
 const getBalanceClass = (val) => {
@@ -46,6 +66,7 @@ const getBalanceClass = (val) => {
 };
 
 const isToday = (dateStr) => {
+    if (mode.value === 'weekly') return false;
     const today = new Date().toISOString().split('T')[0];
     return dateStr === today;
 };
@@ -55,6 +76,7 @@ const printOfficial = () => {
         start_date: startDate.value,
         end_date: endDate.value,
         search: search.value || '',
+        mode: mode.value,
     });
     window.open(route('sales.planning.schedule.print') + '?' + params.toString(), '_blank');
 };
@@ -71,7 +93,7 @@ const printOfficial = () => {
                         <ArrowLeftIcon class="w-5 h-5" />
                     </Link>
                     <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
-                        Daily Delivery Monitoring Matrix
+                        {{ mode === 'weekly' ? 'Weekly' : 'Daily' }} Delivery Monitoring Matrix
                     </h2>
                 </div>
                 <button @click="printOfficial" class="flex items-center gap-2 bg-blue-900 hover:bg-blue-800 text-white px-5 py-2 rounded-lg text-sm font-bold transition-colors no-print shadow-md">
@@ -108,6 +130,19 @@ const printOfficial = () => {
                                 class="rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 py-2"
                             >
                         </div>
+                        <!-- Daily/Weekly Toggle -->
+                        <div class="flex items-center bg-slate-200 dark:bg-slate-700 rounded-lg p-0.5">
+                            <button @click="toggleMode('daily')" 
+                                :class="mode === 'daily' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+                                class="px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all">
+                                Daily
+                            </button>
+                            <button @click="toggleMode('weekly')" 
+                                :class="mode === 'weekly' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+                                class="px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all">
+                                Weekly
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="flex items-center gap-4">
@@ -140,10 +175,14 @@ const printOfficial = () => {
                                     <span class="text-slate-900 dark:text-slate-100 font-black uppercase tracking-wider">DATA</span>
                                 </th>
                                 <th v-for="date in dates" :key="date" 
-                                    class="p-2 border border-slate-300 dark:border-slate-700 text-center font-black whitespace-nowrap min-w-[65px]"
-                                    :class="isToday(date) ? 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 ring-2 ring-inset ring-indigo-500/20' : 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800'"
+                                    class="p-2 border border-slate-300 dark:border-slate-700 text-center font-black whitespace-nowrap"
+                                    :class="[
+                                        isToday(date) ? 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 ring-2 ring-inset ring-indigo-500/20' : 'text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800',
+                                        mode === 'weekly' ? 'min-w-[100px]' : 'min-w-[65px]'
+                                    ]"
                                 >
-                                    {{ formatDateShort(date) }}
+                                    <div>{{ formatColumnHeader(date) }}</div>
+                                    <div v-if="mode === 'weekly'" class="text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">{{ formatDateShort(date) }}</div>
                                 </th>
                                 <th class="p-3 border border-slate-300 dark:border-slate-700 text-center bg-slate-200 dark:bg-slate-950 sticky right-0 z-30 min-w-[85px] shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]" rowspan="2">
                                     <span class="text-slate-900 dark:text-slate-100 font-black uppercase tracking-wider">TOTAL</span>

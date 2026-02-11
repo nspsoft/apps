@@ -84,6 +84,7 @@ class DeliveryScheduleController extends Controller
         $startDate = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::now()->startOfMonth();
         $endDate = $request->end_date ? Carbon::parse($request->end_date)->endOfDay() : Carbon::now()->endOfMonth();
         $search = $request->search;
+        $mode = $request->mode ?? 'daily'; // 'daily' or 'weekly'
 
         // Generate list of dates for headers
         $dates = [];
@@ -91,6 +92,25 @@ class DeliveryScheduleController extends Controller
         while ($current <= $endDate) {
             $dates[] = $current->format('Y-m-d');
             $current->addDay();
+        }
+
+        // Generate week ranges for weekly mode
+        $weeks = [];
+        if ($mode === 'weekly') {
+            $wStart = $startDate->copy();
+            $weekNum = 1;
+            while ($wStart <= $endDate) {
+                $wEnd = $wStart->copy()->endOfWeek(Carbon::SUNDAY); // Mon-Sun
+                if ($wEnd > $endDate) $wEnd = $endDate->copy();
+                $weeks[] = [
+                    'key' => 'W' . $weekNum,
+                    'label' => $wStart->format('d') . '-' . $wEnd->format('d M'),
+                    'start' => $wStart->format('Y-m-d'),
+                    'end' => $wEnd->format('Y-m-d'),
+                ];
+                $weekNum++;
+                $wStart = $wEnd->copy()->addDay();
+            }
         }
 
         // Get Schedules
@@ -166,40 +186,59 @@ class DeliveryScheduleController extends Controller
             $matrix[$custId]['products'][$prodId]['totals']['bal'] += $bal;
         }
 
-        // Reformat for Frontend (Convert associative array to indexed)
+        // Reformat for Frontend
         $formattedMatrix = [];
         foreach ($matrix as $custId => $cData) {
             $products = [];
             foreach ($cData['products'] as $prodId => $pData) {
-                // Ensure every date in range exists in 'daily'
+                // Fill missing dates
                 foreach ($dates as $date) {
                     if (!isset($pData['daily'][$date])) {
                         $actQty = $actualsMap[$custId][$prodId][$date] ?? 0;
-                        $pData['daily'][$date] = [
-                            'sch' => 0,
-                            'act' => $actQty,
-                            'bal' => $actQty
-                        ];
-                        // If it's an unplanned actual delivery, add to totals
+                        $pData['daily'][$date] = ['sch' => 0, 'act' => $actQty, 'bal' => $actQty];
                         if ($actQty > 0) {
                             $pData['totals']['act'] += $actQty;
                             $pData['totals']['bal'] += $actQty;
                         }
                     }
                 }
+
+                // Aggregate into weeks if weekly mode
+                if ($mode === 'weekly') {
+                    $weeklyData = [];
+                    foreach ($weeks as $week) {
+                        $wSch = 0; $wAct = 0;
+                        foreach ($dates as $date) {
+                            if ($date >= $week['start'] && $date <= $week['end']) {
+                                $wSch += $pData['daily'][$date]['sch'] ?? 0;
+                                $wAct += $pData['daily'][$date]['act'] ?? 0;
+                            }
+                        }
+                        $weeklyData[$week['key']] = ['sch' => $wSch, 'act' => $wAct, 'bal' => $wAct - $wSch];
+                    }
+                    $pData['daily'] = $weeklyData;
+                }
+
                 $products[] = $pData;
             }
             $cData['products'] = $products;
             $formattedMatrix[] = $cData;
         }
 
+        // Use week keys as column headers for weekly mode
+        $columnHeaders = $mode === 'weekly' 
+            ? array_map(fn($w) => $w['key'], $weeks) 
+            : $dates;
+
         return Inertia::render('Sales/Planning/Schedule/Comparison', [
-            'dates' => $dates,
+            'dates' => $columnHeaders,
             'matrix' => $formattedMatrix,
+            'weeks' => $mode === 'weekly' ? $weeks : [],
             'filters' => [
                 'start_date' => $startDate->format('Y-m-d'),
                 'end_date' => $endDate->format('Y-m-d'),
                 'search' => $search,
+                'mode' => $mode,
             ]
         ]);
     }
@@ -209,12 +248,32 @@ class DeliveryScheduleController extends Controller
         $startDate = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::now()->startOfMonth();
         $endDate = $request->end_date ? Carbon::parse($request->end_date)->endOfDay() : Carbon::now()->endOfMonth();
         $search = $request->search;
+        $mode = $request->mode ?? 'daily';
 
         $dates = [];
         $current = $startDate->copy();
         while ($current <= $endDate) {
             $dates[] = $current->format('Y-m-d');
             $current->addDay();
+        }
+
+        // Generate week ranges for weekly mode
+        $weeks = [];
+        if ($mode === 'weekly') {
+            $wStart = $startDate->copy();
+            $weekNum = 1;
+            while ($wStart <= $endDate) {
+                $wEnd = $wStart->copy()->endOfWeek(Carbon::SUNDAY);
+                if ($wEnd > $endDate) $wEnd = $endDate->copy();
+                $weeks[] = [
+                    'key' => 'W' . $weekNum,
+                    'label' => 'Week ' . $weekNum . "\n" . $wStart->format('d') . '-' . $wEnd->format('d M'),
+                    'start' => $wStart->format('Y-m-d'),
+                    'end' => $wEnd->format('Y-m-d'),
+                ];
+                $weekNum++;
+                $wStart = $wEnd->copy()->addDay();
+            }
         }
 
         $schedules = DeliverySchedule::with(['customer', 'product.unit'])
@@ -277,7 +336,8 @@ class DeliveryScheduleController extends Controller
 
         // Fill missing dates
         foreach ($matrix as $custId => &$cData) {
-            foreach ($cData['products'] as $prodId => &$pData) {
+            $products = [];
+            foreach ($cData['products'] as $prodId => $pData) {
                 foreach ($dates as $date) {
                     if (!isset($pData['daily'][$date])) {
                         $actQty = $actualsMap[$custId][$prodId][$date] ?? 0;
@@ -288,15 +348,38 @@ class DeliveryScheduleController extends Controller
                         }
                     }
                 }
+
+                // Aggregate into weeks if weekly mode
+                if ($mode === 'weekly') {
+                    $weeklyData = [];
+                    foreach ($weeks as $week) {
+                        $wSch = 0; $wAct = 0;
+                        foreach ($dates as $date) {
+                            if ($date >= $week['start'] && $date <= $week['end']) {
+                                $wSch += $pData['daily'][$date]['sch'] ?? 0;
+                                $wAct += $pData['daily'][$date]['act'] ?? 0;
+                            }
+                        }
+                        $weeklyData[$week['key']] = ['sch' => $wSch, 'act' => $wAct, 'bal' => $wAct - $wSch];
+                    }
+                    $pData['daily'] = $weeklyData;
+                }
+                $products[] = $pData;
             }
+            $cData['products'] = $products;
         }
 
+        $columnHeaders = $mode === 'weekly' 
+            ? $weeks 
+            : $dates;
+
         return view('print.delivery-schedule-matrix', [
-            'dates' => $dates,
+            'headers' => $columnHeaders,
             'matrix' => $matrix,
-            'period' => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
+            'period' => $mode === 'weekly' ? 'Weekly View: ' . $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y') : $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
             'printDate' => Carbon::now()->format('d/m/Y H:i'),
             'today' => Carbon::now()->format('Y-m-d'),
+            'mode' => $mode,
         ]);
     }
 }
