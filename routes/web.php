@@ -59,8 +59,11 @@ Route::post('/register', [App\Http\Controllers\Auth\AuthController::class, 'regi
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome');
 Route::view('/features', 'features')->name('features');
 
+use App\Http\Controllers\BlueprintController;
+
 // Dashboard (Protected)
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard')->middleware(['auth']);
+Route::get('/project/blueprint', [BlueprintController::class, 'index'])->name('blueprint.index')->middleware(['auth']);
 
 // Inventory Module
 Route::prefix('inventory')->name('inventory.')->middleware(['auth'])->group(function () {
@@ -68,7 +71,7 @@ Route::prefix('inventory')->name('inventory.')->middleware(['auth'])->group(func
     Route::resource('categories', App\Http\Controllers\Inventory\CategoryController::class);
     Route::get('/stocks', [App\Http\Controllers\Inventory\CurrentStockController::class, 'index'])->name('stocks.index');
     Route::get('/products/{product}/usage', [ProductController::class, 'usage'])->name('products.usage');
-    Route::resource('products', ProductController::class);
+    Route::resource('projects', ProjectController::class);
     Route::resource('units', App\Http\Controllers\Inventory\UnitController::class);
     Route::get('/products-export', [ProductController::class, 'export'])->name('products.export');
     Route::post('/products-import', [ProductController::class, 'import'])->name('products.import');

@@ -33,6 +33,48 @@ import {
     MoonIcon,
     CpuChipIcon,
     BriefcaseIcon,
+    BookOpenIcon,
+    // New Icons for Submenus
+    PresentationChartBarIcon,
+    ChartBarSquareIcon,
+    CalendarDaysIcon,
+    UserGroupIcon,
+    DocumentTextIcon,
+    ClipboardDocumentCheckIcon,
+    ArrowUturnLeftIcon,
+    InformationCircleIcon,
+    MapPinIcon,
+    SparklesIcon,
+    ChatBubbleLeftRightIcon,
+    FunnelIcon,
+    MegaphoneIcon,
+    BuildingOfficeIcon,
+    DocumentPlusIcon,
+    ArchiveBoxArrowDownIcon,
+    CalculatorIcon,
+    TableCellsIcon,
+    ClockIcon,
+    WrenchIcon,
+    ClipboardDocumentIcon,
+    ListBulletIcon,
+    IdentificationIcon,
+    TableCellsIcon as SpreadsheetIcon,
+    // Fix Missing Imports
+    FlagIcon,
+    TagIcon,
+    ScaleIcon,
+    BuildingStorefrontIcon,
+    ArrowsRightLeftIcon,
+    ShareIcon,
+    ArrowPathIcon,
+    PresentationChartLineIcon,
+    PlusCircleIcon,
+    MapIcon,
+    CheckCircleIcon,
+    ShieldCheckIcon,
+    QueueListIcon,
+    AdjustmentsHorizontalIcon,
+    CircleStackIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -127,19 +169,19 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
-            { name: 'Sales Hub', href: '/sales/dashboard', permission: 'sales_crm.view' },
-            { name: '📊 Planning Dashboard', href: '/sales/planning/dashboard', permission: 'sales_crm.view' },
-            { name: '📅 Forecast', href: '/sales/planning/forecast', permission: 'sales_crm.view' },
-            { name: '🚚 Delivery Schedule', href: '/sales/planning/schedule', permission: 'sales_crm.view' },
-            { name: 'Customers', href: '/sales/customers', permission: 'sales_crm.customers.view' },
-            { name: 'Quotations', href: '/sales/quotations', permission: 'sales_crm.quotations.view' },
-            { name: 'Sales Orders', href: '/sales/orders', permission: 'sales_crm.sales_orders.view' },
-            { name: 'Delivery Orders', href: '/sales/deliveries', permission: 'sales_crm.delivery_orders.view' },
-            { name: 'Sales Invoices', href: '/sales/invoices', permission: 'sales_crm.invoices.view' },
-            { name: 'Sales Returns', href: '/sales/returns', permission: 'sales_crm.sales_returns.view' },
-            { name: 'ℹ️ Information', href: '/sales/information', permission: 'sales_crm.view' },
-            { name: '📍 PO Tracking', href: '/sales/po-tracking', permission: 'sales_crm.view' },
-            { name: '✨ AI PO Extractor', href: '/sales/po-extractor', permission: 'sales_crm.ai_po_extractor.view' },
+            { name: 'Sales Hub', href: '/sales/dashboard', icon: PresentationChartBarIcon, permission: 'sales_crm.view' },
+            { name: 'Planning', href: '/sales/planning/dashboard', icon: ChartBarSquareIcon, permission: 'sales_crm.view' },
+            { name: 'Forecast', href: '/sales/planning/forecast', icon: CalendarDaysIcon, permission: 'sales_crm.view' },
+            { name: 'Schedule', href: '/sales/planning/schedule', icon: TruckIcon, permission: 'sales_crm.view' },
+            { name: 'Customers', href: '/sales/customers', icon: UserGroupIcon, permission: 'sales_crm.customers.view' },
+            { name: 'Quotations', href: '/sales/quotations', icon: DocumentTextIcon, permission: 'sales_crm.quotations.view' },
+            { name: 'Sales Orders', href: '/sales/orders', icon: ShoppingCartIcon, permission: 'sales_crm.sales_orders.view' },
+            { name: 'Delivery Orders', href: '/sales/deliveries', icon: ClipboardDocumentCheckIcon, permission: 'sales_crm.delivery_orders.view' },
+            { name: 'Sales Invoices', href: '/sales/invoices', icon: BanknotesIcon, permission: 'sales_crm.invoices.view' },
+            { name: 'Sales Returns', href: '/sales/returns', icon: ArrowUturnLeftIcon, permission: 'sales_crm.sales_returns.view' },
+            { name: 'Information', href: '/sales/information', icon: InformationCircleIcon, permission: 'sales_crm.view' },
+            { name: 'PO Tracking', href: '/sales/po-tracking', icon: MapPinIcon, permission: 'sales_crm.view' },
+            { name: 'AI PO Extractor', href: '/sales/po-extractor', icon: SparklesIcon, permission: 'sales_crm.ai_po_extractor.view' },
         ]
     },
     { 
@@ -149,11 +191,11 @@ const navigation = [
         current: false,
         permission: 'sales_crm.view',
         children: [
-            { name: '💬 WhatsApp Center', href: '/sales/whatsapp' },
-            { name: 'CRM Intelligence', href: '/crm/dashboard', permission: 'sales_crm.leads_management.view' },
-            { name: 'Leads Management', href: '/crm/leads', permission: 'sales_crm.leads_management.view' },
-            { name: 'Opportunity Tracking', href: '/crm/opportunities', permission: 'sales_crm.opportunity_tracking.view' },
-            { name: 'Marketing Campaigns', href: '/crm/campaigns', permission: 'sales_crm.marketing_campaigns.view' },
+            { name: 'WhatsApp Center', href: '/sales/whatsapp', icon: ChatBubbleLeftRightIcon },
+            { name: 'CRM Intelligence', href: '/crm/dashboard', icon: ChartBarIcon, permission: 'sales_crm.leads_management.view' },
+            { name: 'Leads Management', href: '/crm/leads', icon: FunnelIcon, permission: 'sales_crm.leads_management.view' },
+            { name: 'Opportunity Tracking', href: '/crm/opportunities', icon: FlagIcon, permission: 'sales_crm.opportunity_tracking.view' },
+            { name: 'Marketing Campaigns', href: '/crm/campaigns', icon: MegaphoneIcon, permission: 'sales_crm.marketing_campaigns.view' },
         ]
     },
     { 
@@ -163,14 +205,14 @@ const navigation = [
         current: false,
         permission: 'purchasing.view',
         children: [
-            { name: 'Procurement Ops', href: '/purchasing/dashboard', permission: 'purchasing.view' },
-            { name: 'Suppliers', href: '/purchasing/suppliers', permission: 'purchasing.suppliers.view' },
-            { name: 'Purchase Requests', href: '/purchasing/requests', permission: 'purchasing.purchase_requests.view' },
-            { name: 'Purchase Orders', href: '/purchasing/orders', permission: 'purchasing.purchase_orders.view' },
-            { name: 'Goods Receipts', href: '/purchasing/receipts', permission: 'purchasing.goods_receipts.view' },
-            { name: 'AI Gen. Receipt', href: '/purchasing/dn-extractor', permission: 'purchasing.goods_receipts.view' },
-            { name: 'Purchase Invoices', href: '/purchasing/invoices', permission: 'purchasing.purchase_invoices.view' },
-            { name: 'Purchase Returns', href: '/purchasing/returns', permission: 'purchasing.purchase_returns.view' },
+            { name: 'Procurement Ops', href: '/purchasing/dashboard', icon: PresentationChartBarIcon, permission: 'purchasing.view' },
+            { name: 'Suppliers', href: '/purchasing/suppliers', icon: BuildingOfficeIcon, permission: 'purchasing.suppliers.view' },
+            { name: 'Purchase Requests', href: '/purchasing/requests', icon: DocumentPlusIcon, permission: 'purchasing.purchase_requests.view' },
+            { name: 'Purchase Orders', href: '/purchasing/orders', icon: ShoppingCartIcon, permission: 'purchasing.purchase_orders.view' },
+            { name: 'Goods Receipts', href: '/purchasing/receipts', icon: ArchiveBoxArrowDownIcon, permission: 'purchasing.goods_receipts.view' },
+            { name: 'AI Gen. Receipt', href: '/purchasing/dn-extractor', icon: SparklesIcon, permission: 'purchasing.goods_receipts.view' },
+            { name: 'Purchase Invoices', href: '/purchasing/invoices', icon: BanknotesIcon, permission: 'purchasing.purchase_invoices.view' },
+            { name: 'Purchase Returns', href: '/purchasing/returns', icon: ArrowUturnLeftIcon, permission: 'purchasing.purchase_returns.view' },
         ]
     },
     { 
@@ -180,14 +222,14 @@ const navigation = [
         current: false,
         permission: 'inventory.view',
         children: [
-            { name: 'Command Center', href: '/inventory/dashboard', permission: 'inventory.view' },
-            { name: 'Categories', href: '/inventory/categories', permission: 'inventory.categories.view' },
-            { name: 'Products', href: '/inventory/products', permission: 'inventory.products.view' },
-            { name: 'Unit Management', href: '/inventory/units', permission: 'inventory.products.view' },
-            { name: 'Current Stock', href: '/inventory/stocks', permission: 'inventory.current_stock.view' },
-            { name: 'Warehouses', href: '/inventory/warehouses', permission: 'inventory.warehouses.view' },
-            { name: 'Stock Movements', href: '/inventory/movements', permission: 'inventory.stock_movements.view' },
-            { name: 'Stock Opname', href: '/inventory/opname', permission: 'inventory.stock_opname.view' },
+            { name: 'Command Center', href: '/inventory/dashboard', icon: PresentationChartBarIcon, permission: 'inventory.view' },
+            { name: 'Categories', href: '/inventory/categories', icon: TagIcon, permission: 'inventory.categories.view' },
+            { name: 'Products', href: '/inventory/products', icon: CubeIcon, permission: 'inventory.products.view' },
+            { name: 'Unit Management', href: '/inventory/units', icon: ScaleIcon, permission: 'inventory.products.view' },
+            { name: 'Current Stock', href: '/inventory/stocks', icon: ClipboardDocumentListIcon, permission: 'inventory.current_stock.view' },
+            { name: 'Warehouses', href: '/inventory/warehouses', icon: BuildingStorefrontIcon, permission: 'inventory.warehouses.view' },
+            { name: 'Stock Movements', href: '/inventory/movements', icon: ArrowsRightLeftIcon, permission: 'inventory.stock_movements.view' },
+            { name: 'Stock Opname', href: '/inventory/opname', icon: ClipboardDocumentCheckIcon, permission: 'inventory.stock_opname.view' },
         ]
     },
     { 
@@ -197,14 +239,14 @@ const navigation = [
         current: false,
         permission: 'manufacturing.view',
         children: [
-            { name: 'Intelligence Hub', href: '/manufacturing/dashboard', permission: 'manufacturing.view' },
-            { name: 'Bill of Materials', href: '/manufacturing/boms', permission: 'manufacturing.bill_of_materials.view' },
-            { name: 'Production Routing', href: '/manufacturing/routing', permission: 'manufacturing.production_routing.view' },
-            { name: 'Work Orders', href: '/manufacturing/work-orders', permission: 'manufacturing.work_orders.view' },
-            { name: 'Input Output', href: '/manufacturing/production-entry', permission: 'manufacturing.input_output.view' },
-            { name: 'Shift Management', href: '/manufacturing/shifts', permission: 'manufacturing.shift_management.view' },
-            { name: 'Machine Management', href: '/manufacturing/machines', permission: 'manufacturing.machine_management.view' },
-            { name: 'Subcontract Orders', href: '/manufacturing/subcontract-orders', permission: 'manufacturing.subcontract_orders.view' },
+            { name: 'Intelligence Hub', href: '/manufacturing/dashboard', icon: PresentationChartBarIcon, permission: 'manufacturing.view' },
+            { name: 'Bill of Materials', href: '/manufacturing/boms', icon: ListBulletIcon, permission: 'manufacturing.bill_of_materials.view' },
+            { name: 'Production Routing', href: '/manufacturing/routing', icon: ArrowsRightLeftIcon, permission: 'manufacturing.production_routing.view' },
+            { name: 'Work Orders', href: '/manufacturing/work-orders', icon: ClipboardDocumentListIcon, permission: 'manufacturing.work_orders.view' },
+            { name: 'Input Output', href: '/manufacturing/production-entry', icon: ArrowDownOnSquareIcon, permission: 'manufacturing.input_output.view' },
+            { name: 'Shift Management', href: '/manufacturing/shifts', icon: ClockIcon, permission: 'manufacturing.shift_management.view' },
+            { name: 'Machine Management', href: '/manufacturing/machines', icon: Cog6ToothIcon, permission: 'manufacturing.machine_management.view' },
+            { name: 'Subcontract Orders', href: '/manufacturing/subcontract-orders', icon: ShareIcon, permission: 'manufacturing.subcontract_orders.view' },
         ]
     },
     { 
@@ -214,9 +256,9 @@ const navigation = [
         current: false,
         permission: 'maintenance.view',
         children: [
-            { name: 'Preventive Schedule', href: '/maintenance/schedule', permission: 'maintenance.schedule.view' },
-            { name: 'Breakdown Logs', href: '/maintenance/breakdown', permission: 'maintenance.breakdown.view' },
-            { name: 'Spareparts Inventory', href: '/maintenance/spareparts', permission: 'maintenance.spareparts.view' },
+            { name: 'Preventive Schedule', href: '/maintenance/schedule', icon: CalendarDaysIcon, permission: 'maintenance.schedule.view' },
+            { name: 'Breakdown Logs', href: '/maintenance/breakdown', icon: WrenchIcon, permission: 'maintenance.breakdown.view' },
+            { name: 'Spareparts Inventory', href: '/maintenance/spareparts', icon: Cog6ToothIcon, permission: 'maintenance.spareparts.view' },
         ]
     },
     { 
@@ -226,9 +268,9 @@ const navigation = [
         current: false,
         permission: 'qc.view',
         children: [
-            { name: 'Incoming Inspection', href: '/qc/incoming', permission: 'qc.incoming_inspection.view' },
-            { name: 'In-Process QC', href: '/qc/in-process', permission: 'qc.in-process_qc.view' },
-            { name: 'Quality Checklists', href: '/qc/checklists', permission: 'qc.quality_checklists.view' },
+            { name: 'Incoming Inspection', href: '/qc/incoming', icon: ArrowDownOnSquareIcon, permission: 'qc.incoming_inspection.view' },
+            { name: 'In-Process QC', href: '/qc/in-process', icon: ArrowPathIcon, permission: 'qc.in-process_qc.view' },
+            { name: 'Quality Checklists', href: '/qc/checklists', icon: ClipboardDocumentCheckIcon, permission: 'qc.quality_checklists.view' },
         ]
     },
     { 
@@ -238,9 +280,9 @@ const navigation = [
         current: false,
         permission: 'logistics.view',
         children: [
-            { name: 'Logistics Hub', href: '/logistics/dashboard', permission: 'logistics.view' },
-            { name: 'Delivery Planning', href: '/logistics/planning', permission: 'logistics.delivery_planning.view' },
-            { name: 'Vehicle Fleet', href: '/logistics/fleet', permission: 'logistics.vehicle_fleet.view' },
+            { name: 'Logistics Hub', href: '/logistics/dashboard', icon: PresentationChartBarIcon, permission: 'logistics.view' },
+            { name: 'Delivery Planning', href: '/logistics/planning', icon: MapIcon, permission: 'logistics.delivery_planning.view' },
+            { name: 'Vehicle Fleet', href: '/logistics/fleet', icon: TruckIcon, permission: 'logistics.vehicle_fleet.view' },
         ]
     },
     { 
@@ -250,10 +292,10 @@ const navigation = [
         current: false,
         permission: 'finance.view',
         children: [
-            { name: 'Financial Command', href: '/finance/dashboard', permission: 'finance.general_ledger.view' },
-            { name: 'General Ledger', href: '/finance/ledger', permission: 'finance.general_ledger.view' },
-            { name: 'Profit & Loss', href: '/finance/reports', permission: 'finance.profit_&_loss.view' },
-            { name: 'AP & AR Monitoring', href: '/finance/ap_&_ar_monitoring', permission: 'finance.ap_&_ar_monitoring.view' },
+            { name: 'Financial Command', href: '/finance/dashboard', icon: PresentationChartBarIcon, permission: 'finance.general_ledger.view' },
+            { name: 'General Ledger', href: '/finance/ledger', icon: BookOpenIcon, permission: 'finance.general_ledger.view' },
+            { name: 'Profit & Loss', href: '/finance/reports', icon: ChartBarSquareIcon, permission: 'finance.profit_&_loss.view' },
+            { name: 'AP & AR Monitoring', href: '/finance/ap_&_ar_monitoring', icon: ArrowsRightLeftIcon, permission: 'finance.ap_&_ar_monitoring.view' },
         ]
     },
     { 
@@ -263,9 +305,9 @@ const navigation = [
         current: false,
         permission: 'finance.view',
         children: [
-            { name: 'Production Costing', href: '/costing/production', permission: 'finance.production_costing.view' },
-            { name: 'Overhead Allocation', href: '/costing/overhead', permission: 'finance.overhead_allocation.view' },
-            { name: 'Profitability Analytic', href: '/costing/profitability', permission: 'finance.profitability_analytic.view' },
+            { name: 'Production Costing', href: '/costing/production', icon: CalculatorIcon, permission: 'finance.production_costing.view' },
+            { name: 'Overhead Allocation', href: '/costing/overhead', icon: TableCellsIcon, permission: 'finance.overhead_allocation.view' },
+            { name: 'Profitability Analytic', href: '/costing/profitability', icon: PresentationChartLineIcon, permission: 'finance.profitability_analytic.view' },
         ]
     },
     { 
@@ -275,9 +317,9 @@ const navigation = [
         current: false,
         permission: 'hr_payroll.view',
         children: [
-            { name: 'Employee Directory', href: '/hr/employees', permission: 'hr_payroll.employee_directory.view' },
-            { name: 'Attendance', href: '/hr/attendance', permission: 'hr_payroll.attendance.view' },
-            { name: 'Payroll', href: '/hr/payroll', permission: 'hr_payroll.payroll.view' },
+            { name: 'Employee Directory', href: '/hr/employees', icon: IdentificationIcon, permission: 'hr_payroll.employee_directory.view' },
+            { name: 'Attendance', href: '/hr/attendance', icon: ClockIcon, permission: 'hr_payroll.attendance.view' },
+            { name: 'Payroll', href: '/hr/payroll', icon: BanknotesIcon, permission: 'hr_payroll.payroll.view' },
         ]
     },
     { 
@@ -286,8 +328,18 @@ const navigation = [
         icon: BriefcaseIcon, 
         current: false,
         children: [
-            { name: 'Project Dashboard', href: '/projects' },
-            { name: 'Initiate Project', href: '/projects/create' },
+            { name: 'Project Dashboard', href: '/projects', icon: PresentationChartBarIcon },
+            { name: 'Initiate Project', href: '/projects/create', icon: PlusCircleIcon },
+        ]
+    },
+    { 
+        name: 'Documentation', 
+        href: '#', 
+        icon: BookOpenIcon, 
+        current: false, 
+        children: [
+            { name: 'Blueprint Interactive', href: '/project/blueprint', icon: MapIcon },
+            { name: 'System Testing (UAT)', href: '/settings/uat', icon: CheckCircleIcon, permission: 'settings.view', target: '_blank' },
         ]
     },
     { 
@@ -297,19 +349,18 @@ const navigation = [
         current: false,
         permission: 'settings.view',
         children: [
-            { name: 'User Management', href: '/settings/users', permission: 'settings.user_management.view' },
-            { name: 'Roles & Permissions', href: '/settings/roles', permission: 'settings.roles_&_permissions.view' },
-            { name: 'Company Profile', href: '/settings/company', permission: 'settings.company_profile.view' },
-            { name: 'AI Configuration', href: '/settings/ai', permission: 'settings.company_profile.view' },
-            { name: 'Document Numbering', href: '/settings/numbering', permission: 'settings.document_numbering.view' },
-            { name: 'Regional & Tax', href: '/settings/regional', permission: 'settings.regional_&_tax.view' },
-            { name: 'System Preferences', href: '/settings/preferences', permission: 'settings.system_preferences.view' },
-            { name: 'Workflow Approval', href: '/settings/workflow', permission: 'settings.workflow_approval.view' },
-            { name: 'Import & Export', href: '/settings/io', permission: 'settings.import_&_export.view' },
-            { name: 'Database Management', href: '/settings/database', permission: 'settings.database_management.view' },
-            { name: 'Activity Logs', href: '/admin/activity-logs', permission: 'settings.activity_logs.view' },
-            { name: 'System Testing (UAT)', href: '/settings/uat', permission: 'settings.view', target: '_blank' },
-            { name: '💬 WhatsApp Bot', href: '/settings/whatsapp', permission: 'settings.company_profile.view' },
+            { name: 'User Management', href: '/settings/users', icon: UsersIcon, permission: 'settings.user_management.view' },
+            { name: 'Roles & Permissions', href: '/settings/roles', icon: ShieldCheckIcon, permission: 'settings.roles_&_permissions.view' },
+            { name: 'Company Profile', href: '/settings/company', icon: BuildingOfficeIcon, permission: 'settings.company_profile.view' },
+            { name: 'AI Configuration', href: '/settings/ai', icon: CpuChipIcon, permission: 'settings.company_profile.view' },
+            { name: 'Document Numbering', href: '/settings/numbering', icon: QueueListIcon, permission: 'settings.document_numbering.view' },
+            { name: 'Regional & Tax', href: '/settings/regional', icon: GlobeAltIcon, permission: 'settings.regional_&_tax.view' },
+            { name: 'System Preferences', href: '/settings/preferences', icon: AdjustmentsHorizontalIcon, permission: 'settings.system_preferences.view' },
+            { name: 'Workflow Approval', href: '/settings/workflow', icon: CheckBadgeIcon, permission: 'settings.workflow_approval.view' },
+            { name: 'Import & Export', href: '/settings/io', icon: ArrowPathIcon, permission: 'settings.import_&_export.view' },
+            { name: 'Database Management', href: '/settings/database', icon: CircleStackIcon, permission: 'settings.database_management.view' },
+            { name: 'Activity Logs', href: '/admin/activity-logs', icon: ClipboardDocumentListIcon, permission: 'settings.activity_logs.view' },
+            { name: 'WhatsApp Bot', href: '/settings/whatsapp', icon: ChatBubbleLeftRightIcon, permission: 'settings.company_profile.view' },
         ]
     },
 ];
@@ -520,15 +571,16 @@ const toggleTheme = () => {
                                     leave-from-class="opacity-100 translate-y-0"
                                     leave-to-class="opacity-0 -translate-y-1"
                                 >
-                                    <ul v-if="expandedMenus[item.name]" class="mt-1 space-y-1 pl-10">
+                                    <ul v-if="expandedMenus[item.name]" class="mt-1 space-y-1 pl-4">
                                         <li v-for="child in item.children" :key="child.name">
                                             <component
                                                 :is="child.target ? 'a' : Link"
                                                 :href="child.href"
                                                 :target="child.target"
-                                                class="block rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-900 hover:text-white transition-colors"
+                                                class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-900 hover:text-white transition-colors"
                                             >
-                                                {{ child.name }}
+                                                <component :is="child.icon" v-if="child.icon" class="h-4 w-4 shrink-0 transition-colors group-hover:text-white" />
+                                                <span :class="child.icon ? '' : 'pl-7'">{{ child.name }}</span>
                                             </component>
                                         </li>
                                     </ul>
@@ -621,8 +673,9 @@ const toggleTheme = () => {
                                             :is="child.target ? 'a' : Link"
                                             :href="child.href"
                                             :target="child.target"
-                                            class="block px-4 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+                                            class="flex items-center gap-3 px-4 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition-colors group"
                                         >
+                                            <component :is="child.icon" v-if="child.icon" class="h-4 w-4 shrink-0 transition-colors group-hover:text-white" />
                                             {{ child.name }}
                                         </component>
                                     </div>
@@ -636,15 +689,16 @@ const toggleTheme = () => {
                                         leave-from-class="opacity-100 translate-y-0"
                                         leave-to-class="opacity-0 -translate-y-1"
                                     >
-                                        <ul v-if="expandedMenus[item.name]" class="mt-1 space-y-1 pl-10">
+                                        <ul v-if="expandedMenus[item.name]" class="mt-1 space-y-1 pl-4">
                                             <li v-for="child in item.children" :key="child.name">
                                                 <component
                                                     :is="child.target ? 'a' : Link"
                                                     :href="child.href"
                                                     :target="child.target"
-                                                    class="block rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800/50 hover:text-white transition-colors"
+                                                    class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800/50 hover:text-white transition-colors"
                                                 >
-                                                    {{ child.name }}
+                                                    <component :is="child.icon" v-if="child.icon" class="h-4 w-4 shrink-0 transition-colors group-hover:text-white" />
+                                                    <span :class="child.icon ? '' : 'pl-7'">{{ child.name }}</span>
                                                 </component>
                                             </li>
                                         </ul>

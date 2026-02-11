@@ -19,7 +19,8 @@ import {
     XMarkIcon,
     PaperClipIcon,
     ArrowDownTrayIcon,
-    PrinterIcon
+    PrinterIcon,
+    BookOpenIcon
 } from '@heroicons/vue/24/outline';
 import { formatDate } from '@/helpers';
 
