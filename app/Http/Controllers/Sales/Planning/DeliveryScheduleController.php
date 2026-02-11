@@ -382,4 +382,239 @@ class DeliveryScheduleController extends Controller
             'mode' => $mode,
         ]);
     }
+
+    /**
+     * Return chart data for Schedule vs Delivery achievement (JSON API).
+     * Supports 3 levels: summary (per customer), customer (per product), item (timeline).
+     */
+    public function comparisonChart(Request $request)
+    {
+        $startDate = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::now()->startOfMonth();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date)->endOfDay() : Carbon::now()->endOfMonth();
+        $search = $request->search;
+        $level = $request->level ?? 'summary'; // summary, customer, item
+        $customerId = $request->customer_id;
+        $productId = $request->product_id;
+        $period = $request->period ?? 'daily'; // daily, weekly, monthly
+
+        // Fetch schedules
+        $scheduleQuery = DeliverySchedule::with(['customer', 'product.unit'])
+            ->whereBetween('delivery_date', [$startDate, $endDate]);
+
+        if ($search) {
+            $scheduleQuery->where(function ($q) use ($search) {
+                $q->whereHas('customer', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('product', fn($q2) => $q2->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"))
+                  ->orWhere('po_number', 'like', "%{$search}%");
+            });
+        }
+        if ($customerId) $scheduleQuery->where('customer_id', $customerId);
+        if ($productId) $scheduleQuery->where('product_id', $productId);
+
+        $schedules = $scheduleQuery->get();
+
+        // Fetch actuals
+        $actualQuery = DeliveryOrderItem::whereHas('deliveryOrder', function($q) use ($startDate, $endDate) {
+                $q->whereBetween('delivery_date', [$startDate, $endDate])
+                  ->whereIn('status', [DeliveryOrder::STATUS_SHIPPED, DeliveryOrder::STATUS_DELIVERED, DeliveryOrder::STATUS_COMPLETED]);
+            })
+            ->select('delivery_orders.delivery_date', 'delivery_orders.customer_id', 'delivery_order_items.product_id',
+                DB::raw('SUM(delivery_order_items.qty_delivered) as total_delivered'))
+            ->join('delivery_orders', 'delivery_order_items.delivery_order_id', '=', 'delivery_orders.id');
+
+        if ($customerId) $actualQuery->where('delivery_orders.customer_id', $customerId);
+        if ($productId) $actualQuery->where('delivery_order_items.product_id', $productId);
+
+        $actuals = $actualQuery->groupBy('delivery_orders.delivery_date', 'delivery_orders.customer_id', 'delivery_order_items.product_id')->get();
+
+        // ─── LEVEL 1: SUMMARY (per customer) ───
+        if ($level === 'summary') {
+            $customers = [];
+            foreach ($schedules as $sch) {
+                $cid = $sch->customer_id;
+                if (!isset($customers[$cid])) {
+                    $customers[$cid] = ['id' => $cid, 'name' => $sch->customer->name, 'schedule' => 0, 'delivery' => 0];
+                }
+                $customers[$cid]['schedule'] += (float) $sch->qty_scheduled;
+            }
+            foreach ($actuals as $act) {
+                $cid = $act->customer_id;
+                if (!isset($customers[$cid])) {
+                    $customers[$cid] = ['id' => $cid, 'name' => 'Unknown', 'schedule' => 0, 'delivery' => 0];
+                }
+                $customers[$cid]['delivery'] += (float) $act->total_delivered;
+            }
+
+            $data = array_values($customers);
+            usort($data, fn($a, $b) => $b['schedule'] - $a['schedule']);
+
+            foreach ($data as &$c) {
+                $c['achievement'] = $c['schedule'] > 0 ? round(($c['delivery'] / $c['schedule']) * 100, 1) : 0;
+                $c['shortfall'] = $c['delivery'] - $c['schedule'];
+            }
+
+            $totalSch = array_sum(array_column($data, 'schedule'));
+            $totalDel = array_sum(array_column($data, 'delivery'));
+
+            return response()->json([
+                'level' => 'summary',
+                'kpi' => [
+                    'total_schedule' => $totalSch,
+                    'total_delivery' => $totalDel,
+                    'achievement' => $totalSch > 0 ? round(($totalDel / $totalSch) * 100, 1) : 0,
+                    'shortfall' => $totalDel - $totalSch,
+                ],
+                'data' => $data,
+            ]);
+        }
+
+        // ─── LEVEL 2: CUSTOMER DETAIL (per product) ───
+        if ($level === 'customer' && $customerId) {
+            $products = [];
+            $customerName = '';
+            foreach ($schedules as $sch) {
+                $pid = $sch->product_id;
+                $customerName = $sch->customer->name;
+                if (!isset($products[$pid])) {
+                    $products[$pid] = [
+                        'id' => $pid,
+                        'name' => $sch->product->name,
+                        'sku' => $sch->product->sku,
+                        'unit' => $sch->product->unit->code ?? 'PCS',
+                        'schedule' => 0, 'delivery' => 0
+                    ];
+                }
+                $products[$pid]['schedule'] += (float) $sch->qty_scheduled;
+            }
+            foreach ($actuals as $act) {
+                $pid = $act->product_id;
+                if (isset($products[$pid])) {
+                    $products[$pid]['delivery'] += (float) $act->total_delivered;
+                }
+            }
+
+            $data = array_values($products);
+            usort($data, fn($a, $b) => $b['schedule'] - $a['schedule']);
+
+            foreach ($data as &$p) {
+                $p['achievement'] = $p['schedule'] > 0 ? round(($p['delivery'] / $p['schedule']) * 100, 1) : 0;
+                $p['shortfall'] = $p['delivery'] - $p['schedule'];
+            }
+
+            $totalSch = array_sum(array_column($data, 'schedule'));
+            $totalDel = array_sum(array_column($data, 'delivery'));
+
+            return response()->json([
+                'level' => 'customer',
+                'customer_name' => $customerName,
+                'customer_id' => (int) $customerId,
+                'kpi' => [
+                    'total_schedule' => $totalSch,
+                    'total_delivery' => $totalDel,
+                    'achievement' => $totalSch > 0 ? round(($totalDel / $totalSch) * 100, 1) : 0,
+                    'shortfall' => $totalDel - $totalSch,
+                ],
+                'data' => $data,
+            ]);
+        }
+
+        // ─── LEVEL 3: ITEM TIMELINE ───
+        if ($level === 'item' && $customerId && $productId) {
+            // Build daily map
+            $daily = [];
+            $current = $startDate->copy();
+            while ($current <= $endDate) {
+                $d = $current->format('Y-m-d');
+                $daily[$d] = ['sch' => 0, 'del' => 0];
+                $current->addDay();
+            }
+
+            $productName = '';
+            $customerName = '';
+            foreach ($schedules as $sch) {
+                $d = Carbon::parse($sch->delivery_date)->format('Y-m-d');
+                $productName = $sch->product->name;
+                $customerName = $sch->customer->name;
+                if (isset($daily[$d])) {
+                    $daily[$d]['sch'] += (float) $sch->qty_scheduled;
+                }
+            }
+            foreach ($actuals as $act) {
+                $d = Carbon::parse($act->delivery_date)->format('Y-m-d');
+                if (isset($daily[$d])) {
+                    $daily[$d]['del'] += (float) $act->total_delivered;
+                }
+            }
+
+            // Aggregate based on period
+            $timeline = [];
+            if ($period === 'monthly') {
+                $grouped = [];
+                foreach ($daily as $d => $vals) {
+                    $key = Carbon::parse($d)->format('Y-m');
+                    if (!isset($grouped[$key])) $grouped[$key] = ['sch' => 0, 'del' => 0];
+                    $grouped[$key]['sch'] += $vals['sch'];
+                    $grouped[$key]['del'] += $vals['del'];
+                }
+                foreach ($grouped as $key => $vals) {
+                    $timeline[] = ['label' => Carbon::parse($key . '-01')->format('M Y'), 'schedule' => $vals['sch'], 'delivery' => $vals['del']];
+                }
+            } elseif ($period === 'weekly') {
+                $wStart = $startDate->copy();
+                $weekNum = 1;
+                while ($wStart <= $endDate) {
+                    $wEnd = $wStart->copy()->endOfWeek(Carbon::SUNDAY);
+                    if ($wEnd > $endDate) $wEnd = $endDate->copy();
+                    $wSch = 0; $wDel = 0;
+                    foreach ($daily as $d => $vals) {
+                        if ($d >= $wStart->format('Y-m-d') && $d <= $wEnd->format('Y-m-d')) {
+                            $wSch += $vals['sch'];
+                            $wDel += $vals['del'];
+                        }
+                    }
+                    $timeline[] = [
+                        'label' => 'W' . $weekNum . ' (' . $wStart->format('d') . '-' . $wEnd->format('d M') . ')',
+                        'schedule' => $wSch, 'delivery' => $wDel
+                    ];
+                    $weekNum++;
+                    $wStart = $wEnd->copy()->addDay();
+                }
+            } else {
+                // daily
+                foreach ($daily as $d => $vals) {
+                    $timeline[] = [
+                        'label' => Carbon::parse($d)->format('d-M'),
+                        'schedule' => $vals['sch'], 'delivery' => $vals['del']
+                    ];
+                }
+            }
+
+            // Compute cumulative
+            $cumSch = 0; $cumDel = 0;
+            foreach ($timeline as &$t) {
+                $cumSch += $t['schedule'];
+                $cumDel += $t['delivery'];
+                $t['cum_schedule'] = $cumSch;
+                $t['cum_delivery'] = $cumDel;
+            }
+
+            $totalSch = $cumSch;
+            $totalDel = $cumDel;
+
+            return response()->json([
+                'level' => 'item',
+                'product_name' => $productName,
+                'customer_name' => $customerName,
+                'kpi' => [
+                    'total_schedule' => $totalSch,
+                    'total_delivery' => $totalDel,
+                    'achievement' => $totalSch > 0 ? round(($totalDel / $totalSch) * 100, 1) : 0,
+                    'shortfall' => $totalDel - $totalSch,
+                ],
+                'data' => $timeline,
+            ]);
+        }
+
+        return response()->json(['error' => 'Invalid parameters'], 400);
+    }
 }

@@ -1,14 +1,25 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { 
     MagnifyingGlassIcon, 
     ArrowLeftIcon,
     CalendarDaysIcon,
-    PrinterIcon
+    PrinterIcon,
+    ChartBarIcon,
+    TableCellsIcon,
+    ArrowLeftCircleIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber } from '@/helpers';
+import {
+    Chart as ChartJS,
+    CategoryScale, LinearScale, PointElement, LineElement, BarElement,
+    Title, Tooltip, Legend, Filler,
+} from 'chart.js';
+import { Bar, Line } from 'vue-chartjs';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
 const props = defineProps({
     dates: Array,
@@ -21,6 +32,139 @@ const search = ref(props.filters.search || '');
 const startDate = ref(props.filters.start_date || '');
 const endDate = ref(props.filters.end_date || '');
 const mode = ref(props.filters.mode || 'daily');
+const activeView = ref('chart'); // 'chart' or 'matrix'
+
+// ─── Chart State ───
+const chartLevel = ref('summary'); // summary, customer, item
+const chartData = ref(null);
+const chartLoading = ref(false);
+const chartBreadcrumb = ref([{ label: 'All Customers', level: 'summary' }]);
+const chartPeriod = ref('weekly');
+const selectedCustomerId = ref(null);
+const selectedProductId = ref(null);
+
+const loadChartData = async () => {
+    chartLoading.value = true;
+    try {
+        const params = new URLSearchParams({
+            start_date: startDate.value,
+            end_date: endDate.value,
+            search: search.value || '',
+            level: chartLevel.value,
+            period: chartPeriod.value,
+        });
+        if (selectedCustomerId.value) params.set('customer_id', selectedCustomerId.value);
+        if (selectedProductId.value) params.set('product_id', selectedProductId.value);
+
+        const res = await fetch(route('sales.planning.schedule.chart-data') + '?' + params.toString());
+        chartData.value = await res.json();
+    } catch (e) {
+        console.error('Chart fetch error:', e);
+    } finally {
+        chartLoading.value = false;
+    }
+};
+
+const drillDown = (item) => {
+    if (chartLevel.value === 'summary') {
+        chartLevel.value = 'customer';
+        selectedCustomerId.value = item.id;
+        chartBreadcrumb.value.push({ label: item.name, level: 'customer', id: item.id });
+        loadChartData();
+    } else if (chartLevel.value === 'customer') {
+        chartLevel.value = 'item';
+        selectedProductId.value = item.id;
+        chartBreadcrumb.value.push({ label: item.name, level: 'item', id: item.id });
+        loadChartData();
+    }
+};
+
+const drillUp = (index) => {
+    const target = chartBreadcrumb.value[index];
+    chartBreadcrumb.value = chartBreadcrumb.value.slice(0, index + 1);
+    chartLevel.value = target.level;
+    if (target.level === 'summary') {
+        selectedCustomerId.value = null;
+        selectedProductId.value = null;
+    } else if (target.level === 'customer') {
+        selectedProductId.value = null;
+    }
+    loadChartData();
+};
+
+watch(chartPeriod, () => {
+    if (chartLevel.value === 'item') loadChartData();
+});
+
+onMounted(() => { loadChartData(); });
+
+// ─── Chart.js Configs ───
+const summaryChartData = computed(() => {
+    if (!chartData.value || chartData.value.level !== 'summary') return null;
+    const d = chartData.value.data;
+    return {
+        labels: d.map(c => c.name),
+        datasets: [
+            { label: 'Schedule', data: d.map(c => c.schedule), backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4, barThickness: 22 },
+            { label: 'Delivery', data: d.map(c => c.delivery), backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 4, barThickness: 22 },
+        ],
+    };
+});
+
+const customerChartData = computed(() => {
+    if (!chartData.value || chartData.value.level !== 'customer') return null;
+    const d = chartData.value.data;
+    return {
+        labels: d.map(p => p.name),
+        datasets: [
+            { label: 'Schedule', data: d.map(p => p.schedule), backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 4 },
+            { label: 'Delivery', data: d.map(p => p.delivery), backgroundColor: 'rgba(16,185,129,0.8)', borderRadius: 4 },
+        ],
+    };
+});
+
+const itemChartData = computed(() => {
+    if (!chartData.value || chartData.value.level !== 'item') return null;
+    const d = chartData.value.data;
+    return {
+        labels: d.map(t => t.label),
+        datasets: [
+            { type: 'bar', label: 'Schedule', data: d.map(t => t.schedule), backgroundColor: 'rgba(148,163,184,0.4)', borderRadius: 3, order: 2 },
+            { type: 'bar', label: 'Delivery', data: d.map(t => t.delivery), backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 3, order: 2 },
+            { type: 'line', label: 'Cum. Target', data: d.map(t => t.cum_schedule), borderColor: '#3b82f6', borderDash: [6,3], borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#3b82f6', fill: false, tension: 0.3, order: 1 },
+            { type: 'line', label: 'Cum. Actual', data: d.map(t => t.cum_delivery), borderColor: '#10b981', borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#10b981', fill: false, tension: 0.3, order: 1 },
+        ],
+    };
+});
+
+const horizontalBarOpts = computed(() => ({
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    onClick: (evt, elements) => { if (elements.length && chartData.value) drillDown(chartData.value.data[elements[0].index]); },
+    plugins: { legend: { position: 'top', labels: { color: '#64748b', font: { size: 11, weight: 'bold' } } }, tooltip: { padding: 10 } },
+    scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { color: '#334155', font: { size: 11, weight: '600' } } },
+    },
+}));
+
+const verticalBarOpts = computed(() => ({
+    responsive: true, maintainAspectRatio: false,
+    onClick: (evt, elements) => { if (elements.length && chartData.value) drillDown(chartData.value.data[elements[0].index]); },
+    plugins: { legend: { position: 'top', labels: { color: '#64748b', font: { size: 11, weight: 'bold' } } }, tooltip: { padding: 10 } },
+    scales: {
+        x: { grid: { display: false }, ticks: { color: '#334155', font: { size: 10, weight: '600' }, maxRotation: 45 } },
+        y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+    },
+}));
+
+const comboChartOpts = computed(() => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'top', labels: { color: '#64748b', font: { size: 11, weight: 'bold' } } }, tooltip: { padding: 10 } },
+    scales: {
+        x: { grid: { display: false }, ticks: { color: '#334155', font: { size: 10 }, maxRotation: 45 } },
+        y: { grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+    },
+}));
 
 const handleSearch = () => {
     router.get(route('sales.planning.schedule.comparison'), {
@@ -33,6 +177,7 @@ const handleSearch = () => {
 
 watch([search, startDate, endDate], () => {
     handleSearch();
+    loadChartData();
 });
 
 const toggleMode = (newMode) => {
@@ -41,7 +186,6 @@ const toggleMode = (newMode) => {
 };
 
 const formatDateShort = (dateStr) => {
-    // For weekly mode, show the week label
     if (mode.value === 'weekly') {
         const week = props.weeks.find(w => w.key === dateStr);
         return week ? week.label : dateStr;
@@ -54,7 +198,7 @@ const formatDateShort = (dateStr) => {
 
 const formatColumnHeader = (dateStr) => {
     if (mode.value === 'weekly') {
-        return dateStr; // W1, W2, etc.
+        return dateStr;
     }
     return formatDateShort(dateStr);
 };
@@ -108,12 +252,12 @@ const printOfficial = () => {
             <div class="glass-card rounded-2xl p-6 mb-6 no-print">
                 <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
                     <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                        <div class="relative w-full sm:w-64">
+                        <div class="relative w-full sm:w-56">
                             <input 
                                 v-model="search"
                                 type="text" 
-                                placeholder="Search Customer / Product / PO..." 
-                                class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Search Customer / Product..." 
+                                class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
                             >
                             <MagnifyingGlassIcon class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
                         </div>
@@ -146,6 +290,19 @@ const printOfficial = () => {
                     </div>
                     
                     <div class="flex items-center gap-4">
+                        <!-- View Toggle: Chart | Matrix -->
+                        <div class="flex items-center bg-slate-200 dark:bg-slate-700 rounded-lg p-0.5">
+                            <button @click="activeView = 'chart'" 
+                                :class="activeView === 'chart' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+                                class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1">
+                                <ChartBarIcon class="w-3.5 h-3.5" /> Chart
+                            </button>
+                            <button @click="activeView = 'matrix'" 
+                                :class="activeView === 'matrix' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+                                class="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1">
+                                <TableCellsIcon class="w-3.5 h-3.5" /> Matrix
+                            </button>
+                        </div>
                         <div class="flex gap-4 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                             <div class="flex items-center gap-1"><div class="w-2 h-2 bg-red-500 rounded-full"></div> Minus Balance</div>
                             <div class="flex items-center gap-1"><div class="w-2 h-2 bg-blue-500 rounded-full"></div> Surplus</div>
@@ -159,8 +316,85 @@ const printOfficial = () => {
                 </div>
             </div>
 
+            <!-- ═══ CHART SECTION ═══ -->
+            <div v-if="activeView === 'chart'" class="glass-card rounded-2xl p-6 mb-6 border border-slate-200 dark:border-slate-700/50 shadow-xl">
+                <!-- Breadcrumb -->
+                <div class="flex items-center gap-2 mb-4 text-sm">
+                    <template v-for="(crumb, idx) in chartBreadcrumb" :key="idx">
+                        <span v-if="idx > 0" class="text-slate-400">/</span>
+                        <button 
+                            @click="drillUp(idx)" 
+                            :class="idx === chartBreadcrumb.length - 1 ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-500 hover:text-blue-600 dark:hover:text-slate-300'"
+                            class="transition-colors"
+                        >
+                            {{ crumb.label }}
+                        </button>
+                    </template>
+                    <button v-if="chartBreadcrumb.length > 1" @click="drillUp(chartBreadcrumb.length - 2)" class="ml-2 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                        <ArrowLeftCircleIcon class="w-5 h-5 text-slate-400" />
+                    </button>
+                </div>
+
+                <!-- KPI Cards -->
+                <div v-if="chartData && chartData.kpi" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 text-center">
+                        <p class="text-[10px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wider">Total Schedule</p>
+                        <p class="text-2xl font-black text-blue-700 dark:text-blue-300 mt-1">{{ formatNumber(chartData.kpi.total_schedule) }}</p>
+                    </div>
+                    <div class="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 text-center">
+                        <p class="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold uppercase tracking-wider">Total Delivered</p>
+                        <p class="text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-1">{{ formatNumber(chartData.kpi.total_delivery) }}</p>
+                    </div>
+                    <div class="border rounded-xl p-4 text-center" :class="chartData.kpi.achievement >= 90 ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800' : chartData.kpi.achievement >= 70 ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800' : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'">
+                        <p class="text-[10px] font-bold uppercase tracking-wider" :class="chartData.kpi.achievement >= 90 ? 'text-green-500' : chartData.kpi.achievement >= 70 ? 'text-amber-500' : 'text-red-500'">Achievement</p>
+                        <p class="text-2xl font-black mt-1" :class="chartData.kpi.achievement >= 90 ? 'text-green-700 dark:text-green-300' : chartData.kpi.achievement >= 70 ? 'text-amber-700 dark:text-amber-300' : 'text-red-700 dark:text-red-300'">{{ chartData.kpi.achievement }}%</p>
+                    </div>
+                    <div class="border rounded-xl p-4 text-center" :class="chartData.kpi.shortfall < 0 ? 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'">
+                        <p class="text-[10px] font-bold uppercase tracking-wider" :class="chartData.kpi.shortfall < 0 ? 'text-red-500' : 'text-slate-500'">Shortfall</p>
+                        <p class="text-2xl font-black mt-1" :class="chartData.kpi.shortfall < 0 ? 'text-red-700 dark:text-red-300' : 'text-slate-700 dark:text-slate-300'">{{ formatNumber(chartData.kpi.shortfall) }}</p>
+                    </div>
+                </div>
+
+                <!-- Period toggle for Level 3 -->
+                <div v-if="chartLevel === 'item'" class="flex items-center gap-2 mb-4">
+                    <span class="text-xs text-slate-500 font-bold uppercase">Period:</span>
+                    <div class="flex items-center bg-slate-200 dark:bg-slate-700 rounded-lg p-0.5">
+                        <button v-for="p in ['daily','weekly','monthly']" :key="p" @click="chartPeriod = p"
+                            :class="chartPeriod === p ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'"
+                            class="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider transition-all capitalize">
+                            {{ p }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chart Area -->
+                <div class="relative" style="height: 380px;">
+                    <div v-if="chartLoading" class="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-slate-900/60 z-10 rounded-xl">
+                        <div class="flex items-center gap-3 text-slate-500">
+                            <svg class="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <span class="text-sm font-medium">Loading chart data...</span>
+                        </div>
+                    </div>
+
+                    <!-- Level 1: Summary (horizontal bar) -->
+                    <Bar v-if="chartLevel === 'summary' && summaryChartData" :key="'summary'" :data="summaryChartData" :options="horizontalBarOpts" />
+
+                    <!-- Level 2: Customer Detail (vertical bar) -->
+                    <Bar v-else-if="chartLevel === 'customer' && customerChartData" :key="'customer-' + selectedCustomerId" :data="customerChartData" :options="verticalBarOpts" />
+
+                    <!-- Level 3: Item Timeline (combo) -->
+                    <Bar v-else-if="chartLevel === 'item' && itemChartData" :key="'item-' + selectedProductId + '-' + chartPeriod" :data="itemChartData" :options="comboChartOpts" />
+
+                    <div v-else-if="!chartLoading" class="flex items-center justify-center h-full text-slate-400">
+                        <p class="text-sm">No chart data available for the selected filters.</p>
+                    </div>
+                </div>
+
+                <p v-if="chartLevel !== 'item'" class="text-center text-[10px] text-slate-400 mt-3 italic">Click a bar to drill down into details</p>
+            </div>
+
             <!-- Matrix Table -->
-            <div class="glass-card rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700/50 matrix-container">
+            <div v-show="activeView === 'matrix'" class="glass-card rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700/50 matrix-container">
                 <div class="overflow-x-auto overflow-y-auto max-h-[750px] relative">
                     <table class="w-full border-collapse text-[12px]">
                         <thead class="bg-slate-100 dark:bg-slate-800 sticky top-0 z-30 font-bold">
