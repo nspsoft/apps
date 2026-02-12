@@ -185,6 +185,9 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::post('/orders/create-from-ai', [SalesOrderController::class, 'createFromAi'])->name('orders.create-from-ai');
     Route::post('/orders/{order}/delivery', [SalesOrderController::class, 'createDelivery'])->name('orders.create-delivery');
     Route::post('/orders/{order}/invoice', [SalesOrderController::class, 'createInvoice'])->name('orders.create-invoice');
+    Route::get('/orders-export', [SalesOrderController::class, 'export'])->name('orders.export');
+    Route::post('/orders-import', [SalesOrderController::class, 'import'])->name('orders.import');
+    Route::get('/orders-template', [SalesOrderController::class, 'template'])->name('orders.template');
     Route::post('/orders/ai-extract', [App\Http\Controllers\Sales\POImportController::class, 'extract'])->name('orders.ai-extract');
     Route::post('/orders/analyze-fulfillment', [App\Http\Controllers\Sales\FulfillmentAnalysisController::class, 'analyze'])->name('orders.analyze-fulfillment');
     Route::get('/information', [App\Http\Controllers\Sales\SalesInformationController::class, 'index'])->name('sales.information');

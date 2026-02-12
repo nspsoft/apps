@@ -12,6 +12,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\SalesOrderExport;
+use App\Imports\SalesOrderImport;
+use App\Exports\Template\SalesOrderTemplateExport;
 
 class SalesOrderController extends Controller
 {
@@ -434,5 +438,35 @@ class SalesOrderController extends Controller
             \Log::error("Error creating consolidated invoice for SO {$order->so_number}: " . $e->getMessage());
             return back()->with('error', 'Error creating invoice: ' . $e->getMessage());
         }
+    }
+
+    public function export()
+    {
+        return Excel::download(new SalesOrderExport, 'sales_orders_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        $import = new SalesOrderImport;
+        Excel::import($import, $request->file('file'));
+
+        $message = "Import completed: {$import->importedCount} Sales Order(s) created.";
+        if ($import->skippedCount > 0) {
+            $message .= " {$import->skippedCount} row(s) skipped.";
+        }
+        if (!empty($import->errors)) {
+            $message .= ' Errors: ' . implode('; ', array_slice($import->errors, 0, 5));
+        }
+
+        return back()->with($import->importedCount > 0 ? 'success' : 'error', $message);
+    }
+
+    public function template()
+    {
+        return Excel::download(new SalesOrderTemplateExport, 'sales_orders_template.xlsx');
     }
 }
