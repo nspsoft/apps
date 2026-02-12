@@ -50,7 +50,7 @@ onMounted(() => {
                 </linearGradient>
                 
                 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="2" result="blur" />
+                    <feGaussianBlur stdDeviation="4" result="blur" />
                     <feComposite in="SourceGraphic" in2="blur" operator="over" />
                 </filter>
             </defs>
@@ -66,8 +66,8 @@ onMounted(() => {
                       :d="p" 
                       fill="none" 
                       :stroke="i % 3 === 0 ? 'url(#flow-red)' : 'url(#flow-blue)'"
-                      stroke-width="1.5"
-                      stroke-dasharray="100 1000"
+                      stroke-width="3"
+                      stroke-dasharray="150 1000"
                       class="flow-path"
                       :style="{ animationDuration: (3 + (i % 5)) + 's', animationDelay: (i * 0.5) + 's' }"
                 />
