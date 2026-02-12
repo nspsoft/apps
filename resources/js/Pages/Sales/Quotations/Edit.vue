@@ -62,6 +62,20 @@ const onProductChange = (item, index) => {
     }
 };
 
+const getPriceDeviation = (item) => {
+    if (!item.product_id || !props.products) return null;
+    const product = props.products.find(p => p.id === item.product_id);
+    if (!product) return null;
+    const standardPrice = parseFloat(product.selling_price || product.price || 0);
+    if (standardPrice === 0) return null;
+    const currentPrice = parseFloat(item.unit_price || 0);
+    if (currentPrice === standardPrice) return { pct: 0, standard: standardPrice, color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'Standard price' };
+    const pct = ((currentPrice - standardPrice) / standardPrice) * 100;
+    const absPct = Math.abs(pct);
+    if (absPct <= 5) return { pct, standard: standardPrice, color: 'text-amber-500', bg: 'bg-amber-500/10', label: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%` };
+    return { pct, standard: standardPrice, color: 'text-red-500', bg: 'bg-red-500/10', label: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%` };
+};
+
 const removeItem = (index) => {
     form.items.splice(index, 1);
 };
@@ -145,6 +159,14 @@ const submit = () => {
                                 <div class="col-span-4 sm:col-span-2">
                                     <label class="sm:hidden block text-[10px] font-bold text-slate-500 uppercase mb-1 text-right">Price</label>
                                     <input type="number" v-model="item.unit_price" step="any" class="w-full rounded-lg border-0 bg-slate-50 dark:bg-slate-800 py-2.5 text-xs text-slate-900 dark:text-white focus:ring-1 focus:ring-blue-500 text-right" required />
+                                    <div v-if="getPriceDeviation(item)" class="mt-1 flex items-center gap-1">
+                                        <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-bold" :class="[getPriceDeviation(item).color, getPriceDeviation(item).bg]">
+                                            {{ getPriceDeviation(item).label }}
+                                        </span>
+                                        <span v-if="getPriceDeviation(item).pct !== 0" class="text-[10px] text-slate-500 truncate" :title="'Standard: Rp ' + getPriceDeviation(item).standard">
+                                            Std: {{ formatCurrency(getPriceDeviation(item).standard) }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="col-span-4 sm:col-span-2">
                                     <label class="sm:hidden block text-[10px] font-bold text-slate-500 uppercase mb-1 text-right">Subtotal</label>
