@@ -76,6 +76,7 @@ import {
     AdjustmentsHorizontalIcon,
     CircleStackIcon,
 } from '@heroicons/vue/24/outline';
+import TechnoHeaderBg from '@/Components/TechnoHeaderBg.vue';
 
 const props = defineProps({
     title: {
@@ -750,10 +751,13 @@ const toggleTheme = () => {
         <!-- Main content -->
         <div class="transition-all duration-300" :class="collapsed ? 'lg:pl-20' : 'lg:pl-64'">
             <!-- Top bar -->
-            <div class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors duration-300 px-4 shadow-sm dark:shadow-lg sm:gap-x-6 sm:px-6 lg:px-8">
+            <div class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors duration-300 px-4 shadow-sm dark:shadow-lg sm:gap-x-6 sm:px-6 lg:px-8 relative overflow-hidden">
+                <!-- Futuristic Background Animation -->
+                <TechnoHeaderBg />
+                
                 <button 
                     type="button" 
-                    class="-m-2.5 p-2.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white lg:hidden"
+                    class="-m-2.5 p-2.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white lg:hidden relative z-10"
                     @click="sidebarOpen = true"
                 >
                     <Bars3Icon class="h-6 w-6" />
@@ -762,16 +766,16 @@ const toggleTheme = () => {
                 <!-- Desktop Sidebar Toggle -->
                 <button 
                     type="button" 
-                    class="hidden lg:block -ml-4 p-2.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                    class="hidden lg:block -ml-4 p-2.5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors relative z-10"
                     @click="toggleDesktopSidebar"
                 >
                     <Bars3BottomLeftIcon class="h-6 w-6 transform transition-transform duration-300" :class="collapsed ? 'rotate-180' : ''" />
                 </button>
 
                 <!-- Separator -->
-                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 lg:hidden" />
+                <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 lg:hidden relative z-10" />
 
-                <div class="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6">
+                <div class="flex flex-1 items-center gap-x-4 self-stretch lg:gap-x-6 relative z-10">
                     <!-- Tech Date Display -->
                     <div class="flex flex-1 items-center justify-center lg:justify-start">
                         <div class="hidden md:flex flex-row items-center lg:items-start gap-3 group">
