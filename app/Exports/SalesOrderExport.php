@@ -69,7 +69,7 @@ class SalesOrderExport implements FromCollection, WithHeadings, WithMapping, Sho
             $so->customer?->name,
             $so->warehouse?->name,
             $so->order_date?->format('Y-m-d'),
-            $item?->product?->code,
+            $item?->product?->sku,
             $item?->product?->name,
             $item?->qty,
             $item?->unit?->name,

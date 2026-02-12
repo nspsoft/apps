@@ -66,7 +66,7 @@ class SalesOrderImport implements ToCollection, WithHeadingRow
                     ]);
 
                     foreach ($items as $row) {
-                        $product = Product::where('code', trim($row['product_code']))->first();
+                        $product = Product::where('sku', trim($row['product_code']))->first();
                         if (!$product) {
                             $this->errors[] = "Product not found: {$row['product_code']} (SO: {$so->so_number})";
                             $this->skippedCount++;
