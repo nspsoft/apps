@@ -11,6 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\QuotationExport;
+use App\Imports\QuotationImport;
+use App\Exports\Template\QuotationTemplateExport;
 
 class QuotationController extends Controller
 {
@@ -247,5 +251,35 @@ class QuotationController extends Controller
 
         return redirect()->route('sales.quotations.index')
             ->with('success', 'Quotation deleted successfully.');
+    }
+
+    public function export()
+    {
+        return Excel::download(new QuotationExport, 'quotations_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        $import = new QuotationImport;
+        Excel::import($import, $request->file('file'));
+
+        $message = "Import completed: {$import->importedCount} Quotation(s) created.";
+        if ($import->skippedCount > 0) {
+            $message .= " {$import->skippedCount} row(s) skipped.";
+        }
+        if (!empty($import->errors)) {
+            $message .= ' Errors: ' . implode('; ', array_slice($import->errors, 0, 5));
+        }
+
+        return back()->with($import->importedCount > 0 ? 'success' : 'error', $message);
+    }
+
+    public function template()
+    {
+        return Excel::download(new QuotationTemplateExport, 'quotations_template.xlsx');
     }
 }
