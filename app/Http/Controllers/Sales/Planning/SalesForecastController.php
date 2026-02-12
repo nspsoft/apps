@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Sales\Planning;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\SalesForecast;
-use App\Imports\SalesForecastImport;
-use App\Exports\Template\SalesForecastTemplateExport;
 use App\Exports\SalesForecastExport;
+use App\Exports\Template\SalesForecastTemplateExport;
+use App\Http\Controllers\Controller;
+use App\Imports\SalesForecastImport;
+use App\Models\SalesForecast;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -21,22 +20,22 @@ class SalesForecastController extends Controller
 
         $query = SalesForecast::with(['customer', 'product.unit', 'created_by_user'])
             ->when($request->search, function ($query, $search) {
-                $query->whereHas('customer', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"))
-                      ->orWhere('sales_name', 'like', "%{$search}%");
+                $query->whereHas('customer', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('product', fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"))
+                    ->orWhere('sales_name', 'like', "%{$search}%");
             })
             ->when($request->month, function ($query, $month) {
-                $query->whereDate('period', $month . '-01');
+                $query->whereDate('period', $month.'-01');
             });
 
         if ($sort === 'customer_name') {
             $query->join('customers', 'sales_forecasts.customer_id', '=', 'customers.id')
-                  ->orderBy('customers.name', $direction)
-                  ->select('sales_forecasts.*');
+                ->orderBy('customers.name', $direction)
+                ->select('sales_forecasts.*');
         } elseif ($sort === 'product_name') {
             $query->join('products', 'sales_forecasts.product_id', '=', 'products.id')
-                  ->orderBy('products.name', $direction)
-                  ->select('sales_forecasts.*');
+                ->orderBy('products.name', $direction)
+                ->select('sales_forecasts.*');
         } else {
             $query->orderBy($sort, $direction);
         }
@@ -48,15 +47,16 @@ class SalesForecastController extends Controller
             $startOfMonth = \Carbon\Carbon::parse($forecast->period)->startOfMonth();
             $endOfMonth = \Carbon\Carbon::parse($forecast->period)->endOfMonth();
 
-            $actualQty = \App\Models\SalesOrderItem::whereHas('salesOrder', function($q) use ($startOfMonth, $endOfMonth, $forecast) {
-                    $q->whereBetween('order_date', [$startOfMonth, $endOfMonth])
-                      ->where('customer_id', $forecast->customer_id)
-                      ->whereNotIn('status', ['cancelled']);
-                })
+            $actualQty = \App\Models\SalesOrderItem::whereHas('salesOrder', function ($q) use ($startOfMonth, $endOfMonth, $forecast) {
+                $q->whereBetween('order_date', [$startOfMonth, $endOfMonth])
+                    ->where('customer_id', $forecast->customer_id)
+                    ->whereNotIn('status', ['cancelled']);
+            })
                 ->where('product_id', $forecast->product_id)
                 ->sum('qty');
 
             $forecast->qty_actual = (float) $actualQty;
+
             return $forecast;
         });
 
@@ -75,9 +75,10 @@ class SalesForecastController extends Controller
 
         try {
             Excel::import(new SalesForecastImport($request->sales_name), $request->file('file'));
+
             return back()->with('success', 'Sales Forecast imported successfully.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Error importing file: ' . $e->getMessage());
+            return back()->with('error', 'Error importing file: '.$e->getMessage());
         }
     }
 
@@ -88,7 +89,7 @@ class SalesForecastController extends Controller
 
     public function export(Request $request)
     {
-        return Excel::download(new SalesForecastExport($request->all()), 'sales_forecast_' . now()->format('Y-m-d') . '.xlsx');
+        return Excel::download(new SalesForecastExport($request->all()), 'sales_forecast_'.now()->format('Y-m-d').'.xlsx');
     }
 
     /**
@@ -101,18 +102,26 @@ class SalesForecastController extends Controller
         $level = $request->level ?? 'summary';
         $customerId = $request->customer_id;
         $productId = $request->product_id;
+        $month = $request->month;
 
         // Build forecast query
         $forecastQuery = SalesForecast::with(['customer', 'product.unit']);
 
         if ($search) {
             $forecastQuery->where(function ($q) use ($search) {
-                $q->whereHas('customer', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('product', fn($q2) => $q2->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
+                $q->whereHas('customer', fn ($q2) => $q2->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('product', fn ($q2) => $q2->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
             });
         }
-        if ($customerId) $forecastQuery->where('customer_id', $customerId);
-        if ($productId) $forecastQuery->where('product_id', $productId);
+        if ($month) {
+            $forecastQuery->whereDate('period', $month.'-01');
+        }
+        if ($customerId) {
+            $forecastQuery->where('customer_id', $customerId);
+        }
+        if ($productId) {
+            $forecastQuery->where('product_id', $productId);
+        }
 
         $forecasts = $forecastQuery->get();
 
@@ -121,7 +130,7 @@ class SalesForecastController extends Controller
             $customers = [];
             foreach ($forecasts as $fc) {
                 $cid = $fc->customer_id;
-                if (!isset($customers[$cid])) {
+                if (! isset($customers[$cid])) {
                     $customers[$cid] = ['id' => $cid, 'name' => $fc->customer->name, 'forecast' => 0, 'actual' => 0];
                 }
                 $customers[$cid]['forecast'] += (float) $fc->qty_forecast;
@@ -129,16 +138,16 @@ class SalesForecastController extends Controller
                 // calculate actual for this forecast row
                 $startOfMonth = \Carbon\Carbon::parse($fc->period)->startOfMonth();
                 $endOfMonth = \Carbon\Carbon::parse($fc->period)->endOfMonth();
-                $actual = \App\Models\SalesOrderItem::whereHas('salesOrder', function($q) use ($startOfMonth, $endOfMonth, $fc) {
+                $actual = \App\Models\SalesOrderItem::whereHas('salesOrder', function ($q) use ($startOfMonth, $endOfMonth, $fc) {
                     $q->whereBetween('order_date', [$startOfMonth, $endOfMonth])
-                      ->where('customer_id', $fc->customer_id)
-                      ->whereNotIn('status', ['cancelled']);
+                        ->where('customer_id', $fc->customer_id)
+                        ->whereNotIn('status', ['cancelled']);
                 })->where('product_id', $fc->product_id)->sum('qty');
                 $customers[$cid]['actual'] += (float) $actual;
             }
 
             $data = array_values($customers);
-            usort($data, fn($a, $b) => $b['forecast'] - $a['forecast']);
+            usort($data, fn ($a, $b) => $b['forecast'] - $a['forecast']);
 
             foreach ($data as &$c) {
                 $c['achievement'] = $c['forecast'] > 0 ? round(($c['actual'] / $c['forecast']) * 100, 1) : 0;
@@ -167,7 +176,7 @@ class SalesForecastController extends Controller
             foreach ($forecasts as $fc) {
                 $pid = $fc->product_id;
                 $customerName = $fc->customer->name;
-                if (!isset($products[$pid])) {
+                if (! isset($products[$pid])) {
                     $products[$pid] = [
                         'id' => $pid,
                         'name' => $fc->product->name,
@@ -180,16 +189,16 @@ class SalesForecastController extends Controller
 
                 $startOfMonth = \Carbon\Carbon::parse($fc->period)->startOfMonth();
                 $endOfMonth = \Carbon\Carbon::parse($fc->period)->endOfMonth();
-                $actual = \App\Models\SalesOrderItem::whereHas('salesOrder', function($q) use ($startOfMonth, $endOfMonth, $fc) {
+                $actual = \App\Models\SalesOrderItem::whereHas('salesOrder', function ($q) use ($startOfMonth, $endOfMonth, $fc) {
                     $q->whereBetween('order_date', [$startOfMonth, $endOfMonth])
-                      ->where('customer_id', $fc->customer_id)
-                      ->whereNotIn('status', ['cancelled']);
+                        ->where('customer_id', $fc->customer_id)
+                        ->whereNotIn('status', ['cancelled']);
                 })->where('product_id', $fc->product_id)->sum('qty');
                 $products[$pid]['actual'] += (float) $actual;
             }
 
             $data = array_values($products);
-            usort($data, fn($a, $b) => $b['forecast'] - $a['forecast']);
+            usort($data, fn ($a, $b) => $b['forecast'] - $a['forecast']);
 
             foreach ($data as &$p) {
                 $p['achievement'] = $p['forecast'] > 0 ? round(($p['actual'] / $p['forecast']) * 100, 1) : 0;
@@ -223,15 +232,17 @@ class SalesForecastController extends Controller
                 $key = \Carbon\Carbon::parse($fc->period)->format('Y-m');
                 $productName = $fc->product->name;
                 $customerName = $fc->customer->name;
-                if (!isset($monthly[$key])) $monthly[$key] = ['fc' => 0, 'act' => 0];
+                if (! isset($monthly[$key])) {
+                    $monthly[$key] = ['fc' => 0, 'act' => 0];
+                }
                 $monthly[$key]['fc'] += (float) $fc->qty_forecast;
 
                 $startOfMonth = \Carbon\Carbon::parse($fc->period)->startOfMonth();
                 $endOfMonth = \Carbon\Carbon::parse($fc->period)->endOfMonth();
-                $actual = \App\Models\SalesOrderItem::whereHas('salesOrder', function($q) use ($startOfMonth, $endOfMonth, $fc) {
+                $actual = \App\Models\SalesOrderItem::whereHas('salesOrder', function ($q) use ($startOfMonth, $endOfMonth, $fc) {
                     $q->whereBetween('order_date', [$startOfMonth, $endOfMonth])
-                      ->where('customer_id', $fc->customer_id)
-                      ->whereNotIn('status', ['cancelled']);
+                        ->where('customer_id', $fc->customer_id)
+                        ->whereNotIn('status', ['cancelled']);
                 })->where('product_id', $fc->product_id)->sum('qty');
                 $monthly[$key]['act'] += (float) $actual;
             }
@@ -245,7 +256,7 @@ class SalesForecastController extends Controller
                 $cumFc += $vals['fc'];
                 $cumAct += $vals['act'];
                 $timeline[] = [
-                    'label' => \Carbon\Carbon::parse($key . '-01')->format('M Y'),
+                    'label' => \Carbon\Carbon::parse($key.'-01')->format('M Y'),
                     'forecast' => $vals['fc'],
                     'actual' => $vals['act'],
                     'cum_forecast' => $cumFc,
@@ -284,12 +295,12 @@ class SalesForecastController extends Controller
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->whereHas('customer', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
-                  ->orWhereHas('product', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
+                $q->whereHas('customer', fn ($q2) => $q2->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('product', fn ($q2) => $q2->where('name', 'like', "%{$search}%"));
             });
         }
         if ($month) {
-            $query->whereDate('period', $month . '-01');
+            $query->whereDate('period', $month.'-01');
         }
 
         $forecasts = $query->get();
@@ -306,10 +317,10 @@ class SalesForecastController extends Controller
             $startOfMonth = \Carbon\Carbon::parse($fc->period)->startOfMonth();
             $endOfMonth = \Carbon\Carbon::parse($fc->period)->endOfMonth();
 
-            $actualQty = \App\Models\SalesOrderItem::whereHas('salesOrder', function($q) use ($startOfMonth, $endOfMonth, $fc) {
+            $actualQty = \App\Models\SalesOrderItem::whereHas('salesOrder', function ($q) use ($startOfMonth, $endOfMonth, $fc) {
                 $q->whereBetween('order_date', [$startOfMonth, $endOfMonth])
-                  ->where('customer_id', $fc->customer_id)
-                  ->whereNotIn('status', ['cancelled']);
+                    ->where('customer_id', $fc->customer_id)
+                    ->whereNotIn('status', ['cancelled']);
             })->where('product_id', $fc->product_id)->sum('qty');
 
             $accuracy = $fc->qty_forecast > 0
@@ -326,21 +337,21 @@ class SalesForecastController extends Controller
             ];
         }
 
-        Log::info("AI Analysis Request: Search='{$search}', Month='{$month}'. Found " . $forecasts->count() . " records.");
+        Log::info("AI Analysis Request: Search='{$search}', Month='{$month}'. Found ".$forecasts->count().' records.');
 
         try {
-            $gemini = new \App\Services\GeminiService();
+            $gemini = new \App\Services\GeminiService;
             $analysis = $gemini->analyzeForecastAccuracy($forecastData);
-            
-            Log::info("AI Analysis Result Length: " . strlen($analysis));
-            
+
+            Log::info('AI Analysis Result Length: '.strlen($analysis));
+
             if (empty($analysis)) {
-                $analysis = "Maaf, analisis kosong. Cek log server.";
-                Log::warning("AI Analysis returned empty string.");
+                $analysis = 'Maaf, analisis kosong. Cek log server.';
+                Log::warning('AI Analysis returned empty string.');
             }
         } catch (\Exception $e) {
-            Log::error("Controller AI Error: " . $e->getMessage());
-            $analysis = 'Error: Gagal menghubungi layanan AI. ' . $e->getMessage();
+            Log::error('Controller AI Error: '.$e->getMessage());
+            $analysis = 'Error: Gagal menghubungi layanan AI. '.$e->getMessage();
         }
 
         return response()->json(['analysis' => $analysis]);

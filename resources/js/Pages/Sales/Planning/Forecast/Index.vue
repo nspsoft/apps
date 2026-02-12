@@ -51,6 +51,7 @@ const loadChartData = async () => {
         const params = new URLSearchParams({
             search: search.value || '',
             level: chartLevel.value,
+            month: month.value || '',
         });
         if (selectedCustomerId.value) params.set('customer_id', selectedCustomerId.value);
         if (selectedProductId.value) params.set('product_id', selectedProductId.value);

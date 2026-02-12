@@ -7,7 +7,7 @@ export const formatNumber = (num) => {
     const val = parseFloat(num);
     return new Intl.NumberFormat('id-ID', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 1
+        maximumFractionDigits: 0
     }).format(val);
 };
 

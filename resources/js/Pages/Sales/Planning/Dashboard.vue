@@ -1,15 +1,23 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import { 
     ChartBarIcon, 
     CalendarDaysIcon, 
     ClockIcon, 
     TruckIcon,
-    XMarkIcon
+    XMarkIcon,
+    ArrowTrendingUpIcon,
+    ArrowTrendingDownIcon,
+    BanknotesIcon,
+    ExclamationTriangleIcon,
+    DocumentTextIcon,
+    UserGroupIcon,
+    ChevronRightIcon,
 } from '@heroicons/vue/24/outline';
+import { formatNumber, formatCurrency } from '@/helpers';
 import {
   Chart as ChartJS,
   Title,
@@ -18,15 +26,21 @@ import {
   BarElement,
   CategoryScale,
   LinearScale,
+  LineElement,
+  PointElement,
+  Filler,
 } from 'chart.js';
 import { Bar } from 'vue-chartjs';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler);
 
 const props = defineProps({
     chartData: Array,
     stats: Object,
     month: String,
+    topCustomers: Array,
+    bottomCustomers: Array,
+    deliveryTimeline: Array,
 });
 
 const currentMonth = ref(props.month);
@@ -34,41 +48,63 @@ const showDetails = ref(false);
 const detailsData = ref([]);
 const selectedCustomer = ref(null);
 const isLoadingDetails = ref(false);
+const animatedValues = ref({});
 
 watch(currentMonth, (val) => {
-    router.get(route('planning.dashboard'), { month: val }, { preserveState: true, replace: true });
+    router.get(route('sales.planning.dashboard'), { month: val }, { preserveState: true, replace: true });
+});
+
+// Animate counters on mount
+onMounted(() => {
+    const targets = {
+        achievement: props.stats?.achievement_pct ?? 0,
+        forecast: props.stats?.total_forecast_qty ?? 0,
+        actual: props.stats?.total_actual_qty ?? 0,
+        revenue: props.stats?.revenue_this_month ?? 0,
+    };
+    animatedValues.value = { achievement: 0, forecast: 0, actual: 0, revenue: 0 };
+    
+    const duration = 1200;
+    const start = performance.now();
+    const animate = (now) => {
+        const progress = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+        animatedValues.value = {
+            achievement: Math.round(targets.achievement * ease * 10) / 10,
+            forecast: Math.round(targets.forecast * ease),
+            actual: Math.round(targets.actual * ease),
+            revenue: Math.round(targets.revenue * ease),
+        };
+        if (progress < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
 });
 
 const handleChartClick = (event, elements) => {
-    console.log('Chart Clicked', { event, elements });
     if (elements.length > 0) {
         const index = elements[0].index;
         const customer = props.chartData[index];
-        console.log('Selected Customer', customer);
         openDetails(customer);
     }
 };
 
 const openDetails = async (customer) => {
     if (!customer) return;
-    
-    console.log('Opening details for', customer.customer);
     selectedCustomer.value = customer;
     showDetails.value = true;
     isLoadingDetails.value = true;
     detailsData.value = [];
     
     try {
-        const response = await axios.get(route('planning.dashboard.details'), {
-            params: {
-                customer_id: customer.id,
-                month: currentMonth.value
-            }
+        const response = await axios.get(route('sales.planning.dashboard.details'), {
+            params: { customer_id: customer.id, month: currentMonth.value }
         });
-        console.log('Details Data fetched', response.data);
         detailsData.value = response.data;
     } catch (error) {
         console.error('Failed to fetch details:', error);
+        // Close modal on error so user isn't stuck with blur
+        showDetails.value = false;
+        selectedCustomer.value = null;
     } finally {
         isLoadingDetails.value = false;
     }
@@ -83,52 +119,99 @@ const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     onClick: handleChartClick,
-    interaction: {
-        mode: 'index',
-        intersect: false,
-    },
+    interaction: { mode: 'index', intersect: false },
     onHover: (event, elements) => {
-        if (event.native && event.native.target) {
-            event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
-        }
+        if (event.native?.target) event.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
     },
     plugins: {
-        legend: {
-            position: 'top',
-        },
-        title: {
-            display: true,
-            text: 'Forecast vs Actual by Customer (Click bar to see items)'
-        },
+        legend: { position: 'top', labels: { color: '#94a3b8', font: { size: 11, weight: '600' }, usePointStyle: true, pointStyle: 'rectRounded' } },
+        title: { display: false },
         tooltip: {
+            backgroundColor: 'rgba(15,23,42,0.95)',
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
+            padding: 12,
+            cornerRadius: 10,
             mode: 'index',
             intersect: false,
             callbacks: {
-                afterBody: (context) => '\n👉 Click to see per-item accuracy'
+                afterBody: () => '\n👉 Klik untuk lihat per-item',
+                label: (ctx) => {
+                    const val = formatNumber(ctx.raw || 0);
+                    return ` ${ctx.dataset.label}: ${val}`;
+                }
             }
         }
-    }
+    },
+    scales: {
+        x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 10, weight: '600' }, maxRotation: 45 } },
+        y: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#64748b', font: { size: 10 }, callback: (v) => formatNumber(v) } },
+    },
 };
 
 const chartDataComputed = computed(() => {
     if (!props.chartData) return { labels: [], datasets: [] };
-    
     return {
         labels: props.chartData.map(d => d.customer || 'Unknown'),
         datasets: [
             {
                 label: 'Forecast',
-                backgroundColor: '#10b981', // Emerald 500
+                backgroundColor: 'rgba(139,92,246,0.7)', // Purple
+                borderRadius: 4, barThickness: 18,
                 data: props.chartData.map(d => Number(d.forecast || 0))
             },
             {
-                label: 'Actual',
-                backgroundColor: '#3b82f6', // Blue 500
+                label: 'Sales Order',
+                backgroundColor: 'rgba(16,185,129,0.8)', // Emerald
+                borderRadius: 4, barThickness: 18,
                 data: props.chartData.map(d => Number(d.actual || 0))
+            },
+            {
+                label: 'Delivery',
+                backgroundColor: 'rgba(245, 158, 11, 0.8)', // Amber
+                borderRadius: 4, barThickness: 18,
+                data: props.chartData.map(d => Number(d.delivery || 0))
             }
         ]
     };
 });
+
+const achievementColor = computed(() => {
+    const v = props.stats?.achievement_pct ?? 0;
+    if (v >= 90) return { ring: 'text-emerald-500', bg: 'bg-emerald-500', label: 'Excellent', gradient: 'from-emerald-500 to-emerald-600' };
+    if (v >= 70) return { ring: 'text-blue-500', bg: 'bg-blue-500', label: 'Good', gradient: 'from-blue-500 to-blue-600' };
+    if (v >= 50) return { ring: 'text-amber-500', bg: 'bg-amber-500', label: 'Average', gradient: 'from-amber-500 to-amber-600' };
+    return { ring: 'text-red-500', bg: 'bg-red-500', label: 'Critical', gradient: 'from-red-500 to-red-600' };
+});
+
+const trendIcon = (current, prev) => {
+    if (current > prev) return 'up';
+    if (current < prev) return 'down';
+    return 'flat';
+};
+
+const trendPct = (current, prev) => {
+    if (!prev || prev === 0) return 0;
+    return Math.round(((current - prev) / prev) * 100);
+};
+
+// Use helper for consistency
+const fmtNum = formatNumber;
+const fmtCurrency = formatCurrency;
+
+const getAchievementBarColor = (pct) => {
+    if (pct >= 90) return 'bg-emerald-500';
+    if (pct >= 70) return 'bg-blue-500';
+    if (pct >= 50) return 'bg-amber-500';
+    return 'bg-red-500';
+};
+
+const getAchievementTextColor = (pct) => {
+    if (pct >= 90) return 'text-emerald-600 dark:text-emerald-400';
+    if (pct >= 70) return 'text-blue-600 dark:text-blue-400';
+    if (pct >= 50) return 'text-amber-600 dark:text-amber-400';
+    return 'text-red-600 dark:text-red-400';
+};
 </script>
 
 <template>
@@ -140,146 +223,338 @@ const chartDataComputed = computed(() => {
                 <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
                     Sales Planning Dashboard
                 </h2>
-                <div class="flex items-center gap-2">
-                    <span class="text-sm text-slate-500">Period:</span>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Period</span>
                     <input 
                         v-model="currentMonth"
                         type="month" 
-                        class="rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        class="rounded-xl border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:ring-indigo-500 focus:border-indigo-500 text-sm px-4 py-2"
                     >
                 </div>
             </div>
         </template>
 
-        <div class="py-12" v-if="stats">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="p-6 bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-130px)]" v-if="stats">
+            <div class="space-y-6">
                 
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <!-- Total Forecast -->
-                    <div class="bg-white dark:bg-slate-800 overflow-hidden shadow-xl sm:rounded-xl p-6 relative">
-                        <div class="flex justify-between items-start z-10 relative">
+                <!-- ═══ ROW 1: KPI CARDS ═══ -->
+                <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                    
+                    <!-- Achievement Gauge -->
+                    <div class="col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 rounded-full blur-[60px] opacity-20" :class="achievementColor.bg"></div>
+                        <div class="relative z-10 flex items-center gap-6">
+                            <!-- SVG Gauge -->
+                            <div class="relative w-28 h-28 shrink-0">
+                                <svg class="w-28 h-28 -rotate-90" viewBox="0 0 120 120">
+                                    <circle cx="60" cy="60" r="50" stroke-width="10" fill="none" class="stroke-slate-200 dark:stroke-slate-800"></circle>
+                                    <circle cx="60" cy="60" r="50" stroke-width="10" fill="none" stroke-linecap="round"
+                                        :class="achievementColor.ring.replace('text-', 'stroke-')"
+                                        :stroke-dasharray="314"
+                                        :stroke-dashoffset="314 - (314 * Math.min(stats.achievement_pct, 100) / 100)"
+                                        style="transition: stroke-dashoffset 1.2s ease-out"
+                                    ></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span class="text-2xl font-black" :class="achievementColor.ring">{{ animatedValues.achievement || 0 }}%</span>
+                                </div>
+                            </div>
                             <div>
-                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Forecast</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ Number(stats.total_forecast_qty).toLocaleString('id-ID') }}</p>
+                                <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Achievement</p>
+                                <p class="text-sm font-bold" :class="achievementColor.ring">{{ achievementColor.label }}</p>
+                                <p class="text-xs text-slate-500 mt-1">Target: {{ fmtNum(stats.total_forecast_qty) }}</p>
+                                <p class="text-xs text-slate-500">Actual: {{ fmtNum(stats.total_actual_qty) }}</p>
                             </div>
-                            <div class="p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                                <ChartBarIcon class="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Total Forecast -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-start mb-3">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Forecast</p>
+                            <div class="p-2 bg-violet-500/10 rounded-lg"><ChartBarIcon class="w-4 h-4 text-violet-500" /></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-900 dark:text-white">{{ fmtNum(animatedValues.forecast) }}</p>
+                        <div class="mt-2 flex items-center gap-1" v-if="stats.prev_forecast_qty">
+                            <component :is="trendIcon(stats.total_forecast_qty, stats.prev_forecast_qty) === 'up' ? ArrowTrendingUpIcon : ArrowTrendingDownIcon" 
+                                class="w-3.5 h-3.5" 
+                                :class="trendIcon(stats.total_forecast_qty, stats.prev_forecast_qty) === 'up' ? 'text-emerald-500' : 'text-red-500'" />
+                            <span class="text-[10px] font-bold" :class="trendIcon(stats.total_forecast_qty, stats.prev_forecast_qty) === 'up' ? 'text-emerald-500' : 'text-red-500'">
+                                {{ trendPct(stats.total_forecast_qty, stats.prev_forecast_qty) }}% vs prev
+                            </span>
                         </div>
                     </div>
 
                     <!-- Total Actual -->
-                    <div class="bg-white dark:bg-slate-800 overflow-hidden shadow-xl sm:rounded-xl p-6 relative">
-                        <div class="flex justify-between items-start z-10 relative">
-                            <div>
-                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Actual</p>
-                                <p class="text-3xl font-bold text-slate-900 dark:text-white mt-2">{{ Number(stats.total_actual_qty).toLocaleString('id-ID') }}</p>
-                            </div>
-                            <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                <TruckIcon class="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                            </div>
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-start mb-3">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Actual</p>
+                            <div class="p-2 bg-emerald-500/10 rounded-lg"><TruckIcon class="w-4 h-4 text-emerald-500" /></div>
+                        </div>
+                        <p class="text-2xl font-black text-slate-900 dark:text-white">{{ fmtNum(animatedValues.actual) }}</p>
+                        <div class="mt-2 flex items-center gap-1" v-if="stats.prev_actual_qty">
+                            <component :is="trendIcon(stats.total_actual_qty, stats.prev_actual_qty) === 'up' ? ArrowTrendingUpIcon : ArrowTrendingDownIcon" 
+                                class="w-3.5 h-3.5" 
+                                :class="trendIcon(stats.total_actual_qty, stats.prev_actual_qty) === 'up' ? 'text-emerald-500' : 'text-red-500'" />
+                            <span class="text-[10px] font-bold" :class="trendIcon(stats.total_actual_qty, stats.prev_actual_qty) === 'up' ? 'text-emerald-500' : 'text-red-500'">
+                                {{ trendPct(stats.total_actual_qty, stats.prev_actual_qty) }}% vs prev
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Delayed Schedules -->
-                    <div class="bg-white dark:bg-slate-800 overflow-hidden shadow-xl sm:rounded-xl p-6 relative">
-                        <div class="flex justify-between items-start z-10 relative">
-                            <div>
-                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Delayed Schedules</p>
-                                <p class="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">{{ stats.delayed_schedules }}</p>
-                            </div>
-                            <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                                <ClockIcon class="w-6 h-6 text-red-600 dark:text-red-400" />
-                            </div>
+                    <!-- Revenue -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-start mb-3">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Revenue (SO)</p>
+                            <div class="p-2 bg-blue-500/10 rounded-lg"><BanknotesIcon class="w-4 h-4 text-blue-500" /></div>
+                        </div>
+                        <p class="text-lg font-black text-slate-900 dark:text-white">{{ fmtCurrency(animatedValues.revenue) }}</p>
+                        <div class="mt-2 flex items-center gap-1" v-if="stats.revenue_prev_month">
+                            <component :is="stats.revenue_change_pct >= 0 ? ArrowTrendingUpIcon : ArrowTrendingDownIcon" 
+                                class="w-3.5 h-3.5" 
+                                :class="stats.revenue_change_pct >= 0 ? 'text-emerald-500' : 'text-red-500'" />
+                            <span class="text-[10px] font-bold" :class="stats.revenue_change_pct >= 0 ? 'text-emerald-500' : 'text-red-500'">
+                                {{ stats.revenue_change_pct }}% vs prev
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Upcoming Schedules -->
-                    <div class="bg-white dark:bg-slate-800 overflow-hidden shadow-xl sm:rounded-xl p-6 relative">
-                        <div class="flex justify-between items-start z-10 relative">
-                            <div>
-                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Upcoming (7 Days)</p>
-                                <p class="text-3xl font-bold text-yellow-600 dark:text-yellow-400 mt-2">{{ stats.upcoming_schedules }}</p>
+                    <!-- Delayed -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm" :class="stats.delayed_schedules > 0 ? 'ring-1 ring-red-500/20' : ''">
+                        <div class="flex justify-between items-start mb-3">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Delayed</p>
+                            <div class="p-2 rounded-lg" :class="stats.delayed_schedules > 0 ? 'bg-red-500/10' : 'bg-slate-100 dark:bg-slate-800'">
+                                <ExclamationTriangleIcon class="w-4 h-4" :class="stats.delayed_schedules > 0 ? 'text-red-500' : 'text-slate-400'" />
                             </div>
-                            <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                                <CalendarDaysIcon class="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                        </div>
+                        <p class="text-2xl font-black" :class="stats.delayed_schedules > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'">{{ stats.delayed_schedules }}</p>
+                        <p class="text-[10px] text-slate-400 mt-1">schedules overdue</p>
+                    </div>
+                </div>
+
+                <!-- ═══ ROW 2: CHART + RANKING ═══ -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Chart -->
+                    <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-base font-bold text-slate-800 dark:text-white">Forecast vs Actual Performance</h3>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Click bar to drill down</span>
+                        </div>
+                        <div class="h-80 cursor-pointer">
+                            <Bar :data="chartDataComputed" :options="chartOptions" />
+                        </div>
+                    </div>
+
+                    <!-- Top / Bottom Customers -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 dark:border-slate-800">
+                            <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <UserGroupIcon class="w-5 h-5 text-indigo-500" /> Customer Ranking
+                            </h3>
+                        </div>
+                        <div class="divide-y divide-slate-100 dark:divide-slate-800">
+                            <!-- Top 5 -->
+                            <div class="p-4">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-500 mb-3">🏆 Top Performers</p>
+                                <div v-for="(c, i) in topCustomers" :key="'top-'+i" 
+                                    class="flex items-center gap-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg px-2 -mx-2 transition-colors"
+                                    @click="openDetails(c)">
+                                    <span class="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-black flex items-center justify-center">{{ i + 1 }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{{ c.customer }}</p>
+                                        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-1">
+                                            <div :class="getAchievementBarColor(c.achievement)" class="h-1.5 rounded-full transition-all duration-700" :style="{ width: Math.min(c.achievement, 100) + '%' }"></div>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-bold shrink-0" :class="getAchievementTextColor(c.achievement)">{{ c.achievement }}%</span>
+                                </div>
+                                <p v-if="!topCustomers?.length" class="text-xs text-slate-400 italic">No data</p>
+                            </div>
+                            <!-- Bottom 5 -->
+                            <div class="p-4">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-red-500 mb-3">⚠️ Needs Attention</p>
+                                <div v-for="(c, i) in bottomCustomers" :key="'bot-'+i" 
+                                    class="flex items-center gap-3 py-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg px-2 -mx-2 transition-colors"
+                                    @click="openDetails(c)">
+                                    <span class="w-6 h-6 rounded-full bg-red-500/10 text-red-600 text-[10px] font-black flex items-center justify-center">{{ i + 1 }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{{ c.customer }}</p>
+                                        <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-1">
+                                            <div :class="getAchievementBarColor(c.achievement)" class="h-1.5 rounded-full transition-all duration-700" :style="{ width: Math.min(c.achievement, 100) + '%' }"></div>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-bold shrink-0" :class="getAchievementTextColor(c.achievement)">{{ c.achievement }}%</span>
+                                </div>
+                                <p v-if="!bottomCustomers?.length" class="text-xs text-slate-400 italic">No data</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Charts -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-3 bg-white dark:bg-slate-800 overflow-hidden shadow-xl sm:rounded-xl p-6">
-                        <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">Forecast vs Actual Performance</h3>
-                        <div class="h-80 cursor-pointer">
-                            <Bar :data="chartDataComputed" :options="chartOptions" />
+                <!-- ═══ ROW 3: DELIVERY TIMELINE + AR SUMMARY ═══ -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Delivery Timeline -->
+                    <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-center mb-5">
+                            <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <CalendarDaysIcon class="w-5 h-5 text-amber-500" /> Delivery Timeline (7 Days)
+                            </h3>
+                            <span class="px-2.5 py-1 bg-amber-500/10 rounded-lg text-[10px] font-bold text-amber-600">{{ stats.upcoming_schedules }} upcoming</span>
                         </div>
+                        
+                        <div v-if="deliveryTimeline?.length" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                            <div v-for="day in deliveryTimeline" :key="day.date" 
+                                class="rounded-xl p-3 border transition-all duration-200 hover:shadow-md"
+                                :class="day.is_today ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-1 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50'">
+                                <div class="text-center mb-2">
+                                    <p class="text-[10px] font-bold uppercase" :class="day.is_today ? 'text-indigo-600' : 'text-slate-400'">{{ day.day_label }}</p>
+                                    <p class="text-sm font-black" :class="day.is_today ? 'text-indigo-600' : 'text-slate-700 dark:text-slate-300'">{{ day.date_label }}</p>
+                                </div>
+                                <div class="text-center mb-2">
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold" 
+                                        :class="day.is_today ? 'bg-indigo-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'">
+                                        {{ day.count }} delivery
+                                    </span>
+                                </div>
+                                <div class="space-y-1">
+                                    <div v-for="(item, idx) in day.items" :key="idx" class="text-[9px] text-slate-500 dark:text-slate-400 truncate">
+                                        <span class="font-semibold text-slate-600 dark:text-slate-300">{{ item.customer }}</span>
+                                    </div>
+                                    <p v-if="day.count > 3" class="text-[9px] text-slate-400 italic">+{{ day.count - 3 }} more</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="text-center py-10">
+                            <CalendarDaysIcon class="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                            <p class="text-sm text-slate-400">No scheduled deliveries in the next 7 days</p>
+                        </div>
+                    </div>
+
+                    <!-- AR Summary -->
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100 dark:border-slate-800">
+                            <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                <DocumentTextIcon class="w-5 h-5 text-teal-500" /> Accounts Receivable
+                            </h3>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <!-- Outstanding AR -->
+                            <div class="p-4 rounded-xl bg-gradient-to-r from-red-500/5 to-red-500/10 border border-red-100 dark:border-red-900/30">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-red-500 mb-1">Total Outstanding</p>
+                                <p class="text-xl font-black text-red-600 dark:text-red-400">{{ fmtCurrency(stats.total_ar) }}</p>
+                                <p class="text-[10px] text-slate-500 mt-1">{{ stats.open_invoices_count }} open invoices</p>
+                            </div>
+
+                            <!-- Overdue -->
+                            <div class="flex items-center gap-4 p-3 rounded-xl" :class="stats.overdue_invoices > 0 ? 'bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800' : 'bg-slate-50 dark:bg-slate-800/50'">
+                                <div class="p-2 rounded-lg" :class="stats.overdue_invoices > 0 ? 'bg-amber-500/20' : 'bg-slate-200 dark:bg-slate-700'">
+                                    <ClockIcon class="w-5 h-5" :class="stats.overdue_invoices > 0 ? 'text-amber-600' : 'text-slate-400'" />
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500">Overdue Invoices</p>
+                                    <p class="text-lg font-bold" :class="stats.overdue_invoices > 0 ? 'text-amber-600' : 'text-slate-700 dark:text-slate-300'">{{ stats.overdue_invoices }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Collection -->
+                            <div class="flex items-center gap-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30">
+                                <div class="p-2 bg-emerald-500/20 rounded-lg">
+                                    <BanknotesIcon class="w-5 h-5 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500">Collection This Month</p>
+                                    <p class="text-lg font-bold text-emerald-600">{{ fmtCurrency(stats.collection_this_month) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═══ ROW 4: QUICK ACTIONS ═══ -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-center gap-3">
+                        <a :href="route('sales.planning.forecast.index')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                            <ChartBarIcon class="w-4 h-4" /> View All Forecasts
+                        </a>
+                        <a :href="route('sales.planning.forecast.index')" class="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                            <DocumentTextIcon class="w-4 h-4" /> Import Forecast
+                        </a>
+                        <a :href="route('sales.planning.forecast.export', { month: currentMonth })" class="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                            <ArrowTrendingUpIcon class="w-4 h-4" /> Export Report
+                        </a>
                     </div>
                 </div>
 
             </div>
         </div>
 
-        <!-- Details Modal -->
+        <!-- ═══ DETAIL MODAL ═══ -->
         <div v-if="showDetails" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" aria-hidden="true" @click="closeDetails"></div>
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" @click="closeDetails"></div>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
-                <div class="inline-block align-bottom bg-white dark:bg-slate-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full">
-                    <div class="px-4 pt-5 pb-4 sm:p-6 pb-4 bg-white dark:bg-slate-800">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-                                Item Accuracy: {{ selectedCustomer?.customer }}
-                            </h3>
-                            <button @click="closeDetails" class="text-slate-400 hover:text-slate-500">
-                                <XMarkIcon class="w-6 h-6" />
+                <div class="relative z-10 inline-block align-bottom bg-white dark:bg-slate-900 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-5xl sm:w-full border border-slate-200 dark:border-slate-800">
+                    <div class="px-6 pt-6 pb-5">
+                        <div class="flex justify-between items-center mb-5">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+                                    Item Accuracy: {{ selectedCustomer?.customer }}
+                                </h3>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    Overall achievement: 
+                                    <span class="font-bold" :class="getAchievementTextColor(selectedCustomer?.achievement ?? 0)">
+                                        {{ selectedCustomer?.achievement ?? 0 }}%
+                                    </span>
+                                </p>
+                            </div>
+                            <button @click="closeDetails" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                                <XMarkIcon class="w-5 h-5 text-slate-400" />
                             </button>
                         </div>
 
-                        <div v-if="isLoadingDetails" class="py-12 text-center">
-                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-300 border-t-blue-600"></div>
-                            <p class="mt-2 text-slate-500">Loading item data...</p>
+                        <div v-if="isLoadingDetails" class="py-16 text-center">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-300 border-t-indigo-600"></div>
+                            <p class="mt-3 text-sm text-slate-500">Loading item data...</p>
                         </div>
                         
-                        <div v-else class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                        <div v-else class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
                             <table class="w-full text-left text-sm text-slate-600 dark:text-slate-400">
-                                <thead class="bg-slate-50 dark:bg-slate-700/50 text-xs uppercase font-semibold text-slate-500 dark:text-slate-300">
+                                <thead class="bg-slate-50 dark:bg-slate-800 text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
                                     <tr>
                                         <th class="px-4 py-3">Product Item</th>
                                         <th class="px-4 py-3 text-right">Forecast</th>
                                         <th class="px-4 py-3 text-right">Actual</th>
+                                        <th class="px-4 py-3 text-right">Delivery</th>
                                         <th class="px-4 py-3 text-right">Achievement %</th>
                                         <th class="px-4 py-3 text-right">Variance</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-                                    <tr v-for="item in detailsData" :key="item.product_id" class="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                    <tr v-for="item in detailsData" :key="item.product_id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                         <td class="px-4 py-3">
-                                            <div class="font-medium text-slate-900 dark:text-white">{{ item.name }}</div>
-                                            <div class="text-xs text-slate-500">{{ item.sku }}</div>
+                                            <div class="font-semibold text-slate-900 dark:text-white">{{ item.name }}</div>
+                                            <div class="text-[10px] text-slate-400 font-mono">{{ item.sku }}</div>
                                         </td>
-                                        <td class="px-4 py-3 text-right font-mono">{{ Number(item.forecast).toLocaleString('id-ID') }} {{ item.unit }}</td>
-                                        <td class="px-4 py-3 text-right font-mono text-blue-600 dark:text-blue-400">{{ Number(item.actual).toLocaleString('id-ID') }} {{ item.unit }}</td>
+                                        <td class="px-4 py-3 text-right font-mono font-semibold">{{ fmtNum(item.forecast) }} <span class="text-[10px] text-slate-400">{{ item.unit }}</span></td>
+                                        <td class="px-4 py-3 text-right font-mono font-semibold text-blue-600 dark:text-blue-400">{{ fmtNum(item.actual) }} <span class="text-[10px] text-slate-400">{{ item.unit }}</span></td>
+                                        <td class="px-4 py-3 text-right font-mono font-semibold text-amber-600 dark:text-amber-400">{{ fmtNum(item.delivery) }} <span class="text-[10px] text-slate-400">{{ item.unit }}</span></td>
                                         <td class="px-4 py-3 text-right">
                                             <div class="flex items-center justify-end gap-2">
-                                                <div class="w-16 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                                                    <div 
-                                                        class="h-2 rounded-full" 
-                                                        :class="item.achievement >= 100 ? 'bg-emerald-500' : (item.achievement >= 80 ? 'bg-blue-500' : 'bg-red-500')"
-                                                        :style="{ width: Math.min(item.achievement, 100) + '%' }"
-                                                    ></div>
+                                                <div class="w-16 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+                                                    <div :class="getAchievementBarColor(item.achievement)" class="h-1.5 rounded-full transition-all" :style="{ width: Math.min(item.achievement, 100) + '%' }"></div>
                                                 </div>
-                                                <span class="font-bold" :class="item.achievement >= 100 ? 'text-emerald-500' : (item.achievement >= 80 ? 'text-blue-500' : 'text-red-500')">
+                                                <span class="font-bold text-xs" :class="getAchievementTextColor(item.achievement)">
                                                     {{ item.achievement.toFixed(1) }}%
                                                 </span>
                                             </div>
                                         </td>
-                                        <td class="px-4 py-3 text-right font-mono" :class="item.variance >= 0 ? 'text-emerald-600' : 'text-red-600'">
-                                            {{ item.variance > 0 ? '+' : '' }}{{ Number(item.variance).toLocaleString('id-ID') }}
+                                        <td class="px-4 py-3 text-right font-mono font-semibold" :class="item.variance >= 0 ? 'text-emerald-600' : 'text-red-600'">
+                                            {{ item.variance > 0 ? '+' : '' }}{{ fmtNum(item.variance) }}
                                         </td>
+                                    </tr>
+                                    <tr v-if="!detailsData.length">
+                                        <td colspan="5" class="px-4 py-8 text-center text-slate-400">No item data found</td>
                                     </tr>
                                 </tbody>
                             </table>
