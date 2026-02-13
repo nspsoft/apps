@@ -27,6 +27,9 @@ class SalesOrderController extends Controller
             ->withSum('items as total_qty_delivered', 'qty_delivered')
             ->withSum('items as total_qty_invoiced', 'qty_invoiced')
             ->withSum('items as total_qty_returned', 'qty_returned')
+            ->withSum(['invoices as total_amount_invoiced' => function($query) {
+                $query->where('status', '!=', 'cancelled');
+            }], 'total')
             ->when($request->search, function ($q, $search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('so_number', 'like', "%{$search}%")

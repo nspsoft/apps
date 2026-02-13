@@ -430,4 +430,28 @@ class PurchaseOrderController extends Controller
             'purchaseOrder' => $order
         ]);
     }
+
+    public function export()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\PurchaseOrdersExport, 'purchase_orders.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv',
+        ]);
+
+        try {
+            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\PurchaseOrdersImport, $request->file('file'));
+            return back()->with('success', 'Purchase Orders imported successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error importing file: ' . $e->getMessage());
+        }
+    }
+
+    public function template()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Template\PurchaseOrderTemplateExport, 'purchase_order_template.xlsx');
+    }
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     PlusIcon,
@@ -16,13 +16,26 @@ import {
     ClipboardDocumentListIcon,
     ChevronUpIcon,
     ChevronDownIcon,
+    ArrowDownTrayIcon,
+    ArrowUpTrayIcon,
 } from '@heroicons/vue/24/outline';
 import Pagination from '@/Components/Pagination.vue';
+import Modal from '@/Components/Modal.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import InputLabel from '@/Components/InputLabel.vue';
+import TextInput from '@/Components/TextInput.vue';
 import debounce from 'lodash/debounce';
+import { ref } from 'vue';
 
 const props = defineProps({
     requests: Object,
     filters: Object,
+});
+
+const showImportModal = ref(false);
+const importForm = useForm({
+    file: null,
 });
 
 const applyFilters = debounce(() => {
@@ -64,6 +77,30 @@ const formatDate = (date) => {
         return date;
     }
 };
+
+const openImportModal = () => {
+    showImportModal.value = true;
+};
+
+const closeImportModal = () => {
+    showImportModal.value = false;
+    importForm.reset();
+};
+
+const submitImport = () => {
+    importForm.post(route('requests.import'), {
+        preserveScroll: true,
+        onSuccess: () => closeImportModal(),
+    });
+};
+
+const handleFileChange = (e) => {
+    importForm.file = e.target.files[0];
+};
+
+const exportRequests = () => {
+    window.location.href = route('requests.export');
+};
 </script>
 
 <template>
@@ -71,15 +108,49 @@ const formatDate = (date) => {
     
     <AppLayout title="Purchase Requests">
         <template v-if="requests">
-            <div class="flex items-center justify-between mb-6">
-                <p class="text-slate-500 dark:text-slate-400 italic text-sm">Manage purchase requests from departments</p>
-                <Link
-                    href="/purchasing/requests/create"
-                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all"
-                >
-                    <PlusIcon class="h-5 w-5" />
-                    New Request
-                </Link>
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div class="flex-1">
+                     <p class="text-slate-500 dark:text-slate-400 italic text-sm">Manage purchase requests from departments</p>
+                </div>
+               
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <input 
+                            v-model="filters.search" 
+                            @input="applyFilters"
+                            type="text" 
+                            placeholder="Search requests..." 
+                            class="pl-4 pr-10 py-2.5 text-sm rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-blue-500 focus:border-blue-500 w-full md:w-64"
+                        >
+                    </div>
+
+                    <button 
+                        @click="exportRequests"
+                        class="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+                        title="Export to Excel"
+                    >
+                        <ArrowDownTrayIcon class="h-5 w-5" />
+                        <span class="hidden md:inline">Export</span>
+                    </button>
+
+                    <button 
+                        @click="openImportModal"
+                        class="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
+                        title="Import from Excel"
+                    >
+                        <ArrowUpTrayIcon class="h-5 w-5" />
+                        <span class="hidden md:inline">Import</span>
+                    </button>
+
+                    <Link
+                        href="/purchasing/requests/create"
+                        class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-500 hover:to-blue-400 transition-all"
+                    >
+                        <PlusIcon class="h-5 w-5" />
+                        <span class="hidden md:inline">New Request</span>
+                        <span class="md:hidden">New</span>
+                    </Link>
+                </div>
             </div>
 
             <div class="rounded-2xl glass-card overflow-hidden">
@@ -227,6 +298,58 @@ const formatDate = (date) => {
                     </div>
                 </div>
             </div>
+            
+            <!-- Import Modal -->
+            <Modal :show="showImportModal" @close="closeImportModal">
+                <div class="p-6 bg-white dark:bg-slate-900 rounded-2xl">
+                    <h2 class="text-lg font-medium text-slate-900 dark:text-white mb-4">
+                        Import Purchase Requests
+                    </h2>
+                    
+                    <div class="mb-4">
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                            Upload an Excel file (.xlsx, .xls) to import Purchase Requests. Rows with the same Date + Department + Requester will be grouped into one PR.
+                        </p>
+                        
+                        <a :href="route('purchasing.requests.template')" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-500 mb-4 font-medium">
+                            <ArrowDownTrayIcon class="h-4 w-4" />
+                            Download Template
+                        </a>
+
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">
+                            Required columns: Date, Department, Requester, Product Code, Quantity.
+                        </p>
+                        
+                        <div class="flex items-center justify-center w-full">
+                            <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 dark:hover:bg-slate-800 dark:bg-slate-900 hover:bg-slate-100 dark:border-slate-700 dark:hover:border-slate-500 transition-colors">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <ArrowUpTrayIcon class="w-8 h-8 mb-2 text-slate-500 dark:text-slate-400" />
+                                    <p class="mb-2 text-sm text-slate-500 dark:text-slate-400">
+                                        <span class="font-semibold">Click to upload</span>
+                                    </p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400" v-if="importForm.file">
+                                        {{ importForm.file.name }}
+                                    </p>
+                                </div>
+                                <input id="dropzone-file" type="file" class="hidden" @change="handleFileChange" accept=".xlsx, .xls, .csv" />
+                            </label>
+                        </div>
+                        <div v-if="importForm.errors.file" class="text-red-500 text-xs mt-1">{{ importForm.errors.file }}</div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 mt-6">
+                        <SecondaryButton @click="closeImportModal"> Cancel </SecondaryButton>
+                        <PrimaryButton 
+                            @click="submitImport" 
+                            :class="{ 'opacity-25': importForm.processing }" 
+                            :disabled="!importForm.file || importForm.processing"
+                        >
+                            Import Data
+                        </PrimaryButton>
+                    </div>
+                </div>
+            </Modal>
+
         </template>
         <div v-else class="text-slate-900 dark:text-white text-center py-20">
             Loading requests...

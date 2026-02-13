@@ -129,14 +129,14 @@ const getStatusBadge = (status) => {
                         PRINT STANDARD
                     </a>
 
-                    <a 
+                    <!-- <a 
                         :href="route('sales.invoices.print-v2', invoice.id)" 
                         target="_blank"
                         class="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white dark:text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
                     >
                         <PrinterIcon class="h-4 w-4" />
                         PRINT PROFESSIONAL (QR)
-                    </a>
+                    </a> -->
                 </div>
             </div>
 

@@ -24,6 +24,9 @@ class SalesOrderExport implements FromCollection, WithHeadings, WithMapping, Sho
     public function collection()
     {
         return SalesOrder::with(['customer', 'warehouse', 'items.product', 'items.unit'])
+            ->withSum(['invoices as total_amount_invoiced' => function($query) {
+                $query->where('status', '!=', 'cancelled');
+            }], 'total')
             ->orderBy('order_date', 'desc')
             ->get()
             ->flatMap(function ($so) {
@@ -54,6 +57,8 @@ class SalesOrderExport implements FromCollection, WithHeadings, WithMapping, Sho
             'Subtotal',
             'Status',
             'SO Total',
+            'Total Invoiced',
+            '% Invoiced',
         ];
     }
 
@@ -78,6 +83,8 @@ class SalesOrderExport implements FromCollection, WithHeadings, WithMapping, Sho
             $item?->subtotal,
             ucfirst($so->status),
             $so->total,
+            $so->total_amount_invoiced ?? 0,
+            $so->total > 0 ? ($so->total_amount_invoiced / $so->total) : 0,
         ];
     }
 
@@ -137,6 +144,8 @@ class SalesOrderExport implements FromCollection, WithHeadings, WithMapping, Sho
                 $sheet->getStyle("K5:K{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
                 $sheet->getStyle("M5:M{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
                 $sheet->getStyle("O5:O{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $sheet->getStyle("P5:P{$lastRow}")->getNumberFormat()->setFormatCode('#,##0');
+                $sheet->getStyle("Q5:Q{$lastRow}")->getNumberFormat()->setFormatCode('0%');
             },
         ];
     }

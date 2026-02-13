@@ -356,13 +356,14 @@ const calculateWidth = (value, total) => {
                             </th>
                             <th @click="sort('total_qty_invoiced')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
                                 <div class="flex items-center justify-center gap-1">
-                                    Invoice
+                                    Inv (Qty)
                                     <span v-if="sortField === 'total_qty_invoiced'" class="text-blue-600 dark:text-blue-400">
                                         <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
                                         <ChevronDownIcon v-else class="h-3 w-3" />
                                     </span>
                                 </div>
                             </th>
+
                             <th @click="sort('total_qty_returned')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
                                 <div class="flex items-center justify-center gap-1">
                                     Return
@@ -377,6 +378,24 @@ const calculateWidth = (value, total) => {
                                 <div class="flex items-center justify-end gap-1">
                                     Total
                                     <span v-if="sortField === 'total'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('total_amount_invoiced')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center justify-center gap-1">
+                                    Inv (Rp)
+                                    <span v-if="sortField === 'total_amount_invoiced'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th @click="sort('percent_invoiced')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shadow-sm cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center justify-center gap-1">
+                                    % Inv
+                                    <span v-if="sortField === 'percent_invoiced'" class="text-blue-600 dark:text-blue-400">
                                         <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
                                         <ChevronDownIcon v-else class="h-3 w-3" />
                                     </span>
@@ -406,7 +425,12 @@ const calculateWidth = (value, total) => {
                                         <DocumentTextIcon class="h-5 w-5 text-slate-500 dark:text-slate-400" />
                                     </div>
                                     <div>
-                                        <div class="text-sm font-medium text-slate-900 dark:text-white">{{ so.so_number }}</div>
+                                        <Link 
+                                            :href="`/sales/orders/${so.id}`"
+                                            class="text-sm font-medium text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors"
+                                        >
+                                            {{ so.so_number }}
+                                        </Link>
                                         <div class="text-xs text-slate-500">{{ so.warehouse?.name }}</div>
                                     </div>
                                 </div>
@@ -452,6 +476,7 @@ const calculateWidth = (value, total) => {
                                 </div>
                             </td>
 
+
                             <td class="px-4 py-2 whitespace-nowrap text-center text-sm text-red-400">
                                 {{ formatNumber(so.total_qty_returned || 0) }}
                             </td>
@@ -465,6 +490,19 @@ const calculateWidth = (value, total) => {
                             </td>
                             <td class="px-4 py-2 whitespace-nowrap text-right">
                                 <span class="text-sm font-medium text-slate-900 dark:text-white">{{ formatCurrency(so.total) }}</span>
+                            </td>
+                            <td class="px-4 py-2 whitespace-nowrap text-right text-xs font-mono">
+                                {{ formatCurrency(so.total_amount_invoiced || 0) }}
+                            </td>
+                            <td class="px-4 py-2 whitespace-nowrap text-center">
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                        {{ calculatePercentage(so.total_amount_invoiced, so.total) }}%
+                                    </span>
+                                    <div class="w-20 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                        <div class="h-full bg-indigo-500 rounded-full" :style="{ width: calculateWidth(so.total_amount_invoiced, so.total) }"></div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-4 py-2 whitespace-nowrap text-center">
                                 <span 

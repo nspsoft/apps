@@ -16,8 +16,34 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
+use App\Exports\Purchasing\GoodsReceiptsExport;
+use App\Exports\Template\GoodsReceiptTemplateExport;
+use App\Imports\Purchasing\GoodsReceiptsImport;
+use Maatwebsite\Excel\Facades\Excel;
+
 class GoodsReceiptController extends Controller
 {
+    public function export()
+    {
+        return Excel::download(new GoodsReceiptsExport, 'goods_receipts.xlsx');
+    }
+
+    public function template()
+    {
+        return Excel::download(new GoodsReceiptTemplateExport, 'goods_receipt_import_template.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv',
+        ]);
+
+        Excel::import(new GoodsReceiptsImport, $request->file('file'));
+
+        return back()->with('success', 'Goods Receipts imported successfully.');
+    }
+
     public function index(Request $request): Response
     {
         $query = GoodsReceipt::with(['purchaseOrder', 'supplier', 'warehouse', 'receivedBy'])

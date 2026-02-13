@@ -23,10 +23,15 @@ import {
     PrinterIcon,
     ChevronUpIcon,
     ChevronDownIcon,
+    ArrowUpTrayIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import Pagination from '@/Components/Pagination.vue';
 import { formatNumber, formatCurrency } from '@/helpers';
+import Modal from '@/Components/Modal.vue';
+import SecondaryButton from '@/Components/SecondaryButton.vue';
+import PrimaryButton from '@/Components/PrimaryButton.vue';
+import { useForm } from '@inertiajs/vue3';
 
 const props = defineProps({
     purchaseOrders: Object,
@@ -42,6 +47,37 @@ const selectedSupplier = ref(props.filters?.supplier || '');
 const sortField = ref(props.filters?.sort || 'created_at');
 const sortDirection = ref(props.filters?.direction || 'desc');
 const showFilters = ref(false);
+
+const showImportModal = ref(false);
+const importForm = useForm({
+    file: null,
+});
+
+const openImportModal = () => {
+    showImportModal.value = true;
+};
+
+const closeImportModal = () => {
+    showImportModal.value = false;
+    importForm.reset();
+};
+
+const handleFileChange = (e) => {
+    importForm.file = e.target.files[0];
+};
+
+const submitImport = () => {
+    importForm.post(route('purchasing.orders.import'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeImportModal();
+        },
+    });
+};
+
+const exportOrders = () => {
+    window.location.href = route('purchasing.orders.export');
+};
 
 const sort = (field) => {
     if (sortField.value === field) {
@@ -67,8 +103,6 @@ const applyFilters = debounce(() => {
 }, 300);
 
 watch([search, selectedStatus, selectedSupplier], () => {
-    // Reset page to 1 when filters change? Usually Inertia handles this if we don't preserve state, but here we preserve state.
-    // Ideally we should reset page, but for now let's just trigger filters.
     applyFilters();
 });
 
@@ -76,7 +110,6 @@ const clearFilters = () => {
     search.value = '';
     selectedStatus.value = '';
     selectedSupplier.value = '';
-    // Optional: reset sort?
 };
 
 const deletePO = (po) => {
@@ -141,14 +174,35 @@ const formatDate = (date) => {
                             class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
                         />
                     </div>
-                    <button 
-                        @click="showFilters = !showFilters"
-                        class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors border border-transparent"
-                        :class="{ 'ring-2 ring-blue-500/50 border-blue-500/50': showFilters }"
-                    >
-                        <FunnelIcon class="h-5 w-5" />
-                        Filters
-                    </button>
+                    
+                    <div class="flex items-center gap-2">
+                        <button 
+                            @click="showFilters = !showFilters"
+                            class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors border border-transparent"
+                            :class="{ 'ring-2 ring-blue-500/50 border-blue-500/50': showFilters }"
+                        >
+                            <FunnelIcon class="h-5 w-5" />
+                            <span class="hidden md:inline">Filters</span>
+                        </button>
+
+                        <button 
+                            @click="exportOrders"
+                            class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                            title="Export to Excel"
+                        >
+                            <ArrowDownTrayIcon class="h-5 w-5" />
+                            <span class="hidden md:inline">Export</span>
+                        </button>
+
+                        <button 
+                            @click="openImportModal"
+                            class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                            title="Import from Excel"
+                        >
+                            <ArrowUpTrayIcon class="h-5 w-5" />
+                            <span class="hidden md:inline">Import</span>
+                        </button>
+                    </div>
 
                     <!-- Mini Statistics Row (Refined) -->
                     <div v-if="stats" class="flex flex-wrap items-center gap-2">
@@ -488,6 +542,57 @@ const formatDate = (date) => {
         <div v-else class="text-slate-900 dark:text-white text-center py-20">
             Loading order data...
         </div>
+
+        <!-- Import Modal -->
+        <Modal :show="showImportModal" @close="closeImportModal">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-slate-900 dark:text-white mb-4">
+                    Import Purchase Orders
+                </h2>
+                
+                <div class="mb-4">
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                        Upload an Excel file (.xlsx, .xls) to import Purchase Orders. Rows with the same Supplier + Warehouse + Date will be grouped into one PO.
+                    </p>
+                    
+                    <a :href="route('purchasing.orders.template')" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-500 mb-4 font-medium">
+                        <ArrowDownTrayIcon class="h-4 w-4" />
+                        Download Template
+                    </a>
+
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mb-4">
+                        Required columns: Order Date, Supplier Code, Warehouse Name, Product Code, Quantity.
+                    </p>
+
+                    <input 
+                        type="file" 
+                        @change="handleFileChange"
+                        accept=".xlsx, .xls, .csv"
+                        class="block w-full text-sm text-slate-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-blue-400"
+                    />
+                    <div v-if="importForm.errors.file" class="text-red-500 text-xs mt-1">{{ importForm.errors.file }}</div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <SecondaryButton @click="closeImportModal">
+                        Cancel
+                    </SecondaryButton>
+                    <PrimaryButton 
+                        @click="submitImport" 
+                        :disabled="importForm.processing || !importForm.file"
+                        :class="{ 'opacity-25': importForm.processing }"
+                    >
+                        <ArrowUpTrayIcon class="h-4 w-4 mr-2" />
+                        Import
+                    </PrimaryButton>
+                </div>
+            </div>
+        </Modal>
     </AppLayout>
 </template>
 

@@ -119,6 +119,9 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
     Route::post('/suppliers-contacts-import', [SupplierController::class, 'importContacts'])->name('suppliers.contacts.import');
     Route::get('/suppliers-template', [SupplierController::class, 'template'])->name('suppliers.template');
     Route::get('/suppliers-contacts-template', [SupplierController::class, 'templateContacts'])->name('suppliers.contacts.template');
+    Route::get('/orders/export', [App\Http\Controllers\Purchasing\PurchaseOrderController::class, 'export'])->name('orders.export');
+    Route::get('/orders/template', [App\Http\Controllers\Purchasing\PurchaseOrderController::class, 'template'])->name('orders.template');
+    Route::post('/orders/import', [App\Http\Controllers\Purchasing\PurchaseOrderController::class, 'import'])->name('orders.import');
     Route::resource('orders', PurchaseOrderController::class);
     Route::post('/orders/{order}/submit', [PurchaseOrderController::class, 'submit'])->name('orders.submit');
     Route::post('/orders/{order}/approve', [PurchaseOrderController::class, 'approve'])->name('orders.approve');
@@ -126,9 +129,16 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
     Route::post('/orders/{order}/cancel', [PurchaseOrderController::class, 'cancel'])->name('orders.cancel');
     Route::put('/orders/items/{item}/qty', [PurchaseOrderController::class, 'updateItemQty'])->name('orders.update-item-qty');
     Route::get('/orders/{order}/print', [PurchaseOrderController::class, 'print'])->name('orders.print');
-
+    Route::get('/orders/create', [App\Http\Controllers\Purchasing\PurchaseOrderController::class, 'create'])->name('orders.create');
+    // Purchase Requests
+    Route::get('/requests/export', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'export'])->name('requests.export');
+    Route::get('/requests/template', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'template'])->name('requests.template');
+    Route::post('/requests/import', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'import'])->name('requests.import');
     Route::get('/requests/create', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'create'])->name('requests.create');
     Route::post('/requests', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'store'])->name('requests.store');
+    Route::get('/requests', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'index'])->name('requests.index');
+    
+    // Purchase Request Item/Detail Routes (Wildcards)
     Route::get('/requests/{request}/edit', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'edit'])->name('requests.edit');
     Route::put('/requests/{request}', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'update'])->name('requests.update');
     Route::delete('/requests/{request}', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'destroy'])->name('requests.destroy');
@@ -136,13 +146,17 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
     Route::post('/requests/{request}/approve', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'approve'])->name('requests.approve');
     Route::post('/requests/{request}/reject', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'reject'])->name('requests.reject');
     Route::get('/requests/{request}/print', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'print'])->name('requests.print');
-    Route::get('/requests', [App\Http\Controllers\Purchasing\PurchaseRequestController::class, 'index'])->name('requests.index');
     Route::get('/receipts/po-items/{order}', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'getPoItems'])->name('receipts.po-items');
         Route::get('receipts/scan', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'scan'])->name('receipts.scan');
         Route::post('receipts/scan/process', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'processScan'])->name('receipts.scan-process');
         Route::get('receipts/{receipt}/check', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'check'])->name('receipts.check');
         Route::post('receipts/{receipt}/confirm', [\App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'confirmReceive'])->name('receipts.confirm');
         
+        // Goods Receipts Export/Import
+        Route::get('/receipts/export', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'export'])->name('receipts.export');
+        Route::get('/receipts/template', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'template'])->name('receipts.template');
+        Route::post('/receipts/import', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'import'])->name('receipts.import');
+
         Route::resource('receipts', App\Http\Controllers\Purchasing\GoodsReceiptController::class);
     Route::post('/receipts/{receipt}/complete', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'complete'])->name('receipts.complete');
     Route::get('/receipts/{receipt}/print', [App\Http\Controllers\Purchasing\GoodsReceiptController::class, 'print'])->name('receipts.print');

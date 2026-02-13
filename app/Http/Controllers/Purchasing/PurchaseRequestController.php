@@ -238,4 +238,28 @@ class PurchaseRequestController extends Controller
             'request' => $request
         ]);
     }
+
+    public function export()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\PurchaseRequestsExport, 'purchase_requests.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv',
+        ]);
+
+        try {
+            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\PurchaseRequestsImport, $request->file('file'));
+            return back()->with('success', 'Purchase Requests imported successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error importing file: ' . $e->getMessage());
+        }
+    }
+
+    public function template()
+    {
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\Template\PurchaseRequestTemplateExport, 'purchase_request_template.xlsx');
+    }
 }
