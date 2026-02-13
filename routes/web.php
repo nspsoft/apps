@@ -249,6 +249,9 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::post('/invoices/{sales_invoice}/pay', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'recordPayment'])->name('invoices.pay');
     Route::get('/invoices/{sales_invoice}/print', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'print'])->name('invoices.print');
     Route::get('/invoices/{sales_invoice}/print-v2', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'printV2'])->name('invoices.print-v2');
+    Route::get('/invoices-export', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'export'])->name('invoices.export');
+    Route::post('/invoices-import', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'import'])->name('invoices.import');
+    Route::get('/invoices-template', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'template'])->name('invoices.template');
     Route::get('/returns/so-items/{sales_order}', [App\Http\Controllers\Sales\SalesReturnController::class, 'getReturnableItems'])->name('returns.so-items');
     Route::get('/returns/{sales_return}/print', [App\Http\Controllers\Sales\SalesReturnController::class, 'print'])->name('returns.print');
     Route::resource('returns', SalesReturnController::class);

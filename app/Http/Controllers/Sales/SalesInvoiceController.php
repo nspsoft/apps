@@ -7,6 +7,10 @@ use App\Models\SalesInvoice;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\SalesInvoiceExport;
+use App\Imports\SalesInvoiceImport;
+use App\Exports\Template\SalesInvoiceTemplateExport;
 
 class SalesInvoiceController extends Controller
 {
@@ -153,5 +157,29 @@ class SalesInvoiceController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Error deleting invoice: '.$e->getMessage());
         }
+    }
+
+    public function export()
+    {
+        return Excel::download(new SalesInvoiceExport, 'sales_invoices_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        try {
+            Excel::import(new SalesInvoiceImport, $request->file('file'));
+            return back()->with('success', 'Sales Invoices imported successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    public function template()
+    {
+        return Excel::download(new SalesInvoiceTemplateExport, 'sales_invoices_import_template.xlsx');
     }
 }
