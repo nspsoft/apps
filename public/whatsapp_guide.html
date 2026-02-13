@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panduan WhatsApp Center - JICOS ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@heroicons/vue/24/outline"></script>
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #22d3ee, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .float { animation: float 6s ease-in-out infinite; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .slide-up { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes slideUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+        
+        /* Phone Mockup Scroll */
+        .phone-scroll::-webkit-scrollbar { width: 4px; }
+        .phone-scroll::-webkit-scrollbar-track { background: transparent; }
+        .phone-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen selection:bg-cyan-500/30 overflow-x-hidden">
+
+    <!-- Background Effects -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-500/10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px]"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass border-b border-white/5 bg-slate-900/80">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-white">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.197.302-1.668.209-2.76 1.614-2.76 3.235v6.235a2.125 2.125 0 001.053 1.886"/>
+                    </svg>
+                </div>
+                <span class="font-bold text-xl tracking-tight">JICOS <span class="text-cyan-400">WhatsApp Center</span></span>
+            </div>
+            <a href="#demo" class="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm font-medium transition-all border border-white/10">Lihat Demo</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative pt-32 pb-20 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
+            <div class="flex-1 space-y-8 slide-up">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-bold tracking-wider uppercase">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                    Fitur Baru v4.0
+                </div>
+                <h1 class="text-5xl md:text-7xl font-black leading-tight">
+                    Otomatisasi <br>
+                    <span class="gradient-text">Customer Service</span>
+                </h1>
+                <p class="text-lg text-slate-400 max-w-xl leading-relaxed">
+                    Satu pintu untuk semua interaksi WhatsApp. Lacak pesanan, cek invoice, dan katalog produk secara otomatis menggunakan Bot cerdas yang terintegrasi langsung dengan ERP.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#config" class="px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-white rounded-2xl font-bold shadow-lg shadow-cyan-500/30 transition-all hover:scale-105">
+                        Mulai Konfigurasi
+                    </a>
+                    <a href="#features" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-bold border border-slate-700 transition-all">
+                        Pelajari Fitur
+                    </a>
+                </div>
+            </div>
+
+            <!-- Hero Image / Illustration -->
+            <div class="flex-1 relative slide-up delay-200">
+                <div class="absolute inset-0 bg-gradient-to-tr from-cyan-500/30 to-purple-500/30 rounded-full blur-[100px] -z-10"></div>
+                <div class="relative w-full max-w-sm mx-auto float">
+                    <!-- Phone Mockup -->
+                    <div class="bg-slate-900 border-8 border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden relative">
+                        <!-- Dynamic Island -->
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-slate-800 rounded-b-2xl z-20"></div>
+                        
+                        <!-- Screen -->
+                        <div class="h-[600px] bg-slate-900 w-full flex flex-col pt-10">
+                            <!-- App Header -->
+                            <div class="px-6 pb-4 border-b border-slate-800 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white text-xs font-bold shadow-lg">JICOS</div>
+                                    <div>
+                                        <div class="text-sm font-bold">JICOS Bot</div>
+                                        <div class="text-[10px] text-emerald-400 flex items-center gap-1">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Online
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Chat Area -->
+                            <div id="hero-chat-scroll" class="flex-1 p-4 space-y-4 overflow-y-auto phone-scroll text-sm">
+                                <!-- Messages will be injected by JS -->
+                            </div>
+
+                            <!-- Input Area -->
+                            <div class="p-4 bg-slate-800/50 backdrop-blur-md">
+                                <div class="h-10 bg-slate-700/50 rounded-full w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Floating Badge -->
+                    <div class="absolute -right-10 top-20 glass p-4 rounded-2xl shadow-xl animate-[bounce_3s_infinite]">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">⚡</div>
+                            <div>
+                                <div class="text-xs text-slate-400 uppercase font-bold">Respon Bot</div>
+                                <div class="text-lg font-bold">0.5 Detik</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Configuration Steps -->
+    <section id="config" class="py-20 bg-slate-900 relative">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="text-center mb-16 slide-up">
+                <h2 class="text-3xl font-bold mb-4">Cara, Setup & Konfigurasi</h2>
+                <div class="h-1 w-20 bg-cyan-500 mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div class="space-y-8">
+                    <!-- Step 1 -->
+                    <div class="group relative pl-8 border-l-2 border-slate-800 hover:border-cyan-500 transition-colors slide-up delay-100">
+                        <span class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-800 group-hover:bg-cyan-500 transition-colors border-4 border-slate-900"></span>
+                        <h3 class="text-xl font-bold mb-2 group-hover:text-cyan-400 transition-colors">1. Pilih Provider Gateway</h3>
+                        <p class="text-slate-400 mb-4">Masuk ke <span class="text-white font-mono bg-slate-800 px-2 rounded">Settings > WhatsApp</span>. Kami merekomendasikan <strong>Wablas</strong> atau <strong>Fonnte</strong>.</p>
+                        <div class="inline-flex gap-2">
+                            <span class="px-3 py-1 rounded bg-orange-500/10 text-orange-400 text-xs border border-orange-500/20 font-bold">Rekomendasi: Wablas</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="group relative pl-8 border-l-2 border-slate-800 hover:border-purple-500 transition-colors slide-up delay-200">
+                        <span class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-800 group-hover:bg-purple-500 transition-colors border-4 border-slate-900"></span>
+                        <h3 class="text-xl font-bold mb-2 group-hover:text-purple-400 transition-colors">2. Input API Token</h3>
+                        <p class="text-slate-400">
+                            Dapatkan API Token dari dashboard provider Anda. Paste ke kolom yang tersedia lalu klik <strong>Save</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="group relative pl-8 border-l-2 border-slate-800 hover:border-emerald-500 transition-colors slide-up delay-300">
+                        <span class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-slate-800 group-hover:bg-emerald-500 transition-colors border-4 border-slate-900"></span>
+                        <h3 class="text-xl font-bold mb-2 group-hover:text-emerald-400 transition-colors">3. Setup Webhook (PENTING!)</h3>
+                        <p class="text-slate-400 mb-4">
+                            Salin URL Webhook dari halaman settings ERP, dan tempelkan di dashboard provider WhatsApp Anda.
+                        </p>
+                        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs text-slate-400 break-all">
+                            https://jicos.jidoka.co.id/api/whatsapp/webhook
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Preview Panel -->
+                <div class="bg-slate-800 rounded-3xl p-2 border border-slate-700 shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500 slide-up delay-200">
+                    <img src="/api/placeholder/600/400" alt="Setting Interface Mockup" class="w-full h-auto rounded-2xl opacity-50 bg-slate-900" />
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center p-8">
+                            <div class="w-16 h-16 bg-slate-700 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-slate-400">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                                </svg>
+                            </div>
+                            <h4 class="font-bold text-lg mb-2">Halaman Konfigurasi</h4>
+                            <p class="text-sm text-slate-400">Settings > WhatsApp Center</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-slate-950">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900/80 transition-all group slide-up delay-100">
+                    <div class="w-12 h-12 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-cyan-400">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Status Pesanan</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Pelanggan cukup ketik nomor SO (contoh: <code>SO-2023001</code>) dan bot akan membalas status terkini (Processing, Shipped, Delivered) beserta info kurir.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-900/80 transition-all group slide-up delay-200">
+                    <div class="w-12 h-12 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-purple-400">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Cek Invoice</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Ketik <code>Cek Tagihan</code> untuk melihat daftar invoice yang belum dibayar. Bot otomatis menghitung total outstanding secara real-time.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="p-8 rounded-3xl bg-slate-900 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/80 transition-all group slide-up delay-300">
+                    <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 text-emerald-400">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Produk & Stok</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Pencarian pintar. Ketik nama barang (misal: <code>Pipa Besi</code>), bot akan menampilkan harga dan stok terkini dari gudang.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Simulator -->
+    <section id="demo" class="py-20 px-6">
+        <div class="max-w-4xl mx-auto bg-slate-800/50 rounded-3xl overflow-hidden border border-slate-700 shadow-2xl backdrop-blur-xl">
+            <div class="p-8 border-b border-slate-700 text-center">
+                <h3 class="text-2xl font-bold mb-2">Coba Simulator Bot</h3>
+                <p class="text-slate-400 text-sm">Klik tombol di bawah untuk melihat respon bot (Simulasi).</p>
+            </div>
+            <div class=" p-8 min-h-[400px] flex flex-col">
+                <div id="sim-chat-area" class="flex-1 space-y-4 mb-8">
+                    <!-- Chat Start -->
+                    <div class="flex justify-start">
+                        <div class="bg-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 text-slate-200 text-sm max-w-[80%]">
+                            Halo! Selamat datang di JICOS Bot. Apa yang bisa saya bantu? 👋
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sim Controls -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button onclick="simulateChat('status')" class="p-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold text-white transition-colors border border-slate-600">
+                        📦 Cek Status SO
+                    </button>
+                    <button onclick="simulateChat('invoice')" class="p-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold text-white transition-colors border border-slate-600">
+                        📄 Cek Invoice
+                    </button>
+                    <button onclick="simulateChat('product')" class="p-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold text-white transition-colors border border-slate-600">
+                        🔍 Cari Produk
+                    </button>
+                    <button onclick="simulateChat('human')" class="p-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-bold text-white transition-colors border border-slate-600">
+                        👤 Chat Sales
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="py-12 bg-slate-950 text-center text-slate-600 text-sm">
+        <p>&copy; 2026 JICOS ERP System. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Hero Phone Animation
+        const heroMessages = [
+            { text: "Cek status pesanan saya dong", type: "out", delay: 1000 },
+            { text: "Halo! Boleh minta nomor SO-nya?", type: "in", delay: 2000 },
+            { text: "SO-202602-001", type: "out", delay: 3500 },
+            { text: "📦 *Status Pesanan*\n\n*SO-202602-001*\nStatus: 🚚 Dikirim\nEstimasi: Besok Sampai", type: "in", delay: 5000 }
+        ];
+
+        const heroScroll = document.getElementById('hero-chat-scroll');
+
+        function playHeroAnimation() {
+            heroScroll.innerHTML = '';
+            let totalDelay = 0;
+
+            heroMessages.forEach(msg => {
+                totalDelay += msg.delay;
+                setTimeout(() => {
+                    const div = document.createElement('div');
+                    div.className = `flex ${msg.type === 'out' ? 'justify-end' : 'justify-start'} animate-bounce-in`;
+                    
+                    const bubble = document.createElement('div');
+                    bubble.className = msg.type === 'out' 
+                        ? 'bg-cyan-600 text-white rounded-2xl rounded-tr-sm px-4 py-2 max-w-[80%] shadow-lg' 
+                        : 'bg-slate-700 text-white rounded-2xl rounded-tl-sm px-4 py-2 max-w-[80%] border border-slate-600';
+                    
+                    bubble.innerHTML = msg.text.replace(/\n/g, '<br>');
+                    div.appendChild(bubble);
+                    heroScroll.appendChild(div);
+                    heroScroll.scrollTop = heroScroll.scrollHeight;
+                }, totalDelay);
+            });
+        }
+
+        // Simulator Logic
+        const simArea = document.getElementById('sim-chat-area');
+        
+        function simulateChat(type) {
+            let userMsg = "";
+            let botMsg = "";
+
+            if (type === 'status') {
+                userMsg = "Tolong cek SO-2023-999";
+                botMsg = "📦 *SO-2023-999* sedang diproses di gudang. Estimasi pengiriman hari ini pukul 14:00.";
+            } else if (type === 'invoice') {
+                userMsg = "Lihat tagihan saya";
+                botMsg = "📄 Anda memiliki 1 invoice jatuh tempo:\n\n*INV-001*: Rp 15.000.000\nJatuh Tempo: 12 Feb 2026\n\nSilakan transfer ke BCA 1234567890.";
+            } else if (type === 'product') {
+                userMsg = "Ada pipa besi 2 inch?";
+                botMsg = "🔍 *Pipa Besi 2 Inch*\nStok: 150 Batang\nHarga: Rp 125.000/btg\n\nKetik 'Pesan 50' untuk order.";
+            } else if (type === 'human') {
+                userMsg = "Saya mau bicara sama orang";
+                botMsg = "Baik, saya sambungkan ke Sales kami. Mohon tunggu sebentar... 👨‍💼";
+            }
+
+            addMessage(userMsg, 'out');
+            setTimeout(() => addMessage(botMsg, 'in'), 1000);
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `flex ${type === 'out' ? 'justify-end' : 'justify-start'}`;
+            div.innerHTML = `
+                <div class="${type === 'out' ? 'bg-indigo-600' : 'bg-slate-700'} rounded-2xl ${type === 'out' ? 'rounded-tr-sm' : 'rounded-tl-sm'} px-4 py-3 text-slate-200 text-sm max-w-[80%] animate-[popIn_0.3s_ease-out]">
+                    ${text.replace(/\n/g, '<br>')}
+                </div>
+            `;
+            simArea.appendChild(div);
+            simArea.scrollTop = simArea.scrollHeight;
+        }
+
+        // Start animation on load
+        window.onload = () => {
+            playHeroAnimation();
+            setInterval(playHeroAnimation, 10000);
+        };
+    </script>
+
+    <style>
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</body>
+</html>

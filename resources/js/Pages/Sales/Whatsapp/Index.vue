@@ -9,7 +9,9 @@ import {
     UserCircleIcon,
     CheckCircleIcon,
     ClockIcon,
-    ArrowPathIcon
+    ArrowPathIcon,
+    BookOpenIcon,
+    ArrowTopRightOnSquareIcon
 } from '@heroicons/vue/24/outline';
 import axios from 'axios';
 
@@ -128,6 +130,20 @@ onMounted(() => {
                     />
                     <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-slate-500" />
                 </div>
+
+                <!-- Guide Link -->
+                 <a href="/whatsapp_guide.html" target="_blank" class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="p-1.5 bg-white/20 rounded-lg backdrop-blur-sm">
+                            <BookOpenIcon class="h-5 w-5 text-white" />
+                        </div>
+                        <div class="text-left">
+                            <div class="text-xs font-bold opacity-90">Butuh Bantuan?</div>
+                            <div class="text-sm font-bold">Buka Panduan & Demo</div>
+                        </div>
+                    </div>
+                    <ArrowTopRightOnSquareIcon class="h-5 w-5 opacity-70 group-hover:opacity-100 transition-opacity" />
+                </a>
 
                 <!-- Contact List -->
                 <div class="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">

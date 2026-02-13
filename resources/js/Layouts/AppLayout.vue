@@ -207,6 +207,7 @@ const navigation = [
         permission: 'purchasing.view',
         children: [
             { name: 'Procurement Ops', href: '/purchasing/dashboard', icon: PresentationChartBarIcon, permission: 'purchasing.view' },
+            { name: 'Information', href: '/purchasing/information', icon: InformationCircleIcon, permission: 'purchasing.view' },
             { name: 'Suppliers', href: '/purchasing/suppliers', icon: BuildingOfficeIcon, permission: 'purchasing.suppliers.view' },
             { name: 'Purchase Requests', href: '/purchasing/requests', icon: DocumentPlusIcon, permission: 'purchasing.purchase_requests.view' },
             { name: 'Purchase Orders', href: '/purchasing/orders', icon: ShoppingCartIcon, permission: 'purchasing.purchase_orders.view' },

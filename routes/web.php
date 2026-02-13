@@ -165,6 +165,9 @@ Route::prefix('purchasing')->name('purchasing.')->middleware(['auth'])->group(fu
     Route::resource('invoices', App\Http\Controllers\Purchasing\PurchaseInvoiceController::class);
     Route::post('/invoices/{invoice}/payment', [App\Http\Controllers\Purchasing\PurchaseInvoiceController::class, 'recordPayment'])->name('invoices.payment');
     Route::delete('/invoices/{invoice}/payment/{payment}', [App\Http\Controllers\Purchasing\PurchaseInvoiceController::class, 'deletePayment'])->name('invoices.payment.delete');
+    
+    // Information
+    Route::get('/information', [App\Http\Controllers\Purchasing\PurchasingInformationController::class, 'index'])->name('information');
 });
 
 // Sales Module

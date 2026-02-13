@@ -15,7 +15,8 @@ import {
     ClipboardDocumentIcon,
     StarIcon,
     PaperAirplaneIcon,
-    SignalIcon
+    SignalIcon,
+    BookOpenIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -127,8 +128,14 @@ const testConnection = async () => {
                         <p class="text-sm text-slate-500 dark:text-slate-400">Configure WhatsApp gateway for customer service bot</p>
                     </div>
                 </div>
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
-                    <ChatBubbleLeftRightIcon class="h-7 w-7" />
+                <div class="flex items-center gap-3">
+                    <a href="/whatsapp_guide.html" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 text-xs font-bold uppercase tracking-widest transition-all hover:scale-105">
+                        <BookOpenIcon class="h-4 w-4" />
+                        Panduan & Demo
+                    </a>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
+                        <ChatBubbleLeftRightIcon class="h-7 w-7" />
+                    </div>
                  </div>
             </div>
 
