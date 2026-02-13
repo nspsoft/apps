@@ -190,6 +190,11 @@ const customerData = computed(() => ({
                         <div class="text-right hidden md:block">
                             <p class="text-[10px] text-fuchsia-500/70 tracking-[0.2em] mb-1">LOCAL TIME</p>
                             <p class="text-2xl font-bold font-mono text-white glow-text">{{ time }}</p>
+                            <!-- DEBUG INFO -->
+                            <div class="mt-2 text-[8px] text-slate-500 font-mono text-right opacity-50 hover:opacity-100 transition-opacity">
+                                <p>SVR: {{ stats.debug_server_time }}</p>
+                                <p>LAST: {{ stats.debug_latest_order }}</p>
+                            </div>
                         </div>
                     </div>
                 </div>

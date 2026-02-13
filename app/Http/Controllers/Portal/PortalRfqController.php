@@ -20,10 +20,10 @@ class PortalRfqController extends Controller
 
         // Get RFQs where this supplier is listed in rfq_suppliers
         $query = Rfq::whereHas('targetSuppliers', function ($q) use ($user) {
-                $q->where('supplier_id', $user->supplier_id);
+                $q->where('suppliers.id', $user->supplier_id);
             })
             ->with(['targetSuppliers' => function ($q) use ($user) {
-                $q->where('supplier_id', $user->supplier_id);
+                $q->where('suppliers.id', $user->supplier_id);
             }])
             ->orderByRaw("FIELD(status, 'open', 'closed', 'awarded')");
             
@@ -48,7 +48,7 @@ class PortalRfqController extends Controller
         }
 
         $rfq = Rfq::with(['items', 'targetSuppliers' => function($q) use ($user) {
-            $q->where('supplier_id', $user->supplier_id);
+            $q->where('suppliers.id', $user->supplier_id);
         }])->findOrFail($id);
 
         // Check availability

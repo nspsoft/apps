@@ -35,7 +35,10 @@ class Rfq extends Model
 
     public function targetSuppliers()
     {
-        return $this->hasMany(RfqSupplier::class);
+        return $this->belongsToMany(Supplier::class, 'rfq_suppliers')
+                    ->using(RfqSupplier::class)
+                    ->withPivot(['status', 'viewed_at', 'responded_at'])
+                    ->withTimestamps();
     }
 
     public function quotations()
