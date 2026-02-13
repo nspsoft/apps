@@ -12,6 +12,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\DeliveryOrderExport;
+use App\Imports\DeliveryOrderImport;
+use App\Exports\Template\DeliveryOrderTemplateExport;
 
 class DeliveryOrderController extends Controller
 {
@@ -782,5 +786,29 @@ class DeliveryOrderController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Error creating batch invoices: ' . $e->getMessage());
         }
+    }
+
+    public function export()
+    {
+        return Excel::download(new DeliveryOrderExport, 'delivery_orders_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,xls,csv|max:10240',
+        ]);
+
+        try {
+            Excel::import(new DeliveryOrderImport, $request->file('file'));
+            return back()->with('success', 'Delivery Orders imported successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
+    public function template()
+    {
+        return Excel::download(new DeliveryOrderTemplateExport, 'delivery_orders_import_template.xlsx');
     }
 }
