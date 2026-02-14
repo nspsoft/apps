@@ -57,6 +57,18 @@ const submitPayment = () => {
     });
 };
 
+
+const confirmRevise = () => {
+    if (confirm('Are you sure you want to revise this invoice? This will revert the status to Draft and increment the revision number (REV-X).')) {
+        router.post(route('invoices.revise', props.invoice.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                // Optional: Show toast or notification
+            }
+        });
+    }
+};
+
 const formatDate = (date) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('id-ID', { 
@@ -142,6 +154,15 @@ const getStatusBadge = (status) => {
                         <PrinterIcon class="h-4 w-4" />
                         PRINT STANDARD
                     </a>
+
+                    <button 
+                        v-if="invoice.status === 'issued'"
+                        @click="confirmRevise"
+                        class="flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-amber-500 transition-colors shadow-lg shadow-amber-500/20"
+                    >
+                        <PencilSquareIcon class="h-4 w-4" />
+                        REVISE INVOICE
+                    </button>
 
                     <!-- <a 
                         :href="route('sales.invoices.print-v2', invoice.id)" 

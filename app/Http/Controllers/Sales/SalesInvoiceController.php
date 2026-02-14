@@ -102,6 +102,34 @@ class SalesInvoiceController extends Controller
         return back()->with('success', 'Invoice confirmed and issued.');
     }
 
+    public function revise(SalesInvoice $salesInvoice)
+    {
+        if ($salesInvoice->status !== 'issued') {
+            return back()->with('error', 'Only issued invoices can be revised.');
+        }
+
+        \DB::transaction(function () use ($salesInvoice) {
+            // Logic to append/increment REV-X
+            $currentNumber = $salesInvoice->invoice_number;
+            
+            // Check if it already has REV-
+            if (preg_match('/\/REV-(\d+)$/', $currentNumber, $matches)) {
+                $currentRev = (int)$matches[1];
+                $nextRev = $currentRev + 1;
+                $newNumber = preg_replace('/\/REV-\d+$/', "/REV-{$nextRev}", $currentNumber);
+            } else {
+                $newNumber = $currentNumber . "/REV-1";
+            }
+
+            $salesInvoice->update([
+                'status' => 'draft',
+                'invoice_number' => $newNumber
+            ]);
+        });
+
+        return back()->with('success', 'Invoice revised. Status reverted to Draft.');
+    }
+
     public function updateTaxAmount(Request $request, SalesInvoice $salesInvoice)
     {
         if ($salesInvoice->status !== 'draft') {
