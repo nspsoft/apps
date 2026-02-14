@@ -42,18 +42,20 @@ const form = useForm({
         id: item.id,
         product_id: item.product_id,
         qty: parseFloat(item.qty),
+        qty_delivered: parseFloat(item.qty_delivered || 0),
         unit_id: item.unit_id,
         unit_price: parseFloat(item.unit_price),
         discount_percent: parseFloat(item.discount_percent),
     })) || props.aiData?.items?.map(item => ({
         product_id: item.matched_product_id || '',
         qty: parseFloat(item.qty || 1),
+        qty_delivered: 0,
         unit_id: props.products?.find(p => p.id === item.matched_product_id)?.unit_id || '',
         unit_price: parseFloat(item.unit_price || 0),
         discount_percent: 0,
         description: item.description // Temporary for UI reference if needed
     })) || [
-        { product_id: '', qty: 1, unit_id: '', unit_price: 0, discount_percent: 0 }
+        { product_id: '', qty: 1, qty_delivered: 0, unit_id: '', unit_price: 0, discount_percent: 0 }
     ],
 });
 
@@ -109,7 +111,7 @@ const taxAmount = computed(() => afterDiscount.value * ((form.tax_percent || 0) 
 const total = computed(() => afterDiscount.value + taxAmount.value);
 
 const addItem = () => {
-    form.items.push({ product_id: '', qty: 1, unit_id: '', unit_price: 0, discount_percent: 0 });
+    form.items.push({ product_id: '', qty: 1, qty_delivered: 0, unit_id: '', unit_price: 0, discount_percent: 0 });
 };
 
 const removeItem = (index) => {
@@ -314,7 +316,14 @@ const submit = () => {
                                                 {{ formatCurrency(enrichedItems[index].subtotal) }}
                                             </td>
                                             <td class="px-4 py-2 text-center">
-                                                <button type="button" @click="removeItem(index)" class="text-slate-500 hover:text-red-400 transition-colors">
+                                                <button 
+                                                    type="button" 
+                                                    @click="removeItem(index)" 
+                                                    class="transition-colors"
+                                                    :class="item.qty_delivered > 0 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-400'"
+                                                    :disabled="item.qty_delivered > 0"
+                                                    :title="item.qty_delivered > 0 ? 'Cannot delete delivered item' : 'Remove item'"
+                                                >
                                                     <TrashIcon class="h-4 w-4" />
                                                 </button>
                                             </td>
@@ -441,6 +450,3 @@ const submit = () => {
         </div>
     </AppLayout>
 </template>
-
-
-

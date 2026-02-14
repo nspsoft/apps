@@ -70,6 +70,15 @@ class QuotationController extends Controller
         ]);
     }
 
+    public function generateNextNumber(Request $request)
+    {
+        $customerId = $request->input('customer_id');
+        $date = $request->input('quotation_date');
+        return response()->json([
+            'number' => Quotation::generateNumber($customerId, $date)
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -85,7 +94,7 @@ class QuotationController extends Controller
 
         DB::transaction(function () use ($validated) {
             $quotation = Quotation::create([
-                'number' => Quotation::generateNumber(),
+                'number' => Quotation::generateNumber($validated['customer_id'], $validated['quotation_date']),
                 'customer_id' => $validated['customer_id'],
                 'quotation_date' => $validated['quotation_date'],
                 'valid_until' => $validated['valid_until'],
@@ -143,13 +152,35 @@ class QuotationController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($validated, $quotation) {
-            $quotation->update([
-                'customer_id' => $validated['customer_id'],
-                'quotation_date' => $validated['quotation_date'],
-                'valid_until' => $validated['valid_until'],
-                'notes' => $validated['notes'] ?? null,
-            ]);
+        if (in_array($quotation->status, ['accepted', 'converted'])) {
+            return back()->with('error', 'Accepted or Converted quotations cannot be edited.');
+        }
+
+        $updateData = [
+            'customer_id' => $validated['customer_id'],
+            'quotation_date' => $validated['quotation_date'],
+            'valid_until' => $validated['valid_until'],
+            'notes' => $validated['notes'] ?? null,
+        ];
+
+        // Handle revision if status is SENT
+        if ($quotation->status === 'sent') {
+             $baseNumber = $quotation->number;
+             // Remove existing revision suffix if any to get base
+             if (strpos($baseNumber, '/REV-') !== false) {
+                 $baseNumber = substr($baseNumber, 0, strpos($baseNumber, '/REV-'));
+             }
+             
+             // Increment revision
+             $newRevision = ($quotation->revision ?? 0) + 1;
+             
+             $updateData['status'] = 'draft';
+             $updateData['revision'] = $newRevision;
+             $updateData['number'] = $baseNumber . '/REV-' . $newRevision;
+        }
+
+        DB::transaction(function () use ($updateData, $validated, $quotation) {
+            $quotation->update($updateData);
 
             // Sync items (Delete all and recreate)
             $quotation->items()->delete();

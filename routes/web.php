@@ -234,6 +234,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::post('/po-extractor/store-product', [App\Http\Controllers\Sales\POImportController::class, 'storeProduct'])->name('po-extractor.store-product');
     Route::post('/po-extractor/export', [App\Http\Controllers\Sales\POExtractorController::class, 'export'])->name('po-extractor.export');
 
+    Route::get('/quotations/next-number', [App\Http\Controllers\Sales\QuotationController::class, 'generateNextNumber'])->name('quotations.next-number');
     Route::resource('quotations', App\Http\Controllers\Sales\QuotationController::class);
     Route::post('/quotations/{quotation}/send', [App\Http\Controllers\Sales\QuotationController::class, 'send'])->name('quotations.send');
     Route::post('/quotations/{quotation}/accept', [App\Http\Controllers\Sales\QuotationController::class, 'accept'])->name('quotations.accept');

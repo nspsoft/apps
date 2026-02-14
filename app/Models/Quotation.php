@@ -31,6 +31,7 @@ class Quotation extends Model
         'tax',
         'total',
         'created_by',
+        'revision',
     ];
 
     protected $casts = [
@@ -42,12 +43,53 @@ class Quotation extends Model
         'total' => 'double',
     ];
 
-    public static function generateNumber(): string
+    public static function generateNumber(?int $customerId = null, ?string $date = null): string
     {
-        $prefix = 'QT-' . date('Ym');
-        $last = static::where('number', 'like', $prefix . '%')->orderByDesc('number')->value('number');
-        $sequence = $last ? (int) substr($last, -4) + 1 : 1;
-        return $prefix . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+        $customerCode = 'GEN'; // General/Default if no customer selected
+        if ($customerId) {
+            $customer = Customer::find($customerId);
+            if ($customer && $customer->code) {
+                // Ensure pure alphanumeric code, maybe uppercase
+                $customerCode = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $customer->code));
+            } elseif ($customer) {
+                 // Fallback to first 3 letters of name if no code
+                 $customerCode = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $customer->name), 0, 3));
+            }
+        }
+
+        $timestamp = $date ? strtotime($date) : time();
+        $monthRoman = self::getRomanCheck(date('n', $timestamp));
+        $year = date('y', $timestamp);
+        
+        // Format: NNN/QUOT/JRI-{CUST}/{ROMAN}/{YY}
+        $likePattern = "%/QUOT/JRI-%/%/{$year}";
+        
+        $last = static::where('number', 'like', $likePattern)->orderByDesc('id')->value('number');
+        
+        $sequence = 1;
+        if ($last) {
+            $parts = explode('/', $last);
+            if (is_numeric($parts[0])) {
+                $sequence = (int) $parts[0] + 1;
+            }
+        }
+
+        return sprintf(
+            "%03d/QUOT/JRI-%s/%s/%s",
+            $sequence,
+            $customerCode,
+            $monthRoman,
+            $year
+        );
+    }
+
+    private static function getRomanCheck($month)
+    {
+        $map = [
+            1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+            7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
+        ];
+        return $map[(int)$month] ?? 'I';
     }
 
     public function calculateTotal()

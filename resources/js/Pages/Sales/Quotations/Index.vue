@@ -243,7 +243,7 @@ const submitImport = () => {
                                     <Link :href="`/sales/quotations/${q.id}`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="View Details">
                                         <EyeIcon class="h-4 w-4" />
                                     </Link>
-                                    <Link v-if="q.status === 'draft'" :href="`/sales/quotations/${q.id}/edit`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="Edit Quotation">
+                                    <Link v-if="!['accepted', 'converted'].includes(q.status)" :href="`/sales/quotations/${q.id}/edit`" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="Edit Quotation">
                                         <PencilSquareIcon class="h-4 w-4" />
                                     </Link>
                                     <button v-if="q.status === 'draft'" @click="deleteQuotation(q)" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors" title="Delete Quotation">

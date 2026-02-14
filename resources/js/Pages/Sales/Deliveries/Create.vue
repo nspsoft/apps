@@ -20,11 +20,28 @@ const props = defineProps({
     salesOrders: Array,
     vehicles: Array,
     warehouses: Array,
+    customers: Array,
+    products: Array,
 });
 
-const soOptions = computed(() => props.salesOrders.map(so => ({
-    id: so.id,
-    label: `${so.so_number} - ${so.customer?.name}`
+const soOptions = computed(() => [
+    { id: '', label: '-- Tanpa Sold Order (Direct DO) --' },
+    ...props.salesOrders.map(so => ({
+        id: so.id,
+        label: `${so.so_number} - ${so.customer?.name}`
+    }))
+]);
+
+const customerOptions = computed(() => props.customers.map(c => ({
+    id: c.id,
+    label: `${c.code ? '[' + c.code + '] ' : ''}${c.name}`
+})));
+
+const productOptions = computed(() => props.products.map(p => ({
+    id: p.id,
+    label: `[${p.sku}] ${p.name}`,
+    unit_id: p.unit_id,
+    unit_name: p.unit?.name ?? 'Unit'
 })));
 
 const vehicleOptions = computed(() => [
@@ -37,6 +54,7 @@ const vehicleOptions = computed(() => [
 
 const form = useForm({
     sales_order_id: props.salesOrder?.id || '',
+    customer_id: '',
     warehouse_id: props.salesOrder?.warehouse_id || '',
     delivery_date: new Date().toISOString().split('T')[0],
     shipping_address: props.salesOrder?.shipping_address || '',
@@ -48,14 +66,22 @@ const form = useForm({
 
 const isLoading = ref(false);
 
-const onSOChange = async (soId) => {
-    if (!soId) return;
+const onSOChange = async () => {
+    form.items = []; // Clear items
+    
+    if (!form.sales_order_id) {
+        // Direct DO Mode
+        form.customer_id = '';
+        form.shipping_address = '';
+        return;
+    }
 
     isLoading.value = true;
     try {
-        const response = await axios.get(route('sales.deliveries.so-items', soId));
+        const response = await axios.get(route('sales.deliveries.so-items', form.sales_order_id));
         const data = response.data;
 
+        form.customer_id = data.customer_id;
         form.warehouse_id = data.warehouse_id;
         form.shipping_address = data.shipping_address;
 
@@ -71,6 +97,7 @@ const onSOChange = async (soId) => {
             qty_ordered: item.qty_ordered,
             remaining: item.remaining,
             qty_delivered: item.remaining, // Default to full remaining
+            unit_id: item.unit_id,
             unit_name: item.unit_name,
             notes: '',
         }));
@@ -93,11 +120,45 @@ const onVehicleChange = () => {
     }
 };
 
+const addItem = () => {
+    form.items.push({
+        sales_order_item_id: null,
+        product_id: '',
+        name: '',
+        sku: '',
+        qty_ordered: 0,
+        remaining: 0,
+        qty_delivered: 1,
+        unit_id: '',
+        unit_name: '',
+        notes: '',
+    });
+};
+
 const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
+const onProductChange = (item, index) => {
+    const product = props.products.find(p => p.id === item.product_id);
+    if (product) {
+        item.name = product.name;
+        item.sku = product.sku;
+        item.unit_id = product.unit_id;
+        item.unit_name = product.unit?.name ?? 'Unit';
+    }
+};
+
 const submit = () => {
+    if (form.sales_order_id && form.items.length === 0) {
+        alert('Pilih Sales Order terlebih dahulu.');
+        return;
+    }
+    if (!form.sales_order_id && form.items.length === 0) {
+        alert('Tambahkan minimal satu item barang.');
+        return;
+    }
+
     form.post(route('sales.deliveries.store'), {
         onSuccess: () => {
             // Success redirect is handled by backend
@@ -110,7 +171,7 @@ const submit = () => {
 
 onMounted(() => {
     if (form.sales_order_id) {
-        onSOChange(form.sales_order_id);
+        onSOChange();
     }
 });
 </script>
@@ -144,12 +205,21 @@ onMounted(() => {
                             
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-1.5">Sales Order</label>
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-1.5">Sales Order (Opsional)</label>
                                     <SearchableSelect 
                                         v-model="form.sales_order_id" 
                                         :options="soOptions" 
-                                        placeholder="Cari No SO..."
+                                        placeholder="Cari No SO... (Kosongkan utk Direct DO)"
                                         @change="onSOChange"
+                                    />
+                                </div>
+
+                                <div v-if="!form.sales_order_id">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-tighter mb-1.5">Customer</label>
+                                    <SearchableSelect 
+                                        v-model="form.customer_id" 
+                                        :options="customerOptions" 
+                                        placeholder="Pilih Customer..."
                                         required
                                     />
                                 </div>
@@ -235,8 +305,11 @@ onMounted(() => {
                     <!-- Right Column: Shipped Items -->
                     <div class="xl:col-span-8 space-y-6">
                         <div class="glass-card rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm min-h-[400px]">
-                            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/30">
+                            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/30 flex justify-between items-center">
                                 <h3 class="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">Items to Ship</h3>
+                                <button v-if="!form.sales_order_id" type="button" @click="addItem" class="text-xs font-bold text-blue-500 hover:text-blue-400 flex items-center gap-1">
+                                    <PlusIcon class="h-3 w-3" /> ADD ITEM
+                                </button>
                             </div>
 
                             <div class="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar relative">
@@ -244,7 +317,7 @@ onMounted(() => {
                                     <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-900 shadow-sm">
                                         <tr>
                                             <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Product</th>
-                                            <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase text-center tracking-tighter">Sisa SO</th>
+                                            <th v-if="form.sales_order_id" class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase text-center tracking-tighter">Sisa SO</th>
                                             <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase text-center tracking-tighter">Qty Kirim</th>
                                             <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">UOM</th>
                                             <th class="px-6 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Notes</th>
@@ -253,11 +326,22 @@ onMounted(() => {
                                     </thead>
                                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800/50">
                                         <tr v-for="(item, index) in form.items" :key="index" class="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
-                                            <td class="px-6 py-4">
-                                                <div class="text-sm font-bold text-slate-900 dark:text-white">{{ item.name }}</div>
-                                                <div class="text-[10px] text-slate-500 font-mono">{{ item.sku }}</div>
+                                            <td class="px-6 py-4 min-w-[250px]">
+                                                <div v-if="form.sales_order_id">
+                                                    <div class="text-sm font-bold text-slate-900 dark:text-white">{{ item.name }}</div>
+                                                    <div class="text-[10px] text-slate-500 font-mono">{{ item.sku }}</div>
+                                                </div>
+                                                <div v-else>
+                                                    <SearchableSelect 
+                                                        v-model="item.product_id" 
+                                                        :options="productOptions" 
+                                                        placeholder="Cari Produk..."
+                                                        @change="onProductChange(item, index)"
+                                                        class="w-full"
+                                                    />
+                                                </div>
                                             </td>
-                                            <td class="px-6 py-4 text-center">
+                                            <td v-if="form.sales_order_id" class="px-6 py-4 text-center">
                                                 <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-500">
                                                     {{ formatNumber(item.remaining) }}
                                                 </span>
@@ -268,12 +352,12 @@ onMounted(() => {
                                                     type="number"
                                                     step="any"
                                                     min="0.0001"
-                                                    :max="item.remaining"
+                                                    :max="form.sales_order_id ? item.remaining : null"
                                                     class="w-24 rounded-lg border-0 bg-slate-50 dark:bg-slate-800 text-sm font-bold text-center focus:ring-1 focus:ring-blue-500"
-                                                    :class="{ 'text-red-500 ring-1 ring-red-500/50 bg-red-500/5': item.qty_delivered > item.remaining }"
+                                                    :class="{ 'text-red-500 ring-1 ring-red-500/50 bg-red-500/5': form.sales_order_id && item.qty_delivered > item.remaining }"
                                                 />
                                             </td>
-                                            <td class="px-6 py-4 text-xs text-slate-500 font-medium">
+                                            <td class="px-6 py-4 text-xs text-slate-500 font-medium whitespace-nowrap">
                                                 {{ item.unit_name }}
                                             </td>
                                             <td class="px-6 py-4">
@@ -291,14 +375,16 @@ onMounted(() => {
                                             </td>
                                         </tr>
                                         <tr v-if="form.items.length === 0">
-                                            <td colspan="6" class="px-6 py-12 text-center">
+                                            <td :colspan="form.sales_order_id ? 6 : 5" class="px-6 py-12 text-center">
                                                 <div v-if="isLoading" class="flex flex-col items-center gap-3">
                                                     <div class="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
                                                     <span class="text-sm text-slate-500">Memuat item Sales Order...</span>
                                                 </div>
                                                 <div v-else class="flex flex-col items-center gap-2">
                                                     <TruckIcon class="h-10 w-10 text-slate-200 dark:text-slate-800" />
-                                                    <span class="text-sm text-slate-500 italic">Pilih Sales Order terlebih dahulu untuk memuat item pengiriman.</span>
+                                                    <span class="text-sm text-slate-500 italic">
+                                                        {{ form.sales_order_id ? 'Tidak ada item.' : 'Klik + ADD ITEM untuk menambah barang.' }}
+                                                    </span>
                                                 </div>
                                             </td>
                                         </tr>

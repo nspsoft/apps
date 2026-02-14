@@ -98,6 +98,7 @@ const deleteSO = (so) => {
 const getStatusBadge = (status) => {
     const badges = {
         draft: 'bg-slate-500/20 text-slate-500 dark:text-slate-400 border-slate-500/30',
+        waiting_po: 'bg-orange-500/20 text-orange-500 dark:text-orange-400 border-orange-500/30',
         confirmed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
         processing: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
         shipped: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
@@ -110,6 +111,7 @@ const getStatusBadge = (status) => {
 const getStatusLabel = (status) => {
     const labels = {
         draft: 'Draft',
+        waiting_po: 'Waiting PO',
         confirmed: 'Confirmed',
         processing: 'Processing',
         shipped: 'Shipped',
@@ -122,6 +124,7 @@ const getStatusLabel = (status) => {
 const getStatusDescription = (status) => {
     const descriptions = {
         draft: 'Pesanan baru dibuat, belum dikonfirmasi.',
+        waiting_po: 'Menunggu Purchase Order resmi dari customer.',
         confirmed: 'Pesanan disetujui, siap diproses.',
         processing: 'Sedang disiapkan di gudang.',
         shipped: 'Barang dalam pengiriman.',
@@ -522,7 +525,7 @@ const calculateWidth = (value, total) => {
                                         <EyeIcon class="h-4 w-4" />
                                     </Link>
                                     <Link
-                                        v-if="so.status === 'draft'"
+                                        v-if="so.status === 'draft' || so.status === 'waiting_po'"
                                         :href="`/sales/orders/${so.id}/edit`"
                                         class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                                     >

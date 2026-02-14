@@ -43,6 +43,7 @@ class DeliveryOrder extends Model
         'prepared_by',
         'delivered_by',
         'delivered_at',
+        'revision',
     ];
 
     protected $appends = [

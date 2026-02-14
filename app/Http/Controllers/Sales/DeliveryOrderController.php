@@ -21,14 +21,18 @@ class DeliveryOrderController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = DeliveryOrder::with(['salesOrder.customer', 'warehouse', 'items'])
+        $query = DeliveryOrder::with(['salesOrder' => function($q) {
+                $q->select('id', 'so_number', 'customer_po_number', 'customer_id'); // Select specific fields including PO
+            }, 'salesOrder.customer', 'warehouse', 'items'])
             ->withCount('items')
+            ->withSum('items as total_qty', 'qty_delivered') // Add total_qty sum
             ->when($request->search, function ($q, $search) {
                 $q->where(function ($q) use ($search) {
                     $q->where('do_number', 'like', "%{$search}%")
                       ->orWhere('shipping_name', 'like', "%{$search}%")
                       ->orWhereHas('salesOrder', function ($sq) use ($search) {
                           $sq->where('so_number', 'like', "%{$search}%")
+                             ->orWhere('customer_po_number', 'like', "%{$search}%") // Search by PO too
                              ->orWhereHas('customer', function ($cq) use ($search) {
                                  $cq->where('name', 'like', "%{$search}%");
                              });
@@ -59,11 +63,9 @@ class DeliveryOrderController extends Controller
 
         $deliveryOrders = $query
             ->paginate(20)
-            ->withQueryString()
-            ->through(function ($do) {
-                $do->makeHidden('items');
-                return $do;
-            });
+            ->withQueryString();
+            // Removed makeHidden('items') to allow frontend to access items if needed for detailed view preview, 
+            // though we have aggregations now.
 
         // SOs that can be delivered (Confirmed/Processing and have undelivered items)
         $pendingSalesOrders = \App\Models\SalesOrder::whereIn('status', ['confirmed', 'processing'])
@@ -155,6 +157,13 @@ class DeliveryOrderController extends Controller
             $invoice->created_by = auth()->id();
             $invoice->save();
 
+            // Validation: Check for Waiting PO status
+            foreach ($deliveryOrders as $do) {
+                if ($do->salesOrder && $do->salesOrder->status === SalesOrder::STATUS_WAITING_PO) {
+                    return back()->with('error', "Gagal membuat Invoice. DO {$do->do_number} masih berstatus 'Waiting PO'. Harap revisi SO terlebih dahulu untuk memasukkan Nomor PO resmi.");
+                }
+            }
+
             // Process Items
             foreach ($deliveryOrders as $do) {
                 foreach ($do->items as $doItem) {
@@ -229,6 +238,8 @@ class DeliveryOrderController extends Controller
             'salesOrders' => $pendingSalesOrders,
             'vehicles' => Vehicle::where('is_active', true)->orderBy('license_plate')->get(),
             'warehouses' => Warehouse::orderBy('name')->get(['id', 'name']),
+            'customers' => \App\Models\Customer::orderBy('name')->get(['id', 'name', 'code']),
+            'products' => \App\Models\Product::with('unit')->orderBy('name')->get(['id', 'name', 'sku', 'unit_id']),
         ]);
     }
 
@@ -263,29 +274,80 @@ class DeliveryOrderController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'sales_order_id' => 'required|exists:sales_orders,id',
+        $rules = [
             'warehouse_id' => 'required|exists:warehouses,id',
             'delivery_date' => 'required|date',
             'vehicle_id' => 'nullable',
             'vehicle_number' => 'required_if:vehicle_id,manual',
             'driver_name' => 'required',
             'items' => 'required|array|min:1',
-            'items.*.sales_order_item_id' => 'required|exists:sales_order_items,id',
             'items.*.qty_delivered' => 'required|numeric|gt:0',
-        ]);
+        ];
+
+        // Conditional validation
+        if ($request->sales_order_id) {
+            $rules['sales_order_id'] = 'exists:sales_orders,id';
+            $rules['items.*.sales_order_item_id'] = 'required|exists:sales_order_items,id';
+        } else {
+            $rules['customer_id'] = 'required|exists:customers,id';
+            $rules['items.*.product_id'] = 'required|exists:products,id';
+            $rules['items.*.unit_id'] = 'required|exists:units,id';
+        }
+
+        $request->validate($rules);
 
         try {
             return DB::transaction(function () use ($request) {
-                $order = SalesOrder::findOrFail($request->sales_order_id);
-                
-                // Generate DO Number
-                $lastDO = DeliveryOrder::orderBy('id', 'desc')->first();
-                $number = 'DO/' . date('Ymd') . '/' . str_pad(($lastDO ? $lastDO->id : 0) + 1, 4, '0', STR_PAD_LEFT);
+                // Determine Sales Order
+                if ($request->sales_order_id) {
+                    $order = SalesOrder::findOrFail($request->sales_order_id);
+                } else {
+                    // Auto-create Sales Order for Direct DO (Waiting PO)
+                    $order = SalesOrder::create([
+                        'so_number' => SalesOrder::generateSoNumber(),
+                        'customer_id' => $request->customer_id,
+                        'warehouse_id' => $request->warehouse_id,
+                        'order_date' => now(),
+                        'status' => SalesOrder::STATUS_WAITING_PO,
+                        'notes' => 'Auto-created from Direct Delivery Order',
+                        'shipping_address' => $request->shipping_address,
+                        'created_by' => auth()->id(),
+                        'subtotal' => 0,
+                        'total' => 0,
+                    ]);
+                }
 
-                $do = DeliveryOrder::create([
+                // Generate Custom DO Number: 165/DO/JRI-TRPI/II/25
+                $customer = \App\Models\Customer::find($order->customer_id);
+                $custCode = $customer ? ($customer->code ?? 'GEN') : 'GEN';
+                $monthRoman = $this->getRomanMonth(date('n'));
+                $yearShort = date('y');
+                $formatSuffix = "/DO/JRI-{$custCode}/{$monthRoman}/{$yearShort}";
+
+                // Find last running number for this specific format (ignoring customer code changes? No, usually per format)
+                // If user wants running number to be GLOBAL across all customers, we should check broadly.
+                // "165" implies a global running number. Let's assume global running number for "DO" type.
+                
+                // Regex to extract running number from similar formats
+                // We look for {number}/DO/JRI-...
+                $lastDO = DeliveryOrder::where('do_number', 'REGEXP', '^[0-9]+/DO/JRI-')
+                    ->orderByRaw('CAST(SUBSTRING_INDEX(do_number, "/", 1) AS UNSIGNED) DESC')
+                    ->first();
+
+                if ($lastDO) {
+                    $parts = explode('/', $lastDO->do_number);
+                    $lastRun = is_numeric($parts[0]) ? (int)$parts[0] : 0;
+                    $nextRun = $lastRun + 1;
+                } else {
+                    $nextRun = 1; 
+                }
+
+                $nextRunPadded = str_pad($nextRun, 3, '0', STR_PAD_LEFT);
+                $number = "{$nextRunPadded}{$formatSuffix}";
+
+                $doData = [
                     'do_number' => $number,
-                    'sales_order_id' => $order->id,
+                    'sales_order_id' => $order->id, // Always link to an SO (existing or new)
                     'customer_id' => $order->customer_id,
                     'warehouse_id' => $request->warehouse_id,
                     'delivery_date' => $request->delivery_date,
@@ -295,15 +357,29 @@ class DeliveryOrderController extends Controller
                     'shipping_address' => $request->shipping_address ?? $order->shipping_address,
                     'status' => 'draft',
                     'created_by' => auth()->id(),
-                ]);
+                ];
+
+                $do = DeliveryOrder::create($doData);
 
                 foreach ($request->items as $itemData) {
-                    $soItem = SalesOrderItem::findOrFail($itemData['sales_order_item_id']);
-                    
-                    // Cross-check allowable again in backend
-                    $allowable = $soItem->remaining_qty;
-                    if ($itemData['qty_delivered'] > $allowable) {
-                        throw new \Exception("Kuantitas untuk [{$soItem->product->name}] melebihi sisa pesanan (Maks: {$allowable}).");
+                    if ($request->sales_order_id) {
+                        // Logic with Existing SO
+                        $soItem = SalesOrderItem::findOrFail($itemData['sales_order_item_id']);
+                        
+                        // Cross-check allowable again in backend
+                        $allowable = $soItem->remaining_qty;
+                        if ($itemData['qty_delivered'] > $allowable) {
+                            throw new \Exception("Kuantitas untuk [{$soItem->product->name}] melebihi sisa pesanan (Maks: {$allowable}).");
+                        }
+                    } else {
+                        // Logic for Direct DO: Create SO Item first
+                        $soItem = $order->items()->create([
+                            'product_id' => $itemData['product_id'],
+                            'qty' => $itemData['qty_delivered'],
+                            'unit_id' => $itemData['unit_id'],
+                            'unit_price' => 0, // Pending PO/Invoice
+                            'subtotal' => 0,
+                        ]);
                     }
 
                     $do->items()->create([
@@ -314,6 +390,17 @@ class DeliveryOrderController extends Controller
                         'unit_id' => $soItem->unit_id,
                         'notes' => $itemData['notes'] ?? null,
                     ]);
+                }
+
+                // Force Status Check for Direct DO
+                if (!$request->sales_order_id) {
+                    $order->refresh();
+                    // Even if items make it look "Delivered", for Direct DO we must keep it "Waiting PO"
+                    // until the user updates it with real PO.
+                    if ($order->status !== SalesOrder::STATUS_WAITING_PO) {
+                        $order->status = SalesOrder::STATUS_WAITING_PO;
+                        $order->save();
+                    }
                 }
 
                 return redirect()->route('sales.deliveries.show', $do->id)->with('success', 'Delivery Order created successfully.');
@@ -360,11 +447,19 @@ class DeliveryOrderController extends Controller
         try {
             \DB::transaction(function () use ($deliveryOrder) {
                 $deliveryOrder->complete();
-                // Override status if complete() set it to delivered, ensure it is completed
-                $deliveryOrder->status = DeliveryOrder::STATUS_COMPLETED;
+                
+                // If SO is Waiting PO, keep DO as DELIVERED (Stock deducted, but admin verification pending PO)
+                // Otherwise, mark as COMPLETED
+                $so = $deliveryOrder->salesOrder;
+                if ($so && $so->status === \App\Models\SalesOrder::STATUS_WAITING_PO) {
+                    $deliveryOrder->status = DeliveryOrder::STATUS_DELIVERED;
+                } else {
+                    $deliveryOrder->status = DeliveryOrder::STATUS_COMPLETED;
+                }
+                
                 $deliveryOrder->save();
             });
-            return back()->with('success', 'Delivery Order verified, stock deducted, and Sales Order updated.');
+            return back()->with('success', 'Delivery Order verified and stock deducted.');
         } catch (\Exception $e) {
             return back()->with('error', 'Error completing delivery: ' . $e->getMessage());
         }
@@ -393,8 +488,8 @@ class DeliveryOrderController extends Controller
 
     public function updateItems(Request $request, DeliveryOrder $deliveryOrder)
     {
-        if ($deliveryOrder->status !== 'draft') {
-            return back()->with('error', 'Only draft deliveries can be updated.');
+        if (!in_array($deliveryOrder->status, ['draft', 'delivered', 'completed'])) {
+            return back()->with('error', 'Only draft, delivered, or completed deliveries can be updated.');
         }
 
         $validated = $request->validate([
@@ -415,33 +510,90 @@ class DeliveryOrderController extends Controller
             'delivery_date' => $validated['delivery_date'],
         ]);
 
+        // Handle Revision Numbering
+        // Only increment revision if status is DELIVERED or COMPLETED (meaning it was finalized)
+        $status = $deliveryOrder->status;
+        $isRevision = in_array($status, ['delivered', 'completed']);
+
+        if ($isRevision) {
+            $currentRevision = $deliveryOrder->revision;
+            $newRevision = $currentRevision + 1;
+            
+            // Strip existing REV suffix if exists to get base number
+            // Pattern: ...-REV-X
+            $baseNumber = preg_replace('/-REV-\d+$/', '', $deliveryOrder->do_number);
+            $newDoNumber = "{$baseNumber}-REV-{$newRevision}";
+
+            $deliveryOrder->update([
+                'revision' => $newRevision,
+                'do_number' => $newDoNumber
+            ]);
+        }
+        
         foreach ($validated['items'] as $itemData) {
             $item = \App\Models\DeliveryOrderItem::with('salesOrderItem')->find($itemData['id']);
             
-            // Validation: Cannot deliver more than SO Qty
-            $soItem = $item->salesOrderItem;
+            $oldQty = $item->qty_delivered;
+            $newQty = $itemData['qty_delivered'];
+            $qtyDiff = $newQty - $oldQty;
             
-            // Total Net Delivered (Status: Delivered - status: Returned)
-            $deliveredNet = $soItem->qty_delivered - $soItem->qty_returned;
-            
-            // Total Reserved by OTHER active DOs (Status: Draft/Picking/Packed/Shipped)
-            $reservedByOthers = (float) $soItem->deliveryOrderItems()
-                ->whereHas('deliveryOrder', function ($query) use ($deliveryOrder) {
-                    $query->whereNotIn('status', ['delivered', 'cancelled'])
-                          ->where('id', '!=', $deliveryOrder->id);
-                })
-                ->sum('qty_delivered');
-            
-            $allowable = $soItem->qty - $deliveredNet - $reservedByOthers;
-
-            if ($itemData['qty_delivered'] > $allowable) {
-                return back()->with('error', "Gagal: Pengiriman untuk [{$item->product->name}] melebihi sisa pesanan + reservasi DO lain (Maks: {$allowable}).");
+            // Validation: Cannot deliver more than SO Qty (Need to re-check if increasing qty)
+            if ($qtyDiff > 0) {
+                 $soItem = $item->salesOrderItem;
+                 // Total Net Delivered (Status: Delivered - status: Returned)
+                 $deliveredNet = $soItem->qty_delivered - $soItem->qty_returned;
+                 // Total Reserved by OTHER active DOs
+                 $reservedByOthers = (float) $soItem->deliveryOrderItems()
+                    ->whereHas('deliveryOrder', function ($query) use ($deliveryOrder) {
+                        $query->whereNotIn('status', ['delivered', 'cancelled'])
+                              ->where('id', '!=', $deliveryOrder->id);
+                    })
+                    ->sum('qty_delivered');
+                 
+                 // If revision, we are already delivered, so we shouldn't count ourselves in "reservedByOthers" logic simply.
+                 // Actually, if we are Delivered, our qty is already in $deliveredNet.
+                 // So "allowable" = (Total SO Qty) - (Others' Delivered) - (Others' Reserved) - (Our OLD Delivered)
+                 // Wait, $deliveredNet INCLUDES our old qty.
+                 // So Remaining = Total - DeliveredNet.
+                 // But we want to increase by $qtyDiff.
+                 // Allowable Increase = Total - DeliveredNet - ReservedByOthers.
+                 
+                 $remaining = $soItem->qty - $deliveredNet - $reservedByOthers;
+                 
+                 if ($qtyDiff > $remaining) {
+                     return back()->with('error', "Gagal: Penambahan jumlah untuk [{$item->product->name}] melebihi sisa pesanan (Sisa: {$remaining}).");
+                 }
             }
 
             $item->update([
-                'qty_delivered' => $itemData['qty_delivered'],
+                'qty_delivered' => $newQty,
                 'notes' => $itemData['notes'] ?? null,
             ]);
+
+            // Adjust stock and sales order item if revising a completed/delivered order
+            if ($isRevision && $qtyDiff != 0) {
+                // Adjust Stock: If qty increases (+), stock decreases (-). So we pass NEGATIVE diff.
+                // If qty decreases (-), stock increases (+). So we pass NEGATIVE diff (which becomes positive).
+                $stock = \App\Models\ProductStock::where('product_id', $item->product_id)
+                    ->where('warehouse_id', $deliveryOrder->warehouse_id)
+                    ->first();
+
+                if ($stock) {
+                    $stock->adjustStock(
+                        -$qtyDiff, 
+                        null, 
+                        \App\Models\StockMovement::TYPE_SO_DELIVERY, 
+                        $deliveryOrder, 
+                        "DO Rev #{$newRevision} (Qty Diff: {$qtyDiff})"
+                    );
+                }
+
+                // Update Sales Order Item Delivered Qty
+                if ($item->salesOrderItem) {
+                    $item->salesOrderItem->qty_delivered += $qtyDiff;
+                    $item->salesOrderItem->save();
+                }
+            }
         }
 
         return back()->with('success', 'Delivery Order updated successfully.');
@@ -465,8 +617,8 @@ class DeliveryOrderController extends Controller
 
     public function createInvoice(DeliveryOrder $deliveryOrder)
     {
-        if ($deliveryOrder->status !== 'completed') {
-            return back()->with('error', 'Only verified (completed) deliveries can be invoiced.');
+        if (!in_array($deliveryOrder->status, ['completed', 'delivered'])) {
+            return back()->with('error', 'Only verified (delivered/completed) deliveries can be invoiced.');
         }
 
         // Check if already invoiced (simple check for now)
@@ -810,5 +962,13 @@ class DeliveryOrderController extends Controller
     public function template()
     {
         return Excel::download(new DeliveryOrderTemplateExport, 'delivery_orders_import_template.xlsx');
+    }
+    private function getRomanMonth($month)
+    {
+        $map = [
+            1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+            7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
+        ];
+        return $map[(int)$month] ?? 'I';
     }
 }

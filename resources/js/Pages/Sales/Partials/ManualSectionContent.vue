@@ -214,6 +214,15 @@ defineProps({ sectionId: String });
             <li class="flex gap-3"><span class="flex items-center justify-center w-5 h-5 rounded-full bg-white dark:bg-slate-700 text-xs font-bold shadow-sm shrink-0">4</span><span>Save → print Surat Jalan (termasuk QR Code).</span></li>
         </ol>
     </div>
+    <div class="bg-indigo-50 dark:bg-slate-800/50 p-4 rounded-xl border border-indigo-100 dark:border-slate-700">
+        <h4 class="text-sm font-bold text-indigo-700 dark:text-indigo-400 mb-3">⚡ Pengiriman Langsung (Tanpa SO)</h4>
+        <ol class="list-none space-y-2 text-sm text-slate-600 dark:text-slate-400">
+            <li class="flex gap-3"><span class="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold shrink-0">1</span><span>Pilih <b>-- Tanpa Sold Order --</b> pada kolom Sales Order.</span></li>
+            <li class="flex gap-3"><span class="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold shrink-0">2</span><span>Pilih <b>Customer</b> dan klik <b>"+ Add Item"</b> manual.</span></li>
+            <li class="flex gap-3"><span class="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold shrink-0">3</span><span>Simpan DO. Sistem otomatis membuat SO status <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-600">WAITING PO</span>.</span></li>
+            <li class="flex gap-3"><span class="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold shrink-0">4</span><span>Saat PO resmi turun, <b>Edit SO</b> "Waiting PO" tsb untuk update No PO & Harga.</span></li>
+        </ol>
+    </div>
     <div class="p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800 rounded-xl">
         <h4 class="text-sm font-bold text-emerald-700 dark:text-emerald-500 mb-2">Alur Status DO</h4>
         <div class="flex flex-wrap items-center gap-2">

@@ -68,6 +68,7 @@ class SalesOrder extends Model
     const STATUS_SHIPPED = 'shipped';
     const STATUS_DELIVERED = 'delivered';
     const STATUS_CANCELLED = 'cancelled';
+    const STATUS_WAITING_PO = 'waiting_po';
 
     public function company(): BelongsTo
     {
@@ -137,12 +138,12 @@ class SalesOrder extends Model
 
     public function isEditable(): bool
     {
-        return in_array($this->status, [self::STATUS_DRAFT]);
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_WAITING_PO]);
     }
 
     public function canDeliver(): bool
     {
-        return in_array($this->status, [self::STATUS_CONFIRMED, self::STATUS_PROCESSING]);
+        return in_array($this->status, [self::STATUS_CONFIRMED, self::STATUS_PROCESSING, self::STATUS_WAITING_PO]);
     }
 
     public static function generateSoNumber(): string
@@ -181,6 +182,7 @@ class SalesOrder extends Model
             self::STATUS_SHIPPED => 'purple',
             self::STATUS_DELIVERED => 'emerald',
             self::STATUS_CANCELLED => 'red',
+            self::STATUS_WAITING_PO => 'orange',
             default => 'slate',
         };
     }

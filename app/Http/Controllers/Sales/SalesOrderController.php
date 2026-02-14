@@ -79,6 +79,7 @@ class SalesOrderController extends Controller
             'filters' => $request->only(['search', 'status', 'customer']),
             'statuses' => [
                 ['value' => 'draft', 'label' => 'Draft'],
+                ['value' => 'waiting_po', 'label' => 'Waiting PO'],
                 ['value' => 'confirmed', 'label' => 'Confirmed'],
                 ['value' => 'processing', 'label' => 'Processing'],
                 ['value' => 'shipped', 'label' => 'Shipped'],
@@ -250,6 +251,9 @@ class SalesOrderController extends Controller
             
             // Delete removed items via Eloquent for logging
             $order->items()->whereNotIn('id', $existingIds)->get()->each(function($item) {
+                if ($item->qty_delivered > 0) {
+                    throw new \Exception("Cannot delete item [{$item->product->name}] because it has already been delivered.");
+                }
                 $item->delete();
             });
 

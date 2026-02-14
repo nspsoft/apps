@@ -57,6 +57,7 @@ const selectedOption = computed({
                         :displayValue="(option) => option?.label ?? ''"
                         @change="query = $event.target.value"
                         :placeholder="placeholder"
+                        :title="selectedOption?.label"
                     />
                     <ComboboxButton class="absolute inset-y-0 right-0 flex items-center pr-2">
                         <ChevronUpDownIcon class="h-5 w-5 text-slate-400" aria-hidden="true" />
@@ -84,13 +85,13 @@ const selectedOption = computed({
                             v-slot="{ selected, active }"
                         >
                             <li
-                                class="relative cursor-default select-none py-2 pl-10 pr-4 text-xs"
+                                class="relative cursor-default select-none py-2 pl-10 pr-4 text-xs break-words"
                                 :class="{
                                     'bg-blue-600 text-white': active,
                                     'text-slate-600 dark:text-slate-300': !active,
                                 }"
                             >
-                                <span class="block" :class="{ 'font-medium': selected, 'font-normal': !selected }">
+                                <span class="block whitespace-normal leading-tight" :class="{ 'font-medium': selected, 'font-normal': !selected }">
                                     {{ option.label }}
                                 </span>
                                 <span

@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
+import axios from 'axios';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
@@ -18,6 +19,22 @@ const form = useForm({
     valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     notes: '',
     items: [{ product_id: '', qty: 1, unit_price: 0 }],
+});
+
+const currentQuotationNumber = ref(props.quotationNumber);
+
+watch([() => form.customer_id, () => form.quotation_date], async ([newCust, newDate]) => {
+    try {
+        const response = await axios.get(route('sales.quotations.next-number'), {
+            params: { 
+                customer_id: newCust,
+                quotation_date: newDate
+            }
+        });
+        currentQuotationNumber.value = response.data.number;
+    } catch (error) {
+        console.error('Failed to fetch quotation number', error);
+    }
 });
 
 const productOptions = computed(() => 
@@ -86,7 +103,7 @@ const submit = () => {
                         <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-4">Quotation Info</h3>
                         <div>
                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Quotation Number</label>
-                            <input type="text" :value="quotationNumber" class="w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 text-slate-500 dark:text-slate-400 cursor-not-allowed" disabled />
+                            <input type="text" :value="currentQuotationNumber" class="w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 text-slate-500 dark:text-slate-400 cursor-not-allowed" disabled />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Customer</label>
