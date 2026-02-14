@@ -382,87 +382,87 @@ const bulkReorder = () => {
                                     No stock records found.
                                 </td>
                             </tr>
-                            <tr 
-                                v-for="stock in stocks.data" 
-                                :key="stock.id"
-                                v-if="stock.product"
-                                class="transition-colors"
-                                :class="selected.find(s => s.id === stock.id) ? 'bg-blue-500/10 hover:bg-blue-500/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-900 dark:bg-slate-800/50'"
-                            >
-                                <td class="pl-6 pr-3 py-4">
-                                    <input 
-                                        type="checkbox" 
-                                        :checked="!!selected.find(s => s.id === stock.id)"
-                                        @change="toggleSelection(stock)"
-                                        class="rounded border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-blue-600 focus:ring-blue-500/50"
-                                    />
-                                </td>
-                                <td class="px-4 py-2">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800">
-                                            <CubeIcon class="h-5 w-5 text-slate-500 dark:text-slate-400" />
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-slate-900 dark:text-white">{{ stock.product.name }}</div>
-                                            <div class="text-xs text-slate-500 font-mono">{{ stock.product.sku }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-2">
-                                    <span class="inline-flex rounded-full bg-slate-50 dark:bg-slate-800 px-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">
-                                        {{ stock.product.category?.name || '-' }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-2">
-                                    <span 
-                                        class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"
-                                        :class="getProductTypeBadge(stock.product.product_type)"
-                                    >
-                                        {{ getProductTypeLabel(stock.product.product_type) }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-2 text-slate-900 dark:text-white">
-                                    {{ stock.warehouse?.name || 'Unknown Warehouse' }}
-                                    <span v-if="stock.warehouse?.type && stock.warehouse?.type !== 'warehouse'" class="ml-1 text-xs text-slate-500 font-mono">
-                                        ({{ stock.warehouse?.type }})
-                                    </span>
-                                </td>
-                                <td class="px-4 py-2 text-right text-xs text-slate-500 dark:text-slate-400 font-mono">
-                                    {{ formatNumber(stock.product.min_stock || 0) }} / {{ formatNumber(stock.product.reorder_point || 0) }} / {{ formatNumber(stock.product.max_stock || 0) }}
-                                </td>
-                                <td class="px-4 py-2 text-center">
-                                    <Link
-                                        v-if="getStockStatus(stock).reorderQty > 0"
-                                        :href="`/purchasing/requests/create?product_id=${stock.product.id}&qty=${getStockStatus(stock).reorderQty}`"
-                                        class="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset uppercase tracking-wider whitespace-nowrap"
-                                        :class="getStockStatus(stock).class"
-                                    >
-                                        {{ getStockStatus(stock).label }}
-                                    </Link>
-                                    <span
-                                        v-else
-                                        class="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset uppercase tracking-wider whitespace-nowrap"
-                                        :class="getStockStatus(stock).class"
-                                    >
-                                        {{ getStockStatus(stock).label }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-2 text-right font-medium text-blue-400">
-                                    {{ formatNumber(stock.on_order_qty) }}
-                                </td>
-                                <td class="px-4 py-2 text-right font-medium text-slate-900 dark:text-white transition-colors" :class="{ 'text-red-500 font-bold': getStockStatus(stock).isCritical, 'text-amber-500': getStockStatus(stock).isLow }">
-                                    {{ formatNumber(stock.qty_on_hand) }}
-                                </td>
-                                <td class="px-4 py-2 text-right text-slate-500 dark:text-slate-400">
-                                    {{ formatNumber(stock.qty_reserved) }}
-                                </td>
-                                <td 
-                                    class="px-4 py-2 text-right font-bold transition-colors"
-                                    :class="getStockStatus(stock).textClass"
+                            <template v-for="stock in stocks.data" :key="stock.id">
+                                <tr 
+                                    v-if="stock.product"
+                                    class="transition-colors"
+                                    :class="selected.find(s => s.id === stock.id) ? 'bg-blue-500/10 hover:bg-blue-500/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-900 dark:bg-slate-800/50'"
                                 >
-                                    {{ formatNumber(stock.qty_on_hand - stock.qty_reserved) }}
-                                </td>
-                            </tr>
+                                    <td class="pl-6 pr-3 py-4">
+                                        <input 
+                                            type="checkbox" 
+                                            :checked="!!selected.find(s => s.id === stock.id)"
+                                            @change="toggleSelection(stock)"
+                                            class="rounded border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 text-blue-600 focus:ring-blue-500/50"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-slate-800">
+                                                <CubeIcon class="h-5 w-5 text-slate-500 dark:text-slate-400" />
+                                            </div>
+                                            <div>
+                                                <div class="font-medium text-slate-900 dark:text-white">{{ stock.product.name }}</div>
+                                                <div class="text-xs text-slate-500 font-mono">{{ stock.product.sku }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <span class="inline-flex rounded-full bg-slate-50 dark:bg-slate-800 px-2 text-xs font-semibold leading-5 text-slate-600 dark:text-slate-300">
+                                            {{ stock.product.category?.name || '-' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <span 
+                                            class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset"
+                                            :class="getProductTypeBadge(stock.product.product_type)"
+                                        >
+                                            {{ getProductTypeLabel(stock.product.product_type) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-2 text-slate-900 dark:text-white">
+                                        {{ stock.warehouse?.name || 'Unknown Warehouse' }}
+                                        <span v-if="stock.warehouse?.type && stock.warehouse?.type !== 'warehouse'" class="ml-1 text-xs text-slate-500 font-mono">
+                                            ({{ stock.warehouse?.type }})
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-2 text-right text-xs text-slate-500 dark:text-slate-400 font-mono">
+                                        {{ formatNumber(stock.product.min_stock || 0) }} / {{ formatNumber(stock.product.reorder_point || 0) }} / {{ formatNumber(stock.product.max_stock || 0) }}
+                                    </td>
+                                    <td class="px-4 py-2 text-center">
+                                        <Link
+                                            v-if="getStockStatus(stock).reorderQty > 0"
+                                            :href="`/purchasing/requests/create?product_id=${stock.product.id}&qty=${getStockStatus(stock).reorderQty}`"
+                                            class="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset uppercase tracking-wider whitespace-nowrap"
+                                            :class="getStockStatus(stock).class"
+                                        >
+                                            {{ getStockStatus(stock).label }}
+                                        </Link>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset uppercase tracking-wider whitespace-nowrap"
+                                            :class="getStockStatus(stock).class"
+                                        >
+                                            {{ getStockStatus(stock).label }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-2 text-right font-medium text-blue-400">
+                                        {{ formatNumber(stock.on_order_qty) }}
+                                    </td>
+                                    <td class="px-4 py-2 text-right font-medium text-slate-900 dark:text-white transition-colors" :class="{ 'text-red-500 font-bold': getStockStatus(stock).isCritical, 'text-amber-500': getStockStatus(stock).isLow }">
+                                        {{ formatNumber(stock.qty_on_hand) }}
+                                    </td>
+                                    <td class="px-4 py-2 text-right text-slate-500 dark:text-slate-400">
+                                        {{ formatNumber(stock.qty_reserved) }}
+                                    </td>
+                                    <td 
+                                        class="px-4 py-2 text-right font-bold transition-colors"
+                                        :class="getStockStatus(stock).textClass"
+                                    >
+                                        {{ formatNumber(stock.qty_on_hand - stock.qty_reserved) }}
+                                    </td>
+                                </tr>
+                            </template>
                         </tbody>
                     </table>
                 </div>
