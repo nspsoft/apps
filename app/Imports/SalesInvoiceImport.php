@@ -36,7 +36,7 @@ class SalesInvoiceImport implements ToCollection, WithHeadingRow
                     $firstRow = $items->first();
 
                     $invoice = SalesInvoice::create([
-                        'invoice_number' => SalesInvoice::generateInvoiceNumber(),
+                        'invoice_number' => SalesInvoice::generateInvoiceNumber($so->customer_id),
                         'sales_order_id' => $so->id,
                         'customer_id' => $so->customer_id,
                         'invoice_date' => $firstRow['invoice_date'] ?? now()->toDateString(),

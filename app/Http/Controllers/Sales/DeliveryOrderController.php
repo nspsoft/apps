@@ -148,7 +148,7 @@ class DeliveryOrderController extends Controller
             // If DOs are from different SOs, we just pick the first one as "Master" SO or leave it if schema allows.
             // Let's assume same Customer is the constraint.
             
-            $invoice->invoice_number = \App\Models\SalesInvoice::generateInvoiceNumber();
+            $invoice->invoice_number = \App\Models\SalesInvoice::generateInvoiceNumber($customer->id);
             $invoice->invoice_date = now();
             $invoice->due_date = now()->addDays(30); // Default term
             $invoice->status = 'draft';
@@ -630,7 +630,7 @@ class DeliveryOrderController extends Controller
                 
                 $invoice = \App\Models\SalesInvoice::create([
                     'company_id' => $deliveryOrder->company_id,
-                    'invoice_number' => \App\Models\SalesInvoice::generateInvoiceNumber(),
+                    'invoice_number' => \App\Models\SalesInvoice::generateInvoiceNumber($deliveryOrder->customer_id),
                     'sales_order_id' => $so->id,
                     'customer_id' => $deliveryOrder->customer_id,
                     'invoice_date' => now(),

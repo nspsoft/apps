@@ -83,24 +83,39 @@ class SalesInvoice extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public static function generateInvoiceNumber(): string
+    public static function generateInvoiceNumber($customerId): string
     {
-        $year = date('Y');
-        $month = date('m');
-        $prefix = "INV-{$year}{$month}-";
+        $customer = Customer::find($customerId);
+        $custCode = $customer ? ($customer->code ?? 'GEN') : 'GEN';
+        $monthRoman = static::getRomanMonth((int)date('n'));
+        $yearShort = date('y');
         
-        $last = static::where('invoice_number', 'like', "{$prefix}%")
-            ->orderBy('invoice_number', 'desc')
+        // Format: {RUN}/INV/JRI-{CUST}/{MONTH_ROMAN}/{YEAR_2DIGIT}
+        $suffix = "/INV/JRI-{$custCode}/{$monthRoman}/{$yearShort}";
+        
+        // Find last running number for invoices using REGEXP to catch {number}/INV/JRI-
+        $last = static::where('invoice_number', 'REGEXP', '^[0-9]+/INV/JRI-')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(invoice_number, "/", 1) AS UNSIGNED) DESC')
             ->first();
 
         if ($last) {
-            $lastNumber = (int) substr($last->invoice_number, -4);
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+            $parts = explode('/', $last->invoice_number);
+            $lastNumber = is_numeric($parts[0]) ? (int)$parts[0] : 0;
+            $newNumber = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
         } else {
-            $newNumber = '0001';
+            $newNumber = '001';
         }
 
-        return $prefix . $newNumber;
+        return $newNumber . $suffix;
+    }
+
+    private static function getRomanMonth($month): string
+    {
+        $romans = [
+            1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+            7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
+        ];
+        return $romans[$month] ?? 'I';
     }
 
     public function calculateTotals(): void
