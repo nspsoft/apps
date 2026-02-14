@@ -169,6 +169,15 @@ const submitImport = () => {
                                     </span>
                                 </div>
                             </th>
+                            <th @click="sort('customer_po_number')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
+                                <div class="flex items-center gap-1">
+                                    Ref (SO/PO)
+                                    <span v-if="sortField === 'customer_po_number'" class="text-blue-600 dark:text-blue-400">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
                             <th @click="sort('customer_name')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
                                 <div class="flex items-center gap-1">
                                     Customer
@@ -229,6 +238,14 @@ const submitImport = () => {
                                         <BanknotesIcon class="h-5 w-5 text-emerald-400" />
                                     </div>
                                     <div class="text-sm font-medium text-slate-900 dark:text-white">{{ invoice.invoice_number }}</div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-2 whitespace-nowrap">
+                                <Link :href="route('sales.orders.show', invoice.sales_order_id)" class="text-sm font-medium text-blue-400 hover:underline">
+                                    {{ invoice.sales_order?.so_number }}
+                                </Link>
+                                <div v-if="invoice.sales_order?.customer_po_number" class="text-[10px] text-slate-500 uppercase tracking-tighter">
+                                    PO: {{ invoice.sales_order.customer_po_number }}
                                 </div>
                             </td>
                             <td class="px-4 py-2 whitespace-nowrap text-sm text-slate-900 dark:text-white">{{ invoice.sales_order?.customer?.name }}</td>

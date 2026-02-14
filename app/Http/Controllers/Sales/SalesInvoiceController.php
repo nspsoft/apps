@@ -22,6 +22,7 @@ class SalesInvoiceController extends Controller
                 $q->where('invoice_number', 'like', "%{$search}%")
                     ->orWhereHas('salesOrder', function ($sq) use ($search) {
                         $sq->where('so_number', 'like', "%{$search}%")
+                            ->orWhere('customer_po_number', 'like', "%{$search}%")
                             ->orWhereHas('customer', function ($cq) use ($search) {
                                 $cq->where('name', 'like', "%{$search}%");
                             });

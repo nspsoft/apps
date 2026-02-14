@@ -83,12 +83,14 @@ class SalesInvoice extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public static function generateInvoiceNumber($customerId): string
+    public static function generateInvoiceNumber($customerId, $date = null): string
     {
+        $targetDate = $date ? (is_string($date) ? new \DateTime($date) : $date) : new \DateTime();
+        
         $customer = Customer::find($customerId);
         $custCode = $customer ? ($customer->code ?? 'GEN') : 'GEN';
-        $monthRoman = static::getRomanMonth((int)date('n'));
-        $yearShort = date('y');
+        $monthRoman = static::getRomanMonth((int)$targetDate->format('n'));
+        $yearShort = $targetDate->format('y');
         
         // Format: {RUN}/INV/JRI-{CUST}/{MONTH_ROMAN}/{YEAR_2DIGIT}
         $suffix = "/INV/JRI-{$custCode}/{$monthRoman}/{$yearShort}";
