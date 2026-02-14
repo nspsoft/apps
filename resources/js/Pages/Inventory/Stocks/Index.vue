@@ -87,6 +87,8 @@ const getProductTypeLabel = (type) => {
 
 const getStockStatus = (stock) => {
     const product = stock.product;
+    if (!product) return { label: 'Error', class: 'bg-gray-500', textClass: 'text-gray-500', isSafe: true, reorderQty: 0 };
+
     const onHand = parseFloat(stock.qty_on_hand || 0);
     const reserved = parseFloat(stock.qty_reserved || 0);
     const onOrder = parseFloat(stock.on_order_qty || 0);
@@ -383,6 +385,7 @@ const bulkReorder = () => {
                             <tr 
                                 v-for="stock in stocks.data" 
                                 :key="stock.id"
+                                v-if="stock.product"
                                 class="transition-colors"
                                 :class="selected.find(s => s.id === stock.id) ? 'bg-blue-500/10 hover:bg-blue-500/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-900 dark:bg-slate-800/50'"
                             >
