@@ -12,6 +12,7 @@ import {
     CheckCircleIcon,
     BanknotesIcon,
     ArrowPathIcon,
+    PencilSquareIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 
@@ -20,6 +21,11 @@ const props = defineProps({
 });
 
 const showPaymentModal = ref(false);
+const showTaxModal = ref(false);
+
+const taxForm = useForm({
+    tax_amount: props.invoice.tax_amount,
+});
 
 const paymentForm = useForm({
     amount: props.invoice.balance,
@@ -32,6 +38,14 @@ const confirmInvoice = () => {
     if (confirm('Are you sure you want to confirm and issue this invoice?')) {
         useForm({}).post(route('sales.invoices.confirm', props.invoice.id));
     }
+};
+
+const submitTaxUpdate = () => {
+    taxForm.post(route('sales.invoices.update-tax', props.invoice.id), {
+        onSuccess: () => {
+            showTaxModal.value = false;
+        }
+    });
 };
 
 const submitPayment = () => {
@@ -180,7 +194,19 @@ const getStatusBadge = (status) => {
                                         <td class="px-6 py-4 text-right text-sm font-bold text-slate-900 dark:text-white font-mono">{{ formatCurrency(invoice.subtotal) }}</td>
                                     </tr>
                                     <tr class="bg-slate-50 dark:bg-slate-800/20 border-t border-slate-200 dark:border-slate-800">
-                                        <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-slate-500 dark:text-slate-400">VAT 11%</td>
+                                        <td colspan="3" class="px-6 py-4 text-right text-sm font-medium text-slate-500 dark:text-slate-400">
+                                            <div class="flex items-center justify-end gap-2">
+                                                VAT 11%
+                                                <button 
+                                                    v-if="invoice.status === 'draft'"
+                                                    @click="showTaxModal = true"
+                                                    class="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-400 transition-colors"
+                                                    title="Edit VAT Nominal"
+                                                >
+                                                    <PencilSquareIcon class="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
                                         <td class="px-6 py-4 text-right text-sm font-bold text-slate-900 dark:text-white font-mono">{{ formatCurrency(invoice.tax_amount) }}</td>
                                     </tr>
                                     <tr class="bg-blue-600/10 border-t border-blue-500/30">
@@ -243,6 +269,49 @@ const getStatusBadge = (status) => {
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Tax Edit Modal -->
+        <div v-if="showTaxModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-white dark:bg-slate-950/80 backdrop-blur-sm">
+            <div class="w-full max-w-sm rounded-2xl glass-card shadow-2xl overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/20">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Adjust VAT Nominal</h3>
+                    <button @click="showTaxModal = false" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor font-bold"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <form @submit.prevent="submitTaxUpdate" class="p-6 space-y-4">
+                    <p class="text-xs text-slate-500">
+                        Adjust VAT amount manually for rounding differences. This will update the Grand Total.
+                    </p>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">VAT Amount (IDR)</label>
+                        <input 
+                            v-model="taxForm.tax_amount" 
+                            type="number" 
+                            step="1"
+                            class="w-full rounded-xl bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder-slate-600 focus:ring-blue-500 focus:border-blue-500 font-mono text-lg"
+                            required
+                        />
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button 
+                            type="button" 
+                            @click="showTaxModal = false"
+                            class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                        >
+                            CANCEL
+                        </button>
+                        <button 
+                            type="submit" 
+                            :disabled="taxForm.processing"
+                            class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-sm font-bold text-white dark:text-white hover:bg-blue-500 transition-colors disabled:opacity-50"
+                        >
+                            {{ taxForm.processing ? 'SAVING...' : 'UPDATE VAT' }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 

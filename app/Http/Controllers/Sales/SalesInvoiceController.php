@@ -101,6 +101,30 @@ class SalesInvoiceController extends Controller
         return back()->with('success', 'Invoice confirmed and issued.');
     }
 
+    public function updateTaxAmount(Request $request, SalesInvoice $salesInvoice)
+    {
+        if ($salesInvoice->status !== 'draft') {
+            return back()->with('error', 'Only draft invoices can be edited.');
+        }
+
+        $validated = $request->validate([
+            'tax_amount' => 'required|numeric|min:0',
+        ]);
+
+        try {
+            \DB::transaction(function () use ($salesInvoice, $validated) {
+                $salesInvoice->tax_amount = $validated['tax_amount'];
+                $salesInvoice->total = $salesInvoice->subtotal + $salesInvoice->tax_amount - $salesInvoice->discount_amount;
+                $salesInvoice->balance = $salesInvoice->total - $salesInvoice->paid_amount;
+                $salesInvoice->save();
+            });
+
+            return back()->with('success', 'VAT amount updated successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error updating VAT: ' . $e->getMessage());
+        }
+    }
+
     public function recordPayment(Request $request, SalesInvoice $salesInvoice)
     {
         $validated = $request->validate([
