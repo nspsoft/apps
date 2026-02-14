@@ -28,6 +28,7 @@ import {
     LightbulbIcon,
     SparklesIcon,
     ListIcon,
+    PrinterIcon,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -63,6 +64,15 @@ const scrollToSection = (id) => {
     const el = document.getElementById('manual-' + id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (!expandedSections.value.has(id)) toggleSection(id);
+};
+
+const printManual = async () => {
+    activeTab.value = 'manual';
+    expandAll();
+    await nextTick();
+    setTimeout(() => {
+        window.print();
+    }, 300); // Small delay to ensure DOM is fully expanded
 };
 
 const manualSections = [
@@ -118,8 +128,11 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
                         <button @click="activeTab = 'flow'" :class="activeTab === 'flow' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300">Interactive Flow</button>
                         <button @click="activeTab = 'manual'" :class="activeTab === 'manual' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300">User Manual</button>
                     </div>
+                    <button @click="printManual" class="ml-4 p-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-white dark:hover:text-indigo-400 transition-all shadow-sm print:hidden" title="Print Guide">
+                        <PrinterIcon class="w-5 h-5" />
+                    </button>
                 </div>
-                <div v-if="activeTab === 'flow'" class="space-y-16 animate-in fade-in duration-700">
+                <div v-if="activeTab === 'flow'" class="space-y-16 animate-in fade-in duration-700 print:hidden">
                     <div class="text-center">
                         <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-widest mb-4"><ZapIcon class="w-4 h-4" /> Visualization</div>
                         <h1 class="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight text-slate-900 dark:text-white">Sales Journey <span class="text-indigo-500">Flow</span></h1>
@@ -165,13 +178,13 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
                         </div>
                     </div>
                 </div>
-                <div v-else-if="activeTab === 'manual'" class="max-w-5xl mx-auto space-y-8">
+                <div v-else-if="activeTab === 'manual'" class="max-w-5xl mx-auto space-y-8 print:w-full print:max-w-none">
                     <div class="text-center mb-8 animate-in fade-in duration-700">
-                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4"><InfoIcon class="w-4 h-4" /> Comprehensive Guide</div>
-                        <h1 class="text-4xl font-bold mb-4 text-slate-900 dark:text-white">Panduan Pengunaan Modul Sales</h1>
-                        <p class="text-slate-500 dark:text-slate-400">Langkah demi langkah operasional setiap menu aplikasi. Klik section untuk membuka detail.</p>
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4 print:hidden"><InfoIcon class="w-4 h-4" /> Comprehensive Guide</div>
+                        <h1 class="text-4xl font-bold mb-4 text-slate-900 dark:text-white print:text-black">Panduan Pengunaan Modul Sales</h1>
+                        <p class="text-slate-500 dark:text-slate-400 print:text-slate-600">Langkah demi langkah operasional setiap menu aplikasi. Klik section untuk membuka detail.</p>
                     </div>
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm sticky top-4 z-20 animate-in slide-in-from-top-3 duration-500">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm sticky top-4 z-20 animate-in slide-in-from-top-3 duration-500 print:hidden">
                         <div class="flex flex-wrap items-center gap-2">
                             <button @click="expandAll" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 transition-colors">Buka Semua</button>
                             <button @click="collapseAll" class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg hover:bg-slate-200 transition-colors">Tutup Semua</button>
@@ -179,10 +192,10 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
                             <button v-for="s in manualSections" :key="s.id" @click="scrollToSection(s.id)" class="px-2.5 py-1.5 text-[10px] font-bold rounded-lg transition-all hover:scale-105" :class="expandedSections.has(s.id) ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-slate-600'">{{ s.num }}</button>
                         </div>
                     </div>
-                    <div class="space-y-4">
+                    <div class="space-y-4 print:space-y-8">
                         <div v-for="(section, idx) in manualSections" :key="section.id" :id="'manual-' + section.id" class="animate-in slide-in-from-bottom-3 duration-500" :style="{ animationDelay: idx * 50 + 'ms' }">
-                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[20px] overflow-hidden transition-all duration-300 hover:shadow-lg" :class="expandedSections.has(section.id) ? 'shadow-xl ring-1 ring-indigo-500/20' : ''">
-                                <button @click="toggleSection(section.id)" class="w-full p-5 flex items-center gap-4 text-left group transition-colors" :class="expandedSections.has(section.id) ? 'bg-slate-50/50 dark:bg-slate-800/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/20'">
+                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[20px] overflow-hidden transition-all duration-300 hover:shadow-lg print:border-none print:shadow-none print:break-inside-avoid" :class="expandedSections.has(section.id) ? 'shadow-xl ring-1 ring-indigo-500/20' : ''">
+                                <button @click="toggleSection(section.id)" class="w-full p-5 flex items-center gap-4 text-left group transition-colors print:hidden" :class="expandedSections.has(section.id) ? 'bg-slate-50/50 dark:bg-slate-800/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/20'">
                                     <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 manual-icon-box" :class="[expandedSections.has(section.id) ? 'manual-icon-active bg-indigo-500 text-white shadow-lg' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-indigo-500 group-hover:text-white']">
                                         <component :is="section.icon" class="w-6 h-6" />
                                     </div>
@@ -192,8 +205,12 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
                                     </div>
                                     <ChevronDownIcon class="w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300" :class="expandedSections.has(section.id) ? 'rotate-180' : ''" />
                                 </button>
+                                <!-- Print Header for Section -->
+                                <div class="hidden print:flex items-center gap-3 mb-4 border-b border-black pb-2">
+                                    <h3 class="text-xl font-bold text-black">{{ section.num }}. {{ section.title }}</h3>
+                                </div>
                                 <Transition name="accordion">
-                                    <div v-if="expandedSections.has(section.id)" class="px-5 pb-5 pt-0 border-t border-slate-100 dark:border-slate-800">
+                                    <div v-if="expandedSections.has(section.id)" class="px-5 pb-5 pt-0 border-t border-slate-100 dark:border-slate-800 print:border-none print:p-0">
                                         <div class="pt-4"><ManualSectionContent :sectionId="section.id" /></div>
                                     </div>
                                 </Transition>
@@ -241,4 +258,25 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
 .accordion-enter-active { transition: all 0.3s ease-out; max-height: 2000px; overflow: hidden; }
 .accordion-leave-active { transition: all 0.2s ease-in; max-height: 2000px; overflow: hidden; }
 .accordion-enter-from, .accordion-leave-to { opacity: 0; max-height: 0; }
+
+@media print {
+    :deep(nav), :deep(header), :deep(.bg-slate-50) {
+        background: white !important; 
+    }
+    :deep(.text-slate-900), :deep(.text-white) {
+        color: black !important;
+    }
+    :deep(.text-slate-500), :deep(.text-slate-400) {
+        color: #333 !important;
+    }
+    .print\:hidden {
+        display: none !important;
+    }
+    .print\:flex {
+        display: flex !important;
+    }
+    .print\:block {
+        display: block !important;
+    }
+}
 </style>
