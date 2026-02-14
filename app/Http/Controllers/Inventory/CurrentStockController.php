@@ -21,6 +21,7 @@ class CurrentStockController extends Controller
             ->with(['product', 'product.category', 'warehouse'])
             ->join('products', 'product_stocks.product_id', '=', 'products.id')
             ->whereNull('products.deleted_at')
+            ->whereHas('warehouse')
             ->select('product_stocks.*') // Keep primary selection on stocks
             ->when($request->search, function ($q, $search) {
                 $q->whereHas('product', function ($p) use ($search) {

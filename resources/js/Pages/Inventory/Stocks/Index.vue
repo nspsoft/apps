@@ -422,9 +422,9 @@ const bulkReorder = () => {
                                     </span>
                                 </td>
                                 <td class="px-4 py-2 text-slate-900 dark:text-white">
-                                    {{ stock.warehouse.name }}
-                                    <span v-if="stock.warehouse.type && stock.warehouse.type !== 'warehouse'" class="ml-1 text-xs text-slate-500 font-mono">
-                                        ({{ stock.warehouse.type }})
+                                    {{ stock.warehouse?.name || 'Unknown Warehouse' }}
+                                    <span v-if="stock.warehouse?.type && stock.warehouse?.type !== 'warehouse'" class="ml-1 text-xs text-slate-500 font-mono">
+                                        ({{ stock.warehouse?.type }})
                                     </span>
                                 </td>
                                 <td class="px-4 py-2 text-right text-xs text-slate-500 dark:text-slate-400 font-mono">
