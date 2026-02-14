@@ -471,19 +471,83 @@ class DeliveryOrderController extends Controller
             'status' => 'required|in:draft,picking,packed,shipped,delivered,completed',
         ]);
 
-        $status = $validated['status'];
+        $newStatus = $validated['status'];
+        $oldStatus = $deliveryOrder->status;
 
         // Logic restrictions
-        if ($status === DeliveryOrder::STATUS_COMPLETED) {
-            // Must use the complete() method via the main endpoint or call it here
-            // But usually Drag & Drop to Completed should trigger the same logic
+        if ($newStatus === DeliveryOrder::STATUS_COMPLETED) {
             return $this->complete($deliveryOrder);
         }
 
-        $deliveryOrder->status = $status;
+        // Handle Revert Logic (From Final -> Non-Final)
+        // Final statuses: DELIVERED, COMPLETED
+        // Non-Final: DRAFT, PICKING, PACKED, SHIPPED
+        // Note: SHIPPED is usually pre-delivery, so stock might not be deducted yet? 
+        // Based on complete() method, stock is deducted when `complete()` is called. 
+        // `complete()` sets status to DELIVERED or COMPLETED.
+        // So if we are in DELIVERED or COMPLETED, stock IS deducted.
+        // If we move to anything else (DRAFT, PICKING, PACKED, SHIPPED), we must RESTORE stock.
+        
+        $finalStatuses = [DeliveryOrder::STATUS_DELIVERED, DeliveryOrder::STATUS_COMPLETED];
+        $nonFinalStatuses = [DeliveryOrder::STATUS_DRAFT, DeliveryOrder::STATUS_PICKING, DeliveryOrder::STATUS_PACKED, DeliveryOrder::STATUS_SHIPPED];
+
+        if (in_array($oldStatus, $finalStatuses) && in_array($newStatus, $nonFinalStatuses)) {
+            // Processing Revert
+            try {
+                \DB::transaction(function () use ($deliveryOrder, $newStatus) {
+                    foreach ($deliveryOrder->items as $item) {
+                        // 1. Restore Stock (Increase)
+                        $stock = \App\Models\ProductStock::where('product_id', $item->product_id)
+                            ->where('warehouse_id', $deliveryOrder->warehouse_id)
+                            ->first();
+
+                        if ($stock) {
+                            $stock->adjustStock(
+                                (float) $item->qty_delivered, // Positive quantity to add back
+                                null,
+                                \App\Models\StockMovement::TYPE_CORRECTION, // Or generic correction
+                                $deliveryOrder,
+                                "Revert Status DO #{$deliveryOrder->do_number} (Reverse Delivery)"
+                            );
+                        }
+
+                        // 2. Decrement Sales Order Item Delivered Qty
+                        if ($item->salesOrderItem) {
+                            $item->salesOrderItem->qty_delivered -= (float) $item->qty_delivered;
+                            // Prevent negative just in case
+                            if ($item->salesOrderItem->qty_delivered < 0) {
+                                $item->salesOrderItem->qty_delivered = 0;
+                            }
+                            $item->salesOrderItem->save();
+                        }
+                    }
+
+                    // 3. Update Status
+                    $deliveryOrder->status = $newStatus;
+                    $deliveryOrder->delivered_at = null; // Clear delivered_at
+                    $deliveryOrder->save();
+                    
+                    // 4. Update Sales Order Status if needed (e.g. back to Processing)
+                    // If SO was Delivered, it might need to go back to Processing
+                    if ($deliveryOrder->salesOrder) {
+                        $so = $deliveryOrder->salesOrder;
+                        if ($so->status === \App\Models\SalesOrder::STATUS_DELIVERED) {
+                            $so->status = \App\Models\SalesOrder::STATUS_PROCESSING;
+                            $so->save();
+                        }
+                    }
+                });
+                
+                return back()->with('success', "Delivery Order reverted to {$newStatus}. Stock and SO quantities restored.");
+            } catch (\Exception $e) {
+                return back()->with('error', 'Failed to revert delivery order: ' . $e->getMessage());
+            }
+        }
+
+        $deliveryOrder->status = $newStatus;
         $deliveryOrder->save();
 
-        return back()->with('success', "Delivery Order status updated to {$status}.");
+        return back()->with('success', "Delivery Order status updated to {$newStatus}.");
     }
 
     public function updateItems(Request $request, DeliveryOrder $deliveryOrder)

@@ -29,9 +29,9 @@ class StockMovement extends Model
     ];
 
     protected $casts = [
-        'qty' => 'decimal:4',
-        'balance_before' => 'decimal:4',
-        'balance_after' => 'decimal:4',
+        'qty' => 'float',
+        'balance_before' => 'float',
+        'balance_after' => 'float',
     ];
 
     const TYPE_ADJUSTMENT = 'adjustment';
@@ -43,6 +43,7 @@ class StockMovement extends Model
     const TYPE_OPNAME = 'opname';
     const TYPE_PURCHASE_RETURN = 'purchase_return';
     const TYPE_SALES_RETURN = 'sales_return';
+    const TYPE_CORRECTION = 'correction';
 
     public function product(): BelongsTo
     {
