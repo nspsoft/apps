@@ -380,7 +380,7 @@ class SalesOrderController extends Controller
                 $invoice = $order->invoices()->create([
                     'company_id' => $order->company_id ?? 1,
                     'customer_id' => $order->customer_id,
-                    'invoice_number' => \App\Models\SalesInvoice::generateInvoiceNumber($order->customer_id, $order->order_date),
+                    'invoice_number' => \App\Models\SalesInvoice::generateInvoiceNumber($order->customer_id),
                     'invoice_date' => now(),
                     'due_date' => now()->addDays($order->customer->payment_days ?? 30),
                     'status' => 'draft',
