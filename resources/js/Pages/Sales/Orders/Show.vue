@@ -154,6 +154,7 @@ const getStatusClass = (status) => {
                                         <th class="px-6 py-4 text-right">Price</th>
                                         <th class="px-6 py-4 text-center">Ordered</th>
                                         <th class="px-6 py-4 text-center">Delivered</th>
+                                        <th class="px-6 py-4 text-center">Reserved</th>
                                         <th class="px-6 py-4 text-center">Invoiced</th>
                                         <th class="px-6 py-4 text-center">Returned</th>
                                         <th class="px-6 py-4 text-center">Remaining</th>
@@ -219,6 +220,9 @@ const getStatusClass = (status) => {
                                         <td class="px-6 py-4 text-center text-emerald-400 font-medium">
                                             {{ formatNumber(item.qty_delivered) }}
                                         </td>
+                                        <td class="px-6 py-4 text-center text-amber-500 font-medium">
+                                            {{ formatNumber(item.reserved_qty || 0) }}
+                                        </td>
                                         <td class="px-6 py-4 text-center text-indigo-400 font-medium">
                                             {{ formatNumber(item.qty_invoiced || 0) }}
                                         </td>
@@ -228,9 +232,9 @@ const getStatusClass = (status) => {
                                         <td class="px-6 py-4 text-center">
                                             <span 
                                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                                                :class="(item.qty - (item.qty_delivered - (item.qty_returned || 0))) > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-slate-50 dark:bg-slate-800 text-slate-500'"
+                                                :class="item.remaining_qty > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-slate-50 dark:bg-slate-800 text-slate-500'"
                                             >
-                                                {{ formatNumber(item.qty - ((item.qty_delivered || 0) - (item.qty_returned || 0))) }}
+                                                {{ formatNumber(item.remaining_qty) }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-right font-medium text-slate-900 dark:text-white">
@@ -323,6 +327,35 @@ const getStatusClass = (status) => {
                                 <dd class="text-sm text-slate-900 dark:text-white">{{ new Date(salesOrder.delivery_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) }}</dd>
                             </div>
                         </dl>
+                    </div>
+
+
+                    <!-- Related Deliveries -->
+                    <div v-if="salesOrder.delivery_orders && salesOrder.delivery_orders.length > 0" class="rounded-2xl glass-card p-6">
+                        <h3 class="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Related Deliveries</h3>
+                        <div class="space-y-3">
+                            <div v-for="delivery in salesOrder.delivery_orders" :key="delivery.id" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                <div class="flex flex-col">
+                                    <Link :href="route('sales.deliveries.show', delivery.id)" class="text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
+                                        {{ delivery.do_number }}
+                                    </Link>
+                                    <span class="text-[10px] text-slate-500">{{ new Date(delivery.delivery_date).toLocaleDateString('id-ID') }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider" 
+                                          :class="{
+                                              'bg-slate-100 text-slate-800': delivery.status === 'draft',
+                                              'bg-amber-100 text-amber-800': delivery.status === 'picking',
+                                              'bg-blue-100 text-blue-800': delivery.status === 'packed' || delivery.status === 'shipped',
+                                              'bg-teal-100 text-teal-800': delivery.status === 'delivered',
+                                              'bg-emerald-100 text-emerald-800': delivery.status === 'completed',
+                                              'bg-red-100 text-red-800': delivery.status === 'cancelled'
+                                          }">
+                                        {{ delivery.status }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Related Invoices -->
