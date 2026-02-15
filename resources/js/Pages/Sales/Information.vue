@@ -1,6 +1,7 @@
 ﻿<script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ManualSectionContent from './Partials/ManualSectionContent.vue';
+import SalesFlowGuide from './Partials/SalesFlowGuide.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref, onMounted, nextTick } from 'vue';
 import { 
@@ -29,6 +30,7 @@ import {
     SparklesIcon,
     ListIcon,
     PrinterIcon,
+    MapIcon,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -67,12 +69,16 @@ const scrollToSection = (id) => {
 };
 
 const printManual = async () => {
+    if (activeTab.value === 'sop') {
+         window.print();
+         return;
+    }
     activeTab.value = 'manual';
     expandAll();
     await nextTick();
     setTimeout(() => {
         window.print();
-    }, 300); // Small delay to ensure DOM is fully expanded
+    }, 300); 
 };
 
 const manualSections = [
@@ -104,6 +110,9 @@ const activateToStep = (index) => { activeStep.value = index; };
 const animateProcess = async () => {
     if (simulationRunning.value) return;
     simulationRunning.value = true;
+    for (let i = 6; i >= 1; i--) { activeStep.value = i; } // Reset
+    await new Promise(r => setTimeout(r, 500));
+    simulationRunning.value = true;
     for (let i = 1; i <= 6; i++) { activeStep.value = i; await new Promise(r => setTimeout(r, 2000)); }
     simulationRunning.value = false;
 };
@@ -125,13 +134,15 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
             <div class="max-w-7xl mx-auto relative z-10">
                 <div class="flex justify-center mb-12">
                     <div class="inline-flex p-1 bg-slate-200 dark:bg-slate-900 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm">
-                        <button @click="activeTab = 'flow'" :class="activeTab === 'flow' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300">Interactive Flow</button>
-                        <button @click="activeTab = 'manual'" :class="activeTab === 'manual' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300">User Manual</button>
+                        <button @click="activeTab = 'flow'" :class="activeTab === 'flow' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300">Interactive Flow</button>
+                        <button @click="activeTab = 'sop'" :class="activeTab === 'sop' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300">SOP / Flowchart</button>
+                        <button @click="activeTab = 'manual'" :class="activeTab === 'manual' ? 'bg-white dark:bg-slate-800 text-indigo-600 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'" class="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all duration-300">User Manual</button>
                     </div>
                     <button @click="printManual" class="ml-4 p-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-white dark:hover:text-indigo-400 transition-all shadow-sm print:hidden" title="Print Guide">
                         <PrinterIcon class="w-5 h-5" />
                     </button>
                 </div>
+
                 <div v-if="activeTab === 'flow'" class="space-y-16 animate-in fade-in duration-700 print:hidden">
                     <div class="text-center">
                         <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold uppercase tracking-widest mb-4"><ZapIcon class="w-4 h-4" /> Visualization</div>
@@ -178,6 +189,11 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
                         </div>
                     </div>
                 </div>
+
+                <div v-else-if="activeTab === 'sop'" class="animate-in fade-in duration-700 print:block">
+                    <SalesFlowGuide />
+                </div>
+
                 <div v-else-if="activeTab === 'manual'" class="max-w-5xl mx-auto space-y-8 print:w-full print:max-w-none">
                     <div class="text-center mb-8 animate-in fade-in duration-700">
                         <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4 print:hidden"><InfoIcon class="w-4 h-4" /> Comprehensive Guide</div>
@@ -214,33 +230,6 @@ const getProgressWidth = () => ((activeStep.value - 1) / 5) * 100 + '%';
                                         <div class="pt-4"><ManualSectionContent :sectionId="section.id" /></div>
                                     </div>
                                 </Transition>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-[24px] p-8 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none"></div>
-                        <div class="relative z-10">
-                            <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><ListIcon class="w-5 h-5 text-indigo-400" /> Alur Kerja Umum</h3>
-                            <div class="flex flex-wrap items-center justify-center gap-2 mb-6 text-sm">
-                                <span class="px-3 py-1.5 bg-white/10 rounded-lg font-bold">PO Customer</span>
-                                <ArrowRightIcon class="w-4 h-4 text-slate-400" />
-                                <span class="px-3 py-1.5 bg-purple-500/20 rounded-lg font-bold text-purple-300">Quotation</span>
-                                <ArrowRightIcon class="w-4 h-4 text-slate-400" />
-                                <span class="px-3 py-1.5 bg-amber-500/20 rounded-lg font-bold text-amber-300">Sales Order</span>
-                                <ArrowRightIcon class="w-4 h-4 text-slate-400" />
-                                <span class="px-3 py-1.5 bg-emerald-500/20 rounded-lg font-bold text-emerald-300">Delivery</span>
-                                <ArrowRightIcon class="w-4 h-4 text-slate-400" />
-                                <span class="px-3 py-1.5 bg-teal-500/20 rounded-lg font-bold text-teal-300">Invoice</span>
-                                <ArrowRightIcon class="w-4 h-4 text-slate-400" />
-                                <span class="px-3 py-1.5 bg-green-500/20 rounded-lg font-bold text-green-300">Payment </span>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                <div class="p-3 bg-white/5 rounded-xl border border-white/10 text-sm text-slate-300"><b class="text-white">1.</b> Selalu <b>konfirmasi SO</b> sebelum buat DO.</div>
-                                <div class="p-3 bg-white/5 rounded-xl border border-white/10 text-sm text-slate-300"><b class="text-white">2.</b> <b>Cetak Surat Jalan</b> sebelum barang keluar.</div>
-                                <div class="p-3 bg-white/5 rounded-xl border border-white/10 text-sm text-slate-300"><b class="text-white">3.</b> <b>Verifikasi DO</b> (Completed) sebelum invoice.</div>
-                                <div class="p-3 bg-white/5 rounded-xl border border-white/10 text-sm text-slate-300"><b class="text-white">4.</b> <b>Catat pembayaran</b> segera setelah dana masuk.</div>
-                                <div class="p-3 bg-white/5 rounded-xl border border-white/10 text-sm text-slate-300"><b class="text-white">5.</b> Gunakan <b>AI PO Extractor</b> untuk input cepat.</div>
-                                <div class="p-3 bg-white/5 rounded-xl border border-white/10 text-sm text-slate-300"><b class="text-white">6.</b> Cek <b>Sales Hub</b> setiap hari untuk KPI.</div>
                             </div>
                         </div>
                     </div>

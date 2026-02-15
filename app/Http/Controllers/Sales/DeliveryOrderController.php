@@ -458,6 +458,9 @@ class DeliveryOrderController extends Controller
                 }
                 
                 $deliveryOrder->save();
+
+                // Deduct stock using shared helper
+                $this->deductStock($deliveryOrder);
             });
             return back()->with('success', 'Delivery Order verified and stock deducted.');
         } catch (\Exception $e) {
@@ -479,77 +482,69 @@ class DeliveryOrderController extends Controller
             return $this->complete($deliveryOrder);
         }
 
-        // Handle Revert Logic (From Final -> Non-Final)
-        // Final statuses: DELIVERED, COMPLETED
-        // Non-Final: DRAFT, PICKING, PACKED, SHIPPED
-        // Note: SHIPPED is usually pre-delivery, so stock might not be deducted yet? 
-        // Based on complete() method, stock is deducted when `complete()` is called. 
-        // `complete()` sets status to DELIVERED or COMPLETED.
-        // So if we are in DELIVERED or COMPLETED, stock IS deducted.
-        // If we move to anything else (DRAFT, PICKING, PACKED, SHIPPED), we must RESTORE stock.
-        
-        $finalStatuses = [DeliveryOrder::STATUS_DELIVERED, DeliveryOrder::STATUS_COMPLETED];
-        $nonFinalStatuses = [DeliveryOrder::STATUS_DRAFT, DeliveryOrder::STATUS_PICKING, DeliveryOrder::STATUS_PACKED, DeliveryOrder::STATUS_SHIPPED];
+        // Define status groups
+        // 'Deducted' group: Statuses where stock SHOULD be deducted
+        // According to new requirement: SHIPPED, DELIVERED, COMPLETED
+        $deductedStatuses = [
+            DeliveryOrder::STATUS_SHIPPED, 
+            DeliveryOrder::STATUS_DELIVERED, 
+            DeliveryOrder::STATUS_COMPLETED
+        ];
 
-        if (in_array($oldStatus, $finalStatuses) && in_array($newStatus, $nonFinalStatuses)) {
-            // Processing Revert
-            try {
-                \DB::transaction(function () use ($deliveryOrder, $newStatus) {
-                    foreach ($deliveryOrder->items as $item) {
-                        // 1. Restore Stock (Increase)
-                        $stock = \App\Models\ProductStock::where('product_id', $item->product_id)
-                            ->where('warehouse_id', $deliveryOrder->warehouse_id)
-                            ->first();
+        // 'Not Deducted' group: DRAFT, PICKING, PACKED
+        $notDeductedStatuses = [
+            DeliveryOrder::STATUS_DRAFT, 
+            DeliveryOrder::STATUS_PICKING, 
+            DeliveryOrder::STATUS_PACKED
+        ];
 
-                        if ($stock) {
-                            $stock->adjustStock(
-                                (float) $item->qty_delivered, // Positive quantity to add back
-                                null,
-                                \App\Models\StockMovement::TYPE_CORRECTION, // Or generic correction
-                                $deliveryOrder,
-                                "Revert Status DO #{$deliveryOrder->do_number} (Reverse Delivery)"
-                            );
-                        }
-
-                        // 2. Decrement Sales Order Item Delivered Qty
-                        if ($item->salesOrderItem) {
-                            $item->salesOrderItem->qty_delivered -= (float) $item->qty_delivered;
-                            // Prevent negative just in case
-                            if ($item->salesOrderItem->qty_delivered < 0) {
-                                $item->salesOrderItem->qty_delivered = 0;
-                            }
-                            $item->salesOrderItem->save();
-                        }
-                    }
-
-                    // 3. Update Status
-                    $deliveryOrder->status = $newStatus;
-                    $deliveryOrder->delivered_at = null; // Clear delivered_at
-                    $deliveryOrder->save();
-                    
-                    // 4. Update Sales Order Status if needed (e.g. back to Processing)
-                    // If SO was Delivered, it might need to go back to Processing
-                    if ($deliveryOrder->salesOrder) {
-                        $so = $deliveryOrder->salesOrder;
-                        if ($so->status === \App\Models\SalesOrder::STATUS_DELIVERED) {
-                            $so->status = \App\Models\SalesOrder::STATUS_PROCESSING;
-                            $so->save();
-                        }
-                    }
-                });
-                
-                return back()->with('success', "Delivery Order reverted to {$newStatus}. Stock and SO quantities restored.");
-            } catch (\Exception $e) {
-                return back()->with('error', 'Failed to revert delivery order: ' . $e->getMessage());
+        DB::transaction(function () use ($deliveryOrder, $newStatus, $oldStatus, $deductedStatuses, $notDeductedStatuses) {
+            
+            // CASE 1: Moving from Not Deducted -> Deducted (e.g. Packed -> Shipped)
+            if (in_array($oldStatus, $notDeductedStatuses) && in_array($newStatus, $deductedStatuses)) {
+                $this->deductStock($deliveryOrder);
             }
-        }
+            
+            // CASE 2: Moving from Deducted -> Not Deducted (e.g. Shipped -> Packed [Revert])
+            elseif (in_array($oldStatus, $deductedStatuses) && in_array($newStatus, $notDeductedStatuses)) {
+                $this->restoreStock($deliveryOrder);
+            }
 
-        $deliveryOrder->status = $newStatus;
-        $deliveryOrder->save();
+            // Update Status
+            $deliveryOrder->status = $newStatus;
+            
+            // Update timestamps
+            if ($newStatus === DeliveryOrder::STATUS_DELIVERED && !$deliveryOrder->delivered_at) {
+                // If moving directly to delivered (unlikely via updateStatus but possible)
+                // Actually delivered_at usually set at complete/verified or driver action.
+                // Let's keep it null here unless explicitly setting it? 
+                // Driver app might set it. For admin panel status update, we might leave it.
+            }
+            
+            if (in_array($newStatus, $notDeductedStatuses)) {
+                 $deliveryOrder->delivered_at = null;
+            }
+
+            $deliveryOrder->save();
+             
+             // Update SO Status if needed
+             // If reverting from Delivered/Completed to something else, check SO.
+             if ($deliveryOrder->salesOrder && $deliveryOrder->salesOrder->status === \App\Models\SalesOrder::STATUS_DELIVERED) {
+                 if (in_array($newStatus, $notDeductedStatuses)) {
+                      $deliveryOrder->salesOrder->status = \App\Models\SalesOrder::STATUS_PROCESSING;
+                      $deliveryOrder->salesOrder->save();
+                 }
+             }
+        });
 
         return back()->with('success', "Delivery Order status updated to {$newStatus}.");
     }
 
+
+
+    /**
+     * Helper to restore stock safely
+     */
     public function updateItems(Request $request, DeliveryOrder $deliveryOrder)
     {
         if (!in_array($deliveryOrder->status, ['draft', 'delivered', 'completed'])) {
@@ -1034,5 +1029,88 @@ class DeliveryOrderController extends Controller
             7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
         ];
         return $map[(int)$month] ?? 'I';
+    }
+
+
+
+
+    /**
+     * Helper to deduct stock safely (prevents double deduction)
+     */
+    private function deductStock(DeliveryOrder $deliveryOrder)
+    {
+        // Check if already deducted
+        $wasDeducted = \App\Models\StockMovement::where('reference_type', get_class($deliveryOrder))
+            ->where('reference_id', $deliveryOrder->id)
+            ->where('type', \App\Models\StockMovement::TYPE_SO_DELIVERY)
+            ->exists();
+
+        if ($wasDeducted) return;
+
+        foreach ($deliveryOrder->items as $item) {
+            // Update SO item delivered qty
+            $soItem = $item->salesOrderItem;
+            if ($soItem) {
+                $soItem->qty_delivered += $item->qty_delivered;
+                $soItem->save();
+            }
+
+            // Reduce product stock
+            $stock = \App\Models\ProductStock::where('product_id', $item->product_id)
+                ->where('warehouse_id', $deliveryOrder->warehouse_id)
+                ->first();
+
+            if ($stock) {
+                $stock->adjustStock(
+                    -$item->qty_delivered,
+                    null,
+                    \App\Models\StockMovement::TYPE_SO_DELIVERY,
+                    $deliveryOrder,
+                    "Delivery Order #{$deliveryOrder->do_number} (Shipped)"
+                );
+            }
+        }
+    }
+
+    /**
+     * Helper to restore stock safely
+     */
+    private function restoreStock(DeliveryOrder $deliveryOrder)
+    {
+        // Check if was deducted in StockMovement (for physical stock history)
+        $hasDeductionRecord = \App\Models\StockMovement::where('reference_type', get_class($deliveryOrder))
+            ->where('reference_id', $deliveryOrder->id)
+            ->where('type', \App\Models\StockMovement::TYPE_SO_DELIVERY)
+            ->exists();
+
+        foreach ($deliveryOrder->items as $item) {
+            // 1. Restore Physical Stock (Only if we have the record to reverse)
+            if ($hasDeductionRecord) {
+                $stock = \App\Models\ProductStock::where('product_id', $item->product_id)
+                    ->where('warehouse_id', $deliveryOrder->warehouse_id)
+                    ->first();
+
+                if ($stock) {
+                    $stock->adjustStock(
+                        (float) $item->qty_delivered,
+                        null,
+                        \App\Models\StockMovement::TYPE_CORRECTION,
+                        $deliveryOrder,
+                        "Revert DO #{$deliveryOrder->do_number}"
+                    );
+                }
+            }
+
+            // 2. Decrement Sales Order Item Delivered Qty
+            // We ALWAYS attempt this during revert, regardless of StockMovement record existence,
+            // because the SO item quantity might have been updated even if the stock record failed/was deleted.
+            if ($item->salesOrderItem) {
+                $item->salesOrderItem->qty_delivered -= (float) $item->qty_delivered;
+                if ($item->salesOrderItem->qty_delivered < 0) {
+                    $item->salesOrderItem->qty_delivered = 0;
+                }
+                $item->salesOrderItem->save();
+            }
+        }
     }
 }

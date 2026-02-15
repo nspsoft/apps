@@ -128,27 +128,7 @@ class DeliveryOrder extends Model
      */
     public function complete(): void
     {
-        foreach ($this->items as $item) {
-            // Update SO item delivered qty
-            $soItem = $item->salesOrderItem;
-            $soItem->qty_delivered += $item->qty_delivered;
-            $soItem->save();
 
-            // Reduce product stock
-            $stock = ProductStock::where('product_id', $item->product_id)
-                ->where('warehouse_id', $this->warehouse_id)
-                ->first();
-
-            if ($stock) {
-                $stock->adjustStock(
-                    -$item->qty_delivered,
-                    null,
-                    StockMovement::TYPE_SO_DELIVERY,
-                    $this,
-                    "Delivery Order #{$this->do_number}"
-                );
-            }
-        }
 
         // Update SO status
         $so = $this->salesOrder;
@@ -156,7 +136,7 @@ class DeliveryOrder extends Model
         $so->status = $allDelivered ? SalesOrder::STATUS_DELIVERED : SalesOrder::STATUS_PROCESSING;
         $so->save();
 
-        $this->status = self::STATUS_DELIVERED;
+        $this->status = self::STATUS_COMPLETED;
         $this->delivered_at = now();
         $this->save();
     }
