@@ -78,7 +78,7 @@ class SalesOrderItem extends Model
                 ->filter(function ($doItem) {
                     $status = $doItem->deliveryOrder?->status;
                     if (!$status) return false;
-                    return !in_array($status, ['delivered', 'cancelled']);
+                    return !in_array($status, ['delivered', 'completed', 'cancelled']);
                 })
                 ->sum('qty_delivered');
         }
@@ -87,7 +87,7 @@ class SalesOrderItem extends Model
             ->whereHas('deliveryOrder', function ($query) {
                 // We count everything that is NOT delivered and NOT cancelled as "Reserved"
                 // Delivered is already subtracted via qty_delivered
-                $query->whereNotIn('status', ['delivered', 'cancelled']);
+                $query->whereNotIn('status', ['delivered', 'completed', 'cancelled']);
             })
             ->sum('qty_delivered'); // qty_delivered in DO Item means "planned qty"
     }

@@ -157,7 +157,7 @@ const getStatusClass = (status) => {
                                         <th class="px-6 py-4 text-center">Reserved</th>
                                         <th class="px-6 py-4 text-center">Invoiced</th>
                                         <th class="px-6 py-4 text-center">Returned</th>
-                                        <th class="px-6 py-4 text-center">Remaining</th>
+                                        <th class="px-6 py-4 text-center cursor-help" title="Rumus: Ordered - Delivered - Reserved">Remaining ⓘ</th>
                                         <th class="px-6 py-4 text-right">Total</th>
                                     </tr>
                                 </thead>
