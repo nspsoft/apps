@@ -243,10 +243,10 @@ const printReport = () => {
         '<p><strong>Date:</strong> ' + new Date().toLocaleDateString() + ' &nbsp;|&nbsp; <strong>Mode:</strong> ' + props.mode.toUpperCase() + '</p>' +
         '<hr />' +
         printContent +
+        '<script>window.onload = function() { setTimeout(function() { window.print(); }, 200); }<\\/script>' +
         '</body></html>'
     );
     printWindow.document.close();
-    printWindow.print();
 };
 </script>
 
