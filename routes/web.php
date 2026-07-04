@@ -481,6 +481,7 @@ Route::prefix('manufacturing')->name('manufacturing.')->middleware(['auth'])->gr
     Route::resource('shifts', ShiftController::class);
     Route::resource('machines', MachineController::class);
     Route::post('/subcontract-orders/sync-cancelled', [SubcontractOrderController::class, 'syncCancelledWorkOrders'])->name('subcontract-orders.sync-cancelled');
+    Route::get('/subcontract-orders/print-batch-delivery-note', [SubcontractOrderController::class, 'printBatchDeliveryNote'])->name('subcontract-orders.print-batch-delivery-note');
     Route::resource('subcontract-orders', SubcontractOrderController::class);
     Route::post('/subcontract-orders/{subcontractOrder}/dispatch', [SubcontractOrderController::class, 'dispatchMaterials'])->name('subcontract-orders.dispatch');
     Route::post('/subcontract-orders/{subcontractOrder}/return-materials', [SubcontractOrderController::class, 'returnMaterials'])->name('subcontract-orders.return-materials');

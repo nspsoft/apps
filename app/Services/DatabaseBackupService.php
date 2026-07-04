@@ -154,6 +154,11 @@ class DatabaseBackupService
         'logistics' => [
             'delivery_schedules',
         ],
+        'maintenance' => [
+            'maintenance_schedules',
+            'maintenance_logs',
+            'maintenance_sparepart_usage',
+        ],
     ];
 
     /**
@@ -348,6 +353,9 @@ class DatabaseBackupService
                 'journal_items', 'journals',
                 // HR transactions
                 'hr_attendances', 'hr_payroll_items', 'hr_payrolls',
+                // Logistics & Maintenance transactions
+                'delivery_schedules',
+                'maintenance_schedules', 'maintenance_logs', 'maintenance_sparepart_usage',
                 // Notifications & logs
                 'notifications', 'activity_log',
             ];

@@ -405,7 +405,7 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                                             </a>
                                             <a 
                                                 v-if="mv.qty < 0 && mv.type === 'transfer'"
-                                                :href="route('manufacturing.subcontract-orders.print-delivery-note', order.id)"
+                                                :href="route('manufacturing.subcontract-orders.print-delivery-note', { subcontractOrder: order.id, movement_id: mv.id })"
                                                 target="_blank"
                                                 class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-400 uppercase tracking-tighter"
                                             >

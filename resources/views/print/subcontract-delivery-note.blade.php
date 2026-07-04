@@ -152,18 +152,18 @@ Telp : +62 21 89383915'))) !!}
                 <div class="doc-title">SURAT JALAN SUBCONT</div>
                 <table style="margin-top: 10px; float: right;">
                     <tr>
-                        <td class="font-bold">No. SJ</td>
-                        <td width="15" class="text-center">:</td>
+                        <td class="font-bold" width="90">No. SJ</td>
+                        <td width="5" class="text-center">:</td>
                         <td>{{ $order->order_number }}</td>
                     </tr>
                     <tr>
-                        <td class="font-bold">Tanggal</td>
-                        <td class="text-center">:</td>
+                        <td class="font-bold" width="90">Tanggal</td>
+                        <td width="5" class="text-center">:</td>
                         <td>{{ date('d F Y') }}</td>
                     </tr>
                     <tr>
-                        <td class="font-bold">No. WO</td>
-                        <td class="text-center">:</td>
+                        <td class="font-bold" width="90">No. WO</td>
+                        <td width="5" class="text-center">:</td>
                         <td>{{ $order->workOrder->wo_number }}</td>
                     </tr>
                 </table>
@@ -194,7 +194,7 @@ Telp : +62 21 89383915'))) !!}
         <thead>
             <tr>
                 <th width="40">No</th>
-                <th width="120">Kode Barang</th>
+                <th width="200">Barang Jadi (Product)</th>
                 <th>Nama Barang / Material</th>
                 <th width="80">Qty</th>
                 <th width="60">Satuan</th>
@@ -202,16 +202,62 @@ Telp : +62 21 89383915'))) !!}
             </tr>
         </thead>
         <tbody>
-            @foreach($order->workOrder->components as $index => $comp)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td class="text-center font-mono">{{ $comp->product->sku }}</td>
-                <td>{{ $comp->product->name }}</td>
-                <td class="text-right font-bold">{{ number_format($comp->qty_required, 0, ',', '.') }}</td>
-                <td class="text-center">{{ $comp->product->unit->name ?? 'PCs' }}</td>
-                <td>Bahan Baku Subcont</td>
-            </tr>
-            @endforeach
+            @if(isset($movementItems) && count($movementItems) > 0)
+                @php 
+                    $itemCount = count($movementItems); 
+                    $i = 0; 
+                @endphp
+                @foreach($movementItems as $index => $mv)
+                <tr>
+                    @if($i == 0)
+                    <td class="text-center" rowspan="{{ $itemCount }}" style="vertical-align: middle;">{{ $index + 1 }}</td>
+                    <td class="text-left" rowspan="{{ $itemCount }}" style="font-size: 8pt; vertical-align: middle; padding-left: 5px; padding-right: 5px;">
+                        {{ $order->workOrder->product->name }}<br>
+                        <span style="color: #444;">{{ $order->workOrder->wo_number }}</span><br>
+                        @if($order->purchaseOrder)
+                        <span style="color: #444;">PO: {{ $order->purchaseOrder->po_number }}</span><br>
+                        @endif
+                        <span style="font-weight: bold; color: #444;">(<strong>{{ number_format($order->workOrder->qty_planned, 0, ',', '.') }} {{ $order->workOrder->product->unit->name ?? 'PCs' }}</strong>)</span>
+                    </td>
+                    @endif
+                    <td>{{ $mv->product->name }}</td>
+                    <td class="text-right font-bold">{{ number_format(abs($mv->qty), 0, ',', '.') }}</td>
+                    <td class="text-center">{{ $mv->product->unit->name ?? 'PCs' }}</td>
+                    <td>Bahan Baku Subcont</td>
+                </tr>
+                @php $i++; @endphp
+                @endforeach
+            @else
+                @php 
+                    $validComponents = $order->workOrder->components->filter(function($c) {
+                        return $c->qty_consumed > 0;
+                    });
+                    $itemCount = count($validComponents); 
+                    $i = 0; 
+                @endphp
+                @if($itemCount > 0)
+                    @foreach($validComponents as $index => $comp)
+                <tr>
+                    @if($i == 0)
+                    <td class="text-center" rowspan="{{ $itemCount }}" style="vertical-align: middle;">{{ $index + 1 }}</td>
+                    <td class="text-left" rowspan="{{ $itemCount }}" style="font-size: 8pt; vertical-align: middle; padding-left: 5px; padding-right: 5px;">
+                        {{ $order->workOrder->product->name }}<br>
+                        <span style="color: #444;">{{ $order->workOrder->wo_number }}</span><br>
+                        @if($order->purchaseOrder)
+                        <span style="color: #444;">PO: {{ $order->purchaseOrder->po_number }}</span><br>
+                        @endif
+                        <span style="font-weight: bold; color: #444;">(<strong>{{ number_format($order->workOrder->qty_planned, 0, ',', '.') }} {{ $order->workOrder->product->unit->name ?? 'PCs' }}</strong>)</span>
+                    </td>
+                    @endif
+                    <td>{{ $comp->product->name }}</td>
+                    <td class="text-right font-bold">{{ number_format($comp->qty_consumed, 0, ',', '.') }}</td>
+                    <td class="text-center">{{ $comp->product->unit->name ?? 'PCs' }}</td>
+                    <td>Bahan Baku Subcont</td>
+                </tr>
+                    @php $i++; @endphp
+                    @endforeach
+                @endif
+            @endif
         </tbody>
     </table>
 
@@ -221,7 +267,7 @@ Telp : +62 21 89383915'))) !!}
                 <div style="border: 0.5pt solid #000; padding: 10px;">
                     <div class="font-bold underline" style="font-size: 8pt; margin-bottom: 5px;">CATATAN:</div>
                     <div style="height: 60px; font-style: italic; color: #555;">
-                        {{ $order->notes ?? 'Mohon barang diproses sesuai dengan Work Order yang terlampir. Kerusakan dalam pengiriman harap dilaporkan segera.' }}
+                        {{ $order->notes ?? 'Mohon barang diproses sesuai perhitungan qty Barang Jadi . Jika terjadi kerusakan material dalam proses di subcont harap dilaporkan segera.' }}
                     </div>
                 </div>
             </td>

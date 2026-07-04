@@ -28,6 +28,33 @@ const search = ref(props.filters.search || '');
 const selectedStatus = ref(props.filters.status || '');
 const showFilters = ref(false);
 const syncingCancelled = ref(false);
+const selectedOrders = ref([]);
+
+const toggleSelectAll = (event) => {
+    if (event.target.checked) {
+        selectedOrders.value = props.orders.data.map(order => order.id);
+    } else {
+        selectedOrders.value = [];
+    }
+};
+
+const printBatch = () => {
+    if (selectedOrders.value.length === 0) return;
+    
+    const firstSupplierId = props.orders.data.find(o => o.id === selectedOrders.value[0])?.supplier_id;
+    const allSameSupplier = selectedOrders.value.every(id => {
+        const order = props.orders.data.find(o => o.id === id);
+        return order && order.supplier_id === firstSupplierId;
+    });
+
+    if (!allSameSupplier) {
+        alert('Harap pilih Subcontract Order dari Supplier yang sama untuk dicetak secara batch.');
+        return;
+    }
+
+    const ids = selectedOrders.value.join(',');
+    window.open(route('manufacturing.subcontract-orders.print-batch-delivery-note', { ids }), '_blank');
+};
 
 const applyFilters = debounce(() => {
     router.get('/manufacturing/subcontract-orders', {
@@ -178,6 +205,16 @@ const canDispatch = (order) => {
                     <ArrowPathIcon class="h-5 w-5" />
                     Sync Cancelled ({{ syncCancelledCount || 0 }})
                 </button>
+                
+                <button
+                    v-if="selectedOrders.length > 0"
+                    type="button"
+                    @click="printBatch"
+                    class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 shadow-lg shadow-blue-500/20"
+                >
+                    <ClipboardDocumentListIcon class="h-5 w-5" />
+                    Print Batch SJ ({{ selectedOrders.length }})
+                </button>
             </div>
             
             <div>
@@ -226,6 +263,14 @@ const canDispatch = (order) => {
                 <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-700">
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-4 text-left">
+                                <input 
+                                    type="checkbox" 
+                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                                    @change="toggleSelectAll"
+                                    :checked="selectedOrders.length === orders.data.length && orders.data.length > 0"
+                                >
+                            </th>
                             <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Order & Supplier</th>
                             <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">WO Ref & PO Number</th>
                             <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Product</th>
@@ -249,7 +294,15 @@ const canDispatch = (order) => {
                                 <p class="text-slate-500 max-w-sm mx-auto">Create a Work Order with "Subcontract" type to start tracking external production.</p>
                             </td>
                         </tr>
-                        <tr v-for="order in orders.data" :key="order.id" class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800/30 transition-colors">
+                        <tr v-for="order in orders.data" :key="order.id" class="group hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800/30 transition-colors" :class="{'bg-blue-50/50 dark:bg-blue-900/20': selectedOrders.includes(order.id)}">
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <input 
+                                    type="checkbox" 
+                                    :value="order.id"
+                                    v-model="selectedOrders"
+                                    class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                                >
+                            </td>
                             <td class="px-6 py-3 whitespace-nowrap font-medium text-slate-900 dark:text-white">
                                 <div class="flex items-center gap-3">
                                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-600/20 to-amber-500/20 border border-amber-500/30">

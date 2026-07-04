@@ -334,17 +334,98 @@ class SubcontractOrderController extends Controller
         // To be implemented
     }
 
-    public function printDeliveryNote(SubcontractOrder $subcontractOrder)
+    public function printDeliveryNote(Request $request, SubcontractOrder $subcontractOrder)
     {
+        $movementId = $request->query('movement_id');
+        $movementItems = [];
+        $movement = null;
+
+        if ($movementId) {
+            $movement = \App\Models\StockMovement::where('reference_type', SubcontractOrder::class)
+                ->where('reference_id', $subcontractOrder->id)
+                ->where('id', $movementId)
+                ->first();
+
+            if ($movement) {
+                // Get all movements in the same transaction
+                $movementItems = \App\Models\StockMovement::where('reference_type', SubcontractOrder::class)
+                    ->where('reference_id', $subcontractOrder->id)
+                    ->where('type', \App\Models\StockMovement::TYPE_TRANSFER)
+                    ->where('qty', '<', 0)
+                    ->where('created_at', $movement->created_at)
+                    ->with('product.unit')
+                    ->get();
+            }
+        }
+
         $subcontractOrder->load([
             'workOrder.product',
             'workOrder.bom',
             'workOrder.components.product.unit',
-            'supplier'
+            'supplier',
+            'purchaseOrder'
         ]);
 
         return view('print.subcontract-delivery-note', [
-            'order' => $subcontractOrder
+            'order' => $subcontractOrder,
+            'movementItems' => $movementItems,
+            'movement' => $movement
+        ]);
+    }
+
+    public function printBatchDeliveryNote(Request $request)
+    {
+        $ids = $request->query('ids');
+        if (!$ids) {
+            return back()->with('error', 'Tidak ada Subcontract Order yang dipilih.');
+        }
+
+        $idArray = explode(',', $ids);
+        
+        $orders = SubcontractOrder::with([
+            'workOrder.product',
+            'workOrder.bom',
+            'workOrder.components.product.unit',
+            'supplier',
+            'purchaseOrder'
+        ])->whereIn('id', $idArray)->get();
+
+        if ($orders->isEmpty()) {
+            return back()->with('error', 'Subcontract Order tidak ditemukan.');
+        }
+
+        // Validate same supplier
+        $supplierId = $orders->first()->supplier_id;
+        foreach ($orders as $order) {
+            if ($order->supplier_id !== $supplierId) {
+                return back()->with('error', 'Subcontract Order yang dipilih harus dari Supplier yang sama.');
+            }
+        }
+
+        $movementItemsByOrder = [];
+        foreach ($orders as $order) {
+            $latestMovement = \App\Models\StockMovement::where('reference_type', SubcontractOrder::class)
+                ->where('reference_id', $order->id)
+                ->where('type', \App\Models\StockMovement::TYPE_TRANSFER)
+                ->where('qty', '<', 0)
+                ->latest('created_at')
+                ->first();
+
+            if ($latestMovement) {
+                $movementItemsByOrder[$order->id] = \App\Models\StockMovement::where('reference_type', SubcontractOrder::class)
+                    ->where('reference_id', $order->id)
+                    ->where('type', \App\Models\StockMovement::TYPE_TRANSFER)
+                    ->where('qty', '<', 0)
+                    ->where('created_at', $latestMovement->created_at)
+                    ->with('product.unit')
+                    ->get();
+            }
+        }
+
+        return view('print.subcontract-batch-delivery-note', [
+            'orders' => $orders,
+            'supplier' => $orders->first()->supplier,
+            'movementItemsByOrder' => $movementItemsByOrder
         ]);
     }
 
