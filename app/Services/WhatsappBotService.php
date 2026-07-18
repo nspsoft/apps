@@ -45,6 +45,44 @@ class WhatsappBotService
         // Log incoming message
         $this->logMessage($phone, $message, 'incoming', $customer?->id);
 
+        // Security check: check if the sender is an owner asking for reports
+        $ownerNumbersStr = AppSetting::get('owner_whatsapp_numbers', '');
+        $ownerNumbers = array_filter(array_map('trim', explode(',', $ownerNumbersStr)));
+        $normalizedIncoming = preg_replace('/[^0-9]/', '', $phone);
+        $isOwner = false;
+        
+        foreach ($ownerNumbers as $ownerNum) {
+            $normalizedOwner = preg_replace('/[^0-9]/', '', $ownerNum);
+            if (!empty($normalizedOwner) && (str_ends_with($normalizedIncoming, $normalizedOwner) || str_ends_with($normalizedOwner, $normalizedIncoming))) {
+                $isOwner = true;
+                break;
+            }
+        }
+
+        if ($isOwner) {
+            $cleanMsg = strtolower(trim($message));
+            if ($cleanMsg === '/report' || $cleanMsg === '/executive-report' || str_contains($cleanMsg, 'laporan mingguan') || str_contains($cleanMsg, 'cek laporan')) {
+                try {
+                    $reportService = app(ExecutiveReportService::class);
+                    $result = $reportService->generateAndSendWeeklyReport();
+                    
+                    $responseMsg = ($result['success'] ?? false)
+                        ? "✅ Laporan eksekutif berhasil dibuat dan dikirim ke nomor terdaftar Anda."
+                        : "⚠️ Gagal membuat laporan eksekutif: " . ($result['message'] ?? 'Unknown error');
+                        
+                    $this->logMessage($phone, $responseMsg, 'outgoing', $customer?->id, 'executive_report');
+                    $this->gateway->sendMessage($phone, $responseMsg);
+                    return $responseMsg;
+                } catch (\Exception $e) {
+                    Log::error("Error generating executive report via WA command: " . $e->getMessage());
+                    $errResponse = "❌ Terjadi kesalahan sistem saat membuat laporan eksekutif.";
+                    $this->logMessage($phone, $errResponse, 'outgoing', $customer?->id, 'executive_report');
+                    $this->gateway->sendMessage($phone, $errResponse);
+                    return $errResponse;
+                }
+            }
+        }
+
         // Fetch last 8 messages for conversation context (memory)
         $conversationHistory = WhatsappMessage::where('phone', $phone)
             ->orderByDesc('created_at')

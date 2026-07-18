@@ -8,6 +8,7 @@ import {
     BellIcon,
     ShieldCheckIcon,
     SparklesIcon,
+    ChatBubbleLeftRightIcon,
 } from '@heroicons/vue/24/outline';
 
 const settingsSections = [
@@ -50,6 +51,14 @@ const settingsSections = [
         href: route('settings.ai.index'),
         color: 'text-amber-400',
         bg: 'bg-amber-500/10',
+    },
+    {
+        title: 'WhatsApp Configuration',
+        description: 'Configure WhatsApp gateways and AI bot personalities',
+        icon: ChatBubbleLeftRightIcon,
+        href: route('settings.whatsapp.index'),
+        color: 'text-emerald-400',
+        bg: 'bg-emerald-500/10',
     },
 ];
 </script>

@@ -92,6 +92,14 @@ class FonnteService
     }
 
     /**
+     * Send a file/document via Fonnte
+     */
+    public function sendFile(string $phone, string $fileUrl, string $caption = ''): array
+    {
+        return $this->sendImage($phone, $fileUrl, $caption);
+    }
+
+    /**
      * Format phone number to international format
      */
     protected function formatPhone(string $phone): string
