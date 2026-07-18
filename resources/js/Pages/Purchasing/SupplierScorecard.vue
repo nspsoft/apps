@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     TrophyIcon,
@@ -9,6 +9,7 @@ import {
     ArrowTrendingUpIcon,
     StarIcon,
     ExclamationTriangleIcon,
+    PrinterIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 import {
@@ -36,6 +37,19 @@ const props = defineProps({
     onTimeTrend: Array,
     period: Number,
 });
+
+const selectedPeriod = ref(props.period);
+
+const changePeriod = () => {
+    router.get('/purchasing/supplier-scorecard', { months: selectedPeriod.value }, {
+        preserveState: true,
+        replace: true
+    });
+};
+
+const printScorecard = () => {
+    window.print();
+};
 
 // --- Clock ---
 const time = ref('');
@@ -134,15 +148,81 @@ const scoreBarColor = (score) => {
         <Head title="Supplier Scorecard" />
 
         <div class="min-h-screen bg-[#050510] text-white font-mono relative overflow-hidden">
-            <div class="fixed inset-0 pointer-events-none z-0">
+            <div class="fixed inset-0 pointer-events-none z-0 no-print">
                 <div class="absolute inset-0 perspective-grid opacity-30"></div>
                 <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[200px] animate-float"></div>
                 <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[200px] animate-float-delayed"></div>
             </div>
 
             <div class="relative z-10 p-4 lg:p-6 max-w-[1600px] mx-auto space-y-6">
+                <!-- Print Only Header (PT Jidoka Official Format) -->
+                <div class="hidden print-only mb-6 border-b-2 border-slate-900 pb-4">
+                    <table class="w-full mb-4">
+                        <tr>
+                            <td width="60%" style="vertical-align: top; text-align: left; border: none !important; padding: 0 !important;">
+                                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+                                    <img src="/images/jri-official-logo.png" alt="logo" style="height: 55px; float: left; margin-right: 15px;">
+                                    <div>
+                                        <div style="color: #E21E26; font-weight: 900; font-style: italic; font-size: 24pt; letter-spacing: -1px; margin: 0; line-height: 1; font-family: Arial, sans-serif;">jidoka</div>
+                                        <div style="color: #003680; font-weight: 800; font-size: 11pt; margin: -2px 0 5px 0; font-family: Arial, sans-serif;">PT. JIDOKA RESULT INDONESIA</div>
+                                    </div>
+                                    <div style="clear: both;"></div>
+                                </div>
+                                <div style="font-size: 9pt; line-height: 1.3; font-family: Arial, sans-serif; color: #333;">
+                                    Kawasan Industri JABABEKA I<br>
+                                    Jl. Jababeka II Blok C No. 19 L<br>
+                                    Pasirgombong, Cikarang Utara, Bekasi 17530 Jawa Barat<br>
+                                    Telp : +62 21 89383915, Fax. : +62 21 89383915<br>
+                                    e_mail : purchasing@jidoka.co.id
+                                </div>
+                            </td>
+                            <td width="40%" style="vertical-align: top; text-align: right; padding-top: 10px; border: none !important; padding: 0 !important;">
+                                <div style="color: #000080; font-size: 18pt; font-weight: 900; font-style: italic; font-family: Arial, sans-serif; margin-bottom: 10px;">SUPPLIER SCORECARD</div>
+                                <table style="float: right; font-size: 9pt; border-collapse: collapse; font-family: Arial, sans-serif;">
+                                    <tr>
+                                        <td style="font-weight: bold; padding: 2px 5px; text-align: left; border: none !important;">Cetak Tanggal</td>
+                                        <td style="padding: 2px 5px; border: none !important;">:</td>
+                                        <td style="padding: 2px 5px; text-align: left; border: none !important;">{{ new Date().toLocaleDateString('id-ID') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: bold; padding: 2px 5px; text-align: left; border: none !important;">Periode</td>
+                                        <td style="padding: 2px 5px; border: none !important;">:</td>
+                                        <td style="padding: 2px 5px; text-align: left; border: none !important;">{{ period }} Bulan Terakhir</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- KPI Summary Table (Print Only) -->
+                <div class="hidden print-only mb-6">
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-family: Arial, sans-serif;">
+                        <tr style="background: #f1f5f9; border: 1px solid #cbd5e1;">
+                            <th style="padding: 8px 12px; text-align: left; font-size: 9pt; border: 1px solid #cbd5e1; font-weight: bold; color: #334155;">RINGKASAN OPERASIONAL</th>
+                            <th style="padding: 8px 12px; text-align: right; font-size: 9pt; border: 1px solid #cbd5e1; font-weight: bold; color: #334155;">NILAI / HASIL</th>
+                        </tr>
+                        <tr style="border: 1px solid #cbd5e1;">
+                            <td style="padding: 8px 12px; font-size: 9pt; border: 1px solid #cbd5e1; color: #0f172a;">Active Suppliers</td>
+                            <td style="padding: 8px 12px; font-size: 9pt; text-align: right; font-weight: bold; border: 1px solid #cbd5e1; color: #0f172a;">{{ stats.total_suppliers }}</td>
+                        </tr>
+                        <tr style="border: 1px solid #cbd5e1;">
+                            <td style="padding: 8px 12px; font-size: 9pt; border: 1px solid #cbd5e1; color: #0f172a;">Avg On-Time Delivery Rate</td>
+                            <td style="padding: 8px 12px; font-size: 9pt; text-align: right; font-weight: bold; border: 1px solid #cbd5e1; color: #0f172a;">{{ stats.avg_on_time }}%</td>
+                        </tr>
+                        <tr style="border: 1px solid #cbd5e1;">
+                            <td style="padding: 8px 12px; font-size: 9pt; border: 1px solid #cbd5e1; color: #0f172a;">Avg Score</td>
+                            <td style="padding: 8px 12px; font-size: 9pt; text-align: right; font-weight: bold; border: 1px solid #cbd5e1; color: #0f172a;">{{ stats.avg_score }}</td>
+                        </tr>
+                        <tr style="border: 1px solid #cbd5e1;">
+                            <td style="padding: 8px 12px; font-size: 9pt; border: 1px solid #cbd5e1; color: #0f172a;">Top Supplier</td>
+                            <td style="padding: 8px 12px; font-size: 9pt; text-align: right; font-weight: bold; border: 1px solid #cbd5e1; color: #0f172a;">{{ stats.top_supplier }} (Score: {{ stats.top_score }})</td>
+                        </tr>
+                    </table>
+                </div>
+
                 <!-- Header -->
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4 no-print">
                     <div>
                         <h1 class="text-2xl font-black tracking-wider text-emerald-400 uppercase flex items-center gap-3">
                             <TrophyIcon class="h-7 w-7" />
@@ -150,14 +230,40 @@ const scoreBarColor = (score) => {
                         </h1>
                         <p class="text-xs text-slate-500 tracking-[0.3em] uppercase mt-1">VENDOR PERFORMANCE ANALYTICS</p>
                     </div>
-                    <div class="text-right">
-                        <p class="text-3xl font-black text-white/10 tracking-widest">{{ time }}</p>
-                        <p class="text-[10px] text-slate-600 uppercase tracking-widest mt-1">Period: {{ period }} months</p>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <!-- Dropdown Period -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-slate-400 font-mono tracking-wider uppercase">Period:</span>
+                            <select
+                                v-model="selectedPeriod"
+                                @change="changePeriod"
+                                class="bg-[#0a0a16] border border-white/10 text-white rounded-xl px-3 py-1.5 text-xs font-mono focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                            >
+                                <option :value="1">1 Month</option>
+                                <option :value="3">3 Months</option>
+                                <option :value="6">6 Months</option>
+                                <option :value="12">12 Months</option>
+                                <option :value="24">24 Months</option>
+                            </select>
+                        </div>
+
+                        <!-- Print Button -->
+                        <button
+                            @click="printScorecard"
+                            class="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500 hover:text-black transition-colors uppercase tracking-wider font-mono"
+                        >
+                            <PrinterIcon class="h-4 w-4" />
+                            Print Resume
+                        </button>
+                        
+                        <div class="text-right hidden xl:block">
+                            <p class="text-2xl font-bold font-mono text-white/20 tracking-wider">{{ time }}</p>
+                        </div>
                     </div>
                 </div>
 
                 <!-- KPI Cards -->
-                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 kpi-container-print no-print">
                     <div class="hud-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4">
                         <div class="flex items-center gap-2 mb-2">
                             <UserGroupIcon class="h-4 w-4 text-emerald-400" />
@@ -181,7 +287,7 @@ const scoreBarColor = (score) => {
                         </div>
                         <p class="text-3xl font-black" :class="scoreColor(stats.avg_score)">{{ stats.avg_score }}</p>
                     </div>
-                    <div class="hud-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 lg:col-span-2">
+                    <div class="hud-card bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-4 lg:col-span-2 kpi-span-2-print">
                         <div class="flex items-center gap-2 mb-2">
                             <TrophyIcon class="h-4 w-4 text-yellow-400" />
                             <span class="text-[10px] text-slate-500 tracking-[0.15em] uppercase">Top Supplier</span>
@@ -195,13 +301,13 @@ const scoreBarColor = (score) => {
                 <div class="hud-panel">
                     <div class="panel-header p-4 border-b border-white/5 bg-emerald-500/5 flex items-center justify-between">
                         <h3 class="flex items-center gap-2 text-sm font-bold text-emerald-400 tracking-widest uppercase">
-                            <StarIcon class="h-4 w-4" />
+                            <StarIcon class="h-4 w-4 no-print" />
                             Supplier Rankings
-                            <span class="ml-2 bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full text-[10px]">{{ suppliers.length }}</span>
+                            <span class="ml-2 bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full text-[10px] no-print">{{ suppliers.length }}</span>
                         </h3>
                     </div>
                     <div class="panel-body p-0 overflow-auto max-h-[30vh]">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse print-table">
                             <thead class="sticky top-0 z-10">
                                 <tr class="text-[10px] text-slate-500 font-bold uppercase tracking-wider border-b border-white/10 bg-[#0a0a16]">
                                     <th class="p-3 w-8">#</th>
@@ -213,7 +319,7 @@ const scoreBarColor = (score) => {
                                     <th class="p-3 text-center">Avg Days</th>
                                     <th class="p-3 text-right">POs</th>
                                     <th class="p-3 text-right">Spend</th>
-                                    <th class="p-3 text-center">Action</th>
+                                    <th class="p-3 text-center no-print">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-white/5">
@@ -261,7 +367,7 @@ const scoreBarColor = (score) => {
                                     </td>
                                     <td class="p-3 text-right text-xs text-slate-400 font-mono">{{ s.total_pos }}</td>
                                     <td class="p-3 text-right text-xs text-slate-400 font-mono">{{ formatCurrency(s.total_spend) }}</td>
-                                    <td class="p-3 text-center">
+                                    <td class="p-3 text-center no-print">
                                         <Link
                                             :href="route('purchasing.suppliers.show', s.id)"
                                             class="px-3 py-1 text-[10px] bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500 hover:text-black transition-colors uppercase tracking-wider font-bold"
@@ -277,7 +383,7 @@ const scoreBarColor = (score) => {
                 </div>
 
                 <!-- Charts Row -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 no-print">
                     <!-- On-Time Trend -->
                     <div class="hud-panel">
                         <div class="panel-header p-4 border-b border-white/5 bg-white/5">
@@ -357,4 +463,256 @@ const scoreBarColor = (score) => {
 }
 
 .glow-text { text-shadow: 0 0 10px currentColor; }
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    .print-only {
+        display: block !important;
+    }
+    /* Reset styles for printing */
+    body, #app, .min-h-screen, .bg-\[\#050510\] {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    }
+    
+    /* Override AppLayout sidebar padding to use full width */
+    .lg\:pl-64, .lg\:pl-20 {
+        padding-left: 0 !important;
+    }
+
+    .relative, .min-h-screen, .max-w-\[1600px\], .space-y-6 {
+        background: transparent !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        backdrop-filter: none !important;
+    }
+
+    /* KPI Grid for Print */
+    .kpi-container-print {
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 16px !important;
+    }
+    
+    .kpi-span-2-print {
+        grid-column: span 2 / span 2 !important;
+    }
+    
+    .hud-card {
+        background: transparent !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        box-shadow: none !important;
+    }
+
+    .hud-card span, .hud-card p, .hud-card h3 {
+        color: #0f172a !important;
+    }
+
+    .glow-text {
+        text-shadow: none !important;
+    }
+
+    /* Make rankings table scrollable panel fully visible on print */
+    .panel-body {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    /* Make rankings table print beautifully */
+    .hud-panel {
+        background: transparent !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        border-radius: 8px !important;
+        overflow: visible !important;
+        max-height: none !important;
+    }
+    
+    .panel-header {
+        background: #f8fafc !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+    }
+    
+    .panel-header h3 {
+        color: #0f172a !important;
+    }
+    
+    table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+    
+    thead tr {
+        background-color: #f1f5f9 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
+    
+    th {
+        color: #334155 !important;
+        font-weight: bold !important;
+    }
+    
+    tbody tr {
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+    
+    td, th {
+        padding: 8px 12px !important;
+        color: #0f172a !important;
+        background: transparent !important;
+    }
+    
+    /* Score indicator colors for printing */
+    .text-emerald-400 { color: #059669 !important; }
+    .text-cyan-400 { color: #0891b2 !important; }
+    .text-amber-400 { color: #d97706 !important; }
+    .text-orange-400 { color: #ea580c !important; }
+    .text-rose-400 { color: #dc2626 !important; }
+    .text-slate-600 { color: #475569 !important; }
+    
+    /* Custom grades badge style for print */
+    .grade-badge-print {
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        padding: 2px 6px !important;
+        background: transparent !important;
+        color: #0f172a !important;
+    }
+}
+</style>
+
+<style>
+@media print {
+    /* Globally override AppLayout paddings and margins for full width printing */
+    body, #app, .min-h-screen, .bg-\[\#050510\] {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-family: Arial, sans-serif !important;
+    }
+
+    .lg\:pl-64, .lg\:pl-20, .pl-64, .pl-20 {
+        padding-left: 0 !important;
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .px-4, .sm\:px-6, .lg\:px-8 {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    .pt-8, .pb-24, .lg\:pb-8 {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    /* Hide sidebar, top navbar, PWA banners, and other default UI globally */
+    aside, header, nav, .print-hidden, .no-print, [role="navigation"], [role="banner"] {
+        display: none !important;
+    }
+
+    /* Reset width of layout containers to 100% */
+    .max-w-\[1600px\], .relative.z-10 {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+    }
+
+    /* Make rankings table scrollable panel fully visible and compact on print */
+    .panel-body {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    .hud-panel {
+        background: transparent !important;
+        border: 1px solid #000000 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        border-radius: 4px !important;
+        margin-top: 10px !important;
+    }
+    
+    .panel-header {
+        border-bottom: 1px solid #000000 !important;
+        padding: 8px 10px !important;
+        background: #f8fafc !important;
+    }
+    
+    .panel-header h3 {
+        font-size: 10pt !important;
+        font-weight: bold !important;
+        color: #000000 !important;
+    }
+
+    /* Compact Print Table Styles */
+    table.print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    
+    table.print-table th, 
+    table.print-table td {
+        border: 1px solid #000000 !important;
+        padding: 4px 6px !important; /* Compact padding */
+        color: #000000 !important;
+        background: transparent !important;
+        vertical-align: middle !important;
+    }
+
+    table.print-table th {
+        background-color: #f1f5f9 !important;
+        font-size: 8pt !important;
+        font-weight: bold !important;
+        text-transform: uppercase !important;
+    }
+    
+    table.print-table td,
+    table.print-table td p,
+    table.print-table td span,
+    table.print-table td div {
+        font-size: 7.5pt !important; /* Clean compact size */
+        color: #000000 !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
+    }
+
+    /* Grade badge compact styling for print */
+    table.print-table .grade-badge-print {
+        border: 1px solid #000000 !important;
+        border-radius: 4px !important;
+        padding: 1px 4px !important;
+        font-size: 7.5pt !important;
+        width: 20px !important;
+        height: 20px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: transparent !important;
+        color: #0f172a !important;
+    }
+
+    /* Override colors to print-friendly dark colors */
+    .text-emerald-400, .text-emerald-500 { color: #047857 !important; font-weight: bold !important; }
+    .text-cyan-400, .text-cyan-500 { color: #0369a1 !important; font-weight: bold !important; }
+    .text-amber-400, .text-amber-500 { color: #b45309 !important; font-weight: bold !important; }
+    .text-orange-400, .text-orange-500 { color: #c2410c !important; font-weight: bold !important; }
+    .text-rose-400, .text-rose-500 { color: #b91c1c !important; font-weight: bold !important; }
+    .text-slate-600 { color: #334155 !important; }
+    .text-yellow-400 { color: #a16207 !important; font-weight: bold !important; }
+    
+    .glow-text {
+        text-shadow: none !important;
+    }
+}
 </style>
