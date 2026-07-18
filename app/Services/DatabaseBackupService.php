@@ -193,7 +193,7 @@ class DatabaseBackupService
             $sql = $this->generateSqlDump($tables);
             
             // Store the backup
-            Storage::put($filepath, $sql);
+            Storage::disk('local')->put($filepath, $sql);
             
             // Compress if possible
             if ($this->compressBackup($filepath)) {
@@ -206,7 +206,7 @@ class DatabaseBackupService
             return [
                 'success' => true,
                 'filename' => $filename,
-                'size' => Storage::size($filepath),
+                'size' => Storage::disk('local')->size($filepath),
                 'path' => $filepath,
             ];
         } catch (Exception $e) {
@@ -245,7 +245,7 @@ class DatabaseBackupService
             $sql = $this->generateSqlDump($tables);
             
             // Store the backup
-            Storage::put($filepath, $sql);
+            Storage::disk('local')->put($filepath, $sql);
             
             // Compress if possible
             if ($this->compressBackup($filepath)) {
@@ -258,7 +258,7 @@ class DatabaseBackupService
             return [
                 'success' => true,
                 'filename' => $filename,
-                'size' => Storage::size($filepath),
+                'size' => Storage::disk('local')->size($filepath),
                 'path' => $filepath,
                 'modules' => $modules,
                 'tables' => $tables,
@@ -288,7 +288,7 @@ class DatabaseBackupService
             }
             
             // Get SQL content
-            $sql = Storage::get($filepath);
+            $sql = Storage::disk('local')->get($filepath);
             
             // If compressed, decompress first
             if (str_ends_with($filepath, '.gz')) {
@@ -569,16 +569,16 @@ class DatabaseBackupService
      */
     public function getBackupList(): array
     {
-        $files = Storage::files($this->backupPath);
+        $files = Storage::disk('local')->files($this->backupPath);
         $backups = [];
         
         foreach ($files as $file) {
             $backups[] = [
                 'filename' => basename($file),
                 'path' => $file,
-                'size' => Storage::size($file),
-                'size_human' => $this->formatBytes(Storage::size($file)),
-                'created_at' => date('Y-m-d H:i:s', Storage::lastModified($file)),
+                'size' => Storage::disk('local')->size($file),
+                'size_human' => $this->formatBytes(Storage::disk('local')->size($file)),
+                'created_at' => date('Y-m-d H:i:s', Storage::disk('local')->lastModified($file)),
             ];
         }
         
@@ -595,8 +595,8 @@ class DatabaseBackupService
     {
         $filepath = $this->backupPath . '/' . $filename;
         
-        if (Storage::exists($filepath)) {
-            Storage::delete($filepath);
+        if (Storage::disk('local')->exists($filepath)) {
+            Storage::disk('local')->delete($filepath);
             $this->logSuccess('Backup deleted', $filename);
             return true;
         }
@@ -611,16 +611,16 @@ class DatabaseBackupService
     {
         $filepath = $this->backupPath . '/' . $filename;
         
-        if (!Storage::exists($filepath)) {
+        if (!Storage::disk('local')->exists($filepath)) {
             return null;
         }
         
         return [
             'filename' => $filename,
             'path' => $filepath,
-            'size' => Storage::size($filepath),
-            'size_human' => $this->formatBytes(Storage::size($filepath)),
-            'created_at' => date('Y-m-d H:i:s', Storage::lastModified($filepath)),
+            'size' => Storage::disk('local')->size($filepath),
+            'size_human' => $this->formatBytes(Storage::disk('local')->size($filepath)),
+            'created_at' => date('Y-m-d H:i:s', Storage::disk('local')->lastModified($filepath)),
         ];
     }
 
@@ -629,7 +629,7 @@ class DatabaseBackupService
      */
     public function cleanOldBackups(int $retentionDays = 30): int
     {
-        $files = Storage::files($this->backupPath);
+        $files = Storage::disk('local')->files($this->backupPath);
         $deletedCount = 0;
         $timestampLimit = now()->subDays($retentionDays)->timestamp;
         
@@ -639,8 +639,8 @@ class DatabaseBackupService
                 continue;
             }
             
-            if (Storage::lastModified($file) < $timestampLimit) {
-                Storage::delete($file);
+            if (Storage::disk('local')->lastModified($file) < $timestampLimit) {
+                Storage::disk('local')->delete($file);
                 $deletedCount++;
             }
         }
@@ -747,11 +747,11 @@ class DatabaseBackupService
 
     protected function compressBackup(string $filepath): bool
     {
-        if (function_exists('gzencode') && Storage::exists($filepath)) {
-            $content = Storage::get($filepath);
+        if (function_exists('gzencode') && Storage::disk('local')->exists($filepath)) {
+            $content = Storage::disk('local')->get($filepath);
             $compressed = gzencode($content, 9);
-            Storage::put($filepath . '.gz', $compressed);
-            Storage::delete($filepath);
+            Storage::disk('local')->put($filepath . '.gz', $compressed);
+            Storage::disk('local')->delete($filepath);
             return true;
         }
         return false;

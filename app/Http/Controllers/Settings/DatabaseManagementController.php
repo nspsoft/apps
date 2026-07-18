@@ -59,11 +59,11 @@ class DatabaseManagementController extends Controller
     {
         $filepath = 'backups/' . $filename;
         
-        if (!Storage::exists($filepath)) {
+        if (!Storage::disk('local')->exists($filepath)) {
             return back()->with('error', 'Backup file not found');
         }
 
-        return Storage::download($filepath, $filename);
+        return Storage::disk('local')->download($filepath, $filename);
     }
 
     /**
@@ -121,7 +121,7 @@ class DatabaseManagementController extends Controller
         // Store uploaded file
         $file = $request->file('file');
         $filename = 'uploaded_' . date('Y-m-d_H-i-s') . '_' . $file->getClientOriginalName();
-        $filepath = $file->storeAs('backups', $filename);
+        $filepath = $file->storeAs('backups', $filename, 'local');
 
         $result = $this->backupService->restore($filepath);
 
