@@ -11,7 +11,7 @@ class PurchaseOrdersExport implements FromCollection, WithHeadings, WithMapping
 {
     public function collection()
     {
-        return PurchaseOrder::with(['supplier', 'warehouse', 'items.product', 'items.unit'])
+        return PurchaseOrder::with(['supplier', 'warehouse', 'customer', 'items.product', 'items.unit'])
             ->latest()
             ->get();
     }
@@ -25,6 +25,8 @@ class PurchaseOrdersExport implements FromCollection, WithHeadings, WithMapping
             'Supplier Code',
             'Supplier Name',
             'Warehouse',
+            'Customer Code',
+            'Customer Name',
             'Status',
             'Notes',
             'Product Code',
@@ -50,6 +52,8 @@ class PurchaseOrdersExport implements FromCollection, WithHeadings, WithMapping
                     $order->supplier->code ?? '',
                     $order->supplier->name ?? '',
                     $order->warehouse->name ?? '',
+                    $order->customer->code ?? '',
+                    $order->customer->name ?? '',
                     $order->status,
                     $order->notes,
                     $item->product->code ?? '',
@@ -70,6 +74,8 @@ class PurchaseOrdersExport implements FromCollection, WithHeadings, WithMapping
                 $order->supplier->code ?? '',
                 $order->supplier->name ?? '',
                 $order->warehouse->name ?? '',
+                $order->customer->code ?? '',
+                $order->customer->name ?? '',
                 $order->status,
                 $order->notes,
                 '',
@@ -85,3 +91,4 @@ class PurchaseOrdersExport implements FromCollection, WithHeadings, WithMapping
         return $rows;
     }
 }
+

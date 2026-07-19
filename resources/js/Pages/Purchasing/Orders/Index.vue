@@ -37,6 +37,7 @@ const props = defineProps({
     purchaseOrders: Object,
     stats: Object,
     suppliers: Array,
+    customers: Array,
     users: Array,
     filters: Object,
     statuses: Array,
@@ -45,6 +46,9 @@ const props = defineProps({
 const search = ref(props.filters?.search || '');
 const selectedStatus = ref(props.filters?.status || '');
 const selectedSupplier = ref(props.filters?.supplier || '');
+const selectedCustomer = ref(props.filters?.customer || '');
+const startDate = ref(props.filters?.start_date || '');
+const endDate = ref(props.filters?.end_date || '');
 const selectedCreatedBy = ref(props.filters?.created_by || '');
 const sortField = ref(props.filters?.sort || 'created_at');
 const sortDirection = ref(props.filters?.direction || 'desc');
@@ -114,6 +118,9 @@ const applyFilters = debounce(() => {
         search: search.value || undefined,
         status: selectedStatus.value || undefined,
         supplier: selectedSupplier.value || undefined,
+        customer: selectedCustomer.value || undefined,
+        start_date: startDate.value || undefined,
+        end_date: endDate.value || undefined,
         created_by: selectedCreatedBy.value || undefined,
         sort: sortField.value,
         direction: sortDirection.value,
@@ -123,7 +130,7 @@ const applyFilters = debounce(() => {
     });
 }, 300);
 
-watch([search, selectedStatus, selectedSupplier, selectedCreatedBy], () => {
+watch([search, selectedStatus, selectedSupplier, selectedCustomer, startDate, endDate, selectedCreatedBy], () => {
     applyFilters();
 });
 
@@ -131,6 +138,9 @@ const clearFilters = () => {
     search.value = '';
     selectedStatus.value = '';
     selectedSupplier.value = '';
+    selectedCustomer.value = '';
+    startDate.value = '';
+    endDate.value = '';
     selectedCreatedBy.value = '';
 };
 
@@ -303,7 +313,7 @@ const formatDate = (date) => {
                 leave-to-class="opacity-0 -translate-y-2"
             >
                 <div v-if="showFilters" class="mb-6 rounded-2xl glass-card p-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Status</label>
                             <select
@@ -329,6 +339,18 @@ const formatDate = (date) => {
                             </select>
                         </div>
                         <div>
+                            <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Customer</label>
+                            <select
+                                v-model="selectedCustomer"
+                                class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                            >
+                                <option value="">All Customers</option>
+                                <option v-for="customer in customers" :key="customer.id" :value="customer.id">
+                                    [{{ customer.code || '-' }}] {{ customer.name }}
+                                </option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Input By</label>
                             <select
                                 v-model="selectedCreatedBy"
@@ -339,6 +361,22 @@ const formatDate = (date) => {
                                     {{ user.name }}
                                 </option>
                             </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Start Date</label>
+                            <input
+                                type="date"
+                                v-model="startDate"
+                                class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">End Date</label>
+                            <input
+                                type="date"
+                                v-model="endDate"
+                                class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                            />
                         </div>
                         <div class="flex items-end">
                             <button 
@@ -502,7 +540,9 @@ const formatDate = (date) => {
                                             PO
                                         </div>
                                         <div>
-                                            <div class="text-sm font-medium text-slate-900 dark:text-white">{{ po.po_number }}</div>
+                                            <Link :href="`/purchasing/orders/${po.id}`" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 hover:underline">
+                                                {{ po.po_number }}
+                                            </Link>
                                             <div class="flex items-center gap-2 mt-0.5">
                                                 <div class="text-xs text-slate-500">{{ po.warehouse?.name }}</div>
                                                 <span

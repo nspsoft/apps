@@ -260,6 +260,12 @@ const formatDate = (date) => {
                             <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Destination</div>
                             <div class="text-sm font-medium text-slate-900 dark:text-white">{{ purchaseOrder.warehouse?.name }}</div>
                         </div>
+                        <div v-if="purchaseOrder.customer" class="mb-4">
+                            <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Related Customer</div>
+                            <div class="text-sm font-medium text-slate-900 dark:text-white">
+                                [{{ purchaseOrder.customer.code || '-' }}] {{ purchaseOrder.customer.name }}
+                            </div>
+                        </div>
                         <div class="mb-4">
                             <div class="text-xs text-slate-500 uppercase tracking-wider mb-1">Notes</div>
                             <p class="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-line">{{ purchaseOrder.notes || 'No notes provided.' }}</p>

@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Models\Customer;
 use App\Services\DocumentNumberService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +51,15 @@ class PurchaseOrderController extends Controller
             })
             ->when($request->created_by, function ($q, $createdBy) {
                 $q->where('created_by', $createdBy);
+            })
+            ->when($request->customer, function ($q, $customer) {
+                $q->where('customer_id', $customer);
+            })
+            ->when($request->start_date, function ($q, $startDate) {
+                $q->whereDate('order_date', '>=', $startDate);
+            })
+            ->when($request->end_date, function ($q, $endDate) {
+                $q->whereDate('order_date', '<=', $endDate);
             });
 
         $sort = $request->input('sort', 'created_at');
@@ -103,6 +113,15 @@ class PurchaseOrderController extends Controller
             })
             ->when($request->created_by, function ($q, $createdBy) {
                 $q->where('created_by', $createdBy);
+            })
+            ->when($request->customer, function ($q, $customer) {
+                $q->where('customer_id', $customer);
+            })
+            ->when($request->start_date, function ($q, $startDate) {
+                $q->whereDate('order_date', '>=', $startDate);
+            })
+            ->when($request->end_date, function ($q, $endDate) {
+                $q->whereDate('order_date', '<=', $endDate);
             });
         
         $stats = [
@@ -116,11 +135,12 @@ class PurchaseOrderController extends Controller
             'purchaseOrders' => $purchaseOrders,
             'stats' => $stats,
             'suppliers' => Supplier::active()->orderBy('name')->get(['id', 'name', 'code']),
+            'customers' => Customer::active()->orderBy('name')->get(['id', 'name', 'code']),
             'users' => User::query()
                 ->whereIn('id', PurchaseOrder::query()->whereNotNull('created_by')->distinct()->pluck('created_by'))
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'filters' => $request->only(['search', 'status', 'supplier', 'created_by', 'sort', 'direction']),
+            'filters' => $request->only(['search', 'status', 'supplier', 'customer', 'start_date', 'end_date', 'created_by', 'sort', 'direction']),
             'statuses' => [
                 ['value' => 'outstanding', 'label' => 'Outstanding (Open)'],
                 ['value' => 'draft', 'label' => 'Draft'],
@@ -169,6 +189,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrder' => $purchaseOrder,
             'poNumber' => null,
             'suppliers' => Supplier::active()->orderBy('name')->get(),
+            'customers' => Customer::active()->orderBy('name')->get(['id', 'name', 'code']),
             'warehouses' => Warehouse::active()->orderBy('name')->get(),
             'products' => Product::active()->select('id','sku','name','unit_id','cost_price')->with('unit:id,name,symbol')->orderBy('name')->get()->each->setAppends([]),
             'units' => Unit::where('is_active', true)->orderBy('name')->get(),
@@ -193,6 +214,7 @@ class PurchaseOrderController extends Controller
         $validated = $request->validate([
             'po_number' => 'nullable|string|max:100|unique:purchase_orders,po_number',
             'supplier_id' => 'required|exists:suppliers,id',
+            'customer_id' => 'nullable|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
             'order_date' => 'required|date',
             'expected_date' => 'nullable|date|after_or_equal:order_date',
@@ -228,6 +250,7 @@ class PurchaseOrderController extends Controller
             $po = PurchaseOrder::create([
                 'po_number' => $poNumber,
                 'supplier_id' => $validated['supplier_id'],
+                'customer_id' => $validated['customer_id'] ?? null,
                 'warehouse_id' => $validated['warehouse_id'],
                 'order_date' => $validated['order_date'],
                 'expected_date' => $validated['expected_date'] ?? null,
@@ -259,7 +282,7 @@ class PurchaseOrderController extends Controller
      */
     public function show(PurchaseOrder $order): Response
     {
-        $order->load(['supplier', 'warehouse', 'items.product', 'items.unit', 'createdBy', 'approvedBy', 'goodsReceipts', 'subcontractOrder']);
+        $order->load(['supplier', 'warehouse', 'items.product', 'items.unit', 'createdBy', 'approvedBy', 'goodsReceipts', 'subcontractOrder', 'customer']);
         $order->is_subcontract = $order->subcontractOrder !== null;
 
         return Inertia::render('Purchasing/Orders/Show', [
@@ -346,6 +369,7 @@ class PurchaseOrderController extends Controller
             'purchaseOrder' => $order,
             'poNumber' => $order->po_number,
             'suppliers' => Supplier::active()->orderBy('name')->get(),
+            'customers' => Customer::active()->orderBy('name')->get(['id', 'name', 'code']),
             'warehouses' => Warehouse::active()->orderBy('name')->get(),
             'products' => Product::active()->select('id','sku','name','unit_id','cost_price')->with('unit:id,name,symbol')->orderBy('name')->get()->each->setAppends([]),
             'units' => Unit::where('is_active', true)->orderBy('name')->get(),
@@ -364,6 +388,7 @@ class PurchaseOrderController extends Controller
         $validated = $request->validate([
             'po_number' => 'required|string|max:100|unique:purchase_orders,po_number,' . $order->id,
             'supplier_id' => 'required|exists:suppliers,id',
+            'customer_id' => 'nullable|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
             'order_date' => 'required|date',
             'expected_date' => 'nullable|date|after_or_equal:order_date',
@@ -389,6 +414,7 @@ class PurchaseOrderController extends Controller
         $updateData = [
             'po_number' => $validated['po_number'],
             'supplier_id' => $validated['supplier_id'],
+            'customer_id' => $validated['customer_id'] ?? null,
             'warehouse_id' => $validated['warehouse_id'],
             'order_date' => $validated['order_date'],
             'expected_date' => $validated['expected_date'] ?? null,

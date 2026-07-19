@@ -28,6 +28,7 @@ class PurchaseOrder extends Model
         'company_id',
         'po_number',
         'supplier_id',
+        'customer_id',
         'warehouse_id',
         'order_date',
         'expected_date',
@@ -86,6 +87,11 @@ class PurchaseOrder extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function items(): HasMany

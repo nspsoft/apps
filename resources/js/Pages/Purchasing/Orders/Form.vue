@@ -15,6 +15,7 @@ const props = defineProps({
     purchaseOrder: Object,
     poNumber: String,
     suppliers: Array,
+    customers: Array,
     warehouses: Array,
     products: Array,
     units: Array,
@@ -44,6 +45,15 @@ const supplierOptions = computed(() => {
     }));
 });
 
+const customerOptions = computed(() => {
+    if (!props.customers || !Array.isArray(props.customers)) return [];
+    return props.customers.map(c => ({
+        id: c.id,
+        label: `[${c.code || '-'}] ${c.name}`,
+        ...c
+    }));
+});
+
 const isEdit = computed(() => !!props.purchaseOrder?.id);
 
 const getLocalDateString = (dateInput) => {
@@ -55,6 +65,7 @@ const getLocalDateString = (dateInput) => {
 const form = useForm({
     po_number: props.poNumber || props.purchaseOrder?.po_number,
     supplier_id: props.purchaseOrder?.supplier_id || '',
+    customer_id: props.purchaseOrder?.customer_id || '',
     warehouse_id: props.purchaseOrder?.warehouse_id || '',
     order_date: props.purchaseOrder?.order_date ? getLocalDateString(props.purchaseOrder.order_date) : getLocalDateString(),
     expected_date: props.purchaseOrder?.expected_date ? getLocalDateString(props.purchaseOrder.expected_date) : '',
@@ -173,6 +184,15 @@ const submit = () => {
                                 v-model="form.supplier_id"
                                 :options="supplierOptions"
                                 placeholder="Search Supplier..."
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Customer (Optional)</label>
+                            <SearchableSelect
+                                v-model="form.customer_id"
+                                :options="customerOptions"
+                                placeholder="Search Customer..."
                             />
                         </div>
 
