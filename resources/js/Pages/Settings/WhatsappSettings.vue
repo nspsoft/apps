@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, useForm, usePage } from '@inertiajs/vue3';
+import { Head, useForm, usePage, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { 
     ChatBubbleLeftRightIcon, 
@@ -131,6 +131,34 @@ const testConnection = async () => {
         };
     } finally {
         testLoading.value = false;
+    }
+};
+
+// Danger Zone clear chat history
+const dangerZonePassword = ref('');
+const dangerZoneModule = ref('sales');
+
+const clearChatHistory = () => {
+    if (!dangerZonePassword.value) {
+        alert('Password wajib diisi!');
+        return;
+    }
+    
+    const moduleText = dangerZoneModule.value === 'all' ? 'SEMUA' : dangerZoneModule.value.toUpperCase();
+    if (confirm(`Apakah Anda yakin ingin menghapus ${moduleText} riwayat chat WhatsApp secara permanen? Tindakan ini tidak dapat dibatalkan.`)) {
+        router.post(route('settings.whatsapp.clear-history'), {
+            module: dangerZoneModule.value,
+            password: dangerZonePassword.value
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                dangerZonePassword.value = '';
+                alert('Riwayat chat berhasil dihapus.');
+            },
+            onError: (errors) => {
+                alert(errors.error || 'Password salah atau gagal menghapus riwayat chat.');
+            }
+        });
     }
 };
 </script>
@@ -673,6 +701,46 @@ const testConnection = async () => {
                                 <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
                                 <span>Purchasing: Cek Tagihan PI</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="bg-red-50 dark:bg-red-950/10 rounded-2xl p-8 border border-red-200 dark:border-red-500/20 shadow-lg">
+                    <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-6 border-b border-red-200 dark:border-red-500/10 pb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 animate-pulse">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                        <h4 class="text-sm font-black uppercase tracking-widest">Zona Bahaya (Danger Zone)</h4>
+                    </div>
+
+                    <div class="space-y-6">
+                        <p class="text-xs text-red-750 dark:text-red-400">
+                            Fitur ini akan menghapus <strong>seluruh histori chat WhatsApp</strong> yang tersimpan di database ERP Anda secara permanen.
+                        </p>
+                        
+                        <div class="flex flex-col md:flex-row items-end gap-4 bg-white dark:bg-slate-900/60 p-5 rounded-2xl border border-red-100 dark:border-red-500/10">
+                            <div class="flex-1 w-full space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Pilih Modul Chat</label>
+                                <select v-model="dangerZoneModule" class="form-input text-xs h-12 py-2">
+                                    <option value="sales">Sales (Customer Chat)</option>
+                                    <option value="purchasing">Purchasing (Supplier Chat)</option>
+                                    <option value="all">Semua Chat (Sales & Purchasing)</option>
+                                </select>
+                            </div>
+
+                            <div class="flex-1 w-full space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Masukkan Password Admin Anda</label>
+                                <input v-model="dangerZonePassword" type="password" class="form-input text-xs h-12 py-2" placeholder="Password Admin..." />
+                            </div>
+
+                            <button 
+                                type="button"
+                                @click="clearChatHistory"
+                                class="px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shrink-0 h-12 flex items-center justify-center gap-2 w-full md:w-auto"
+                            >
+                                Hapus Riwayat Massal
+                            </button>
                         </div>
                     </div>
                 </div>

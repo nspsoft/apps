@@ -864,6 +864,7 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::get('/whatsapp', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'index'])->name('whatsapp.index');
     Route::post('/whatsapp', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'update'])->name('whatsapp.update');
     Route::post('/whatsapp/test', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'testConnection'])->name('whatsapp.test');
+    Route::post('/whatsapp/clear-history', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'clearHistory'])->name('whatsapp.clear-history');
 
     // Traccar Settings
     Route::get('/traccar', [App\Http\Controllers\Settings\TraccarSettingController::class, 'index'])->name('traccar.index');

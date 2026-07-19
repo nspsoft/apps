@@ -161,5 +161,40 @@ class WhatsappSettingController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Clear WhatsApp chat history in bulk
+     */
+    public function clearHistory(Request $request)
+    {
+        $request->validate([
+            'module' => 'required|in:sales,purchasing,all',
+            'password' => 'required|string',
+        ]);
+
+        // Verify password
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, auth()->user()->password)) {
+            return back()->with('error', 'Password salah! Gagal menghapus riwayat chat.');
+        }
+
+        try {
+            $query = \App\Models\WhatsappMessage::query();
+            
+            if ($request->module !== 'all') {
+                $query->where('module', $request->module);
+            }
+            
+            $count = $query->count();
+            $query->delete();
+
+            // Clear unread counts cache
+            \Illuminate\Support\Facades\Cache::forget('purchasing_whatsapp_unread_count');
+            \Illuminate\Support\Facades\Cache::forget('sales_whatsapp_unread_count');
+
+            return back()->with('success', "Berhasil menghapus {$count} pesan riwayat chat WhatsApp module " . strtoupper($request->module) . ".");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus riwayat chat: ' . $e->getMessage());
+        }
+    }
 }
 
