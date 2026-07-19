@@ -292,6 +292,31 @@ const confirmDeleteHistory = () => {
     }
 };
 
+// Format WhatsApp Markdown to HTML (bold, italic, etc)
+const formatWhatsappMessage = (text) => {
+    if (!text) return '';
+    let escaped = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+        
+    // Bold: *text* -> <strong>text</strong>
+    escaped = escaped.replace(/\*(?=\S)(.+?)(?<=\S)\*/g, '<strong>$1</strong>');
+    
+    // Italic: _text_ -> <em>text</em>
+    escaped = escaped.replace(/_(?=\S)(.+?)(?<=\S)_/g, '<em>$1</em>');
+    
+    // Strikethrough: ~text~ -> <del>text</del>
+    escaped = escaped.replace(/~(?=\S)(.+?)(?<=\S)~/g, '<del>$1</del>');
+    
+    // Monospace: ```text``` -> <code>text</code>
+    escaped = escaped.replace(/```(.+?)```/gs, '<code class="font-mono bg-black/10 dark:bg-white/10 px-1 py-0.5 rounded text-[11px]">$1</code>');
+    
+    return escaped;
+};
+
 // Close dropdowns on click outside
 const closeDropdowns = () => {
     showTemplateDropdown.value = false;
@@ -515,7 +540,7 @@ const startNewChat = () => {
                                         </div>
                                     </div>
 
-                                    <p v-if="msg.message && !msg.message.startsWith('[File:')" class="whitespace-pre-wrap leading-relaxed">{{ msg.message }}</p>
+                                    <p v-if="msg.message && !msg.message.startsWith('[File:')" class="whitespace-pre-wrap leading-relaxed" v-html="formatWhatsappMessage(msg.message)"></p>
                                     
                                     <div class="mt-2 flex items-center justify-end gap-2 opacity-70">
                                         <span class="text-[10px] font-mono">{{ formatDate(msg.created_at) }}</span>
