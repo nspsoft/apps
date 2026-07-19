@@ -79,9 +79,10 @@ class PurchaseOrderObserver
             $itemsList .= "\n• ... dan " . ($itemsCount - 5) . " item lainnya.";
         }
 
+        $companyName = \App\Models\Company::first()?->name ?? \App\Models\AppSetting::get('company_full_name', 'JIDOKA');
         $message = "📦 *Pemberitahuan Purchase Order (PO) Baru*\n\n" .
                    "Halo *{$supplierName}*,\n\n" .
-                   "Kami dari Departemen Purchasing PT SPINDO menginformasikan bahwa kami telah menerbitkan PO baru:\n\n" .
+                   "Kami dari Departemen Purchasing {$companyName} menginformasikan bahwa kami telah menerbitkan PO baru:\n\n" .
                    "• *Nomor PO:* {$poNumber}\n" .
                    "• *Tanggal PO:* {$orderDate}\n" .
                    "• *Estimasi Kirim:* {$expectedDate}\n" .

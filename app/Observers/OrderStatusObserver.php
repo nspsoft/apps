@@ -46,11 +46,13 @@ class OrderStatusObserver
 
     protected function getMessageForStatus(SalesOrder $order, string $status): ?string
     {
+        $companyName = \App\Models\Company::first()?->name ?? \App\Models\AppSetting::get('company_full_name', 'JIDOKA');
+        
         return match ($status) {
             'confirmed' => "✅ Pesanan *{$order->so_number}* telah Dikonfirmasi!\n\nKami sedang memproses pesanan Anda. Terima kasih!",
             'processing' => "⚙️ Pesanan *{$order->so_number}* sedang Diproses.\n\nTim gudang kami sedang menyiapkan barang Anda.",
             'shipped' => "🚚 Kabar Gembira! Pesanan *{$order->so_number}* sedang DIKIRIM.\n\nMohon pastikan ada penerima di lokasi pengiriman.",
-            'delivered' => "📦 Pesanan *{$order->so_number}* telah DITERIMA.\n\nTerima kasih telah berbelanja di PT SPINDO. Ditunggu pesanan berikutnya! 🙏",
+            'delivered' => "📦 Pesanan *{$order->so_number}* telah DITERIMA.\n\nTerima kasih telah berbelanja di {$companyName}. Ditunggu pesanan berikutnya! 🙏",
             'cancelled' => "❌ Pesanan *{$order->so_number}* telah Dibatalkan.\n\nSilakan hubungi kami jika ini kekeliruan.",
             default => null,
         };

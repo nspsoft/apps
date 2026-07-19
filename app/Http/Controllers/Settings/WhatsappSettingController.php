@@ -13,6 +13,8 @@ class WhatsappSettingController extends Controller
 {
     public function index()
     {
+        $companyName = \App\Models\Company::first()?->name ?? AppSetting::get('company_full_name', 'JIDOKA');
+
         $settings = [
             'whatsapp_provider' => AppSetting::get('whatsapp_provider', 'fonnte'),
             'fonnte_api_token' => AppSetting::get('fonnte_api_token', ''),
@@ -20,7 +22,7 @@ class WhatsappSettingController extends Controller
             'wablas_api_token' => AppSetting::get('wablas_api_token', ''),
             'wablas_device' => AppSetting::get('wablas_device', ''),
             'wablas_server_url' => AppSetting::get('wablas_server_url', 'https://pati.wablas.com'),
-            'whatsapp_bot_instruction' => (string) AppSetting::get('whatsapp_bot_instruction', 'Anda adalah Customer Service Jidoka AI yang ramah. Tugas Anda adalah melayani Customer dan Staff PT JIDOKA dengan sopan, ceria, dan membantu.'),
+            'whatsapp_bot_instruction' => (string) AppSetting::get('whatsapp_bot_instruction', "Anda adalah Customer Service {$companyName} AI yang ramah. Tugas Anda adalah melayani Customer dan Staff {$companyName} dengan sopan, ceria, dan membantu."),
             
             // Purchasing settings
             'purchasing_whatsapp_provider' => AppSetting::get('purchasing_whatsapp_provider', 'fonnte'),
@@ -29,7 +31,7 @@ class WhatsappSettingController extends Controller
             'purchasing_wablas_api_token' => AppSetting::get('purchasing_wablas_api_token', ''),
             'purchasing_wablas_device' => AppSetting::get('purchasing_wablas_device', ''),
             'purchasing_wablas_server_url' => AppSetting::get('purchasing_wablas_server_url', 'https://pati.wablas.com'),
-            'purchasing_whatsapp_bot_instruction' => (string) AppSetting::get('purchasing_whatsapp_bot_instruction', 'Anda adalah Purchasing Assistant PT SPINDO yang ramah dan profesional. Tugas Anda adalah melayani supplier dan vendor kami dengan memberikan informasi PO, penerimaan barang, RFQ, dan invoice tagihan.'),
+            'purchasing_whatsapp_bot_instruction' => (string) AppSetting::get('purchasing_whatsapp_bot_instruction', "Anda adalah Purchasing Assistant {$companyName} yang ramah dan profesional. Tugas Anda adalah melayani supplier dan vendor kami dengan memberikan informasi PO, penerimaan barang, RFQ, dan invoice tagihan."),
         ];
 
         return Inertia::render('Settings/WhatsappSettings', [

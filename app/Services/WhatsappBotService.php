@@ -245,9 +245,10 @@ class WhatsappBotService
 
         $response .= "━━━━━━━━━━━━━━━\n";
         $response .= "*Total: Rp " . number_format($total, 0, ',', '.') . "*\n\n";
+        $companyLegalName = \App\Models\Company::first()?->legal_name ?? \App\Models\Company::first()?->name ?? 'JIDOKA';
         $response .= "Untuk pembayaran, transfer ke:\n";
         $response .= "BCA 123-456-789\n";
-        $response .= "a.n. PT SPINDO Tbk";
+        $response .= "a.n. {$companyLegalName}";
 
         return $response;
     }
@@ -355,8 +356,9 @@ class WhatsappBotService
      */
     protected function handleGreeting(?Customer $customer, string $message): string
     {
+        $companyName = \App\Models\Company::first()?->name ?? \App\Models\AppSetting::get('company_full_name', 'JIDOKA');
         // Use Gemini to generate a friendly, human-like greeting in Indonesian
-        return $this->gemini->generateFAQResponse("Sapa saya dengan ramah sebagai CS PT SPINDO. Pesan saya: \"{$message}\"");
+        return $this->gemini->generateFAQResponse("Sapa saya dengan ramah sebagai CS {$companyName}. Pesan saya: \"{$message}\"");
     }
 
     /**
