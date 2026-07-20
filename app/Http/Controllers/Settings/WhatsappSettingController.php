@@ -13,7 +13,8 @@ class WhatsappSettingController extends Controller
 {
     public function index()
     {
-        $companyName = \App\Models\Company::first()?->name ?? AppSetting::get('company_full_name', 'JIDOKA');
+        $company = \App\Models\Company::first();
+        $companyName = $company?->legal_name ?? $company?->name ?? AppSetting::get('company_full_name', 'PT. JIDOKA RESULT INDONESIA');
 
         $settings = [
             'whatsapp_provider' => AppSetting::get('whatsapp_provider', 'fonnte'),

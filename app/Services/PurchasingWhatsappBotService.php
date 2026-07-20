@@ -348,7 +348,8 @@ class PurchasingWhatsappBotService
      */
     protected function handleGreeting(?Supplier $supplier, string $message): string
     {
-        $companyName = \App\Models\Company::first()?->name ?? \App\Models\AppSetting::get('company_full_name', 'JIDOKA');
+        $company = \App\Models\Company::first();
+        $companyName = $company?->legal_name ?? $company?->name ?? \App\Models\AppSetting::get('company_full_name', 'PT. JIDOKA RESULT INDONESIA');
         return $this->gemini->generateSupplierFAQResponse("Sapa supplier dengan ramah sebagai CS Purchasing {$companyName}. Pesan mereka: \"{$message}\"");
     }
 

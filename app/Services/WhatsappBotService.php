@@ -356,7 +356,8 @@ class WhatsappBotService
      */
     protected function handleGreeting(?Customer $customer, string $message): string
     {
-        $companyName = \App\Models\Company::first()?->name ?? \App\Models\AppSetting::get('company_full_name', 'JIDOKA');
+        $company = \App\Models\Company::first();
+        $companyName = $company?->legal_name ?? $company?->name ?? \App\Models\AppSetting::get('company_full_name', 'PT. JIDOKA RESULT INDONESIA');
         // Use Gemini to generate a friendly, human-like greeting in Indonesian
         return $this->gemini->generateFAQResponse("Sapa saya dengan ramah sebagai CS {$companyName}. Pesan saya: \"{$message}\"");
     }
