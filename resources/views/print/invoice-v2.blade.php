@@ -271,6 +271,7 @@ Telp : +62 21 89383915'))) !!}
                         $doNumbers = $items->map(fn($i) => $i->deliveryOrder?->do_number)
                             ->filter()
                             ->unique()
+                            ->sortBy(fn($num) => $num, SORT_NATURAL)
                             ->values();
                     @endphp
                 <tr>

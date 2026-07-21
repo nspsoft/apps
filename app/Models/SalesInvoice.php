@@ -110,12 +110,15 @@ class SalesInvoice extends Model
 
         foreach ($grouped as $suffix => $numbers) {
             if ($suffix === 'other') {
-                foreach ($numbers as $num) $results[] = $num;
+                $sorted = $numbers->sortBy(fn($num) => $num)->values();
+                foreach ($sorted as $num) $results[] = $num;
             } else {
-                // Extract prefixes (e.g. "010", "011")
+                // Extract prefixes (e.g. "010", "011") and sort them numerically/naturally
                 $prefixes = $numbers->map(function ($num) {
                     return explode('/', $num)[0];
-                })->join(', ');
+                })->sortBy(function ($prefix) {
+                    return is_numeric($prefix) ? (int)$prefix : $prefix;
+                })->values()->join(', ');
                 
                 $results[] = $prefixes . $suffix;
             }
