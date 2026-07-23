@@ -175,6 +175,11 @@ const getStatusClass = (status) => {
     };
     return classes[status] || 'bg-slate-500/10 text-slate-500 dark:text-slate-400 ring-slate-500/20';
 };
+
+const cancelOrder = () => {
+    if (!confirm('Apakah Anda yakin ingin membatalkan Sales Order ini?')) return;
+    router.post(route('sales.orders.cancel', props.salesOrder.id));
+};
 </script>
 
 <template>
@@ -256,6 +261,14 @@ const getStatusClass = (status) => {
                         <PencilSquareIcon class="h-4 w-4" />
                         Edit Order
                     </Link>
+                    <button
+                        v-if="!['delivered', 'cancelled'].includes(salesOrder.status)"
+                        @click="cancelOrder"
+                        class="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-500 transition-colors shadow-lg shadow-red-500/20"
+                    >
+                        <ExclamationTriangleIcon class="h-4 w-4" />
+                        Cancel Order
+                    </button>
                 </div>
             </div>
 
