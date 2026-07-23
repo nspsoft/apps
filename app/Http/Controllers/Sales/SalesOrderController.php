@@ -49,6 +49,8 @@ class SalesOrderController extends Controller
             })
             ->when($request->status, function ($q, $status) {
                 $q->where('status', $status);
+            }, function ($q) {
+                $q->where('status', '!=', 'cancelled');
             })
             ->when($request->customer, function ($q, $customer) {
                 $q->where('customer_id', $customer);
