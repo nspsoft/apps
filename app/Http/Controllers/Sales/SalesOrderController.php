@@ -121,6 +121,12 @@ class SalesOrderController extends Controller
 
     public function createFromAi(Request $request): Response
     {
+        if ($request->isMethod('post')) {
+            session(['ai_po_data' => $request->input('data')]);
+        }
+        
+        $aiData = $request->input('data') ?? session('ai_po_data');
+
         return Inertia::render('Sales/Orders/Form', [
             'salesOrder' => null,
             'soNumber' => SalesOrder::generateSoNumber(),
@@ -128,7 +134,7 @@ class SalesOrderController extends Controller
             'warehouses' => Warehouse::active()->orderBy('name')->get(),
             'products' => Product::active()->where('is_sold', true)->select('id','sku','name','unit_id','cost_price','selling_price')->with('unit:id,name,symbol')->orderBy('name')->get()->each->setAppends([]),
             'units' => Unit::where('is_active', true)->orderBy('name')->get(),
-            'aiData' => $request->input('data')
+            'aiData' => $aiData
         ]);
     }
 

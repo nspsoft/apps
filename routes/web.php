@@ -317,7 +317,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::put('/orders/items/{item}/product', [SalesOrderController::class, 'replaceItemProduct'])->name('orders.replace-item-product');
     Route::put('/orders/{order}/po', [SalesOrderController::class, 'updatePo'])->name('orders.update-po');
     Route::get('/orders/{order}/print', [SalesOrderController::class, 'print'])->name('orders.print');
-    Route::post('/orders/create-from-ai', [SalesOrderController::class, 'createFromAi'])->name('orders.create-from-ai');
+    Route::match(['get', 'post'], '/orders/create-from-ai', [SalesOrderController::class, 'createFromAi'])->name('orders.create-from-ai');
     Route::get('/orders/check-po', [SalesOrderController::class, 'checkPo'])->name('orders.check-po');
     Route::post('/orders/{order}/delivery', [SalesOrderController::class, 'createDelivery'])->name('orders.create-delivery');
     Route::post('/orders/{order}/invoice', [SalesOrderController::class, 'createInvoice'])->name('orders.create-invoice');
