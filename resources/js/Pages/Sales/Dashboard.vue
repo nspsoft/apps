@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     CurrencyDollarIcon,
@@ -47,7 +47,69 @@ const props = defineProps({
     statusDist: Object,
     topCustomers: Array,
     recentOrders: Array,
+    filters: Object,
+    years: Array,
 });
+
+const selectedYear = ref(props.filters.year ?? new Date().getFullYear());
+const selectedPeriodType = ref(props.filters.period_type ?? 'month');
+const selectedPeriodValue = ref(props.filters.period_value ?? (new Date().getMonth() + 1));
+
+const valueOptions = computed(() => {
+    if (selectedPeriodType.value === 'month') {
+        return [
+            { value: 1, label: 'January' },
+            { value: 2, label: 'February' },
+            { value: 3, label: 'March' },
+            { value: 4, label: 'April' },
+            { value: 5, label: 'May' },
+            { value: 6, label: 'June' },
+            { value: 7, label: 'July' },
+            { value: 8, label: 'August' },
+            { value: 9, label: 'September' },
+            { value: 10, label: 'October' },
+            { value: 11, label: 'November' },
+            { value: 12, label: 'December' },
+        ];
+    } else if (selectedPeriodType.value === 'quarter') {
+        return [
+            { value: 'Q1', label: 'Quarter 1 (Jan-Mar)' },
+            { value: 'Q2', label: 'Quarter 2 (Apr-Jun)' },
+            { value: 'Q3', label: 'Quarter 3 (Jul-Sep)' },
+            { value: 'Q4', label: 'Quarter 4 (Oct-Dec)' },
+        ];
+    } else if (selectedPeriodType.value === 'semester') {
+        return [
+            { value: 'S1', label: 'Semester 1 (Jan-Jun)' },
+            { value: 'S2', label: 'Semester 2 (Jul-Dec)' },
+        ];
+    }
+    return [];
+});
+
+const onPeriodTypeChange = () => {
+    if (selectedPeriodType.value === 'month') {
+        selectedPeriodValue.value = 1;
+    } else if (selectedPeriodType.value === 'quarter') {
+        selectedPeriodValue.value = 'Q1';
+    } else if (selectedPeriodType.value === 'semester') {
+        selectedPeriodValue.value = 'S1';
+    } else {
+        selectedPeriodValue.value = null;
+    }
+    submitFilter();
+};
+
+const submitFilter = () => {
+    router.get(route('sales.dashboard'), {
+        year: selectedYear.value,
+        period_type: selectedPeriodType.value,
+        period_value: selectedPeriodValue.value,
+    }, {
+        preserveState: true,
+        replace: true,
+    });
+};
 
 // --- Real-time Clock ---
 const time = ref('');
@@ -127,10 +189,10 @@ const commonOptions = computed(() => ({
 
 // 1. Sales Trend (Line Chart)
 const trendData = computed(() => ({
-    labels: props.salesTrend.map(t => t.month),
+    labels: props.salesTrend.map(t => t.label),
     datasets: [
         {
-            label: 'Monthly Revenue',
+            label: props.stats.period_label || 'Revenue',
             data: props.salesTrend.map(t => t.total),
             borderColor: '#d946ef', // Fuchsia
             backgroundColor: (ctx) => {
@@ -218,6 +280,51 @@ const customerData = computed(() => ({
                     </div>
                     
                     <div class="flex items-center gap-6">
+                        <!-- Period Filters -->
+                        <div class="flex items-center gap-3 bg-white/5 border border-white/10 p-2 rounded-xl backdrop-blur-md">
+                            <!-- Year Select -->
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-fuchsia-400 font-bold uppercase tracking-wider mb-0.5">Year</span>
+                                <select 
+                                    v-model="selectedYear" 
+                                    @change="submitFilter"
+                                    class="bg-[#050510] text-xs text-white border border-white/10 rounded px-2 py-0.5 focus:outline-none focus:border-fuchsia-500 font-mono"
+                                >
+                                    <option v-for="y in props.years" :key="y" :value="y">{{ y }}</option>
+                                </select>
+                            </div>
+
+                            <!-- Period Type Select -->
+                            <div class="flex flex-col">
+                                <span class="text-[8px] text-fuchsia-400 font-bold uppercase tracking-wider mb-0.5">Period</span>
+                                <select 
+                                    v-model="selectedPeriodType" 
+                                    @change="onPeriodTypeChange"
+                                    class="bg-[#050510] text-xs text-white border border-white/10 rounded px-2 py-0.5 focus:outline-none focus:border-fuchsia-500 font-mono"
+                                >
+                                    <option value="month">Month</option>
+                                    <option value="quarter">Quarter</option>
+                                    <option value="semester">Semester</option>
+                                    <option value="year">Full Year</option>
+                                </select>
+                            </div>
+
+                            <!-- Period Value Select -->
+                            <div v-if="selectedPeriodType !== 'year'" class="flex flex-col">
+                                <span class="text-[8px] text-fuchsia-400 font-bold uppercase tracking-wider mb-0.5">Value</span>
+                                <select 
+                                    v-model="selectedPeriodValue" 
+                                    @change="submitFilter"
+                                    class="bg-[#050510] text-xs text-white border border-white/10 rounded px-2 py-0.5 focus:outline-none focus:border-fuchsia-500 font-mono w-[120px]"
+                                >
+                                    <option v-for="opt in valueOptions" :key="opt.value" :value="opt.value">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Clock -->
                         <div class="text-right hidden md:block">
                             <p class="text-[10px] text-fuchsia-500/70 tracking-[0.2em] mb-1">LOCAL TIME</p>
                             <p class="text-2xl font-bold font-mono text-white glow-text">{{ time }}</p>
@@ -239,7 +346,9 @@ const customerData = computed(() => ({
                                 <CurrencyDollarIcon class="h-12 w-12 text-fuchsia-400" />
                             </div>
                             <div>
-                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">MONTHLY REVENUE</p>
+                                <p class="text-xs text-slate-400 tracking-[0.2em] uppercase font-bold mb-1">
+                                    {{ stats.period_label ? 'REVENUE (' + stats.period_label + ')' : 'MONTHLY REVENUE' }}
+                                </p>
                                 <h3 class="text-2xl font-black text-white glow-text tracking-tight">
                                     {{ formatCurrency(stats.monthly_revenue) }}
                                 </h3>
@@ -311,7 +420,7 @@ const customerData = computed(() => ({
                     <div class="lg:col-span-2 hud-panel min-h-[350px]">
                         <div class="panel-header flex items-center justify-between p-4 border-b border-white/5 bg-white/5">
                             <h3 class="flex items-center gap-2 text-sm font-bold text-fuchsia-300 tracking-widest uppercase">
-                                <BoltIcon class="h-4 w-4" /> Revenue Performance (6mo)
+                                <BoltIcon class="h-4 w-4" /> Revenue Performance ({{ stats.period_label || '6mo' }})
                             </h3>
                         </div>
                         <div class="panel-body p-4 h-[300px] relative">
