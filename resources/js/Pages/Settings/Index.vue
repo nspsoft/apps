@@ -60,6 +60,14 @@ const settingsSections = [
         color: 'text-emerald-400',
         bg: 'bg-emerald-500/10',
     },
+    {
+        title: 'Bell Schedules & Terminal',
+        description: 'Configure automated shift alarms and open the bell terminal',
+        icon: BellIcon,
+        href: route('settings.bell-schedules.index'),
+        color: 'text-amber-400',
+        bg: 'bg-amber-500/10',
+    },
 ];
 </script>
 

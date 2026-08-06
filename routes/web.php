@@ -870,6 +870,13 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::get('/traccar', [App\Http\Controllers\Settings\TraccarSettingController::class, 'index'])->name('traccar.index');
     Route::post('/traccar', [App\Http\Controllers\Settings\TraccarSettingController::class, 'update'])->name('traccar.update');
     Route::post('/traccar/test', [App\Http\Controllers\Settings\TraccarSettingController::class, 'test'])->name('traccar.test');
+
+    // Bell Schedules Settings
+    Route::get('/bell-schedules', [App\Http\Controllers\Settings\BellScheduleController::class, 'index'])->name('bell-schedules.index');
+    Route::post('/bell-schedules', [App\Http\Controllers\Settings\BellScheduleController::class, 'store'])->name('bell-schedules.store');
+    Route::post('/bell-schedules/{schedule}', [App\Http\Controllers\Settings\BellScheduleController::class, 'update'])->name('bell-schedules.update');
+    Route::delete('/bell-schedules/{schedule}', [App\Http\Controllers\Settings\BellScheduleController::class, 'destroy'])->name('bell-schedules.destroy');
+    Route::get('/bell-terminal', [App\Http\Controllers\Settings\BellScheduleController::class, 'terminal'])->name('bell-schedules.terminal');
 });
 
 // Helpdesk & Support Module
