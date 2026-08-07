@@ -252,21 +252,21 @@ const stopTest = () => {
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/5">
-                                <th class="p-6">Nama Bel</th>
-                                <th class="p-6">Waktu</th>
-                                <th class="p-6">Hari Kerja</th>
-                                <th class="p-6">Tipe Bel</th>
-                                <th class="p-6 text-center">Status</th>
-                                <th class="p-6 text-right">Aksi</th>
+                                <th class="py-3.5 px-6">Nama Bel</th>
+                                <th class="py-3.5 px-6">Waktu</th>
+                                <th class="py-3.5 px-6">Hari Kerja</th>
+                                <th class="py-3.5 px-6">Tipe Bel</th>
+                                <th class="py-3.5 px-6 text-center">Status</th>
+                                <th class="py-3.5 px-6 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200 dark:divide-white/5 text-sm text-slate-700 dark:text-slate-350">
                             <tr v-for="schedule in schedules" :key="schedule.id" class="hover:bg-slate-50/50 dark:hover:bg-white/2 transition-colors">
-                                <td class="p-6 font-bold text-slate-900 dark:text-white">{{ schedule.name }}</td>
-                                <td class="p-6 font-mono text-indigo-500 dark:text-indigo-400 font-bold text-base">
+                                <td class="py-3 px-6 font-bold text-slate-900 dark:text-white">{{ schedule.name }}</td>
+                                <td class="py-3 px-6 font-mono text-indigo-500 dark:text-indigo-400 font-bold text-base">
                                     {{ schedule.time.substring(0, 5) }} WIB
                                 </td>
-                                <td class="p-6">
+                                <td class="py-3 px-6">
                                     <div class="flex flex-wrap gap-1">
                                         <span 
                                             v-for="day in schedule.days" 
@@ -277,7 +277,7 @@ const stopTest = () => {
                                         </span>
                                     </div>
                                 </td>
-                                <td class="p-6">
+                                <td class="py-3 px-6">
                                     <div class="flex items-center gap-2">
                                         <span class="w-2 h-2 rounded-full" :class="{
                                             'bg-sky-500': schedule.sound_type === 'chime',
@@ -289,7 +289,7 @@ const stopTest = () => {
                                         </span>
                                     </div>
                                 </td>
-                                <td class="p-6 text-center">
+                                <td class="py-3 px-6 text-center">
                                     <span 
                                         class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block"
                                         :class="schedule.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'"
@@ -297,7 +297,7 @@ const stopTest = () => {
                                         {{ schedule.is_active ? 'Aktif' : 'Nonaktif' }}
                                     </span>
                                 </td>
-                                <td class="p-6 text-right">
+                                <td class="py-3 px-6 text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <button 
                                             @click="testPlay(schedule)"
