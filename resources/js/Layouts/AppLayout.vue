@@ -38,6 +38,7 @@ import {
     DevicePhoneMobileIcon,
     BriefcaseIcon,
     BookOpenIcon,
+    ComputerDesktopIcon,
     // New Icons for Submenus
     PresentationChartBarIcon,
     ChartBarSquareIcon,
@@ -543,6 +544,17 @@ const navigation = [
         children: [
             { name: 'Blueprint Interactive', href: '/project/blueprint', icon: MapIcon },
             { name: 'System Testing (UAT)', href: '/settings/uat', icon: CheckCircleIcon, permission: 'settings.view', target: '_blank' },
+        ]
+    },
+    {
+        name: 'Bel Otomatis',
+        href: '#',
+        icon: BellIcon,
+        current: false,
+        permission: 'settings.view',
+        children: [
+            { name: 'Terminal Bel (Kiosk)', href: '/settings/bell-terminal', icon: ComputerDesktopIcon, target: '_blank' },
+            { name: 'Pengaturan Jadwal', href: '/settings/bell-schedules', icon: ClockIcon }
         ]
     },
     { 
