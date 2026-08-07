@@ -579,7 +579,7 @@ onUnmounted(() => {
         ></div>
 
         <!-- Top Navigation -->
-        <header class="p-6 border-b border-white/5 backdrop-blur-md bg-slate-900/40 z-20 flex items-center justify-between">
+        <header class="p-6 border-b border-white/5 backdrop-blur-md bg-slate-900/40 z-30 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <a 
                     :href="route('settings.bell-schedules.index')"
