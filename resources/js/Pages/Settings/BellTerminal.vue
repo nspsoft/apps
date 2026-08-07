@@ -35,6 +35,8 @@ let sirenInterval = null;
 // Microphone Live PA references
 const isMicActive = ref(false);
 const micVisualData = ref(new Array(20).fill(0));
+const videoPreview = ref(null);
+const hasVideoFeed = ref(false);
 let micStream = null;
 let micAudioContext = null;
 let micSource = null;
@@ -333,7 +335,22 @@ const startMicBroadcast = async () => {
         stopAllAudio(); // Stop other playbacks
         if (!isAudioActive.value) activateAudio();
 
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        let stream;
+        try {
+            // Attempt to capture both audio and video
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: true, 
+                video: { width: 640, height: 480 } 
+            });
+            hasVideoFeed.value = true;
+        } catch (videoErr) {
+            console.warn("Webcam access failed or not available, falling back to audio only:", videoErr);
+            // Fallback to audio only
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            hasVideoFeed.value = false;
+        }
+
+        micStream = stream;
         micAudioContext = new (window.AudioContext || window.webkitAudioContext)();
         micSource = micAudioContext.createMediaStreamSource(micStream);
         micAnalyser = micAudioContext.createAnalyser();
@@ -343,6 +360,14 @@ const startMicBroadcast = async () => {
         micAnalyser.connect(micAudioContext.destination);
 
         isMicActive.value = true;
+
+        if (hasVideoFeed.value) {
+            setTimeout(() => {
+                if (videoPreview.value && micStream) {
+                    videoPreview.value.srcObject = micStream;
+                }
+            }, 100);
+        }
 
         const bufferLength = micAnalyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
@@ -368,6 +393,7 @@ const startMicBroadcast = async () => {
 
 const stopMicBroadcast = () => {
     isMicActive.value = false;
+    hasVideoFeed.value = false;
     if (micAnimationId) {
         cancelAnimationFrame(micAnimationId);
         micAnimationId = null;
@@ -758,13 +784,26 @@ onUnmounted(() => {
                         <span class="text-xs font-black uppercase tracking-widest text-rose-500">Siaran Langsung (Mic Aktif)</span>
                     </div>
 
-                    <div class="mx-auto w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                    <div v-if="hasVideoFeed" class="mx-auto w-full max-w-md">
+                        <video 
+                            ref="videoPreview" 
+                            autoplay 
+                            playsinline 
+                            muted 
+                            class="w-full h-auto aspect-video object-cover rounded-2xl border-2 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.25)] scale-x-[-1] bg-slate-950"
+                        ></video>
+                    </div>
+                    <div v-else class="mx-auto w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                         <MicrophoneIcon class="w-12 h-12 animate-pulse" />
                     </div>
 
                     <div class="space-y-1">
-                        <h2 class="text-2xl font-black text-white uppercase tracking-tight">Mikrofon Sistem PA Aktif</h2>
-                        <p class="text-xs text-slate-400">Suara Anda sedang diputar langsung melalui sistem speaker JICOS.</p>
+                        <h2 class="text-2xl font-black text-white uppercase tracking-tight">
+                            {{ hasVideoFeed ? 'Siaran Video Langsung Aktif' : 'Mikrofon Sistem PA Aktif' }}
+                        </h2>
+                        <p class="text-xs text-slate-400">
+                            {{ hasVideoFeed ? 'Kamera dan mikrofon Anda sedang aktif menyiarkan pengumuman.' : 'Suara Anda sedang diputar langsung melalui sistem speaker JICOS.' }}
+                        </p>
                     </div>
 
                     <!-- Live Equalizer Bars Visualizer -->
