@@ -547,14 +547,14 @@ const navigation = [
         ]
     },
     {
-        name: 'Bel Otomatis',
+        name: 'Automated Bell',
         href: '#',
         icon: BellIcon,
         current: false,
         permission: 'settings.view',
         children: [
-            { name: 'Terminal Bel (Kiosk)', href: '/settings/bell-terminal', icon: ComputerDesktopIcon, target: '_blank' },
-            { name: 'Pengaturan Jadwal', href: '/settings/bell-schedules', icon: ClockIcon }
+            { name: 'Bell Terminal (Kiosk)', href: '/settings/bell-terminal', icon: ComputerDesktopIcon, target: '_blank' },
+            { name: 'Schedule Settings', href: '/settings/bell-schedules', icon: ClockIcon }
         ]
     },
     { 

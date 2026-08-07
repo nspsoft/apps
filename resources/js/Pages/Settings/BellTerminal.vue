@@ -562,7 +562,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <Head title="Terminal Bel Otomatis" />
+    <Head title="Automated Bell Terminal" />
 
     <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-hidden relative">
         <!-- Canvas for particle background -->
@@ -589,7 +589,7 @@ onUnmounted(() => {
                 </a>
                 <div class="flex items-center gap-3">
                     <img :src="companyLogo" :alt="companyName" class="h-7 w-auto object-contain rounded bg-white/5 p-0.5 border border-white/10" />
-                    <span class="text-xs font-black uppercase tracking-widest text-indigo-400">Terminal Bel Otomatis JICOS</span>
+                    <span class="text-xs font-black uppercase tracking-widest text-indigo-400">JICOS Automated Bell Terminal</span>
                 </div>
             </div>
             
@@ -608,7 +608,7 @@ onUnmounted(() => {
                     class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
                 >
                     <MicrophoneIcon class="w-3.5 h-3.5" />
-                    Mic Siaran
+                    Live PA Mic
                 </button>
 
                 <div class="relative">
@@ -617,7 +617,7 @@ onUnmounted(() => {
                         class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all animate-pulse"
                     >
                         <ExclamationTriangleIcon class="w-3.5 h-3.5" />
-                        Sirene
+                        Siren
                     </button>
                     
                     <!-- Emergency Dropdown Popover Menu -->
@@ -626,28 +626,28 @@ onUnmounted(() => {
                         class="absolute right-0 mt-2 w-56 bg-slate-900 border border-white/10 rounded-2xl p-2.5 shadow-2xl z-50 text-left space-y-1 backdrop-blur-xl"
                     >
                         <span class="block px-2.5 py-1 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2 mb-2">
-                            Pilih Kondisi Darurat
+                            Select Emergency Alert
                         </span>
                         
                         <button 
                             @click="triggerEmergencyAlert('fire')"
                             class="w-full text-left px-3 py-2 text-xs font-bold text-slate-200 hover:bg-rose-500/10 hover:text-rose-400 rounded-xl transition-all flex items-center gap-2"
                         >
-                            <span>🔥</span> Darurat Kebakaran
+                            <span>🔥</span> Fire Emergency
                         </button>
                         
                         <button 
                             @click="triggerEmergencyAlert('earthquake')"
                             class="w-full text-left px-3 py-2 text-xs font-bold text-slate-200 hover:bg-amber-500/10 hover:text-amber-400 rounded-xl transition-all flex items-center gap-2"
                         >
-                            <span>🌍</span> Darurat Gempa Bumi
+                            <span>🌍</span> Earthquake Emergency
                         </button>
                         
                         <button 
                             @click="showCustomEmergencyModal = true; showEmergencyOptions = false"
                             class="w-full text-left px-3 py-2 text-xs font-bold text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all flex items-center gap-2 border-t border-white/5 mt-1.5 pt-2"
                         >
-                            <span>📝</span> Teks Custom...
+                            <span>📝</span> Custom Text...
                         </button>
                     </div>
                 </div>
@@ -667,7 +667,7 @@ onUnmounted(() => {
                     :class="isAudioActive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-400'"
                 >
                     <span class="w-1.5 h-1.5 rounded-full" :class="isAudioActive ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'"></span>
-                    {{ isAudioActive ? 'Siaga' : 'Aktifkan' }}
+                    {{ isAudioActive ? 'Active' : 'Initialize' }}
                 </div>
             </div>
         </header>
@@ -688,21 +688,21 @@ onUnmounted(() => {
 
                     <div class="space-y-4 z-10 flex flex-col items-center">
                         <img :src="companyLogo" :alt="companyName" class="h-10 w-auto object-contain rounded opacity-75 hover:opacity-100 transition-opacity mb-2" />
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Waktu Lokal Sekarang</span>
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Current Local Time</span>
                         <h1 class="text-6xl md:text-8xl font-black font-mono tracking-tight text-white glow-text selection:bg-transparent">
                             {{ currentTime || '00:00:00' }}
                         </h1>
                         <p class="text-sm font-semibold text-indigo-400 uppercase tracking-widest mt-2">
-                            {{ currentDay ? dayLabelsIndo[currentDay] : '' }}, {{ currentDateStr }}
+                            {{ currentDay }}, {{ currentDateStr }}
                         </p>
                         
                         <!-- Next Alarm Countdown Information -->
                         <div class="pt-6 border-t border-white/5 max-w-md mx-auto space-y-1">
                             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                {{ nextSchedule ? `Bel Berikutnya: ${nextSchedule.name} (${nextSchedule.time.substring(0, 5)} WIB)` : 'Jadwal Hari Ini' }}
+                                {{ nextSchedule ? `Next Bell: ${nextSchedule.name} (${nextSchedule.time.substring(0, 5)})` : "Today's Schedule" }}
                             </span>
                             <p class="text-lg font-black text-indigo-300">
-                                {{ nextSchedule ? `Sisa Waktu: ${countdownStr}` : countdownStr }}
+                                {{ nextSchedule ? `Time Remaining: ${countdownStr}` : countdownStr }}
                             </p>
                         </div>
                     </div>
@@ -710,7 +710,7 @@ onUnmounted(() => {
                     <!-- Sync feedback -->
                     <div class="mt-8 flex items-center justify-center gap-1.5 bg-white/5 px-4 py-1.5 rounded-full text-xs text-slate-400 z-10">
                         <ClockIcon class="w-4 h-4 text-indigo-400" />
-                        <span>Sinkronisasi database JICOS realtime</span>
+                        <span>Real-time JICOS database synchronization active</span>
                     </div>
                 </div>
 
@@ -723,14 +723,14 @@ onUnmounted(() => {
                         <ExclamationTriangleIcon class="w-6 h-6 animate-bounce" />
                     </div>
                     <div class="space-y-1">
-                        <h3 class="text-base font-bold text-white">Browser Membutuhkan Aktivasi Suara</h3>
-                        <p class="text-xs text-slate-400 max-w-md mx-auto">Sesuai kebijakan keamanan Google Chrome & browser modern lainnya, Anda harus mengklik tombol di bawah ini sekali untuk mengizinkan bel berbunyi otomatis.</p>
+                        <h3 class="text-base font-bold text-white">Browser Requires Audio Activation</h3>
+                        <p class="text-xs text-slate-400 max-w-md mx-auto">Due to modern browser security policies, you must click the button below once to authorize automated audio playback.</p>
                     </div>
                     <button 
                         @click="activateAudio"
                         class="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-xl shadow-amber-500/20 text-xs uppercase tracking-widest transition-all hover:scale-105"
                     >
-                        Aktifkan Suara Bel
+                        Activate Bell Audio
                     </button>
                 </div>
 
@@ -742,8 +742,8 @@ onUnmounted(() => {
                         <BoltIcon class="w-5 h-5 animate-pulse" />
                     </div>
                     <div class="text-left">
-                        <h3 class="text-xs font-black text-white uppercase tracking-wider">Sistem Bel Siaga & Berjalan Aktif</h3>
-                        <p class="text-[10px] text-slate-400">Jangan menutup tab ini agar bel terus berbunyi tepat waktu secara otomatis.</p>
+                        <h3 class="text-xs font-black text-white uppercase tracking-wider">Bell System Ready & Active</h3>
+                        <p class="text-[10px] text-slate-400">Do not close this tab to ensure all scheduled bells fire on time automatically.</p>
                     </div>
                 </div>
             </section>
@@ -751,9 +751,9 @@ onUnmounted(() => {
             <!-- Right Panel: Today's Timeline -->
             <section class="lg:col-span-5 bg-white/5 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-xl flex flex-col">
                 <div class="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
-                    <h2 class="text-xs font-black uppercase tracking-widest text-slate-400">Jadwal Bel Hari Ini</h2>
+                    <h2 class="text-xs font-black uppercase tracking-widest text-slate-400">Today's Bell Schedule</h2>
                     <span class="px-2.5 py-0.5 bg-white/5 rounded text-[10px] font-bold text-indigo-400">
-                        {{ todaySchedules.length }} Alaram Aktif
+                        {{ todaySchedules.length }} Active Alarms
                     </span>
                 </div>
 
@@ -763,8 +763,8 @@ onUnmounted(() => {
                         <ClockIcon class="w-6 h-6" />
                     </div>
                     <div class="text-xs text-slate-500">
-                        <p class="font-bold">Tidak ada jadwal bel aktif hari ini</p>
-                        <p class="mt-1">Bel tidak dijadwalkan berbunyi pada hari ini.</p>
+                        <p class="font-bold">No active bells scheduled today</p>
+                        <p class="mt-1">Bells are not scheduled to sound on this weekday.</p>
                     </div>
                 </div>
 
@@ -786,7 +786,7 @@ onUnmounted(() => {
                             <h4 class="text-sm font-bold text-white">{{ schedule.name }}</h4>
                             <div class="flex items-center gap-2 text-[10px] text-slate-400">
                                 <span class="capitalize">
-                                    {{ schedule.sound_type === 'chime' ? 'Nada Chime' : (schedule.sound_type === 'custom' ? 'Audio MP3' : 'Voice Text') }}
+                                    {{ schedule.sound_type === 'chime' ? 'Chime Tone' : (schedule.sound_type === 'custom' ? 'MP3 Audio' : 'Text-to-Speech') }}
                                 </span>
                                 <span>&bull;</span>
                                 <span>Volume {{ schedule.volume }}%</span>
@@ -812,12 +812,12 @@ onUnmounted(() => {
         <transition name="fade">
             <div v-if="preAlarmCountdown !== null && preAlarmCountdown > 0" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-indigo-950/95 backdrop-blur-md">
                 <div class="text-center space-y-6">
-                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-400 animate-pulse">Bel Akan Berbunyi Dalam</span>
+                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-400 animate-pulse">Bell Will Sound In</span>
                     <h2 class="text-5xl font-black text-white uppercase tracking-tight">{{ nextSchedule?.name }}</h2>
                     <div class="text-9xl font-black font-mono text-white countdown-pulse">
                         {{ preAlarmCountdown }}
                     </div>
-                    <div class="text-xs text-slate-400 uppercase tracking-widest">Harap bersiap-siap...</div>
+                    <div class="text-xs text-slate-400 uppercase tracking-widest">Please stand by...</div>
                 </div>
             </div>
         </transition>
@@ -837,9 +837,9 @@ onUnmounted(() => {
                     </div>
 
                     <div class="space-y-2">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-indigo-400 animate-pulse">Sedang Membunyikan Bel</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-indigo-400 animate-pulse">Sounding Bell Alert</span>
                         <h2 class="text-2xl font-black text-white uppercase tracking-tight">{{ activeAnnouncing.name }}</h2>
-                        <p class="text-sm text-slate-400">Waktu jadwal: {{ activeAnnouncing.time.substring(0, 5) }} WIB</p>
+                        <p class="text-sm text-slate-400">Scheduled time: {{ activeAnnouncing.time.substring(0, 5) }}</p>
                     </div>
 
                     <!-- Stop alarm shortcut -->
@@ -847,11 +847,11 @@ onUnmounted(() => {
                         @click="stopAllAudio" 
                         class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-bold uppercase tracking-wider mx-auto transition-colors"
                     >
-                        Matikan Suara
+                        Mute Sound
                     </button>
 
                     <div class="pt-2 text-[10px] text-slate-500 border-t border-white/5">
-                        Harap tidak menutup layar ini selama suara diputar.
+                        Do not close this screen while audio is playing.
                     </div>
                 </div>
             </div>
@@ -871,7 +871,7 @@ onUnmounted(() => {
                     <!-- Live Ping Indicator -->
                     <div class="flex items-center justify-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
-                        <span class="text-xs font-black uppercase tracking-widest text-rose-500">Siaran Langsung (Mic Aktif)</span>
+                        <span class="text-xs font-black uppercase tracking-widest text-rose-500">Live Broadcast (Mic Active)</span>
                     </div>
 
                     <div v-if="hasVideoFeed" class="mx-auto w-full max-w-md">
@@ -883,16 +883,16 @@ onUnmounted(() => {
                             class="w-full h-auto aspect-video object-cover rounded-2xl border-2 border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.25)] scale-x-[-1] bg-slate-950"
                         ></video>
                     </div>
-                    <div v-else class="mx-auto w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                    <div class="mx-auto w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
                         <MicrophoneIcon class="w-12 h-12 animate-pulse" />
                     </div>
 
                     <div class="space-y-1">
                         <h2 class="text-2xl font-black text-white uppercase tracking-tight">
-                            {{ hasVideoFeed ? 'Siaran Video Langsung Aktif' : 'Mikrofon Sistem PA Aktif' }}
+                            {{ hasVideoFeed ? 'Live Video Broadcast Active' : 'System PA Microphone Active' }}
                         </h2>
                         <p class="text-xs text-slate-400">
-                            {{ hasVideoFeed ? 'Kamera dan mikrofon Anda sedang aktif menyiarkan pengumuman.' : 'Suara Anda sedang diputar langsung melalui sistem speaker JICOS.' }}
+                            {{ hasVideoFeed ? 'Your camera and microphone are broadcasting live announcements.' : 'Your voice is playing directly through JICOS speaker systems.' }}
                         </p>
                     </div>
 
@@ -911,11 +911,11 @@ onUnmounted(() => {
                         @click="stopMicBroadcast" 
                         class="px-8 py-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black rounded-2xl shadow-xl shadow-rose-600/20 text-xs uppercase tracking-widest transition-all hover:scale-105"
                     >
-                        Matikan Mic (Selesai)
+                        Turn Off Mic (Finish)
                     </button>
 
                     <div class="pt-2 text-[10px] text-slate-500 border-t border-white/5">
-                        Tip: Jika terdengar suara mendengung/feedback, jauhkan mikrofon dari speaker.
+                        Tip: If feedback howling occurs, move the microphone away from the speaker.
                     </div>
                 </div>
             </div>
@@ -935,15 +935,15 @@ onUnmounted(() => {
                     </div>
 
                     <div class="space-y-2">
-                        <h2 class="text-xl font-black text-white uppercase tracking-tight">Darurat Teks Kustom</h2>
-                        <p class="text-xs text-slate-400">Ketik pesan pengumuman suara yang akan dibacakan setelah bunyi sirene.</p>
+                        <h2 class="text-xl font-black text-white uppercase tracking-tight">Custom Emergency Text</h2>
+                        <p class="text-xs text-slate-400">Type the voice announcement message to be read after the siren warning.</p>
                     </div>
 
                     <!-- Custom Text Input -->
                     <textarea 
                         v-model="customEmergencyText" 
                         rows="4" 
-                        placeholder="Contoh: Perhatian! Seluruh karyawan departemen purchasing harap berkumpul di ruang rapat utama segera..."
+                        placeholder="Example: Attention! All purchasing department staff are requested to assemble in the main meeting room immediately..."
                         class="w-full bg-slate-950 border border-white/10 rounded-2xl p-4 text-xs font-semibold text-slate-200 placeholder-slate-600 focus:border-indigo-500 focus:ring-0 resize-none transition-all"
                     ></textarea>
 
@@ -953,14 +953,14 @@ onUnmounted(() => {
                             @click="showCustomEmergencyModal = false" 
                             class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors"
                         >
-                            Batal
+                            Cancel
                         </button>
                         
                         <button 
                             @click="triggerEmergencyAlert('custom', customEmergencyText)" 
                             class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all hover:scale-102"
                         >
-                            Bunyikan Darurat
+                            Sound Alarm
                         </button>
                     </div>
                 </div>

@@ -191,9 +191,9 @@ const stopTest = () => {
 </script>
 
 <template>
-    <Head title="Manajemen Jadwal Bel" />
+    <Head title="Bell Schedule Management" />
     
-    <AppLayout title="Jadwal Bel Shift">
+    <AppLayout title="Shift Bell Schedules">
         <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6 pb-20">
             <!-- Header section -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -205,8 +205,8 @@ const stopTest = () => {
                         <ArrowLeftIcon class="h-5 w-5" />
                     </a>
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">Manajemen Jadwal Bel</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Atur bel otomatis untuk jam masuk, istirahat, dan pulang karyawan secara dinamis</p>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">Bell Schedule Management</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Configure automated bells for shifts, breaks, and employee checkout times dynamically</p>
                     </div>
                 </div>
                 
@@ -218,7 +218,7 @@ const stopTest = () => {
                         class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-500/20 text-xs font-black uppercase tracking-widest transition-all hover:scale-105"
                     >
                         <ComputerDesktopIcon class="h-4.5 w-4.5" />
-                        Buka Terminal Bel (Kiosk)
+                        Open Bell Terminal (Kiosk)
                     </a>
 
                     <button 
@@ -226,7 +226,7 @@ const stopTest = () => {
                         class="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl shadow-xl shadow-emerald-500/20 text-xs font-black uppercase tracking-widest transition-all hover:scale-105"
                     >
                         <PlusIcon class="h-4.5 w-4.5" />
-                        Tambah Jadwal
+                        Add Schedule
                     </button>
                 </div>
             </div>
@@ -234,8 +234,8 @@ const stopTest = () => {
             <!-- List Section -->
             <div class="bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl overflow-hidden">
                 <div class="p-6 border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
-                    <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Daftar Jadwal Bel</h3>
-                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded-full uppercase tracking-wider">{{ schedules.length }} Jadwal</span>
+                    <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Bell Schedule List</h3>
+                    <span class="px-3 py-1 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded-full uppercase tracking-wider">{{ schedules.length }} Schedules</span>
                 </div>
 
                 <div v-if="schedules.length === 0" class="p-16 text-center space-y-4">
@@ -243,8 +243,8 @@ const stopTest = () => {
                         <BellIcon class="w-8 h-8" />
                     </div>
                     <div>
-                        <h4 class="text-base font-bold text-slate-900 dark:text-white">Belum Ada Jadwal Bel</h4>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">Mulai dengan menambahkan jadwal bel seperti jam masuk kerja, istirahat siang, atau waktu pulang shift.</p>
+                        <h4 class="text-base font-bold text-slate-900 dark:text-white">No Bell Schedules Found</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">Get started by adding a bell schedule for shift entry, break times, or shift completion.</p>
                     </div>
                 </div>
 
@@ -252,12 +252,12 @@ const stopTest = () => {
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-slate-50 dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-white/5">
-                                <th class="py-3.5 px-6">Nama Bel</th>
-                                <th class="py-3.5 px-6">Waktu</th>
-                                <th class="py-3.5 px-6">Hari Kerja</th>
-                                <th class="py-3.5 px-6">Tipe Bel</th>
+                                <th class="py-3.5 px-6">Bell Name</th>
+                                <th class="py-3.5 px-6">Time</th>
+                                <th class="py-3.5 px-6">Weekdays</th>
+                                <th class="py-3.5 px-6">Bell Type</th>
                                 <th class="py-3.5 px-6 text-center">Status</th>
-                                <th class="py-3.5 px-6 text-right">Aksi</th>
+                                <th class="py-3.5 px-6 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-200 dark:divide-white/5 text-sm text-slate-700 dark:text-slate-350">
