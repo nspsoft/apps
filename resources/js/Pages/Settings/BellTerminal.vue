@@ -47,6 +47,11 @@ let micSource = null;
 let micAnalyser = null;
 let micAnimationId = null;
 
+// Emergency PA Warning Options
+const showEmergencyOptions = ref(false);
+const showCustomEmergencyModal = ref(false);
+const customEmergencyText = ref('');
+
 // Canvas particles references
 const particleCanvas = ref(null);
 let particleCtx = null;
@@ -285,38 +290,85 @@ const triggerManualChime = () => {
     }, 5000);
 };
 
-// Manual override trigger - Play warning/emergency siren using sawtooth oscillator
-const triggerEmergencySiren = () => {
+const toggleEmergencyOptions = () => {
+    showEmergencyOptions.value = !showEmergencyOptions.value;
+};
+
+const triggerEmergencyAlert = (type, text = '') => {
     if (!isAudioActive.value) activateAudio();
     stopAllAudio();
-    
-    activeAnnouncing.value = { name: '🔴 SIRENE DARURAT', time: 'MANUAL', sound_type: 'custom' };
-    
+    showEmergencyOptions.value = false;
+    showCustomEmergencyModal.value = false;
+
+    let announceText = '';
+    let alertTitle = '';
+
+    if (type === 'fire') {
+        announceText = 'Perhatian! Terjadi keadaan darurat kebakaran di area gedung. Harap segera lakukan evakuasi melalui tangga darurat dan jalur penyelamatan terdekat secara tenang dan tertib.';
+        alertTitle = '🚨 DARURAT KEBAKARAN';
+    } else if (type === 'earthquake') {
+        announceText = 'Perhatian! Terjadi gempa bumi. Mohon segera berlindung di bawah meja yang kokoh atau berkumpul di luar gedung di area terbuka titik evakuasi.';
+        alertTitle = '🌍 DARURAT GEMPA BUMI';
+    } else if (type === 'custom') {
+        announceText = text || 'Perhatian! Terjadi kondisi darurat di area perusahaan.';
+        alertTitle = '📝 DARURAT KHUSUS';
+    }
+
+    activeAnnouncing.value = { name: alertTitle, time: 'SIAGA DARURAT', sound_type: 'custom' };
+
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    const playSirenTone = () => {
-        if (!activeAnnouncing.value || activeAnnouncing.value.name !== '🔴 SIRENE DARURAT') return;
-        
+
+    const runCycle = () => {
+        if (!activeAnnouncing.value || activeAnnouncing.value.name !== alertTitle) return;
+
+        // 1. Sound the warning siren
         const osc = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
+
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-        osc.frequency.linearRampToValueAtTime(1000, audioCtx.currentTime + 0.4);
-        osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.8);
-        
+        osc.frequency.linearRampToValueAtTime(1000, audioCtx.currentTime + 0.6);
+        osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 1.2);
+
         gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
-        
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+
         osc.connect(gainNode);
         gainNode.connect(audioCtx.destination);
-        
+
         osc.start();
-        osc.stop(audioCtx.currentTime + 0.8);
+        osc.stop(audioCtx.currentTime + 1.2);
+
+        // 2. Play voice announcement after siren ends
+        setTimeout(() => {
+            if (!activeAnnouncing.value || activeAnnouncing.value.name !== alertTitle) return;
+
+            const utterance = new SpeechSynthesisUtterance(announceText);
+            utterance.lang = 'id-ID';
+            utterance.volume = 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            const idVoice = voices.find(v => v.lang.includes('id') || v.name.toLowerCase().includes('indonesian'));
+            if (idVoice) utterance.voice = idVoice;
+
+            utterance.onend = () => {
+                // Loop: Wait 1 second then run again
+                setTimeout(() => {
+                    runCycle();
+                }, 1000);
+            };
+
+            utterance.onerror = () => {
+                setTimeout(() => {
+                    runCycle();
+                }, 1000);
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }, 1400);
     };
 
-    playSirenTone();
-    sirenInterval = setInterval(playSirenTone, 850);
+    runCycle();
 };
 
 // Stop all audio & sirens
@@ -559,13 +611,46 @@ onUnmounted(() => {
                     Mic Siaran
                 </button>
 
-                <button 
-                    @click="triggerEmergencySiren" 
-                    class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all animate-pulse"
-                >
-                    <ExclamationTriangleIcon class="w-3.5 h-3.5" />
-                    Sirene
-                </button>
+                <div class="relative">
+                    <button 
+                        @click="toggleEmergencyOptions" 
+                        class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all animate-pulse"
+                    >
+                        <ExclamationTriangleIcon class="w-3.5 h-3.5" />
+                        Sirene
+                    </button>
+                    
+                    <!-- Emergency Dropdown Popover Menu -->
+                    <div 
+                        v-if="showEmergencyOptions" 
+                        class="absolute right-0 mt-2 w-56 bg-slate-900 border border-white/10 rounded-2xl p-2.5 shadow-2xl z-50 text-left space-y-1 backdrop-blur-xl"
+                    >
+                        <span class="block px-2.5 py-1 text-[9px] font-bold text-slate-500 uppercase tracking-widest border-b border-white/5 pb-2 mb-2">
+                            Pilih Kondisi Darurat
+                        </span>
+                        
+                        <button 
+                            @click="triggerEmergencyAlert('fire')"
+                            class="w-full text-left px-3 py-2 text-xs font-bold text-slate-200 hover:bg-rose-500/10 hover:text-rose-400 rounded-xl transition-all flex items-center gap-2"
+                        >
+                            <span>🔥</span> Darurat Kebakaran
+                        </button>
+                        
+                        <button 
+                            @click="triggerEmergencyAlert('earthquake')"
+                            class="w-full text-left px-3 py-2 text-xs font-bold text-slate-200 hover:bg-amber-500/10 hover:text-amber-400 rounded-xl transition-all flex items-center gap-2"
+                        >
+                            <span>🌍</span> Darurat Gempa Bumi
+                        </button>
+                        
+                        <button 
+                            @click="showCustomEmergencyModal = true; showEmergencyOptions = false"
+                            class="w-full text-left px-3 py-2 text-xs font-bold text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all flex items-center gap-2 border-t border-white/5 mt-1.5 pt-2"
+                        >
+                            <span>📝</span> Teks Custom...
+                        </button>
+                    </div>
+                </div>
 
                 <button 
                     v-if="activeAnnouncing"
@@ -831,6 +916,52 @@ onUnmounted(() => {
 
                     <div class="pt-2 text-[10px] text-slate-500 border-t border-white/5">
                         Tip: Jika terdengar suara mendengung/feedback, jauhkan mikrofon dari speaker.
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Custom Emergency Announcement Modal -->
+        <transition name="fade">
+            <div 
+                v-if="showCustomEmergencyModal" 
+                class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-md"
+            >
+                <div class="bg-slate-900 border border-indigo-500/20 p-6 md:p-8 rounded-3xl text-center space-y-6 max-w-md w-full shadow-2xl relative overflow-hidden">
+                    <div class="absolute -top-12 -left-12 w-24 h-24 bg-indigo-500/30 rounded-full blur-2xl"></div>
+
+                    <div class="mx-auto w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+                        <MegaphoneIcon class="w-8 h-8" />
+                    </div>
+
+                    <div class="space-y-2">
+                        <h2 class="text-xl font-black text-white uppercase tracking-tight">Darurat Teks Kustom</h2>
+                        <p class="text-xs text-slate-400">Ketik pesan pengumuman suara yang akan dibacakan setelah bunyi sirene.</p>
+                    </div>
+
+                    <!-- Custom Text Input -->
+                    <textarea 
+                        v-model="customEmergencyText" 
+                        rows="4" 
+                        placeholder="Contoh: Perhatian! Seluruh karyawan departemen purchasing harap berkumpul di ruang rapat utama segera..."
+                        class="w-full bg-slate-950 border border-white/10 rounded-2xl p-4 text-xs font-semibold text-slate-200 placeholder-slate-600 focus:border-indigo-500 focus:ring-0 resize-none transition-all"
+                    ></textarea>
+
+                    <!-- Control Buttons -->
+                    <div class="flex items-center gap-3">
+                        <button 
+                            @click="showCustomEmergencyModal = false" 
+                            class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-colors"
+                        >
+                            Batal
+                        </button>
+                        
+                        <button 
+                            @click="triggerEmergencyAlert('custom', customEmergencyText)" 
+                            class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-black rounded-xl text-xs uppercase tracking-widest transition-all hover:scale-102"
+                        >
+                            Bunyikan Darurat
+                        </button>
                     </div>
                 </div>
             </div>
