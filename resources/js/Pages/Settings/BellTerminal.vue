@@ -7,7 +7,10 @@ import {
     CheckCircleIcon,
     ArrowLeftIcon,
     BoltIcon,
-    ExclamationTriangleIcon
+    ExclamationTriangleIcon,
+    PlayIcon,
+    StopIcon,
+    MegaphoneIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -19,9 +22,20 @@ const currentDateStr = ref('');
 const currentDay = ref('');
 const isAudioActive = ref(false);
 const activeAnnouncing = ref(null);
-const playedToday = ref({}); // Keep track of played schedules: { scheduleId: 'YYYY-MM-DD' }
+const playedToday = ref({}); // Keep track of played schedules: { scheduleId_YYYY-MM-DD: true }
+const nextSchedule = ref(null);
+const countdownStr = ref('');
+const preAlarmCountdown = ref(null);
+
 let clockInterval = null;
 let currentAudio = null;
+let sirenInterval = null;
+
+// Canvas particles references
+const particleCanvas = ref(null);
+let particleCtx = null;
+let particleAnimationId = null;
+const particles = [];
 
 const daysMap = {
     0: 'Sunday',
@@ -50,7 +64,7 @@ const todaySchedules = computed(() => {
     });
 });
 
-// Format digital time
+// Update Clock & Alarm Triggers
 const updateClock = () => {
     const now = new Date();
     
@@ -69,8 +83,66 @@ const updateClock = () => {
     // Current Day Name (e.g. "Monday")
     currentDay.value = daysMap[now.getDay()];
 
+    // Calculate Next Alarm & Countdown
+    calculateNextAlarm(now);
+
     // Check alarm triggers every second
     checkAlarmTriggers(hours, minutes);
+};
+
+// Calculate countdown to next alarm
+const calculateNextAlarm = (now) => {
+    if (todaySchedules.value.length === 0) {
+        nextSchedule.value = null;
+        countdownStr.value = 'Tidak ada bel aktif hari ini';
+        preAlarmCountdown.value = null;
+        return;
+    }
+
+    let closestSchedule = null;
+    let minDiff = Infinity;
+
+    todaySchedules.value.forEach(schedule => {
+        const [sHours, sMinutes] = schedule.time.split(':');
+        const alarmTime = new Date(now);
+        alarmTime.setHours(parseInt(sHours), parseInt(sMinutes), 0, 0);
+
+        // Check difference in milliseconds
+        const diff = alarmTime - now;
+        
+        // Only count future alarms
+        if (diff > 0 && diff < minDiff) {
+            minDiff = diff;
+            closestSchedule = schedule;
+        }
+    });
+
+    if (closestSchedule) {
+        nextSchedule.value = closestSchedule;
+        
+        // Format countdown string
+        const totalSeconds = Math.floor(minDiff / 1000);
+        const hoursLeft = Math.floor(totalSeconds / 3600);
+        const minutesLeft = Math.floor((totalSeconds % 3600) / 60);
+        const secondsLeft = totalSeconds % 60;
+
+        let parts = [];
+        if (hoursLeft > 0) parts.push(`${hoursLeft} jam`);
+        if (minutesLeft > 0) parts.push(`${minutesLeft} menit`);
+        parts.push(`${secondsLeft} detik`);
+        countdownStr.value = parts.join(' ');
+
+        // Dramatic countdown overlay when less than 10 seconds remain
+        if (totalSeconds <= 10) {
+            preAlarmCountdown.value = totalSeconds;
+        } else {
+            preAlarmCountdown.value = null;
+        }
+    } else {
+        nextSchedule.value = null;
+        countdownStr.value = 'Semua bel hari ini telah selesai';
+        preAlarmCountdown.value = null;
+    }
 };
 
 // Play native chime (C5-E5-G5-C6) using Web Audio API
@@ -130,13 +202,16 @@ const checkAlarmTriggers = (hours, minutes) => {
 
 // Trigger the alarm playback
 const triggerAlarm = (schedule) => {
+    stopAllAudio();
     activeAnnouncing.value = schedule;
     const volume = schedule.volume / 100;
 
     if (schedule.sound_type === 'chime') {
         playNativeChime(schedule.volume);
         setTimeout(() => {
-            activeAnnouncing.value = null;
+            if (activeAnnouncing.value?.id === schedule.id) {
+                activeAnnouncing.value = null;
+            }
         }, 5000);
     } else if (schedule.sound_type === 'custom') {
         if (!schedule.sound_file) {
@@ -147,13 +222,16 @@ const triggerAlarm = (schedule) => {
         currentAudio.volume = volume;
         currentAudio.play();
         currentAudio.onended = () => {
-            activeAnnouncing.value = null;
+            if (activeAnnouncing.value?.id === schedule.id) {
+                activeAnnouncing.value = null;
+            }
         };
     } else if (schedule.sound_type === 'tts') {
         playNativeChime(schedule.volume);
         
         // Wait for chime to end before speaking text
         setTimeout(() => {
+            if (activeAnnouncing.value?.id !== schedule.id) return;
             const speech = new SpeechSynthesisUtterance(schedule.tts_text || 'Perhatian');
             speech.lang = 'id-ID';
             speech.volume = volume;
@@ -166,13 +244,77 @@ const triggerAlarm = (schedule) => {
             
             window.speechSynthesis.speak(speech);
             speech.onend = () => {
-                activeAnnouncing.value = null;
+                if (activeAnnouncing.value?.id === schedule.id) {
+                    activeAnnouncing.value = null;
+                }
             };
             speech.onerror = () => {
-                activeAnnouncing.value = null;
+                if (activeAnnouncing.value?.id === schedule.id) {
+                    activeAnnouncing.value = null;
+                }
             };
         }, 2200);
     }
+};
+
+// Manual override trigger - Play default chime
+const triggerManualChime = () => {
+    if (!isAudioActive.value) activateAudio();
+    stopAllAudio();
+    
+    activeAnnouncing.value = { name: 'Bel Chime Manual', time: 'SEKARANG', sound_type: 'chime', volume: 100 };
+    playNativeChime(100);
+    setTimeout(() => {
+        activeAnnouncing.value = null;
+    }, 5000);
+};
+
+// Manual override trigger - Play warning/emergency siren using sawtooth oscillator
+const triggerEmergencySiren = () => {
+    if (!isAudioActive.value) activateAudio();
+    stopAllAudio();
+    
+    activeAnnouncing.value = { name: '🔴 SIRENE DARURAT', time: 'MANUAL', sound_type: 'custom' };
+    
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    const playSirenTone = () => {
+        if (!activeAnnouncing.value || activeAnnouncing.value.name !== '🔴 SIRENE DARURAT') return;
+        
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(1000, audioCtx.currentTime + 0.4);
+        osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.8);
+        
+        gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.8);
+    };
+
+    playSirenTone();
+    sirenInterval = setInterval(playSirenTone, 850);
+};
+
+// Stop all audio & sirens
+const stopAllAudio = () => {
+    activeAnnouncing.value = null;
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
+    if (sirenInterval) {
+        clearInterval(sirenInterval);
+        sirenInterval = null;
+    }
+    window.speechSynthesis.cancel();
 };
 
 const activateAudio = () => {
@@ -200,18 +342,67 @@ const isSchedulePlayed = (scheduleId) => {
     return !!playedToday.value[trackingKey];
 };
 
+// Particles Background Animation
+const initParticles = () => {
+    const canvas = particleCanvas.value;
+    if (!canvas) return;
+    particleCtx = canvas.getContext('2d');
+    
+    const resizeCanvas = () => {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Create 45 glowing particles drifting around
+    for (let i = 0; i < 45; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 1,
+            speedX: (Math.random() - 0.5) * 0.4,
+            speedY: (Math.random() - 0.5) * 0.4,
+            opacity: Math.random() * 0.4 + 0.1
+        });
+    }
+
+    const animate = () => {
+        if (!particleCtx) return;
+        particleCtx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        particles.forEach(p => {
+            p.x += p.speedX;
+            p.y += p.speedY;
+
+            // Bounce on boundaries
+            if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+            if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+            // Draw glowing circles
+            particleCtx.beginPath();
+            particleCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            particleCtx.fillStyle = `rgba(139, 92, 246, ${p.opacity})`;
+            particleCtx.shadowBlur = 10;
+            particleCtx.shadowColor = 'rgb(139, 92, 246)';
+            particleCtx.fill();
+        });
+
+        particleAnimationId = requestAnimationFrame(animate);
+    };
+    animate();
+};
+
 onMounted(() => {
     updateClock();
     clockInterval = setInterval(updateClock, 1000);
+    initParticles();
 });
 
 onUnmounted(() => {
     if (clockInterval) clearInterval(clockInterval);
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
-    window.speechSynthesis.cancel();
+    if (particleAnimationId) cancelAnimationFrame(particleAnimationId);
+    stopAllAudio();
 });
 </script>
 
@@ -219,6 +410,9 @@ onUnmounted(() => {
     <Head title="Terminal Bel Otomatis" />
 
     <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 overflow-hidden relative">
+        <!-- Canvas for particle background -->
+        <canvas ref="particleCanvas" class="absolute inset-0 z-0 pointer-events-none"></canvas>
+
         <!-- Ambient background glows -->
         <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div class="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -256,13 +450,20 @@ onUnmounted(() => {
         </header>
 
         <!-- Main Body -->
-        <main class="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 flex flex-col lg:grid lg:grid-cols-12 gap-8 z-20 overflow-y-auto">
+        <main class="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 flex flex-col lg:grid lg:grid-cols-12 gap-8 z-20 overflow-y-auto pb-32">
             
             <!-- Left Panel: Clock and Control -->
             <section class="lg:col-span-7 flex flex-col justify-between gap-6">
-                <!-- Clock Display Card -->
+                <!-- Clock Display Card with integrated audio waves -->
                 <div class="bg-white/5 border border-white/5 rounded-3xl p-8 md:p-12 text-center flex-1 flex flex-col justify-center items-center backdrop-blur-xl relative overflow-hidden">
-                    <div class="space-y-2">
+                    
+                    <!-- Soundwave waves around the clock -->
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+                        <div class="audio-wave" :class="{ 'wave-active': activeAnnouncing }"></div>
+                        <div class="audio-wave wave-delayed" :class="{ 'wave-active': activeAnnouncing }"></div>
+                    </div>
+
+                    <div class="space-y-4 z-10">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Waktu Lokal Sekarang</span>
                         <h1 class="text-6xl md:text-8xl font-black font-mono tracking-tight text-white glow-text selection:bg-transparent">
                             {{ currentTime || '00:00:00' }}
@@ -270,10 +471,20 @@ onUnmounted(() => {
                         <p class="text-sm font-semibold text-indigo-400 uppercase tracking-widest mt-2">
                             {{ currentDay ? dayLabelsIndo[currentDay] : '' }}, {{ currentDateStr }}
                         </p>
+                        
+                        <!-- Next Alarm Countdown Information -->
+                        <div class="pt-6 border-t border-white/5 max-w-md mx-auto space-y-1">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                {{ nextSchedule ? `Bel Berikutnya: ${nextSchedule.name} (${nextSchedule.time.substring(0, 5)} WIB)` : 'Jadwal Hari Ini' }}
+                            </span>
+                            <p class="text-lg font-black text-indigo-300">
+                                {{ nextSchedule ? `Sisa Waktu: ${countdownStr}` : countdownStr }}
+                            </p>
+                        </div>
                     </div>
 
-                    <!-- Heartbeat pulse -->
-                    <div class="mt-8 flex items-center justify-center gap-1.5 bg-white/5 px-4 py-1.5 rounded-full text-xs text-slate-400">
+                    <!-- Sync feedback -->
+                    <div class="mt-8 flex items-center justify-center gap-1.5 bg-white/5 px-4 py-1.5 rounded-full text-xs text-slate-400 z-10">
                         <ClockIcon class="w-4 h-4 text-indigo-400" />
                         <span>Sinkronisasi database JICOS realtime</span>
                     </div>
@@ -301,14 +512,14 @@ onUnmounted(() => {
 
                 <div 
                     v-else 
-                    class="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-3xl p-8 text-center space-y-3"
+                    class="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-3xl p-6 text-center flex items-center justify-center gap-4"
                 >
-                    <div class="mx-auto w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400">
-                        <BoltIcon class="w-6 h-6" />
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                        <BoltIcon class="w-5 h-5 animate-pulse" />
                     </div>
-                    <div>
-                        <h3 class="text-base font-bold text-white uppercase tracking-wider">Sistem Bel Siaga & Berjalan Aktif</h3>
-                        <p class="text-xs text-slate-400 mt-1">Jangan menutup tab ini agar bel terus berbunyi tepat waktu secara otomatis.</p>
+                    <div class="text-left">
+                        <h3 class="text-xs font-black text-white uppercase tracking-wider">Sistem Bel Siaga & Berjalan Aktif</h3>
+                        <p class="text-[10px] text-slate-400">Jangan menutup tab ini agar bel terus berbunyi tepat waktu secara otomatis.</p>
                     </div>
                 </div>
             </section>
@@ -341,7 +552,7 @@ onUnmounted(() => {
                         class="p-4 rounded-2xl border transition-all duration-300 flex items-center justify-between"
                         :class="[
                             isSchedulePlayed(schedule.id) 
-                                ? 'bg-slate-900/60 border-emerald-500/10 opacity-60' 
+                                ? 'bg-slate-900/60 border-emerald-500/10 opacity-65' 
                                 : activeAnnouncing?.id === schedule.id
                                     ? 'bg-indigo-500/20 border-indigo-500/50 scale-[1.02] shadow-[0_0_20px_rgba(99,102,241,0.2)]'
                                     : 'bg-white/2 border-white/5 hover:border-white/10'
@@ -373,6 +584,57 @@ onUnmounted(() => {
             </section>
         </main>
 
+        <!-- Fixed Bottom Manual Override Trigger Panel -->
+        <div class="fixed bottom-0 inset-x-0 bg-slate-900/80 backdrop-blur-xl border-t border-white/5 p-4 z-40">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-2 text-slate-400">
+                    <MegaphoneIcon class="w-5 h-5 text-indigo-400" />
+                    <span class="text-xs font-bold uppercase tracking-widest">Manual Override Panel</span>
+                </div>
+                
+                <div class="flex items-center flex-wrap gap-3">
+                    <button 
+                        @click="triggerManualChime" 
+                        class="flex items-center gap-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all"
+                    >
+                        <PlayIcon class="w-4 h-4" />
+                        Bunyikan Chime
+                    </button>
+
+                    <button 
+                        @click="triggerEmergencySiren" 
+                        class="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all animate-pulse"
+                    >
+                        <ExclamationTriangleIcon class="w-4 h-4" />
+                        Sirene Darurat
+                    </button>
+
+                    <button 
+                        v-if="activeAnnouncing"
+                        @click="stopAllAudio" 
+                        class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all"
+                    >
+                        <StopIcon class="w-4 h-4" />
+                        Stop Alaram
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10-Second Pre-Alarm Countdowns Overlay -->
+        <transition name="fade">
+            <div v-if="preAlarmCountdown !== null && preAlarmCountdown > 0" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-indigo-950/95 backdrop-blur-md">
+                <div class="text-center space-y-6">
+                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-400 animate-pulse">Bel Akan Berbunyi Dalam</span>
+                    <h2 class="text-5xl font-black text-white uppercase tracking-tight">{{ nextSchedule?.name }}</h2>
+                    <div class="text-9xl font-black font-mono text-white countdown-pulse">
+                        {{ preAlarmCountdown }}
+                    </div>
+                    <div class="text-xs text-slate-400 uppercase tracking-widest">Harap bersiap-siap...</div>
+                </div>
+            </div>
+        </transition>
+
         <!-- Overlay Alert on Playback -->
         <transition name="fade">
             <div 
@@ -392,6 +654,14 @@ onUnmounted(() => {
                         <h2 class="text-2xl font-black text-white uppercase tracking-tight">{{ activeAnnouncing.name }}</h2>
                         <p class="text-sm text-slate-400">Waktu jadwal: {{ activeAnnouncing.time.substring(0, 5) }} WIB</p>
                     </div>
+
+                    <!-- Stop alarm shortcut -->
+                    <button 
+                        @click="stopAllAudio" 
+                        class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-bold uppercase tracking-wider mx-auto transition-colors"
+                    >
+                        Matikan Suara
+                    </button>
 
                     <div class="pt-2 text-[10px] text-slate-500 border-t border-white/5">
                         Harap tidak menutup layar ini selama suara diputar.
@@ -428,5 +698,53 @@ onUnmounted(() => {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+/* Audio wave circular glows */
+.audio-wave {
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    border: 2px solid rgba(99, 102, 241, 0.1);
+    position: absolute;
+    transition: all 1s ease;
+    transform: scale(0.9);
+}
+.wave-delayed {
+    animation-delay: 1.5s;
+}
+.wave-active {
+    animation: wave-expand 3s infinite linear;
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.2);
+}
+
+@keyframes wave-expand {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 0.4;
+    }
+    100% {
+        transform: scale(1.6);
+        opacity: 0;
+    }
+}
+
+.countdown-pulse {
+    animation: countdown-heartbeat 1s infinite alternate;
+}
+
+@keyframes countdown-heartbeat {
+    from {
+        transform: scale(0.95);
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    to {
+        transform: scale(1.05);
+        text-shadow: 0 0 40px rgba(99, 102, 241, 0.6);
+    }
 }
 </style>
