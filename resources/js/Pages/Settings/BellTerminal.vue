@@ -10,7 +10,8 @@ import {
     ExclamationTriangleIcon,
     PlayIcon,
     StopIcon,
-    MegaphoneIcon
+    MegaphoneIcon,
+    MicrophoneIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -30,6 +31,15 @@ const preAlarmCountdown = ref(null);
 let clockInterval = null;
 let currentAudio = null;
 let sirenInterval = null;
+
+// Microphone Live PA references
+const isMicActive = ref(false);
+const micVisualData = ref(new Array(20).fill(0));
+let micStream = null;
+let micAudioContext = null;
+let micSource = null;
+let micAnalyser = null;
+let micAnimationId = null;
 
 // Canvas particles references
 const particleCanvas = ref(null);
@@ -315,6 +325,69 @@ const stopAllAudio = () => {
         sirenInterval = null;
     }
     window.speechSynthesis.cancel();
+    stopMicBroadcast();
+};
+
+const startMicBroadcast = async () => {
+    try {
+        stopAllAudio(); // Stop other playbacks
+        if (!isAudioActive.value) activateAudio();
+
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        micSource = micAudioContext.createMediaStreamSource(micStream);
+        micAnalyser = micAudioContext.createAnalyser();
+        micAnalyser.fftSize = 64;
+
+        micSource.connect(micAnalyser);
+        micAnalyser.connect(micAudioContext.destination);
+
+        isMicActive.value = true;
+
+        const bufferLength = micAnalyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const updateVisualizer = () => {
+            if (!isMicActive.value || !micAnalyser) return;
+            micAnalyser.getByteFrequencyData(dataArray);
+
+            const newValues = [];
+            for (let i = 0; i < 20; i++) {
+                const val = Math.max(0, Math.floor((dataArray[i] / 255) * 100));
+                newValues.push(val);
+            }
+            micVisualData.value = newValues;
+            micAnimationId = requestAnimationFrame(updateVisualizer);
+        };
+        updateVisualizer();
+    } catch (err) {
+        console.error('Microphone access denied or failed:', err);
+        alert('Gagal mengakses mikrofon. Pastikan Anda memberikan izin akses mikrofon di browser.');
+    }
+};
+
+const stopMicBroadcast = () => {
+    isMicActive.value = false;
+    if (micAnimationId) {
+        cancelAnimationFrame(micAnimationId);
+        micAnimationId = null;
+    }
+    if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+    }
+    if (micSource) {
+        micSource.disconnect();
+        micSource = null;
+    }
+    if (micAnalyser) {
+        micAnalyser.disconnect();
+        micAnalyser = null;
+    }
+    if (micAudioContext) {
+        micAudioContext.close();
+        micAudioContext = null;
+    }
 };
 
 const activateAudio = () => {
@@ -446,6 +519,14 @@ onUnmounted(() => {
                 >
                     <PlayIcon class="w-3.5 h-3.5" />
                     Chime
+                </button>
+
+                <button 
+                    @click="startMicBroadcast" 
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                    <MicrophoneIcon class="w-3.5 h-3.5" />
+                    Mic Siaran
                 </button>
 
                 <button 
@@ -655,6 +736,57 @@ onUnmounted(() => {
 
                     <div class="pt-2 text-[10px] text-slate-500 border-t border-white/5">
                         Harap tidak menutup layar ini selama suara diputar.
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <!-- Live Microphone PA Broadcast Overlay -->
+        <transition name="fade">
+            <div 
+                v-if="isMicActive" 
+                class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md"
+            >
+                <div class="bg-slate-900 border border-emerald-500/20 p-8 md:p-12 rounded-3xl text-center space-y-6 max-w-lg w-full shadow-2xl relative overflow-hidden">
+                    <!-- Glow effect inside modal -->
+                    <div class="absolute -top-12 -left-12 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl"></div>
+                    <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl"></div>
+
+                    <!-- Live Ping Indicator -->
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                        <span class="text-xs font-black uppercase tracking-widest text-rose-500">Siaran Langsung (Mic Aktif)</span>
+                    </div>
+
+                    <div class="mx-auto w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                        <MicrophoneIcon class="w-12 h-12 animate-pulse" />
+                    </div>
+
+                    <div class="space-y-1">
+                        <h2 class="text-2xl font-black text-white uppercase tracking-tight">Mikrofon Sistem PA Aktif</h2>
+                        <p class="text-xs text-slate-400">Suara Anda sedang diputar langsung melalui sistem speaker JICOS.</p>
+                    </div>
+
+                    <!-- Live Equalizer Bars Visualizer -->
+                    <div class="h-16 flex items-end justify-center gap-1 max-w-xs mx-auto pt-4">
+                        <div 
+                            v-for="(val, index) in micVisualData" 
+                            :key="index"
+                            class="w-2 bg-emerald-500 rounded-t transition-all duration-75"
+                            :style="{ height: `${Math.max(10, val)}%` }"
+                        ></div>
+                    </div>
+
+                    <!-- Stop Broadcasting button -->
+                    <button 
+                        @click="stopMicBroadcast" 
+                        class="px-8 py-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black rounded-2xl shadow-xl shadow-rose-600/20 text-xs uppercase tracking-widest transition-all hover:scale-105"
+                    >
+                        Matikan Mic (Selesai)
+                    </button>
+
+                    <div class="pt-2 text-[10px] text-slate-500 border-t border-white/5">
+                        Tip: Jika terdengar suara mendengung/feedback, jauhkan mikrofon dari speaker.
                     </div>
                 </div>
             </div>
