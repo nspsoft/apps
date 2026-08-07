@@ -439,12 +439,39 @@ onUnmounted(() => {
             </div>
             
             <div class="flex items-center gap-3">
+                <!-- Manual Controls inside Header -->
+                <button 
+                    @click="triggerManualChime" 
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                    <PlayIcon class="w-3.5 h-3.5" />
+                    Chime
+                </button>
+
+                <button 
+                    @click="triggerEmergencySiren" 
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all animate-pulse"
+                >
+                    <ExclamationTriangleIcon class="w-3.5 h-3.5" />
+                    Sirene
+                </button>
+
+                <button 
+                    v-if="activeAnnouncing"
+                    @click="stopAllAudio" 
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                    <StopIcon class="w-3.5 h-3.5" />
+                    Stop
+                </button>
+
+                <!-- Status Indicator -->
                 <div 
                     class="px-4 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider flex items-center gap-2"
                     :class="isAudioActive ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-400'"
                 >
                     <span class="w-1.5 h-1.5 rounded-full" :class="isAudioActive ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'"></span>
-                    {{ isAudioActive ? 'Sistem Siaga' : 'Perlu Aktivasi' }}
+                    {{ isAudioActive ? 'Siaga' : 'Aktifkan' }}
                 </div>
             </div>
         </header>
@@ -583,43 +610,6 @@ onUnmounted(() => {
                 </div>
             </section>
         </main>
-
-        <!-- Fixed Bottom Manual Override Trigger Panel -->
-        <div class="fixed bottom-0 inset-x-0 bg-slate-900/80 backdrop-blur-xl border-t border-white/5 p-4 z-40">
-            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-2 text-slate-400">
-                    <MegaphoneIcon class="w-5 h-5 text-indigo-400" />
-                    <span class="text-xs font-bold uppercase tracking-widest">Manual Override Panel</span>
-                </div>
-                
-                <div class="flex items-center flex-wrap gap-3">
-                    <button 
-                        @click="triggerManualChime" 
-                        class="flex items-center gap-2 px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all"
-                    >
-                        <PlayIcon class="w-4 h-4" />
-                        Bunyikan Chime
-                    </button>
-
-                    <button 
-                        @click="triggerEmergencySiren" 
-                        class="flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all animate-pulse"
-                    >
-                        <ExclamationTriangleIcon class="w-4 h-4" />
-                        Sirene Darurat
-                    </button>
-
-                    <button 
-                        v-if="activeAnnouncing"
-                        @click="stopAllAudio" 
-                        class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all"
-                    >
-                        <StopIcon class="w-4 h-4" />
-                        Stop Alaram
-                    </button>
-                </div>
-            </div>
-        </div>
 
         <!-- 10-Second Pre-Alarm Countdowns Overlay -->
         <transition name="fade">
