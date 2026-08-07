@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
 import {
     ClockIcon,
     SpeakerWaveIcon,
@@ -17,6 +17,10 @@ import {
 const props = defineProps({
     schedules: Array
 });
+
+const page = usePage();
+const companyLogo = computed(() => page.props.company?.logo || '/images/jicos.png');
+const companyName = computed(() => page.props.company?.name || 'JICOS ERP');
 
 const currentTime = ref('');
 const currentDateStr = ref('');
@@ -531,8 +535,8 @@ onUnmounted(() => {
                 >
                     <ArrowLeftIcon class="h-5 w-5" />
                 </a>
-                <div class="flex items-center gap-2.5">
-                    <div class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></div>
+                <div class="flex items-center gap-3">
+                    <img :src="companyLogo" :alt="companyName" class="h-7 w-auto object-contain rounded bg-white/5 p-0.5 border border-white/10" />
                     <span class="text-xs font-black uppercase tracking-widest text-indigo-400">Terminal Bel Otomatis JICOS</span>
                 </div>
             </div>
@@ -597,7 +601,8 @@ onUnmounted(() => {
                         <div class="audio-wave wave-delayed" :class="{ 'wave-active': activeAnnouncing }"></div>
                     </div>
 
-                    <div class="space-y-4 z-10">
+                    <div class="space-y-4 z-10 flex flex-col items-center">
+                        <img :src="companyLogo" :alt="companyName" class="h-10 w-auto object-contain rounded opacity-75 hover:opacity-100 transition-opacity mb-2" />
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Waktu Lokal Sekarang</span>
                         <h1 class="text-6xl md:text-8xl font-black font-mono tracking-tight text-white glow-text selection:bg-transparent">
                             {{ currentTime || '00:00:00' }}
