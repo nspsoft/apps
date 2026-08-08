@@ -269,6 +269,95 @@ class AttendanceController extends Controller
         ]);
     }
 
+    public function kiosk(Request $request)
+    {
+        $employees = Employee::where('is_active', true)
+            ->whereNotNull('face_descriptor')
+            ->get(['id', 'full_name', 'nik', 'profile_picture', 'department_id', 'face_descriptor']);
+
+        return Inertia::render('HR/Attendance/Kiosk', [
+            'employees' => $employees
+        ]);
+    }
+
+    public function kioskClock(Request $request)
+    {
+        $request->validate([
+            'employee_id' => 'required|exists:hr_employees,id'
+        ]);
+
+        $employee = Employee::with('department')->findOrFail($request->employee_id);
+        $date = Carbon::today()->toDateString();
+        
+        // Prevent double scan / duplicate check-in in the database layer (within last 2 minutes)
+        $recent = Attendance::where('employee_id', $employee->id)
+            ->where('date', $date)
+            ->where(function($q) {
+                $q->where('clock_in', '>=', Carbon::now()->subMinutes(2))
+                  ->orWhere('clock_out', '>=', Carbon::now()->subMinutes(2));
+            })->first();
+
+        if ($recent) {
+            return response()->json([
+                'success' => true,
+                'status' => 'ignored',
+                'message' => 'Absensi sudah tercatat baru-baru ini.',
+                'employee' => $employee,
+                'attendance' => $recent
+            ]);
+        }
+
+        $now = Carbon::now();
+        $status = 'present';
+        
+        // Simple logic: Late if after 08:30
+        if ($now->format('H:i') > '08:30') {
+            $status = 'late';
+        }
+
+        // Check if there is already an attendance today
+        $attendance = Attendance::where('employee_id', $employee->id)
+            ->where('date', $date)
+            ->first();
+
+        if (!$attendance) {
+            // Clock In
+            $attendance = Attendance::create([
+                'employee_id' => $employee->id,
+                'date' => $date,
+                'clock_in' => $now,
+                'status' => $status
+            ]);
+            $action = 'clock_in';
+            $message = "Absen masuk berhasil. Selamat pagi {$employee->full_name}, selamat bekerja!";
+        } else {
+            // Clock Out
+            if (empty($attendance->clock_out)) {
+                $attendance->update([
+                    'clock_out' => $now
+                ]);
+                $action = 'clock_out';
+                $message = "Absen pulang berhasil. Terima kasih {$employee->full_name}, hati-hati di jalan!";
+            } else {
+                return response()->json([
+                    'success' => true,
+                    'status' => 'ignored',
+                    'message' => 'Anda sudah melakukan absen masuk dan pulang hari ini.',
+                    'employee' => $employee,
+                    'attendance' => $attendance
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'status' => $action,
+            'message' => $message,
+            'employee' => $employee,
+            'attendance' => $attendance
+        ]);
+    }
+
     public function destroy(Attendance $attendance)
     {
         $user = auth()->user();
