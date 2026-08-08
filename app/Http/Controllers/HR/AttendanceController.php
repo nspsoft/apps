@@ -308,12 +308,39 @@ class AttendanceController extends Controller
         }
 
         $now = Carbon::now();
-        $status = 'present';
+        $timeStr = $now->format('H:i:s');
+        $isLate = false;
         
-        // Simple logic: Late if after 08:30
-        if ($now->format('H:i') > '08:30') {
-            $status = 'late';
+        // Check if employee is in an Office department (starts at 08:00) vs Production shifts
+        $deptName = strtolower($employee->department->name ?? '');
+        $isOfficeDept = in_array($deptName, ['hr', 'finance', 'purchasing', 'sales', 'it', 'management', 'ppic', 'office', 'general', 'accounting']);
+        
+        if ($isOfficeDept) {
+            // Office Schedule: Late if after 08:00
+            if ($timeStr > '08:00:00') {
+                $isLate = true;
+            }
+        } else {
+            // Shift Schedule: auto-detect based on current time window
+            if ($timeStr >= '05:00:00' && $timeStr < '13:00:00') {
+                // Shift 1: 07:00 - 15:00. Late if after 07:00
+                if ($timeStr > '07:00:00') {
+                    $isLate = true;
+                }
+            } elseif ($timeStr >= '13:00:00' && $timeStr < '21:00:00') {
+                // Shift 2: 15:00 - 23:00. Late if after 15:00
+                if ($timeStr > '15:00:00') {
+                    $isLate = true;
+                }
+            } else {
+                // Shift 3: 23:00 - 07:00. Late if after 23:00
+                if ($timeStr > '23:00:00' || ($timeStr < '05:00:00' && $timeStr > '00:00:00')) {
+                    $isLate = true;
+                }
+            }
         }
+        
+        $status = $isLate ? 'late' : 'present';
 
         // Check if there is already an attendance today
         $attendance = Attendance::where('employee_id', $employee->id)
