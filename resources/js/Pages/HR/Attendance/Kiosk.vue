@@ -254,6 +254,12 @@ const startScanningLoop = () => {
                     try {
                         const descriptorArray = new Float32Array(JSON.parse(emp.face_descriptor));
                         const distance = faceapi.euclideanDistance(detection.descriptor, descriptorArray);
+                        
+                        // Debug log to console to inspect match distance
+                        if (distance < 0.8) {
+                            console.log(`Face match try: ${emp.full_name} | Distance: ${distance.toFixed(4)}`);
+                        }
+                        
                         if (distance < minDistance) {
                             minDistance = distance;
                             bestMatch = emp;
@@ -263,8 +269,8 @@ const startScanningLoop = () => {
                     }
                 });
                 
-                // Standard strict match threshold: Euclidean distance < 0.5
-                if (bestMatch && minDistance < 0.5) {
+                // Standard match threshold is 0.6 for face-api.js (more robust)
+                if (bestMatch && minDistance < 0.6) {
                     const nowTs = Date.now();
                     const lastScan = scannedCooldown.value[bestMatch.id] || 0;
                     
@@ -272,11 +278,11 @@ const startScanningLoop = () => {
                     if (nowTs - lastScan < COOLDOWN_MS) {
                         ctx.fillStyle = '#f59e0b';
                         ctx.font = 'bold 12px Inter';
-                        ctx.fillText(`MOHON TUNGGU COOLDOWN - ${bestMatch.full_name}`, x, y - 10);
+                        ctx.fillText(`COOLDOWN: ${bestMatch.full_name}`, x, y - 10);
                         return;
                     }
                     
-                    // Trigger Auto Clock
+                    console.log(`MATCH SUCCESS: ${bestMatch.full_name} | Distance: ${minDistance.toFixed(4)}`);
                     registerKioskClock(bestMatch.id);
                 }
             } else if (canvasRef.value) {
