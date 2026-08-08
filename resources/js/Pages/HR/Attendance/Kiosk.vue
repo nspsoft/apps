@@ -68,6 +68,16 @@ const successData = ref({
 // Cooldown storage to prevent double scans (employee_id -> timestamp)
 const scannedCooldown = ref({});
 const COOLDOWN_MS = 120000; // 2 minutes
+const cooldownNotice = ref('');
+
+// Dynamic Greeting based on time of day
+const getGreetingTime = () => {
+    const hour = new Date().getHours();
+    if (hour < 11) return 'Selamat pagi';
+    if (hour < 15) return 'Selamat siang';
+    if (hour < 18) return 'Selamat sore';
+    return 'Selamat malam';
+};
 
 // Stats and charts variables
 const filterDate = ref(new Date().toISOString().split('T')[0]);
@@ -157,8 +167,9 @@ const speakAnnouncement = (name, action) => {
     window.speechSynthesis.cancel();
     
     let text = '';
+    const greeting = getGreetingTime();
     if (action === 'clock_in') {
-        text = `Absen masuk berhasil. Selamat pagi ${name}, selamat bekerja dan semoga hari Anda menyenangkan!`;
+        text = `Absen masuk berhasil. ${greeting} ${name}, selamat bekerja dan semoga hari Anda menyenangkan!`;
     } else {
         text = `Absen pulang berhasil. Terima kasih ${name}, hati-hati di jalan dan selamat beristirahat!`;
     }
@@ -276,9 +287,10 @@ const startScanningLoop = () => {
                     
                     // Check if employee is currently in cooldown (2-minute window)
                     if (nowTs - lastScan < COOLDOWN_MS) {
-                        ctx.fillStyle = '#f59e0b';
-                        ctx.font = 'bold 12px Inter';
-                        ctx.fillText(`COOLDOWN: ${bestMatch.full_name}`, x, y - 10);
+                        cooldownNotice.value = `MOHON TUNGGU: ${bestMatch.full_name}`;
+                        setTimeout(() => {
+                            cooldownNotice.value = '';
+                        }, 2500);
                         return;
                     }
                     
@@ -477,6 +489,14 @@ const formatTimeString = (dateTime) => {
                             class="absolute inset-0 w-full h-full object-cover transform -scale-x-100 pointer-events-none"
                         ></canvas>
 
+                        <!-- Floating Cooldown Notification Overlay (Not Flipped/Mirrored) -->
+                        <div 
+                            v-if="cooldownNotice" 
+                            class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-amber-500/90 text-slate-950 font-black text-xs px-6 py-2.5 rounded-full border border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)] z-20 transition-all uppercase tracking-wider animate-pulse whitespace-nowrap"
+                        >
+                            {{ cooldownNotice }}
+                        </div>
+
                         <!-- Cyber Viewfinder UI Lines -->
                         <div class="absolute inset-8 pointer-events-none border border-cyan-500/20 rounded-[1.8rem]">
                             <!-- Four Glowing Corners -->
@@ -646,7 +666,7 @@ const formatTimeString = (dateTime) => {
 
                     <!-- Greeting bottom text -->
                     <p class="text-xs font-bold text-slate-400 italic mt-6">
-                        {{ successData.action === 'clock_in' ? 'Selamat bekerja, semoga hari Anda menyenangkan!' : 'Hati-hati di jalan dan selamat beristirahat!' }}
+                        {{ successData.action === 'clock_in' ? getGreetingTime() + ', selamat bekerja dan semoga hari Anda menyenangkan!' : 'Hati-hati di jalan dan selamat beristirahat!' }}
                     </p>
                 </div>
             </div>
