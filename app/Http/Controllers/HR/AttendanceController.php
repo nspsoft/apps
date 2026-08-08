@@ -175,6 +175,100 @@ class AttendanceController extends Controller
         return redirect()->back()->with('success', 'Attendance record updated successfully.');
     }
 
+    public function dashboard(Request $request)
+    {
+        return Inertia::render('HR/Attendance/Dashboard');
+    }
+
+    public function getDashboardData(Request $request)
+    {
+        $date = $request->date ?: Carbon::today()->toDateString();
+        $totalActive = Employee::where('is_active', true)->count();
+        
+        $attendances = Attendance::where('date', $date)->get();
+        $presentCount = $attendances->where('status', 'present')->count();
+        $lateCount = $attendances->where('status', 'late')->count();
+        $leaveCount = $attendances->whereIn('status', ['leave', 'sick'])->count();
+        $absentCount = max(0, $totalActive - ($presentCount + $lateCount + $leaveCount));
+
+        // Recent check-ins
+        $recentLogs = Attendance::with(['employee.department'])
+            ->where('date', $date)
+            ->whereIn('status', ['present', 'late'])
+            ->orderBy('clock_in', 'desc')
+            ->take(10)
+            ->get();
+
+        // 7-day Weekly Trend
+        $weeklyLabels = [];
+        $weeklyPresent = [];
+        $weeklyLate = [];
+        $weeklyAbsent = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $dayDate = Carbon::parse($date)->subDays($i)->toDateString();
+            $dayLabel = Carbon::parse($dayDate)->locale('id')->isoFormat('dddd');
+            
+            $dayAttendances = Attendance::where('date', $dayDate)->get();
+            $pres = $dayAttendances->where('status', 'present')->count();
+            $lat = $dayAttendances->where('status', 'late')->count();
+            $lea = $dayAttendances->whereIn('status', ['leave', 'sick'])->count();
+            $abs = max(0, $totalActive - ($pres + $lat + $lea));
+
+            $weeklyLabels[] = $dayLabel . ' (' . Carbon::parse($dayDate)->format('d/m') . ')';
+            $weeklyPresent[] = $pres;
+            $weeklyLate[] = $lat;
+            $weeklyAbsent[] = $abs;
+        }
+
+        // Department distribution
+        $departments = Department::all();
+        $deptLabels = [];
+        $deptCounts = [];
+        
+        foreach ($departments as $dept) {
+            $count = Attendance::where('date', $date)
+                ->whereIn('status', ['present', 'late'])
+                ->whereHas('employee', function ($q) use ($dept) {
+                    $q->where('department_id', $dept->id);
+                })->count();
+            
+            if ($count > 0) {
+                $deptLabels[] = $dept->name;
+                $deptCounts[] = $count;
+            }
+        }
+
+        if (empty($deptLabels)) {
+            $deptLabels[] = 'Belum Ada';
+            $deptCounts[] = 0;
+        }
+
+        return response()->json([
+            'date' => $date,
+            'summary' => [
+                'total_employees' => $totalActive,
+                'present' => $presentCount,
+                'late' => $lateCount,
+                'leave' => $leaveCount,
+                'absent' => $absentCount
+            ],
+            'recent_logs' => $recentLogs,
+            'charts' => [
+                'weekly' => [
+                    'labels' => $weeklyLabels,
+                    'present' => $weeklyPresent,
+                    'late' => $weeklyLate,
+                    'absent' => $weeklyAbsent
+                ],
+                'department' => [
+                    'labels' => $deptLabels,
+                    'counts' => $deptCounts
+                ]
+            ]
+        ]);
+    }
+
     public function destroy(Attendance $attendance)
     {
         $user = auth()->user();

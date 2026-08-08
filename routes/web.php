@@ -604,6 +604,8 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::get('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'show'])->name('employees.face.show');
     Route::post('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'store'])->name('employees.face.store');
     Route::delete('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'destroy'])->name('employees.face.destroy');
+    Route::get('/attendance/dashboard', [AttendanceController::class, 'dashboard'])->name('attendance.dashboard');
+    Route::get('/attendance/dashboard-data', [AttendanceController::class, 'getDashboardData'])->name('attendance.dashboard-data');
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance-template', [AttendanceController::class, 'template'])->name('attendance.template');
     Route::post('/attendance-import', [AttendanceController::class, 'import'])->name('attendance.import');

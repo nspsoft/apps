@@ -488,6 +488,7 @@ const navigation = [
             { name: 'HR Administration', isHeader: true },
             { name: 'Employee Directory', href: '/hr/employees', icon: IdentificationIcon, permission: 'hr_payroll.employee_directory.view' },
             { name: 'Attendance', href: '/hr/attendance', icon: ClockIcon, permission: 'hr_payroll.attendance.view' },
+            { name: 'Attendance Dashboard', href: '/hr/attendance/dashboard', icon: ChartBarIcon, permission: 'hr_payroll.attendance.view' },
             { name: 'Leave Management', href: '/hr/leaves', icon: CalendarAltIcon, permission: 'hr_payroll.leave_management.view' },
             { name: 'Overtime Requests', href: '/hr/overtime', icon: ClockIcon, permission: 'hr_payroll.overtime.view' },
             { name: 'HR Reimbursements', href: '/hr/reimbursements', icon: BanknotesIcon, permission: 'hr_payroll.reimbursements.view' },
