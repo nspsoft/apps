@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import axios from 'axios';
@@ -59,42 +59,58 @@ let refreshInterval = null;
 const lineChartData = ref(null);
 const doughnutChartData = ref(null);
 
-const lineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            labels: {
-                color: '#94a3b8',
-                font: { family: 'Inter', weight: 'bold', size: 11 }
-            }
-        }
-    },
-    scales: {
-        x: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
-        },
-        y: {
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
-        }
-    }
+const isDarkTheme = ref(false);
+
+const checkTheme = () => {
+    isDarkTheme.value = document.documentElement.classList.contains('dark');
 };
 
-const doughnutChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            position: 'right',
-            labels: {
-                color: '#94a3b8',
-                font: { family: 'Inter', size: 11 }
+const lineChartOptions = computed(() => {
+    const textColor = isDarkTheme.value ? '#94a3b8' : '#475569';
+    const gridColor = isDarkTheme.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+    const tickColor = isDarkTheme.value ? '#64748b' : '#475569';
+
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                labels: {
+                    color: textColor,
+                    font: { family: 'Inter', weight: 'bold', size: 11 }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: gridColor },
+                ticks: { color: tickColor, font: { family: 'JetBrains Mono', size: 10 } }
+            },
+            y: {
+                grid: { color: gridColor },
+                ticks: { color: tickColor, font: { family: 'JetBrains Mono', size: 10 } }
             }
         }
-    }
-};
+    };
+});
+
+const doughnutChartOptions = computed(() => {
+    const textColor = isDarkTheme.value ? '#94a3b8' : '#475569';
+
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: {
+                    color: textColor,
+                    font: { family: 'Inter', size: 11 }
+                }
+            }
+        }
+    };
+});
 
 const fetchData = async (silent = false) => {
     if (!silent) isLoading.value = true;
@@ -175,6 +191,12 @@ watch(filterDate, () => {
 
 onMounted(() => {
     fetchData();
+    checkTheme();
+    // Observe theme class changes on <html>
+    const observer = new MutationObserver(checkTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    onUnmounted(() => observer.disconnect());
+
     // Auto refresh every 15 seconds
     refreshInterval = setInterval(() => {
         fetchData(true);
@@ -196,7 +218,7 @@ const formatTimeString = (dateTime) => {
     <Head title="Smart Attendance Dashboard" />
 
     <AppLayout title="HR: Attendance Dashboard">
-        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-8 pb-24 text-slate-100 bg-slate-950/40 p-6 rounded-3xl border border-white/5 relative overflow-hidden selection:bg-indigo-500/20">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-8 pb-24 text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-950/40 p-6 rounded-3xl border border-slate-200 dark:border-white/5 relative overflow-hidden shadow-xl shadow-slate-100 dark:shadow-none">
             <!-- Background lights -->
             <div class="absolute top-0 left-1/4 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
             <div class="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -206,31 +228,31 @@ const formatTimeString = (dateTime) => {
                 <div class="flex items-center gap-4">
                     <Link 
                         :href="route('hr.attendance.index')"
-                        class="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all hover:scale-105"
+                        class="p-3 rounded-2xl bg-slate-150 dark:bg-white/5 border border-slate-250 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all hover:scale-105"
                     >
                         <ArrowLeftIcon class="h-5 w-5" />
                     </Link>
                     <div>
-                        <h2 class="text-2xl font-black text-white uppercase tracking-tight">Smart Attendance Dashboard</h2>
-                        <p class="text-xs text-slate-400 mt-0.5">Real-time analytical presence monitoring dashboard and live worker check-in ticker</p>
+                        <h2 class="text-2xl font-black text-slate-950 dark:text-white uppercase tracking-tight">Smart Attendance Dashboard</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time analytical presence monitoring dashboard and live worker check-in ticker</p>
                     </div>
                 </div>
 
                 <!-- Filters & Controls -->
                 <div class="flex flex-wrap items-center gap-3">
-                    <div class="relative flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-sm text-slate-350">
-                        <CalendarIcon class="w-4 h-4 text-indigo-400 mr-2" />
+                    <div class="relative flex items-center bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-2 text-sm text-slate-700 dark:text-slate-350">
+                        <CalendarIcon class="w-4 h-4 text-indigo-500 dark:text-indigo-400 mr-2" />
                         <input 
                             v-model="filterDate" 
                             type="date" 
-                            class="bg-transparent text-white border-0 outline-none p-0 cursor-pointer focus:ring-0 text-xs font-bold"
+                            class="bg-transparent text-slate-950 dark:text-white border-0 outline-none p-0 cursor-pointer focus:ring-0 text-xs font-bold"
                         />
                     </div>
                     
                     <button 
                         @click="fetchData(true)" 
                         :disabled="isRefreshing"
-                        class="p-3 rounded-2xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+                        class="p-3 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
                         title="Perbarui Data"
                     >
                         <RefreshCwIcon class="w-4 h-4" :class="{ 'animate-spin': isRefreshing }" />
@@ -238,7 +260,7 @@ const formatTimeString = (dateTime) => {
 
                     <Link 
                         :href="route('hr.attendance.index')"
-                        class="flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl shadow-xl shadow-indigo-500/20 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
+                        class="flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-650 to-violet-600 hover:from-indigo-550 hover:to-violet-500 text-white rounded-2xl shadow-xl shadow-indigo-500/20 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
                     >
                         <List class="w-4 h-4" />
                         Attendance Logs
@@ -256,45 +278,45 @@ const formatTimeString = (dateTime) => {
                 <!-- 4 Statistics Cards -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     <!-- Total Checked-In -->
-                    <div class="bg-gradient-to-br from-emerald-500/5 to-teal-500/5 border border-emerald-500/10 hover:border-emerald-500/20 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg">
+                    <div class="bg-white dark:bg-gradient-to-br dark:from-emerald-500/5 dark:to-teal-500/5 border border-emerald-500/20 dark:border-emerald-500/10 hover:border-emerald-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-emerald-500/5 dark:shadow-none">
                         <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-emerald-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Hadir Tepat Waktu</span>
+                            <span class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Hadir Tepat Waktu</span>
                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                         </div>
                         <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-white">{{ summary.present }}</span>
-                            <span class="text-xs text-slate-400">/ {{ summary.total_employees }} karyawan</span>
+                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.present }}</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">/ {{ summary.total_employees }} karyawan</span>
                         </div>
                     </div>
 
                     <!-- Total Late -->
-                    <div class="bg-gradient-to-br from-amber-500/5 to-orange-500/5 border border-amber-500/10 hover:border-amber-500/20 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg">
+                    <div class="bg-white dark:bg-gradient-to-br dark:from-amber-500/5 dark:to-orange-500/5 border border-amber-500/20 dark:border-amber-500/10 hover:border-amber-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-amber-500/5 dark:shadow-none">
                         <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-amber-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
-                        <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest block">Terlambat Masuk</span>
+                        <span class="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest block">Terlambat Masuk</span>
                         <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-white">{{ summary.late }}</span>
-                            <span class="text-xs text-slate-400">tercatat hari ini</span>
+                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.late }}</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">tercatat hari ini</span>
                         </div>
                     </div>
 
                     <!-- Sick / Leave -->
-                    <div class="bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/10 hover:border-indigo-500/20 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg">
+                    <div class="bg-white dark:bg-gradient-to-br dark:from-indigo-500/5 dark:to-purple-500/5 border border-indigo-500/20 dark:border-indigo-500/10 hover:border-indigo-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-indigo-500/5 dark:shadow-none">
                         <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-indigo-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
-                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest block">Izin & Sakit</span>
+                        <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block">Izin & Sakit</span>
                         <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-white">{{ summary.leave }}</span>
-                            <span class="text-xs text-slate-400">tidak masuk</span>
+                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.leave }}</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">tidak masuk</span>
                         </div>
                     </div>
 
                     <!-- Mangkir / Absent -->
-                    <div class="bg-gradient-to-br from-rose-500/5 to-red-500/5 border border-rose-500/10 hover:border-rose-500/20 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg">
+                    <div class="bg-white dark:bg-gradient-to-br dark:from-rose-500/5 dark:to-red-500/5 border border-rose-500/20 dark:border-rose-500/10 hover:border-rose-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-rose-500/5 dark:shadow-none">
                         <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-rose-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
-                        <span class="text-[10px] font-black text-rose-400 uppercase tracking-widest block">Belum Absen / Absent</span>
+                        <span class="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest block">Belum Absen / Absent</span>
                         <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-white">{{ summary.absent }}</span>
-                            <span class="text-xs text-slate-400">belum ada status</span>
+                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.absent }}</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">belum ada status</span>
                         </div>
                     </div>
                 </div>
@@ -302,16 +324,16 @@ const formatTimeString = (dateTime) => {
                 <!-- Charts row -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <!-- Weekly line chart -->
-                    <div class="lg:col-span-8 bg-white/3 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-xl">
-                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Tren Kehadiran & Ketepatan Waktu (7 Hari)</h3>
+                    <div class="lg:col-span-8 bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 mb-6">Tren Kehadiran & Ketepatan Waktu (7 Hari)</h3>
                         <div class="h-[280px] w-full relative">
                             <Line v-if="lineChartData" :data="lineChartData" :options="lineChartOptions" />
                         </div>
                     </div>
 
                     <!-- Department pie chart -->
-                    <div class="lg:col-span-4 bg-white/3 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-xl flex flex-col">
-                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Penyebaran Hadir Per Departemen</h3>
+                    <div class="lg:col-span-4 bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 mb-6">Penyebaran Hadir Per Departemen</h3>
                         <div class="h-[240px] w-full relative flex-1">
                             <Doughnut v-if="doughnutChartData" :data="doughnutChartData" :options="doughnutChartOptions" />
                         </div>
@@ -319,17 +341,17 @@ const formatTimeString = (dateTime) => {
                 </div>
 
                 <!-- Recent Check-In List (Live feed) -->
-                <div class="bg-white/3 border border-white/5 rounded-3xl p-6 md:p-8 backdrop-blur-xl">
-                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+                <div class="bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm">
+                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-white/5">
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse"></span>
-                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-400">Live Clock-In Feed (Log Hari Ini)</h3>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400">Live Clock-In Feed (Log Hari Ini)</h3>
                         </div>
                         <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Diperbarui otomatis setiap 15 detik</span>
                     </div>
 
                     <div v-if="recentLogs.length === 0" class="p-12 text-center text-slate-500 space-y-3">
-                        <ClockIcon class="w-8 h-8 text-slate-600 mx-auto" />
+                        <ClockIcon class="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
                         <p class="text-xs font-semibold">Belum ada aktivitas clock-in tercatat untuk tanggal terpilih.</p>
                     </div>
 
@@ -337,26 +359,26 @@ const formatTimeString = (dateTime) => {
                         <div 
                             v-for="log in recentLogs" 
                             :key="log.id"
-                            class="p-4 bg-white/2 hover:bg-white/5 border border-white/5 hover:border-white/10 rounded-2xl flex items-center justify-between transition-all duration-300"
+                            class="p-4 bg-white dark:bg-white/2 hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 rounded-2xl flex items-center justify-between transition-all duration-300 shadow-sm"
                         >
                             <div class="flex items-center gap-3">
                                 <!-- Profile picture / initial avatar placeholder -->
-                                <div class="w-10 h-10 rounded-full bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-black text-sm shrink-0">
+                                <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-600/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-sm shrink-0">
                                     {{ log.employee?.full_name ? log.employee.full_name.charAt(0).toUpperCase() : 'E' }}
                                 </div>
                                 <div class="space-y-0.5">
-                                    <h4 class="text-xs font-black text-white leading-snug">{{ log.employee?.full_name }}</h4>
-                                    <p class="text-[10px] text-slate-400">
-                                        NIK: {{ log.employee?.nik || '-' }} &bull; <span class="text-indigo-300 font-bold">{{ log.employee?.department?.name || '-' }}</span>
+                                    <h4 class="text-xs font-black text-slate-900 dark:text-white leading-snug">{{ log.employee?.full_name }}</h4>
+                                    <p class="text-[10px] text-slate-500 dark:text-slate-400">
+                                        NIK: {{ log.employee?.nik || '-' }} &bull; <span class="text-indigo-600 dark:text-indigo-300 font-bold">{{ log.employee?.department?.name || '-' }}</span>
                                     </p>
                                 </div>
                             </div>
 
                             <div class="text-right space-y-1">
-                                <span class="font-mono text-xs font-black text-indigo-400 block">{{ formatTimeString(log.clock_in) }}</span>
+                                <span class="font-mono text-xs font-black text-indigo-600 dark:text-indigo-400 block">{{ formatTimeString(log.clock_in) }}</span>
                                 <span 
                                     class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider inline-block"
-                                    :class="log.status === 'present' ? 'bg-emerald-500/10 text-emerald-450 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-450 border border-amber-500/20'"
+                                    :class="log.status === 'present' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-455 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-455 border border-amber-500/20'"
                                 >
                                     {{ log.status === 'present' ? 'Tepat Waktu' : 'Terlambat' }}
                                 </span>
