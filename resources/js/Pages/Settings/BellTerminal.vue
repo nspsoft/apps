@@ -254,13 +254,17 @@ const triggerAlarm = (schedule) => {
         setTimeout(() => {
             if (activeAnnouncing.value?.id !== schedule.id) return;
             const speech = new SpeechSynthesisUtterance(schedule.tts_text || 'Perhatian');
-            speech.lang = 'id-ID';
+            const langCode = schedule.tts_language || 'id-ID';
+            speech.lang = langCode;
             speech.volume = volume;
             
             const voices = window.speechSynthesis.getVoices();
-            const idVoice = voices.find(voice => voice.lang.includes('id') || voice.name.toLowerCase().includes('indonesian'));
-            if (idVoice) {
-                speech.voice = idVoice;
+            const matchedVoice = voices.find(voice => 
+                voice.lang.includes(langCode.split('-')[0]) || 
+                voice.name.toLowerCase().includes(langCode === 'ja-JP' ? 'japanese' : (langCode === 'en-US' ? 'english' : 'indonesian'))
+            );
+            if (matchedVoice) {
+                speech.voice = matchedVoice;
             }
             
             window.speechSynthesis.speak(speech);

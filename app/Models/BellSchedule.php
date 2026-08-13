@@ -18,6 +18,7 @@ class BellSchedule extends Model
         'sound_type',
         'sound_file',
         'tts_text',
+        'tts_language',
         'volume',
         'is_active',
     ];

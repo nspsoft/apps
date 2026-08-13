@@ -34,12 +34,13 @@ class BellScheduleController extends Controller
             'sound_type' => 'required|in:chime,custom,tts',
             'sound_file' => 'nullable|file|mimes:mp3,wav,ogg|max:10240', // Max 10MB
             'tts_text' => 'required_if:sound_type,tts|nullable|string',
+            'tts_language' => 'required_if:sound_type,tts|nullable|string|in:id-ID,ja-JP,en-US',
             'volume' => 'required|integer|between:0,100',
             'is_active' => 'required|boolean',
         ]);
 
         $data = $request->only([
-            'name', 'time', 'days', 'sound_type', 'tts_text', 'volume', 'is_active'
+            'name', 'time', 'days', 'sound_type', 'tts_text', 'tts_language', 'volume', 'is_active'
         ]);
 
         if ($request->sound_type === 'custom' && $request->hasFile('sound_file')) {
@@ -67,12 +68,13 @@ class BellScheduleController extends Controller
             'sound_type' => 'required|in:chime,custom,tts',
             'sound_file' => 'nullable|file|mimes:mp3,wav,ogg|max:10240', // Max 10MB
             'tts_text' => 'required_if:sound_type,tts|nullable|string',
+            'tts_language' => 'required_if:sound_type,tts|nullable|string|in:id-ID,ja-JP,en-US',
             'volume' => 'required|integer|between:0,100',
             'is_active' => 'required|boolean',
         ]);
 
         $data = $request->only([
-            'name', 'time', 'days', 'sound_type', 'tts_text', 'volume', 'is_active'
+            'name', 'time', 'days', 'sound_type', 'tts_text', 'tts_language', 'volume', 'is_active'
         ]);
 
         if ($request->sound_type === 'custom') {

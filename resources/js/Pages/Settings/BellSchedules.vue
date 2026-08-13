@@ -41,6 +41,7 @@ const form = useForm({
     sound_type: 'chime',
     sound_file: null,
     tts_text: '',
+    tts_language: 'id-ID',
     volume: 100,
     is_active: true
 });
@@ -59,6 +60,7 @@ const openEditModal = (schedule) => {
     form.sound_type = schedule.sound_type;
     form.sound_file = null;
     form.tts_text = schedule.tts_text || '';
+    form.tts_language = schedule.tts_language || 'id-ID';
     form.volume = schedule.volume;
     form.is_active = schedule.is_active;
     isModalOpen.value = true;
@@ -162,14 +164,18 @@ const testPlay = (schedule) => {
         setTimeout(() => {
             if (!isTestingAudio.value) return;
             const speech = new SpeechSynthesisUtterance(schedule.tts_text || 'Perhatian');
-            speech.lang = 'id-ID';
+            const langCode = schedule.tts_language || 'id-ID';
+            speech.lang = langCode;
             speech.volume = volume;
             
-            // Try to find an Indonesian voice
+            // Try to find the matched language voice
             const voices = window.speechSynthesis.getVoices();
-            const idVoice = voices.find(voice => voice.lang.includes('id') || voice.name.toLowerCase().includes('indonesian'));
-            if (idVoice) {
-                speech.voice = idVoice;
+            const matchedVoice = voices.find(voice => 
+                voice.lang.includes(langCode.split('-')[0]) || 
+                voice.name.toLowerCase().includes(langCode === 'ja-JP' ? 'japanese' : (langCode === 'en-US' ? 'english' : 'indonesian'))
+            );
+            if (matchedVoice) {
+                speech.voice = matchedVoice;
             }
             
             window.speechSynthesis.speak(speech);
@@ -438,16 +444,28 @@ const stopTest = () => {
                             </p>
                         </div>
 
-                        <!-- TTS Announcement Text -->
-                        <div v-if="form.sound_type === 'tts'" class="space-y-1.5">
-                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Naskah Pengumuman Suara (Bahasa Indonesia)</label>
-                            <textarea 
-                                v-model="form.tts_text" 
-                                class="form-input text-xs min-h-[80px]" 
-                                placeholder="Contoh: Perhatian, jam masuk kerja shift pagi telah tiba. Selamat bekerja dan utamakan keselamatan kerja."
-                                required
-                            ></textarea>
-                            <p class="text-[9px] text-slate-500">Bel nada chime akan otomatis diputar sekilas sebelum asisten membacakan teks di atas.</p>
+                        <!-- TTS Language & Text -->
+                        <div v-if="form.sound_type === 'tts'" class="space-y-4">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Bahasa Pengisi Suara (TTS Language)</label>
+                                <select v-model="form.tts_language" class="form-input text-xs">
+                                    <option value="id-ID">Bahasa Indonesia (Indonesian)</option>
+                                    <option value="ja-JP">日本語 (Japanese)</option>
+                                    <option value="en-US">English (United States)</option>
+                                </select>
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+                                    Naskah Pengumuman Suara ({{ form.tts_language === 'ja-JP' ? 'Bahasa Jepang' : (form.tts_language === 'en-US' ? 'Bahasa Inggris' : 'Bahasa Indonesia') }})
+                                </label>
+                                <textarea 
+                                    v-model="form.tts_text" 
+                                    class="form-input text-xs min-h-[80px]" 
+                                    :placeholder="form.tts_language === 'ja-JP' ? 'Contoh: 朝の始業時間になりました。今日も一日安全第一で頑張りましょう。' : (form.tts_language === 'en-US' ? 'Example: Attention please, it is time to start the morning shift. Have a productive day and safety first.' : 'Contoh: Perhatian, jam masuk kerja shift pagi telah tiba. Selamat bekerja dan utamakan keselamatan kerja.')"
+                                    required
+                                ></textarea>
+                                <p class="text-[9px] text-slate-500">Bel nada chime akan otomatis diputar sekilas sebelum asisten membacakan teks di atas.</p>
+                            </div>
                         </div>
 
                         <!-- Volume Slider -->
