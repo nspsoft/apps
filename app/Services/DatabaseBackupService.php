@@ -182,21 +182,24 @@ class DatabaseBackupService
      */
     public function createFullBackup(): array
     {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
         try {
             $filename = 'backup_full_' . date('Y-m-d_H-i-s') . '.sql';
-            $filepath = $this->backupPath . '/' . $filename;
+            $this->ensureBackupDirectoryExists();
             
             // Get all tables
             $tables = $this->getAllTables();
             
-            // Generate SQL dump
-            $sql = $this->generateSqlDump($tables);
+            // Generate SQL dump directly to file stream
+            $fullPath = Storage::disk('local')->path($this->backupPath . '/' . $filename);
+            $this->streamSqlDumpToFile($tables, $fullPath);
             
-            // Store the backup
-            Storage::disk('local')->put($filepath, $sql);
-            
-            // Compress if possible
-            if ($this->compressBackup($filepath)) {
+            $filepath = $this->backupPath . '/' . $filename;
+
+            // Compress streaming if possible
+            if ($this->compressBackupStream($filepath)) {
                 $filename .= '.gz';
                 $filepath .= '.gz';
             }
@@ -225,10 +228,13 @@ class DatabaseBackupService
      */
     public function createPartialBackup(array $modules): array
     {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+
         try {
             $modulesStr = implode('_', $modules);
             $filename = 'backup_partial_' . $modulesStr . '_' . date('Y-m-d_H-i-s') . '.sql';
-            $filepath = $this->backupPath . '/' . $filename;
+            $this->ensureBackupDirectoryExists();
             
             // Get tables for selected modules
             $tables = [];
@@ -241,14 +247,14 @@ class DatabaseBackupService
             // Remove duplicates
             $tables = array_unique($tables);
             
-            // Generate SQL dump
-            $sql = $this->generateSqlDump($tables);
+            // Generate SQL dump directly to file stream
+            $fullPath = Storage::disk('local')->path($this->backupPath . '/' . $filename);
+            $this->streamSqlDumpToFile($tables, $fullPath);
             
-            // Store the backup
-            Storage::disk('local')->put($filepath, $sql);
-            
-            // Compress if possible
-            if ($this->compressBackup($filepath)) {
+            $filepath = $this->backupPath . '/' . $filename;
+
+            // Compress streaming if possible
+            if ($this->compressBackupStream($filepath)) {
                 $filename .= '.gz';
                 $filepath .= '.gz';
             }
@@ -697,70 +703,129 @@ class DatabaseBackupService
         DB::table($table)->delete();
     }
 
-    protected function generateSqlDump(array $tables): string
+    protected function ensureBackupDirectoryExists(): void
     {
-        $sql = "-- JICOS Database Backup\n";
-        $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
-        $sql .= "-- Tables: " . implode(', ', $tables) . "\n\n";
-        $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
-        
-        foreach ($tables as $table) {
-            if (!$this->tableExists($table)) {
-                continue;
-            }
-            
-            // Get CREATE TABLE statement
-            $createResult = DB::select("SHOW CREATE TABLE `{$table}`");
-            if (!empty($createResult)) {
-                $createStatement = $createResult[0]->{'Create Table'};
-                $sql .= "DROP TABLE IF EXISTS `{$table}`;\n";
-                $sql .= $createStatement . ";\n\n";
-            }
-            
-            // Get table data
-            $rows = DB::table($table)->get();
-            
-            if ($rows->count() > 0) {
-                $columns = array_keys((array) $rows->first());
-                $columnList = '`' . implode('`, `', $columns) . '`';
-                
-                foreach ($rows as $row) {
-                    $values = array_map(function ($val) {
-                        if (is_null($val)) return 'NULL';
-                        // Use PDO::quote for safe escaping
-                        return DB::connection()->getPdo()->quote($val);
-                    }, (array) $row);
-                    
-                    $valueList = implode(', ', $values);
-                    $sql .= "INSERT INTO `{$table}` ({$columnList}) VALUES ({$valueList});\n";
-                }
-                $sql .= "\n";
-            }
+        if (!Storage::disk('local')->exists($this->backupPath)) {
+            Storage::disk('local')->makeDirectory($this->backupPath);
         }
-        
-        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
-        
-        return $sql;
     }
 
-    // parseSqlStatements removed as we now use DB::unprepared on the full content
-
-    protected function compressBackup(string $filepath): bool
+    protected function streamSqlDumpToFile(array $tables, string $fullPath): void
     {
-        if (function_exists('gzencode') && Storage::disk('local')->exists($filepath)) {
-            $content = Storage::disk('local')->get($filepath);
-            $compressed = gzencode($content, 9);
-            Storage::disk('local')->put($filepath . '.gz', $compressed);
-            Storage::disk('local')->delete($filepath);
-            return true;
+        $handle = fopen($fullPath, 'w');
+        if (!$handle) {
+            throw new Exception("Unable to open file for writing: {$fullPath}");
         }
-        return false;
+
+        try {
+            fwrite($handle, "-- JICOS Database Backup\n");
+            fwrite($handle, "-- Generated: " . date('Y-m-d H:i:s') . "\n");
+            fwrite($handle, "-- Tables: " . implode(', ', $tables) . "\n\n");
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
+
+            $pdo = DB::connection()->getPdo();
+
+            foreach ($tables as $table) {
+                if (!$this->tableExists($table)) {
+                    continue;
+                }
+
+                // Get CREATE TABLE statement
+                $createResult = DB::select("SHOW CREATE TABLE `{$table}`");
+                if (!empty($createResult)) {
+                    $createStatement = $createResult[0]->{'Create Table'};
+                    fwrite($handle, "DROP TABLE IF EXISTS `{$table}`;\n");
+                    fwrite($handle, $createStatement . ";\n\n");
+                }
+
+                // Stream table data in chunks
+                $columns = null;
+                $columnList = '';
+                $batchValues = [];
+                $batchSize = 250;
+
+                DB::table($table)->orderBy(DB::raw('1'))->chunk($batchSize, function ($rows) use ($handle, $pdo, $table, &$columns, &$columnList) {
+                    if ($rows->isEmpty()) {
+                        return;
+                    }
+
+                    if ($columns === null) {
+                        $columns = array_keys((array) $rows->first());
+                        $columnList = '`' . implode('`, `', $columns) . '`';
+                    }
+
+                    $insertSql = "INSERT INTO `{$table}` ({$columnList}) VALUES\n";
+                    $valueRows = [];
+
+                    foreach ($rows as $row) {
+                        $rowArray = (array) $row;
+                        $values = [];
+                        foreach ($columns as $col) {
+                            $val = $rowArray[$col] ?? null;
+                            if (is_null($val)) {
+                                $values[] = 'NULL';
+                            } else {
+                                $values[] = $pdo->quote((string) $val);
+                            }
+                        }
+                        $valueRows[] = '(' . implode(', ', $values) . ')';
+                    }
+
+                    $insertSql .= implode(",\n", $valueRows) . ";\n";
+                    fwrite($handle, $insertSql);
+                });
+
+                fwrite($handle, "\n");
+            }
+
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    protected function compressBackupStream(string $filepath): bool
+    {
+        if (!function_exists('gzopen') || !Storage::disk('local')->exists($filepath)) {
+            return false;
+        }
+
+        $sourcePath = Storage::disk('local')->path($filepath);
+        $destPath = $sourcePath . '.gz';
+
+        $src = fopen($sourcePath, 'rb');
+        if (!$src) {
+            return false;
+        }
+
+        $dst = gzopen($destPath, 'wb9');
+        if (!$dst) {
+            fclose($src);
+            return false;
+        }
+
+        while (!feof($src)) {
+            $chunk = fread($src, 1024 * 512); // 512 KB chunks
+            if ($chunk === false) break;
+            gzwrite($dst, $chunk);
+        }
+
+        fclose($src);
+        gzclose($dst);
+
+        // Delete uncompressed original
+        Storage::disk('local')->delete($filepath);
+
+        return true;
     }
 
     protected function formatBytes(int $bytes): string
     {
-        $units = ['B', 'KB', 'MB', 'GB'];
-        $factor = floor((strlen($bytes) - 1) / 3);
+        if ($bytes <= 0) {
+            return '0 B';
+        }
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $factor = min(floor(log($bytes, 1024)), count($units) - 1);
         return sprintf("%.2f %s", $bytes / pow(1024, $factor), $units[$factor]);
     }
 
