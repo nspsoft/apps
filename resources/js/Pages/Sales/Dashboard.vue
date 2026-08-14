@@ -51,9 +51,9 @@ const props = defineProps({
     years: Array,
 });
 
-const selectedYear = ref(props.filters.year ?? new Date().getFullYear());
-const selectedPeriodType = ref(props.filters.period_type ?? 'month');
-const selectedPeriodValue = ref(props.filters.period_value ?? (new Date().getMonth() + 1));
+const selectedYear = ref(props.filters?.year ?? new Date().getFullYear());
+const selectedPeriodType = ref(props.filters?.period_type ?? 'semester');
+const selectedPeriodValue = ref(props.filters?.period_value ?? (new Date().getMonth() < 6 ? 'S1' : 'S2'));
 
 const valueOptions = computed(() => {
     if (selectedPeriodType.value === 'month') {

@@ -28,17 +28,17 @@ class SalesDashboardController extends Controller
 
         // Fetch inputs with defaults
         $year = intval($request->input('year', now()->year));
-        $periodType = $request->input('period_type', 'month');
+        $periodType = $request->input('period_type', 'semester');
         $periodValue = $request->input('period_value');
 
         // Determine defaults if value not provided
         if (is_null($periodValue)) {
-            if ($periodType === 'month') {
+            if ($periodType === 'semester') {
+                $periodValue = now()->month <= 6 ? 'S1' : 'S2';
+            } elseif ($periodType === 'month') {
                 $periodValue = now()->month;
             } elseif ($periodType === 'quarter') {
                 $periodValue = 'Q' . ceil(now()->month / 3);
-            } elseif ($periodType === 'semester') {
-                $periodValue = now()->month <= 6 ? 'S1' : 'S2';
             }
         }
 
