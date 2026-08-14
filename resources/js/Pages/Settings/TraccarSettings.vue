@@ -365,6 +365,45 @@ docker ps</pre>
                         <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30 overflow-hidden">
                             <button
                                 type="button"
+                                @click="toggleGuideSection('gt02a')"
+                                class="w-full px-4 py-3 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                            >
+                                <div class="text-left">
+                                    <div class="text-xs font-black uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Konfigurasi Perangkat GPS</div>
+                                    <div class="text-sm font-bold text-slate-900 dark:text-white mt-1">Setup Perangkat GPS GT02A / Concox / TK110</div>
+                                </div>
+                                <ChevronDownIcon class="h-5 w-5 text-slate-500 transition-transform" :class="activeGuideSection === 'gt02a' ? 'rotate-180' : ''" />
+                            </button>
+                            <div v-show="activeGuideSection === 'gt02a'" class="px-4 pb-4">
+                                <div class="mt-3 space-y-3 text-slate-600 dark:text-slate-300">
+                                    <div class="font-bold text-slate-900 dark:text-white">A. Informasi Port Protokol Traccar</div>
+                                    <div>GT02A / Concox menggunakan protokol standar Concox di Traccar yang berjalan pada <span class="font-black text-emerald-600 dark:text-emerald-400">Port 5023</span>. Pastikan port <span class="font-black">5023</span> sudah dibuka pada firewall / Port forwarding VPS.</div>
+
+                                    <div class="font-bold text-slate-900 dark:text-white mt-4">B. Perintah SMS Konfigurasi Perangkat (GT02A)</div>
+                                    <div>Kirim SMS bertahap ke nomor SIM card yang terpasang di GPS GT02A:</div>
+                                    
+                                    <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">1) Set APN Operator (contoh Telkomsel):</div>
+                                    <pre class="text-xs whitespace-pre overflow-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-950 text-slate-100 p-3">APN123456 internet</pre>
+
+                                    <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">2) Set Server IP & Port (Traccar Port 5023):</div>
+                                    <pre class="text-xs whitespace-pre overflow-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-950 text-slate-100 p-3">SERVER,123456,0,&lt;IP_SERVER_TRACCAR&gt;,5023,0#</pre>
+
+                                    <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-2">3) Cek Status Perangkat & Koordinat:</div>
+                                    <pre class="text-xs whitespace-pre overflow-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-950 text-slate-100 p-3">STATUS#
+PARAM#
+WHERE#</pre>
+
+                                    <div class="font-bold text-slate-900 dark:text-white mt-4">C. Pendaftaran IMEI ke Traccar & ERP</div>
+                                    <div>1) Catat 15-digit nomor IMEI dari fisik GPS GT02A.</div>
+                                    <div>2) Buka dashboard Traccar &rarr; Tambah Device &rarr; Isi <span class="font-black">Identifier = Nomor IMEI</span>.</div>
+                                    <div>3) Di sistem ERP &rarr; Menu <span class="font-black">Vehicle Fleet</span> &rarr; Edit Kendaraan &rarr; Hubungkan ke Device tersebut.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-900/30 overflow-hidden">
+                            <button
+                                type="button"
                                 @click="toggleGuideSection('troubleshooting')"
                                 class="w-full px-4 py-3 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                             >

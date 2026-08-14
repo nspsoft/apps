@@ -1,0 +1,1 @@
+import{c}from"./createLucideIcon-DVOBmwQR.js";const o=c("arrow-left",[["path",{d:"m12 19-7-7 7-7",key:"1l729n"}],["path",{d:"M19 12H5",key:"x3x0zl"}]]);const r=c("clock",[["path",{d:"M12 6v6l4 2",key:"mmk7yg"}],["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}]]);export{o as A,r as C};
