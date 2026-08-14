@@ -49,7 +49,7 @@ class SalesDashboardController extends Controller
 
         if ($periodType === 'month') {
             $monthNum = intval($periodValue);
-            $startDate = Carbon::createDate($year, $monthNum, 1)->startOfMonth();
+            $startDate = Carbon::createFromDate($year, $monthNum, 1)->startOfMonth();
             $endDate = $startDate->copy()->endOfMonth();
             $periodLabel = $startDate->translatedFormat('F Y');
         } elseif ($periodType === 'quarter') {
@@ -62,19 +62,19 @@ class SalesDashboardController extends Controller
             } elseif ($q === 'Q4') {
                 $startMonth = 10;
             }
-            $startDate = Carbon::createDate($year, $startMonth, 1)->startOfMonth();
+            $startDate = Carbon::createFromDate($year, $startMonth, 1)->startOfMonth();
             $endDate = $startDate->copy()->addMonths(2)->endOfMonth();
             $periodLabel = "Quartal " . substr($q, 1) . " ($year)";
         } elseif ($periodType === 'semester') {
             $s = strval($periodValue);
             $startMonth = ($s === 'S2') ? 7 : 1;
-            $startDate = Carbon::createDate($year, $startMonth, 1)->startOfMonth();
+            $startDate = Carbon::createFromDate($year, $startMonth, 1)->startOfMonth();
             $endDate = $startDate->copy()->addMonths(5)->endOfMonth();
             $periodLabel = "Semester " . ($s === 'S2' ? '2' : '1') . " ($year)";
         } else {
             // Full Year
-            $startDate = Carbon::createDate($year, 1, 1)->startOfYear();
-            $endDate = Carbon::createDate($year, 12, 31)->endOfYear();
+            $startDate = Carbon::createFromDate($year, 1, 1)->startOfYear();
+            $endDate = Carbon::createFromDate($year, 12, 31)->endOfYear();
             $periodLabel = "Tahun $year";
         }
 
