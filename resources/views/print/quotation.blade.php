@@ -191,7 +191,27 @@ Telp : +62 21 89383915'))) !!}
                 </tr>
             </table>
             <div style="margin-top: 8px;">
-                Dear Sirs,<br>
+                @php
+                    $contactPerson = $quotation->customer->contact_person ?? '';
+                    $greeting = 'Dear Sirs,';
+                    if ($contactPerson) {
+                        $nameLower = strtolower(trim($contactPerson));
+                        if (
+                            preg_match('/^(ibu|ny\.|nona|sdri\b)/i', $nameLower) ||
+                            str_contains($nameLower, 'ibu ') ||
+                            str_contains($nameLower, 'ny. ')
+                        ) {
+                            $greeting = 'Dear Madam,';
+                        } elseif (
+                            preg_match('/^(bapak|pak|tn\.|sdr\b)/i', $nameLower) ||
+                            str_contains($nameLower, 'bapak ') ||
+                            str_contains($nameLower, 'pak ')
+                        ) {
+                            $greeting = 'Dear Sir,';
+                        }
+                    }
+                @endphp
+                {{ $greeting }}<br>
                 It's a great pleasure for us to propose our best price quotation of this Product<br>
                 to suit your requirements as mentioned below :
             </div>
