@@ -101,7 +101,7 @@ const playNativeChime = (volumeLevel = 100) => {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const now = audioCtx.currentTime;
-        const gainVal = (volumeLevel / 100) * 0.3;
+        const gainVal = (volumeLevel / 100) * 0.8;
 
         const playTone = (freq, start, duration) => {
             const osc = audioCtx.createOscillator();
@@ -142,9 +142,15 @@ const testPlay = (schedule) => {
 
     if (schedule.sound_type === 'chime') {
         playNativeChime(schedule.volume);
+        // Play closing chime after 2.5 seconds
+        setTimeout(() => {
+            if (isTestingAudio.value) {
+                playNativeChime(schedule.volume);
+            }
+        }, 2500);
         setTimeout(() => {
             isTestingAudio.value = false;
-        }, 2500);
+        }, 5000);
     } else if (schedule.sound_type === 'custom') {
         if (!schedule.sound_file) {
             alert('File audio tidak ditemukan!');
@@ -155,7 +161,13 @@ const testPlay = (schedule) => {
         currentAudio.volume = volume;
         currentAudio.play();
         currentAudio.onended = () => {
-            isTestingAudio.value = false;
+            if (isTestingAudio.value) {
+                // Play closing chime
+                playNativeChime(schedule.volume);
+                setTimeout(() => {
+                    isTestingAudio.value = false;
+                }, 2500);
+            }
         };
     } else if (schedule.sound_type === 'tts') {
         playNativeChime(schedule.volume);
@@ -180,6 +192,15 @@ const testPlay = (schedule) => {
             
             window.speechSynthesis.speak(speech);
             speech.onend = () => {
+                if (isTestingAudio.value) {
+                    // Play closing chime
+                    playNativeChime(schedule.volume);
+                    setTimeout(() => {
+                        isTestingAudio.value = false;
+                    }, 2500);
+                }
+            };
+            speech.onerror = () => {
                 isTestingAudio.value = false;
             };
         }, 2200);

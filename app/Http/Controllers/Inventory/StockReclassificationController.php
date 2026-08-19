@@ -23,8 +23,10 @@ class StockReclassificationController extends Controller
         $query = StockReclassification::with(['warehouse', 'targetWarehouse', 'createdBy', 'postedBy'])
             ->withCount('items')
             ->when($request->search, function ($q, $search) {
-                $q->where('reclass_number', 'like', "%{$search}%")
-                    ->orWhere('reason', 'like', "%{$search}%");
+                $q->where(function ($sq) use ($search) {
+                    $sq->where('reclass_number', 'like', "%{$search}%")
+                        ->orWhere('reason', 'like', "%{$search}%");
+                });
             })
             ->when($request->status, function ($q, $status) {
                 $q->where('status', $status);

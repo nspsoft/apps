@@ -171,7 +171,7 @@ const playNativeChime = (volumeLevel = 100) => {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const now = audioCtx.currentTime;
-        const gainVal = (volumeLevel / 100) * 0.3;
+        const gainVal = (volumeLevel / 100) * 0.8;
 
         const playTone = (freq, start, duration) => {
             const osc = audioCtx.createOscillator();
@@ -229,11 +229,17 @@ const triggerAlarm = (schedule) => {
 
     if (schedule.sound_type === 'chime') {
         playNativeChime(schedule.volume);
+        // Play closing chime after 2.5 seconds
+        setTimeout(() => {
+            if (activeAnnouncing.value?.id === schedule.id) {
+                playNativeChime(schedule.volume);
+            }
+        }, 2500);
         setTimeout(() => {
             if (activeAnnouncing.value?.id === schedule.id) {
                 activeAnnouncing.value = null;
             }
-        }, 5000);
+        }, 5500);
     } else if (schedule.sound_type === 'custom') {
         if (!schedule.sound_file) {
             activeAnnouncing.value = null;
@@ -244,7 +250,13 @@ const triggerAlarm = (schedule) => {
         currentAudio.play();
         currentAudio.onended = () => {
             if (activeAnnouncing.value?.id === schedule.id) {
-                activeAnnouncing.value = null;
+                // Play closing chime
+                playNativeChime(schedule.volume);
+                setTimeout(() => {
+                    if (activeAnnouncing.value?.id === schedule.id) {
+                        activeAnnouncing.value = null;
+                    }
+                }, 2500);
             }
         };
     } else if (schedule.sound_type === 'tts') {
@@ -270,7 +282,13 @@ const triggerAlarm = (schedule) => {
             window.speechSynthesis.speak(speech);
             speech.onend = () => {
                 if (activeAnnouncing.value?.id === schedule.id) {
-                    activeAnnouncing.value = null;
+                    // Play closing chime
+                    playNativeChime(schedule.volume);
+                    setTimeout(() => {
+                        if (activeAnnouncing.value?.id === schedule.id) {
+                            activeAnnouncing.value = null;
+                        }
+                    }, 2500);
                 }
             };
             speech.onerror = () => {
@@ -289,9 +307,17 @@ const triggerManualChime = () => {
     
     activeAnnouncing.value = { name: 'Bel Chime Manual', time: 'SEKARANG', sound_type: 'chime', volume: 100 };
     playNativeChime(100);
+    // Play second chime for manual trigger
     setTimeout(() => {
-        activeAnnouncing.value = null;
-    }, 5000);
+        if (activeAnnouncing.value?.name === 'Bel Chime Manual') {
+            playNativeChime(100);
+        }
+    }, 2500);
+    setTimeout(() => {
+        if (activeAnnouncing.value?.name === 'Bel Chime Manual') {
+            activeAnnouncing.value = null;
+        }
+    }, 5500);
 };
 
 const toggleEmergencyOptions = () => {
