@@ -85,21 +85,74 @@ class StockReclassification extends Model
         return $this->belongsTo(User::class, 'posted_by');
     }
 
+    public static function generateUniqueNumber($date = null): string
+    {
+        $dt = $date ? ($date instanceof Carbon ? $date : Carbon::parse($date)) : now();
+        $prefix = 'RCL/' . $dt->format('y/m') . '/';
+
+        // Find the maximum sequence number for this prefix from database
+        $existingNumbers = static::withTrashed()
+            ->where('reclass_number', 'like', $prefix . '%')
+            ->pluck('reclass_number')
+            ->map(function ($num) use ($prefix) {
+                $seq = str_replace($prefix, '', $num);
+                return is_numeric($seq) ? (int) $seq : 0;
+            })
+            ->filter()
+            ->values();
+
+        $maxExisting = $existingNumbers->isNotEmpty() ? $existingNumbers->max() : 0;
+
+        // Also check document_numberings table
+        $docConfig = \App\Models\DocumentNumbering::where('code', 'stock_reclassification')->first();
+        $currentConfigNum = $docConfig ? (int) $docConfig->current_number : 0;
+
+        $nextNum = max($maxExisting, $currentConfigNum) + 1;
+        $candidateNumber = $prefix . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
+
+        while (static::withTrashed()->where('reclass_number', $candidateNumber)->exists()) {
+            $nextNum++;
+            $candidateNumber = $prefix . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
+        }
+
+        if ($docConfig) {
+            $docConfig->update([
+                'current_number' => $nextNum,
+                'last_reset_date' => $dt->toDateString(),
+            ]);
+        }
+
+        return $candidateNumber;
+    }
+
     public static function generateNumber($date = null): string
     {
-        try {
-            return app(DocumentNumberService::class)->preview('stock_reclassification', [], $date);
-        } catch (\Throwable $e) {
-            $dt = $date ? Carbon::parse($date) : now();
-            $prefix = 'RCL/' . $dt->format('y/m') . '/';
+        $dt = $date ? ($date instanceof Carbon ? $date : Carbon::parse($date)) : now();
+        $prefix = 'RCL/' . $dt->format('y/m') . '/';
 
-            $last = static::where('reclass_number', 'like', $prefix . '%')
-                ->orderBy('reclass_number', 'desc')
-                ->first();
+        $existingNumbers = static::withTrashed()
+            ->where('reclass_number', 'like', $prefix . '%')
+            ->pluck('reclass_number')
+            ->map(function ($num) use ($prefix) {
+                $seq = str_replace($prefix, '', $num);
+                return is_numeric($seq) ? (int) $seq : 0;
+            })
+            ->filter()
+            ->values();
 
-            $next = $last ? ((int) substr($last->reclass_number, -4)) + 1 : 1;
+        $maxExisting = $existingNumbers->isNotEmpty() ? $existingNumbers->max() : 0;
 
-            return $prefix . str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+        $docConfig = \App\Models\DocumentNumbering::where('code', 'stock_reclassification')->first();
+        $currentConfigNum = $docConfig ? (int) $docConfig->current_number : 0;
+
+        $nextNum = max($maxExisting, $currentConfigNum) + 1;
+        $candidateNumber = $prefix . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
+
+        while (static::withTrashed()->where('reclass_number', $candidateNumber)->exists()) {
+            $nextNum++;
+            $candidateNumber = $prefix . str_pad((string) $nextNum, 4, '0', STR_PAD_LEFT);
         }
+
+        return $candidateNumber;
     }
 }

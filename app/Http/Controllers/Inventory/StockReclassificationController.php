@@ -95,7 +95,7 @@ class StockReclassificationController extends Controller
         $validated = $this->validatePayload($request);
 
         DB::transaction(function () use ($validated, $service) {
-            $reclassNumber = $validated['reclass_number'] ?: app(DocumentNumberService::class)->generate('stock_reclassification', [], $validated['reclass_date']);
+            $reclassNumber = $validated['reclass_number'] ?: StockReclassification::generateUniqueNumber($validated['reclass_date']);
 
             $reclassification = StockReclassification::create([
                 'reclass_number' => $reclassNumber,
@@ -376,7 +376,7 @@ class StockReclassificationController extends Controller
         }
 
         $reclassification = DB::transaction(function () use ($validated, $itemsToCreate, $service) {
-            $reclassNumber = app(DocumentNumberService::class)->generate('stock_reclassification', [], $validated['reclass_date']);
+            $reclassNumber = StockReclassification::generateUniqueNumber($validated['reclass_date']);
 
             $reclass = StockReclassification::create([
                 'reclass_number' => $reclassNumber,
