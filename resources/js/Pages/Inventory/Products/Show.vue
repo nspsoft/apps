@@ -5,6 +5,7 @@ import {
     ArrowLeftIcon,
     PencilSquareIcon,
     CubeIcon,
+    TagIcon,
 } from '@heroicons/vue/24/outline';
 import { formatNumber, formatCurrency } from '@/helpers';
 import ProductPartnerManager from './Partials/ProductPartnerManager.vue';
@@ -15,9 +16,20 @@ const showFullImage = ref(false);
 
 const props = defineProps({
     product: Object,
+    relatedProducts: Array,
     customers: Array,
     suppliers: Array,
 });
+
+const getProductTypeBadge = (type) => {
+    const badges = {
+        raw_material: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+        wip: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        finished_good: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        spare_part: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    };
+    return badges[type] || 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+};
 
 
 const getProductTypeLabel = (type) => {
@@ -125,6 +137,14 @@ const getItemTypeLabel = (type) => {
                                     <p class="text-slate-900 dark:text-white font-mono">{{ product.barcode || '-' }}</p>
                                 </div>
                                 <div>
+                                    <label class="block text-sm font-medium text-slate-500 mb-1">Product Family / Model Group</label>
+                                    <div v-if="product.product_family" class="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/50 px-2.5 py-1 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                                        <TagIcon class="h-3.5 w-3.5 text-indigo-500" />
+                                        {{ product.product_family }}
+                                    </div>
+                                    <p v-else class="text-slate-500 dark:text-slate-400">-</p>
+                                </div>
+                                <div>
                                     <label class="block text-sm font-medium text-slate-500 mb-1">Category</label>
                                     <p class="text-slate-900 dark:text-white">{{ product.category?.name || '-' }}</p>
                                 </div>
@@ -146,6 +166,59 @@ const getItemTypeLabel = (type) => {
                                     <label class="block text-sm font-medium text-slate-500 mb-1">Description</label>
                                     <p class="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{{ product.description || '-' }}</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Related Products in Family -->
+                        <div v-if="relatedProducts && relatedProducts.length > 0" class="rounded-2xl glass-card overflow-hidden">
+                            <div class="border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <TagIcon class="h-5 w-5 text-indigo-500" />
+                                        Produk Terkait dalam Family ({{ product.product_family }})
+                                    </h2>
+                                    <p class="text-xs text-slate-500 mt-0.5">Daftar Finished Good, WIP, dan Raw Material lain yang sejenis</p>
+                                </div>
+                                <span class="rounded-full bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                                    {{ relatedProducts.length }} Produk
+                                </span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
+                                    <thead class="bg-slate-50/50 dark:bg-slate-900/50">
+                                        <tr>
+                                            <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase">Product</th>
+                                            <th class="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase">Type</th>
+                                            <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase">Stock</th>
+                                            <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase">Selling Price</th>
+                                            <th class="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                                        <tr v-for="rel in relatedProducts" :key="rel.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td class="px-4 py-2.5">
+                                                <div class="font-medium text-slate-900 dark:text-white text-sm">{{ rel.name }}</div>
+                                                <div class="text-xs text-slate-500 font-mono">{{ rel.sku }}</div>
+                                            </td>
+                                            <td class="px-4 py-2.5">
+                                                <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium" :class="getProductTypeBadge(rel.product_type)">
+                                                    {{ getProductTypeLabel(rel.product_type) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-2.5 text-right font-medium text-sm text-slate-900 dark:text-white">
+                                                {{ formatNumber(rel.total_stock) }} {{ rel.unit?.symbol || 'pcs' }}
+                                            </td>
+                                            <td class="px-4 py-2.5 text-right font-mono text-sm text-slate-600 dark:text-slate-300">
+                                                {{ formatCurrency(rel.selling_price) }}
+                                            </td>
+                                            <td class="px-4 py-2.5 text-right">
+                                                <Link :href="`/inventory/products/${rel.id}`" class="text-xs text-blue-500 hover:text-blue-400 font-medium">
+                                                    View &rarr;
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
 

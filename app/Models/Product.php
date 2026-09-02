@@ -29,6 +29,7 @@ class Product extends Model
         'description',
         'barcode',
         'category_id',
+        'product_family',
         'customer_id',
         'supplier_id',
         'type',

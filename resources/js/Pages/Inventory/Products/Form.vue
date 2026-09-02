@@ -13,6 +13,7 @@ import SearchableSelect from '@/Components/SearchableSelect.vue';
 const props = defineProps({
     product: Object,
     categories: Array,
+    productFamilies: Array,
     units: Array,
     warehouses: Array,
     customers: Array,
@@ -33,6 +34,7 @@ const form = useForm({
     description: props.product?.description || '',
     barcode: props.product?.barcode || '',
     category_id: props.product?.category_id || '',
+    product_family: props.product?.product_family || '',
     customer_id: props.product?.customer_id || '',
     supplier_id: props.product?.supplier_id || '',
     type: props.product?.type || 'product',
@@ -199,16 +201,46 @@ watch([() => form.cost_price, profitMargin, autoCalculate], ([newCost, newMargin
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Name *</label>
-                                <input
-                                    v-model="form.name"
-                                    type="text"
-                                    required
-                                    class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500/50"
-                                    placeholder="Product name"
-                                />
-                                <p v-if="form.errors.name" class="mt-1 text-sm text-red-400">{{ form.errors.name }}</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Name *</label>
+                                    <input
+                                        v-model="form.name"
+                                        type="text"
+                                        required
+                                        class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500/50"
+                                        placeholder="Product name"
+                                    />
+                                    <p v-if="form.errors.name" class="mt-1 text-sm text-red-400">{{ form.errors.name }}</p>
+                                </div>
+                                <div>
+                                    <label class="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
+                                        Product Family / Model Group
+                                        <div class="group relative cursor-help">
+                                            <QuestionMarkCircleIcon class="h-4 w-4 text-slate-500 hover:text-blue-400 transition-colors" />
+                                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                                <p class="text-xs text-slate-900 dark:text-white">
+                                                    <span class="font-bold block mb-1">Grouping Produk Similar</span>
+                                                    Nama grup yang sama untuk mengelompokkan Raw Material, WIP, dan Finished Good yang sejenis/berhubungan.
+                                                    <br><br>
+                                                    <span class="text-slate-500 dark:text-slate-400">Contoh: RACK CHARGER, STRETCH FILM, DXC13A</span>
+                                                </p>
+                                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-50 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700"></div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                    <input
+                                        v-model="form.product_family"
+                                        type="text"
+                                        list="product-family-list"
+                                        class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-900 dark:text-white placeholder:text-slate-500 focus:ring-2 focus:ring-blue-500/50"
+                                        placeholder="e.g., RACK CHARGER, STRETCH FILM"
+                                    />
+                                    <datalist id="product-family-list">
+                                        <option v-for="fam in productFamilies" :key="fam" :value="fam" />
+                                    </datalist>
+                                    <p v-if="form.errors.product_family" class="mt-1 text-sm text-red-400">{{ form.errors.product_family }}</p>
+                                </div>
                             </div>
 
                             <div>

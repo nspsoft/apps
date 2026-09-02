@@ -32,6 +32,7 @@ class ProductExport implements FromCollection, WithHeadings, WithMapping, Should
         return [
             'SKU',
             'Name',
+            'Product Family',
             'Category',
             'Type',
             'Unit',
@@ -60,6 +61,7 @@ class ProductExport implements FromCollection, WithHeadings, WithMapping, Should
         return [
             $product->sku,
             $product->name,
+            $product->product_family ?? '-',
             $product->category->name ?? '-',
             $product->product_type,
             $product->unit->symbol ?? 'pcs',

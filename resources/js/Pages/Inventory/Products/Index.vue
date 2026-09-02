@@ -27,12 +27,14 @@ import { formatNumber, formatCurrency } from '@/helpers';
 const props = defineProps({
     products: Object,
     categories: Array,
+    productFamilies: Array,
     filters: Object,
     productTypes: Array,
 });
 
 const search = ref(props.filters.search || '');
 const selectedCategory = ref(props.filters.category || '');
+const selectedFamily = ref(props.filters.product_family || '');
 const selectedType = ref(props.filters.product_type || '');
 const sortField = ref(props.filters.sort || 'name');
 const sortDirection = ref(props.filters.direction || 'asc');
@@ -47,6 +49,7 @@ const applyFilters = debounce(() => {
     router.get('/inventory/products', {
         search: search.value || undefined,
         category: selectedCategory.value || undefined,
+        product_family: selectedFamily.value || undefined,
         product_type: selectedType.value || undefined,
         sort: sortField.value,
         direction: sortDirection.value,
@@ -56,7 +59,13 @@ const applyFilters = debounce(() => {
     });
 }, 300);
 
-watch([search, selectedCategory, selectedType], applyFilters);
+watch([search, selectedCategory, selectedFamily, selectedType], applyFilters);
+
+const filterByFamily = (family) => {
+    selectedFamily.value = family;
+    showFilters.value = true;
+    applyFilters();
+};
 
 const sort = (field) => {
     if (sortField.value === field) {
@@ -71,6 +80,7 @@ const sort = (field) => {
 const clearFilters = () => {
     search.value = '';
     selectedCategory.value = '';
+    selectedFamily.value = '';
     selectedType.value = '';
     sortField.value = 'name';
     sortDirection.value = 'asc';
@@ -543,7 +553,7 @@ const closeUsageModal = () => {
             leave-to-class="opacity-0 -translate-y-2"
         >
             <div v-if="showFilters" class="mb-6 rounded-2xl glass-card p-4">
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Category</label>
                         <select
@@ -553,6 +563,18 @@ const closeUsageModal = () => {
                             <option value="">All Categories</option>
                             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                                 {{ cat.name }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Product Family / Group</label>
+                        <select
+                            v-model="selectedFamily"
+                            class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                        >
+                            <option value="">All Families</option>
+                            <option v-for="fam in productFamilies" :key="fam" :value="fam">
+                                {{ fam }}
                             </option>
                         </select>
                     </div>
@@ -707,7 +729,19 @@ const closeUsageModal = () => {
                                     </div>
                                     <div>
                                         <div class="text-sm font-medium text-slate-900 dark:text-white">{{ product.name }}</div>
-                                        <div class="text-xs text-slate-500">{{ product.sku }}</div>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-xs text-slate-500 font-mono">{{ product.sku }}</span>
+                                            <button
+                                                v-if="product.product_family"
+                                                @click.stop="filterByFamily(product.product_family)"
+                                                type="button"
+                                                class="inline-flex items-center gap-1 rounded-md bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800/50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                                                :title="`Click to filter by family: ${product.product_family}`"
+                                            >
+                                                <TagIcon class="h-2.5 w-2.5 text-indigo-500" />
+                                                {{ product.product_family }}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </td>

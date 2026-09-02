@@ -19,7 +19,6 @@ use Intervention\Image\Drivers\Gd\Driver;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\ProductExport;
 use App\Imports\ProductImport;
-
 use App\Exports\Template\ProductTemplateExport;
 
 class ProductController extends Controller
@@ -34,11 +33,15 @@ class ProductController extends Controller
                 $q->where(function ($q) use ($search) {
                     $q->where('sku', 'like', "%{$search}%")
                       ->orWhere('name', 'like', "%{$search}%")
-                      ->orWhere('barcode', 'like', "%{$search}%");
+                      ->orWhere('barcode', 'like', "%{$search}%")
+                      ->orWhere('product_family', 'like', "%{$search}%");
                 });
             })
             ->when($request->category, function ($q, $category) {
                 $q->where('category_id', $category);
+            })
+            ->when($request->product_family, function ($q, $family) {
+                $q->where('product_family', $family);
             })
             ->when($request->product_type, function ($q, $type) {
                 $q->where('product_type', $type);
@@ -69,7 +72,8 @@ class ProductController extends Controller
         return Inertia::render('Inventory/Products/Index', [
             'products' => $products,
             'categories' => Category::where('type', 'product')->orderBy('name')->get(),
-            'filters' => $request->only(['search', 'category', 'product_type', 'status', 'sort', 'direction']),
+            'productFamilies' => Product::whereNotNull('product_family')->where('product_family', '!=', '')->distinct()->orderBy('product_family')->pluck('product_family'),
+            'filters' => $request->only(['search', 'category', 'product_family', 'product_type', 'status', 'sort', 'direction']),
             'productTypes' => [
                 ['value' => 'raw_material', 'label' => 'Raw Material'],
                 ['value' => 'wip', 'label' => 'Work in Progress'],
@@ -87,7 +91,7 @@ class ProductController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $columns = ['id', 'name', 'sku', 'unit_id', 'cost_price', 'selling_price'];
+        $columns = ['id', 'name', 'sku', 'product_family', 'unit_id', 'cost_price', 'selling_price'];
         if (Schema::hasColumn('products', 'code')) {
             $columns[] = 'code';
         }
@@ -97,7 +101,8 @@ class ProductController extends Controller
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($qq) use ($q) {
                     $qq->where('sku', 'like', "%{$q}%")
-                        ->orWhere('name', 'like', "%{$q}%");
+                        ->orWhere('name', 'like', "%{$q}%")
+                        ->orWhere('product_family', 'like', "%{$q}%");
 
                     if (Schema::hasColumn('products', 'code')) {
                         $qq->orWhere('code', 'like', "%{$q}%");
@@ -111,9 +116,10 @@ class ProductController extends Controller
                 $code = $p->code ?? $p->sku ?? '-';
                 return [
                     'id' => $p->id,
-                    'label' => "[{$code}] {$p->name}",
+                    'label' => "[{$code}] {$p->name}" . ($p->product_family ? " ({$p->product_family})" : ''),
                     'sku' => $p->sku,
                     'name' => $p->name,
+                    'product_family' => $p->product_family,
                     'unit_id' => $p->unit_id,
                     'cost_price' => (float) $p->cost_price,
                     'selling_price' => (float) $p->selling_price,
@@ -132,6 +138,7 @@ class ProductController extends Controller
         return Inertia::render('Inventory/Products/Form', [
             'product' => null,
             'categories' => Category::where('type', 'product')->orderBy('name')->get(),
+            'productFamilies' => Product::whereNotNull('product_family')->where('product_family', '!=', '')->distinct()->orderBy('product_family')->pluck('product_family'),
             'units' => Unit::where('is_active', true)->orderBy('name')->get(),
             'warehouses' => Warehouse::where('is_active', true)->orderBy('name')->get(),
             'customers' => Customer::active()->orderBy('name')->get(['id', 'name']),
@@ -150,6 +157,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'barcode' => 'nullable|string|max:50',
             'category_id' => 'nullable|exists:categories,id',
+            'product_family' => 'nullable|string|max:100',
             'customer_id' => 'nullable|exists:customers,id',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'type' => 'required|in:product,service,consumable',
@@ -200,8 +208,19 @@ class ProductController extends Controller
     {
         $product->load(['category', 'unit', 'stocks.warehouse', 'stocks.location', 'partners.partner']);
 
+        $relatedProducts = [];
+        if (!empty($product->product_family)) {
+            $relatedProducts = Product::where('product_family', $product->product_family)
+                ->where('id', '!=', $product->id)
+                ->with(['category', 'unit', 'stocks'])
+                ->orderBy('product_type')
+                ->orderBy('name')
+                ->get();
+        }
+
         return Inertia::render('Inventory/Products/Show', [
             'product' => $product,
+            'relatedProducts' => $relatedProducts,
             'customers' => Customer::active()->orderBy('name')->get(['id', 'name']),
             'suppliers' => Supplier::active()->orderBy('name')->get(['id', 'name']),
         ]);
@@ -217,6 +236,7 @@ class ProductController extends Controller
         return Inertia::render('Inventory/Products/Form', [
             'product' => $product,
             'categories' => Category::where('type', 'product')->orderBy('name')->get(),
+            'productFamilies' => Product::whereNotNull('product_family')->where('product_family', '!=', '')->distinct()->orderBy('product_family')->pluck('product_family'),
             'units' => Unit::where('is_active', true)->orderBy('name')->get(),
             'warehouses' => Warehouse::where('is_active', true)->orderBy('name')->get(),
             'customers' => Customer::active()->orderBy('name')->get(['id', 'name']),
@@ -235,6 +255,7 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'barcode' => 'nullable|string|max:50',
             'category_id' => 'nullable|exists:categories,id',
+            'product_family' => 'nullable|string|max:100',
             'customer_id' => 'nullable|exists:customers,id',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'type' => 'required|in:product,service,consumable',
