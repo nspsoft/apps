@@ -98,6 +98,7 @@ class ProductController extends Controller
 
         $products = Product::active()
             ->stockManaged()
+            ->with(['unit:id,name,symbol,code', 'stocks:id,product_id,quantity'])
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($qq) use ($q) {
                     $qq->where('sku', 'like', "%{$q}%")
@@ -121,8 +122,10 @@ class ProductController extends Controller
                     'name' => $p->name,
                     'product_family' => $p->product_family,
                     'unit_id' => $p->unit_id,
+                    'unit' => $p->unit ? ($p->unit->symbol ?: $p->unit->name) : 'Pcs',
                     'cost_price' => (float) $p->cost_price,
                     'selling_price' => (float) $p->selling_price,
+                    'total_stock' => (float) $p->total_stock,
                 ];
             })
             ->values();

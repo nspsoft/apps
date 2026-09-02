@@ -361,6 +361,67 @@ watch(extractionResult, (newVal) => {
     }
 }, { deep: true });
 
+// === Description Product Auto-Suggest ===
+const activeSuggestIndex = ref(null);
+const suggestLoading = ref(false);
+const productSuggestions = ref([]);
+let suggestTimer = null;
+
+const onDescriptionInput = (item, index) => {
+    activeSuggestIndex.value = index;
+    const q = (item.description || '').trim();
+    clearTimeout(suggestTimer);
+
+    if (q.length < 2) {
+        productSuggestions.value = [];
+        suggestLoading.value = false;
+        return;
+    }
+
+    suggestLoading.value = true;
+    suggestTimer = setTimeout(async () => {
+        try {
+            const res = await axios.get('/inventory/products/lookup', { params: { q } });
+            productSuggestions.value = Array.isArray(res.data?.data) ? res.data.data : [];
+        } catch (e) {
+            console.error(e);
+            productSuggestions.value = [];
+        } finally {
+            suggestLoading.value = false;
+        }
+    }, 200);
+};
+
+const onDescriptionFocus = (item, index) => {
+    activeSuggestIndex.value = index;
+    const q = (item.description || '').trim();
+    if (q.length >= 2 && productSuggestions.value.length === 0) {
+        onDescriptionInput(item, index);
+    }
+};
+
+const selectProductSuggestion = (product, item, index) => {
+    item.description = product.name;
+    item.matched_product_id = product.id;
+    item.matched_product_name = product.name;
+    item.matched_sku = product.sku;
+    item.db_price = product.selling_price || 0;
+    item.current_stock = product.total_stock || 0;
+    if (product.unit) {
+        item.unit = product.unit;
+    }
+    item.match_status = 'MATCHED';
+    activeSuggestIndex.value = null;
+    productSuggestions.value = [];
+};
+
+const closeSuggestions = () => {
+    setTimeout(() => {
+        activeSuggestIndex.value = null;
+        productSuggestions.value = [];
+    }, 250);
+};
+
 // Add new item row
 const addItemRow = () => {
     editableData.value.items.push({
@@ -821,14 +882,14 @@ const exportToExcel = async () => {
                         </div>
 
                         <!-- Editable Items Table -->
-                        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col" style="max-height: 400px;">
+                        <div class="rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col" style="min-height: 350px; max-height: 520px;">
                             <!-- Fixed Header -->
                             <table class="min-w-full">
                                 <thead class="bg-slate-100 dark:bg-slate-800">
                                     <tr>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[4%]">No</th>
-                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[20%]">Description</th>
-                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">Qty</th>
+                                        <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[22%]">Description</th>
+                                        <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[11%]">Qty</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[8%]">Stock</th>
                                         <th class="px-2 py-3 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[6%]">Unit</th>
                                         <th class="px-2 py-3 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider w-[12%]">PO Price</th>
@@ -846,14 +907,64 @@ const exportToExcel = async () => {
                                             <td class="px-2 py-2 text-center w-[4%]">
                                                 <span class="text-sm font-bold text-slate-400">{{ index + 1 }}</span>
                                             </td>
-                                            <!-- Description -->
-                                            <td class="px-2 py-2 w-[20%]">
-                                                <input 
-                                                    v-model="item.description"
-                                                    type="text"
-                                                    class="w-full px-2 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                                                    placeholder="Product..."
-                                                />
+                                            <!-- Description with Auto-Suggest -->
+                                            <td class="px-2 py-2 w-[22%] relative">
+                                                <div class="relative">
+                                                    <input 
+                                                        v-model="item.description"
+                                                        type="text"
+                                                        @input="onDescriptionInput(item, index)"
+                                                        @focus="onDescriptionFocus(item, index)"
+                                                        @blur="closeSuggestions"
+                                                        class="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                                                        :class="item.matched_product_id ? 'border-emerald-500/50 dark:border-emerald-500/40' : 'border-slate-200 dark:border-slate-700'"
+                                                        placeholder="Ketik nama atau SKU produk..."
+                                                    />
+
+                                                    <!-- Matched SKU indicator badge -->
+                                                    <div v-if="item.matched_product_id" class="mt-0.5 flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                                                        <CheckCircleIcon class="h-3 w-3 inline shrink-0" />
+                                                        <span class="font-mono font-bold truncate" :title="item.matched_sku">{{ item.matched_sku }}</span>
+                                                    </div>
+
+                                                    <!-- Suggestion Dropdown Menu -->
+                                                    <div 
+                                                        v-if="activeSuggestIndex === index && (suggestLoading || productSuggestions.length > 0)"
+                                                        class="absolute left-0 top-full mt-1 w-80 md:w-96 max-h-56 overflow-y-auto rounded-xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 p-1.5 z-[999] divide-y divide-slate-100 dark:divide-slate-700/50"
+                                                    >
+                                                        <div v-if="suggestLoading" class="p-3 text-center text-xs text-slate-400">
+                                                            <ArrowPathIcon class="h-4 w-4 animate-spin inline mr-1 text-blue-500" />
+                                                            Mencari produk dari master data...
+                                                        </div>
+                                                        <template v-else>
+                                                            <div class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                                                Saran Produk Master ({{ productSuggestions.length }})
+                                                            </div>
+                                                            <button
+                                                                v-for="p in productSuggestions"
+                                                                :key="p.id"
+                                                                type="button"
+                                                                @mousedown.prevent="selectProductSuggestion(p, item, index)"
+                                                                class="w-full text-left p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors flex flex-col gap-0.5 cursor-pointer group"
+                                                            >
+                                                                <div class="flex items-center justify-between gap-2">
+                                                                    <span class="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                                                        {{ p.name }}
+                                                                    </span>
+                                                                    <span v-if="p.total_stock !== undefined" class="text-[10px] font-bold px-1.5 py-0.5 rounded whitespace-nowrap" :class="p.total_stock > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-400'">
+                                                                        Stok: {{ Number(p.total_stock).toLocaleString('id-ID') }} {{ p.unit }}
+                                                                    </span>
+                                                                </div>
+                                                                <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                                                    <span class="font-mono">{{ p.sku }} <span v-if="p.product_family" class="text-indigo-500 font-sans font-medium">({{ p.product_family }})</span></span>
+                                                                    <span v-if="p.selling_price > 0" class="text-blue-600 dark:text-blue-400 font-medium">
+                                                                        Rp {{ Number(p.selling_price).toLocaleString('id-ID') }}
+                                                                    </span>
+                                                                </div>
+                                                            </button>
+                                                        </template>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <!-- Qty -->
                                             <td class="px-2 py-2 w-[12%]">
