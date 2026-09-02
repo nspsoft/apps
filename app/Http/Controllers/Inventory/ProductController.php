@@ -87,7 +87,7 @@ class ProductController extends Controller
     {
         $q = trim((string) $request->query('q', ''));
 
-        if ($q !== '' && mb_strlen($q) < 2) {
+        if ($q !== '' && mb_strlen($q) < 1) {
             return response()->json(['data' => []]);
         }
 
@@ -98,7 +98,7 @@ class ProductController extends Controller
 
         $products = Product::active()
             ->stockManaged()
-            ->with(['unit:id,name,symbol,code', 'stocks:id,product_id,quantity'])
+            ->with(['unit:id,name,symbol,code', 'stocks:id,product_id,qty_on_hand'])
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($qq) use ($q) {
                     $qq->where('sku', 'like', "%{$q}%")

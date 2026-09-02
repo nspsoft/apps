@@ -372,7 +372,7 @@ const onDescriptionInput = (item, index) => {
     const q = (item.description || '').trim();
     clearTimeout(suggestTimer);
 
-    if (q.length < 2) {
+    if (q.length < 1) {
         productSuggestions.value = [];
         suggestLoading.value = false;
         return;
@@ -384,18 +384,18 @@ const onDescriptionInput = (item, index) => {
             const res = await axios.get('/inventory/products/lookup', { params: { q } });
             productSuggestions.value = Array.isArray(res.data?.data) ? res.data.data : [];
         } catch (e) {
-            console.error(e);
+            console.error('Lookup error:', e);
             productSuggestions.value = [];
         } finally {
             suggestLoading.value = false;
         }
-    }, 200);
+    }, 150);
 };
 
 const onDescriptionFocus = (item, index) => {
     activeSuggestIndex.value = index;
     const q = (item.description || '').trim();
-    if (q.length >= 2 && productSuggestions.value.length === 0) {
+    if (q.length >= 1) {
         onDescriptionInput(item, index);
     }
 };
