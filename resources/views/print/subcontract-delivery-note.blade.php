@@ -220,7 +220,12 @@ Telp : +62 21 89383915'))) !!}
                         <span style="font-weight: bold; color: #444;">(<strong>{{ number_format($order->workOrder->qty_planned, 0, ',', '.') }} {{ $order->workOrder->product->unit->name ?? 'PCs' }}</strong>)</span>
                     </td>
                     @endif
-                    <td>{{ $mv->product->name }}</td>
+                    <td>
+                        <div>{{ $mv->product->name }}</div>
+                        @if(!empty($mv->product->description))
+                            <div style="font-size: 8pt; color: #555; margin-top: 2px;">{{ $mv->product->description }}</div>
+                        @endif
+                    </td>
                     <td class="text-right font-bold">{{ number_format(abs($mv->qty), 0, ',', '.') }}</td>
                     <td class="text-center">{{ $mv->product->unit->name ?? 'PCs' }}</td>
                     <td>Bahan Baku Subcont</td>
@@ -249,7 +254,12 @@ Telp : +62 21 89383915'))) !!}
                         <span style="font-weight: bold; color: #444;">(<strong>{{ number_format($order->workOrder->qty_planned, 0, ',', '.') }} {{ $order->workOrder->product->unit->name ?? 'PCs' }}</strong>)</span>
                     </td>
                     @endif
-                    <td>{{ $comp->product->name }}</td>
+                    <td>
+                        <div>{{ $comp->product->name }}</div>
+                        @if(!empty($comp->product->description))
+                            <div style="font-size: 8pt; color: #555; margin-top: 2px;">{{ $comp->product->description }}</div>
+                        @endif
+                    </td>
                     <td class="text-right font-bold">{{ number_format($comp->qty_consumed, 0, ',', '.') }}</td>
                     <td class="text-center">{{ $comp->product->unit->name ?? 'PCs' }}</td>
                     <td>Bahan Baku Subcont</td>
