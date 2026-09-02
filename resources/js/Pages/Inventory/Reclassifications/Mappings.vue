@@ -10,12 +10,45 @@ import {
     XMarkIcon,
     ArrowUpTrayIcon,
     ExclamationTriangleIcon,
+    MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     mappings: Array,
     mappingProducts: Array,
     productLookupUrl: String,
+});
+
+const searchQuery = ref('');
+const statusFilter = ref('all');
+
+const filteredMappings = computed(() => {
+    let list = props.mappings || [];
+
+    if (statusFilter.value === 'active') {
+        list = list.filter(m => m.is_active);
+    } else if (statusFilter.value === 'inactive') {
+        list = list.filter(m => !m.is_active);
+    } else if (statusFilter.value === 'default') {
+        list = list.filter(m => m.is_default);
+    }
+
+    const q = searchQuery.value.trim().toLowerCase();
+    if (!q) return list;
+
+    return list.filter((m) => {
+        const sourceName = (m.source_product?.name || m.sourceProduct?.name || '').toLowerCase();
+        const sourceSku = (m.source_product?.sku || m.sourceProduct?.sku || '').toLowerCase();
+        const targetName = (m.target_product?.name || m.targetProduct?.name || '').toLowerCase();
+        const targetSku = (m.target_product?.sku || m.targetProduct?.sku || '').toLowerCase();
+        const notes = (m.notes || '').toLowerCase();
+
+        return sourceName.includes(q) ||
+               sourceSku.includes(q) ||
+               targetName.includes(q) ||
+               targetSku.includes(q) ||
+               notes.includes(q);
+    });
 });
 
 const productOptions = computed(() => {
@@ -160,6 +193,42 @@ const handleImport = () => {
             </div>
 
             <div class="rounded-2xl glass-card overflow-hidden">
+                <!-- Search & Filter Bar -->
+                <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/30">
+                    <div class="relative flex-1 sm:max-w-md">
+                        <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Cari Source, Target, SKU, atau Notes..."
+                            class="block w-full rounded-xl border-0 bg-white dark:bg-slate-800 py-2 pl-10 pr-9 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500/50 shadow-sm"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            @click="searchQuery = ''"
+                            type="button"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                        >
+                            <XMarkIcon class="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-slate-500 font-medium whitespace-nowrap">
+                            Menampilkan {{ filteredMappings.length }} dari {{ mappings.length }} mapping
+                        </span>
+                        <select
+                            v-model="statusFilter"
+                            class="rounded-xl border-0 bg-white dark:bg-slate-800 py-2 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-blue-500/50 shadow-sm"
+                        >
+                            <option value="all">Semua Status</option>
+                            <option value="active">Active Only</option>
+                            <option value="inactive">Inactive Only</option>
+                            <option value="default">Default Only</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                         <thead>
@@ -173,7 +242,7 @@ const handleImport = () => {
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr v-for="mapping in mappings" :key="mapping.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                            <tr v-for="mapping in filteredMappings" :key="mapping.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                 <template v-if="editingId === mapping.id">
                                     <td class="px-6 py-4">
                                         <SearchableSelect v-model="editForm.source_product_id" :options="productOptions" :fetchUrl="productLookupUrl" placeholder="Source product" />
@@ -226,18 +295,20 @@ const handleImport = () => {
                                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">{{ mapping.notes || '-' }}</td>
                                     <td class="px-6 py-4 text-right">
                                         <div class="inline-flex items-center gap-2">
-                                            <button @click="startEdit(mapping)" class="rounded-lg p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+                                            <button @click="startEdit(mapping)" class="rounded-lg p-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800" title="Edit Mapping">
                                                 <PencilSquareIcon class="h-4 w-4" />
                                             </button>
-                                            <button @click="deleteMapping(mapping.id)" class="rounded-lg p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10">
+                                            <button @click="deleteMapping(mapping.id)" class="rounded-lg p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10" title="Delete Mapping">
                                                 <TrashIcon class="h-4 w-4" />
                                             </button>
                                         </div>
                                     </td>
                                 </template>
                             </tr>
-                            <tr v-if="mappings.length === 0">
-                                <td colspan="6" class="px-6 py-10 text-center text-slate-500 italic">Belum ada mapping.</td>
+                            <tr v-if="filteredMappings.length === 0">
+                                <td colspan="6" class="px-6 py-10 text-center text-slate-500 italic">
+                                    {{ searchQuery || statusFilter !== 'all' ? 'Tidak ada mapping yang sesuai filter pencarian.' : 'Belum ada mapping.' }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
