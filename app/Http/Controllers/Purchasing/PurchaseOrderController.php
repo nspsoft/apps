@@ -237,14 +237,16 @@ class PurchaseOrderController extends Controller
             $isAdmin = auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('IT Administrator');
             if ($isAdmin && !empty($validated['po_number'])) {
                 $poNumber = $validated['po_number'];
-                // Sync the counter so next auto-generation continues from here
-                app(DocumentNumberService::class)->sync('purchase_order', $poNumber);
+                // Sync the counter so next auto-generation continues from here (only if in active period)
+                app(DocumentNumberService::class)->sync('purchase_order', $poNumber, $validated['order_date'] ?? null);
             } else {
-                $poNumber = app(DocumentNumberService::class)->generate(
-                    'purchase_order',
-                    ['SUPP_CODE' => $supplier->code ?? ''],
-                    $validated['order_date']
-                );
+                do {
+                    $poNumber = app(DocumentNumberService::class)->generate(
+                        'purchase_order',
+                        ['SUPP_CODE' => $supplier->code ?? ''],
+                        $validated['order_date']
+                    );
+                } while (PurchaseOrder::where('po_number', $poNumber)->exists());
             }
 
             $po = PurchaseOrder::create([
@@ -423,8 +425,15 @@ class PurchaseOrderController extends Controller
             'notes' => $validated['notes'] ?? null,
         ];
 
-        // Sync the counter if changed manually
-        app(DocumentNumberService::class)->sync('purchase_order', $validated['po_number']);
+        // Sync the counter ONLY if changed manually by an Admin and different from current number
+        $isAdmin = auth()->user()?->hasRole('Super Admin') || auth()->user()?->hasRole('IT Administrator');
+        if ($isAdmin && $validated['po_number'] !== $order->po_number) {
+            app(DocumentNumberService::class)->sync(
+                'purchase_order',
+                $validated['po_number'],
+                $validated['order_date'] ?? $order->order_date
+            );
+        }
 
         // Handle revision if status is finalized (approved/ordered/partial)
         if (in_array($order->status, ['approved', 'ordered', 'partial'])) {

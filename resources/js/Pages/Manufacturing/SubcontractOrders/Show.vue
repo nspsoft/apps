@@ -213,12 +213,12 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                         class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-700 transition-all border border-slate-200 dark:border-slate-700"
                     >
                         <PrinterIcon class="h-5 w-5" />
-                        Print Surat Jalan
+                        Resume Surat Jalan
                     </a>
                     <button 
                         v-if="canDispatch"
-                        @click="openDispatchModal"
-                        class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white dark:text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
+                        @click="showDispatchModal = true"
+                        class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
                     >
                         <ArrowUpTrayIcon class="h-5 w-5" />
                         Dispatch Materials (OUT)
@@ -226,7 +226,7 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                     <button 
                         v-if="canReceive"
                         @click="showReceiveModal = true"
-                        class="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-500/20"
+                        class="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-500/20"
                     >
                         <ArrowDownTrayIcon class="h-5 w-5" />
                         Receive Product (IN)

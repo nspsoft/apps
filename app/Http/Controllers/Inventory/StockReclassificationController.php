@@ -201,7 +201,11 @@ class StockReclassificationController extends Controller
 
         DB::transaction(function () use ($validated, $reclassification, $service) {
             if ($validated['reclass_number'] !== $reclassification->reclass_number) {
-                app(DocumentNumberService::class)->sync('stock_reclassification', $validated['reclass_number']);
+                app(DocumentNumberService::class)->sync(
+                    'stock_reclassification',
+                    $validated['reclass_number'],
+                    $validated['reclass_date'] ?? null
+                );
             }
 
             $reclassification->update([

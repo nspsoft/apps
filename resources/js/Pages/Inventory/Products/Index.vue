@@ -246,12 +246,12 @@ const closeUsageModal = () => {
                         v-model="search"
                         type="search"
                         placeholder="Search SKU, name, barcode..."
-                        class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800/50 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
                     />
                 </div>
                 <button 
                     @click="showFilters = !showFilters"
-                    class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                    class="flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     :class="{ 'ring-2 ring-blue-500/50': showFilters }"
                 >
                     <FunnelIcon class="h-5 w-5" />
@@ -263,7 +263,7 @@ const closeUsageModal = () => {
                 <!-- Export -->
                 <a
                     href="/inventory/products-export"
-                    class="inline-flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                    class="inline-flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                     <ArrowDownTrayIcon class="h-5 w-5" />
                     Export
@@ -273,7 +273,7 @@ const closeUsageModal = () => {
                 <div class="relative">
                      <button
                         @click="showImportDropdown = !showImportDropdown"
-                        class="inline-flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
+                        class="inline-flex items-center gap-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                         <ArrowUpTrayIcon class="h-5 w-5" />
                         Import

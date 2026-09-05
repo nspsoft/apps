@@ -41,7 +41,7 @@ class DocumentNumberService
     /**
      * Preview next number without incrementing
      */
-    public function preview(string $code, array $params = [], $date = null): string
+    public function preview(string $code, array $params = [], $date = null, ?int $overrideNumber = null): string
     {
         $config = DocumentNumbering::where('code', $code)->first();
         
@@ -49,12 +49,16 @@ class DocumentNumberService
             return "NOT-CONFIGURED";
         }
 
-        // Simulate next number
-        $nextNumber = $config->current_number + 1;
-        
-        // Simulate checking reset (if reset needed, start from 1)
-        if ($this->shouldReset($config)) {
-            $nextNumber = 1;
+        if ($overrideNumber !== null) {
+            $nextNumber = $overrideNumber;
+        } else {
+            // Simulate next number
+            $nextNumber = $config->current_number + 1;
+            
+            // Simulate checking reset (if reset needed, start from 1)
+            if ($this->shouldReset($config)) {
+                $nextNumber = 1;
+            }
         }
 
         return $this->format($config, $nextNumber, $params, $date);
@@ -118,21 +122,60 @@ class DocumentNumberService
 
     /**
      * Sync current number based on a manual input
+     *
+     * @param string $code
+     * @param string $manualNumber
+     * @param \Carbon\Carbon|string|null $date
      */
-    public function sync(string $code, string $manualNumber): void
+    public function sync(string $code, string $manualNumber, $date = null): void
     {
-        DB::transaction(function () use ($code, $manualNumber) {
+        DB::transaction(function () use ($code, $manualNumber, $date) {
             $config = DocumentNumbering::where('code', $code)->lockForUpdate()->first();
             if (!$config) return;
 
-            // Try to extract the number part from the manual string
-            // We assume the number is at the end or we can find it by matching the format
-            // A simple way is to take the last N digits where N is padding
-            $padding = $config->padding;
-            
-            // Check if the manual number actually contains digits at the expected position
-            // Usually the sequence is at the end or we can use regex
-            if (preg_match('/(\d+)$/', $manualNumber, $matches)) {
+            $docDate = $date ? ($date instanceof Carbon ? $date : Carbon::parse($date)) : null;
+
+            // If reset_period is not 'never', verify document date matches active counter period
+            if ($config->reset_period !== 'never' && $config->last_reset_date) {
+                $lastReset = Carbon::parse($config->last_reset_date);
+
+                // If date was not explicitly provided, try to extract year/month from manualNumber
+                if (!$docDate) {
+                    if (preg_match('/\/(\d{2,4})\/(\d{2})\//', $manualNumber, $dateMatches)) {
+                        $yearPart = (int) $dateMatches[1];
+                        if ($yearPart < 100) {
+                            $yearPart += 2000;
+                        }
+                        $monthPart = (int) $dateMatches[2];
+                        try {
+                            $docDate = Carbon::createFromDate($yearPart, $monthPart, 1);
+                        } catch (\Exception $e) {
+                            $docDate = null;
+                        }
+                    }
+                }
+
+                // If we know the document date, check if it belongs to current active period
+                if ($docDate) {
+                    $isCurrentPeriod = match ($config->reset_period) {
+                        'daily' => $docDate->isSameDay($lastReset),
+                        'monthly' => $docDate->isSameMonth($lastReset) && $docDate->isSameYear($lastReset),
+                        'yearly' => $docDate->isSameYear($lastReset),
+                        default => true,
+                    };
+
+                    // Document belongs to a different period (e.g. past month). Never touch active counter!
+                    if (!$isCurrentPeriod) {
+                        return;
+                    }
+                }
+            }
+
+            // Remove revision suffix if any (e.g. -R1, -R2) before extracting sequence digits
+            $cleanNumber = preg_replace('/-R\d+$/i', '', trim($manualNumber));
+
+            // Extract the sequence digits at the end
+            if (preg_match('/(\d+)$/', $cleanNumber, $matches)) {
                 $num = (int) $matches[1];
                 if ($num > $config->current_number) {
                     $config->current_number = $num;

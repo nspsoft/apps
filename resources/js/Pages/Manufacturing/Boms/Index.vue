@@ -182,12 +182,12 @@ const exportBoms = () => {
                         v-model="search"
                         type="search"
                         placeholder="Search BOMs..."
-                        class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:bg-slate-50 dark:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800/50 py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
                     />
                 </div>
                 <select
                     v-model="selectedStatus"
-                    class="rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                    class="rounded-xl border-0 bg-slate-50 dark:bg-slate-800/50 py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
                 >
                     <option value="">All Status</option>
                     <option v-for="status in statuses" :key="status.value" :value="status.value">
@@ -197,13 +197,13 @@ const exportBoms = () => {
                 <input
                     v-model="revisionFrom"
                     type="date"
-                    class="rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 px-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                    class="rounded-xl border-0 bg-slate-50 dark:bg-slate-800/50 py-2.5 px-3 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
                     title="Last Revision From"
                 />
                 <input
                     v-model="revisionTo"
                     type="date"
-                    class="rounded-xl border-0 bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50 py-2.5 px-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                    class="rounded-xl border-0 bg-slate-50 dark:bg-slate-800/50 py-2.5 px-3 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500/50 transition-all"
                     title="Last Revision To"
                 />
             </div>

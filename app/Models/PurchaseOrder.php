@@ -205,11 +205,15 @@ class PurchaseOrder extends Model
     public static function generatePoNumber(?Supplier $supplier = null, $date = null): string
     {
         try {
-            return app(\App\Services\DocumentNumberService::class)->generate(
-                'purchase_order',
-                ['SUPP_CODE' => $supplier?->code ?? ''],
-                $date
-            );
+            do {
+                $number = app(\App\Services\DocumentNumberService::class)->generate(
+                    'purchase_order',
+                    ['SUPP_CODE' => $supplier?->code ?? ''],
+                    $date
+                );
+            } while (static::where('po_number', $number)->exists());
+
+            return $number;
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::warning("Document Numbering failing for purchase_order: " . $e->getMessage());
             
@@ -235,11 +239,26 @@ class PurchaseOrder extends Model
     public static function previewPoNumber(?Supplier $supplier = null, $date = null): string
     {
         try {
-            return app(\App\Services\DocumentNumberService::class)->preview(
-                'purchase_order',
-                ['SUPP_CODE' => $supplier?->code ?? ''],
-                $date
-            );
+            $service = app(\App\Services\DocumentNumberService::class);
+            $params = ['SUPP_CODE' => $supplier?->code ?? ''];
+            $preview = $service->preview('purchase_order', $params, $date);
+
+            // If the previewed number is already taken in the database, find the next available preview number
+            $config = \App\Models\DocumentNumbering::where('code', 'purchase_order')->first();
+            if ($config) {
+                $offset = 1;
+                while (static::where('po_number', $preview)->exists() && $offset <= 1000) {
+                    $preview = $service->preview(
+                        'purchase_order',
+                        $params,
+                        $date,
+                        $config->current_number + $offset
+                    );
+                    $offset++;
+                }
+            }
+
+            return $preview;
         } catch (\Exception $e) {
             return '';
         }
