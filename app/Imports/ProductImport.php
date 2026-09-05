@@ -59,12 +59,15 @@ class ProductImport implements ToModel, WithHeadingRow, WithCalculatedFormulas
             $supplierId = $supplier?->id;
         }
 
+        $rawFamily = $row['product_family'] ?? $row['family'] ?? $row['group'] ?? null;
+        $productFamily = !is_null($rawFamily) && trim((string)$rawFamily) !== '' ? trim((string)$rawFamily) : null;
+
         $productData = [
             'name'           => $row['name'],
             'description'    => $row['description'] ?? null,
             'barcode'        => $row['barcode'] ?? null,
             'category_id'    => $category->id,
-            'product_family' => $row['product_family'] ?? $row['family'] ?? $row['group'] ?? null,
+            'product_family' => $productFamily,
             'customer_id'    => $customerId,
             'supplier_id'    => $supplierId,
             'unit_id'        => $unit->id,

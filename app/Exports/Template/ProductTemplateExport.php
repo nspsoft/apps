@@ -16,6 +16,7 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
             [
                 'RM-STEEL-001',             // SKU
                 'Steel Plate 2mm',          // Name
+                'Steel Plate',              // Product Family
                 'High quality steel plate', // Description
                 '8991234567001',            // Barcode
                 'Raw Materials',            // Category
@@ -47,6 +48,7 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
             [
                 'FG-TABLE-001',             // SKU
                 'Executive Office Table',   // Name
+                'Office Table',             // Product Family
                 'Mahogany wood table',      // Description
                 '8991234567002',            // Barcode
                 'Finished Goods',           // Category
@@ -83,6 +85,7 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
         return [
             'SKU',
             'Name',
+            'Product Family',
             'Description',
             'Barcode',
             'Category',
@@ -120,15 +123,15 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
                 $sheet = $event->sheet;
 
                 // 1. Add Comments (Instructions)
-                $sheet->getComment('G1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable");
-                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- raw_material\n- wip\n- finished_good\n- spare_part");
-                $sheet->getComment('V1')->getText()->createTextRun("Fill with 'Yes' or 'No'");
-                $sheet->getComment('AB1')->getText()->createTextRun("Optional: Exclusive Customer Name");
-                $sheet->getComment('AC1')->getText()->createTextRun("Optional: Preferred Supplier Name");
+                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable");
+                $sheet->getComment('I1')->getText()->createTextRun("Options:\n- raw_material\n- wip\n- finished_good\n- spare_part");
+                $sheet->getComment('W1')->getText()->createTextRun("Fill with 'Yes' or 'No'");
+                $sheet->getComment('AC1')->getText()->createTextRun("Optional: Exclusive Customer Name");
+                $sheet->getComment('AD1')->getText()->createTextRun("Optional: Preferred Supplier Name");
                 
                 // 2. Data Validation (Dropdowns)
-                // Item Type (Column G)
-                $validation = $sheet->getCell('G2')->getDataValidation();
+                // Item Type (Column H)
+                $validation = $sheet->getCell('H2')->getDataValidation();
                 $validation->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
                 $validation->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
                 $validation->setAllowBlank(false);
@@ -137,10 +140,10 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
                 $validation->setShowDropDown(true);
                 $validation->setFormula1('"product,service,consumable"');
                 // Apply to rows 2-1000
-                $sheet->setDataValidation('G2:G1000', $validation);
+                $sheet->setDataValidation('H2:H1000', $validation);
 
-                // Product Type (Column H)
-                $validation2 = $sheet->getCell('H2')->getDataValidation();
+                // Product Type (Column I)
+                $validation2 = $sheet->getCell('I2')->getDataValidation();
                 $validation2->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
                 $validation2->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
                 $validation2->setAllowBlank(false);
@@ -148,31 +151,30 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
                 $validation2->setShowErrorMessage(true);
                 $validation2->setShowDropDown(true);
                 $validation2->setFormula1('"raw_material,wip,finished_good,spare_part"');
-                $sheet->setDataValidation('H2:H1000', $validation2);
+                $sheet->setDataValidation('I2:I1000', $validation2);
 
-                // Boolean Fields (Yes/No) - Columns V, W, X, Y, Z, AA
-                $validation3 = $sheet->getCell('V2')->getDataValidation();
+                // Boolean Fields (Yes/No) - Columns W, X, Y, Z, AA, AB
+                $validation3 = $sheet->getCell('W2')->getDataValidation();
                 $validation3->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
                 $validation3->setAllowBlank(true);
                 $validation3->setShowDropDown(true);
                 $validation3->setFormula1('"Yes,No"');
                 
-                $sheet->setDataValidation('V2:V1000', $validation3); // Is Manufactured
-                $sheet->setDataValidation('W2:W1000', $validation3); // Is Purchased
-                $sheet->setDataValidation('X2:X1000', $validation3); // Is Sold
-                $sheet->setDataValidation('Y2:Y1000', $validation3); // Track Serial
-                $sheet->setDataValidation('Z2:Z1000', $validation3); // Track Batch
-                $sheet->setDataValidation('AA2:AA1000', $validation3); // Track Expiry
-                $sheet->setDataValidation('AA2:AA1000', $validation3); // Track Expiry
+                $sheet->setDataValidation('W2:W1000', $validation3); // Is Manufactured
+                $sheet->setDataValidation('X2:X1000', $validation3); // Is Purchased
+                $sheet->setDataValidation('Y2:Y1000', $validation3); // Is Sold
+                $sheet->setDataValidation('Z2:Z1000', $validation3); // Track Serial
+                $sheet->setDataValidation('AA2:AA1000', $validation3); // Track Batch
+                $sheet->setDataValidation('AB2:AB1000', $validation3); // Track Expiry
 
                 // 3. Visual Cues (Mandatory Fields = Red & Bold)
-                // Mandatory: SKU (A1), Name (B1), Item Type (G1), Product Type (H1)
+                // Mandatory: SKU (A1), Name (B1), Item Type (H1), Product Type (I1)
                 $sheet->getStyle('A1:B1')->getFont()->setBold(true)->setColor(new Color(Color::COLOR_RED));
-                $sheet->getStyle('G1:H1')->getFont()->setBold(true)->setColor(new Color(Color::COLOR_RED));
+                $sheet->getStyle('H1:I1')->getFont()->setBold(true)->setColor(new Color(Color::COLOR_RED));
                 
                 // Optional: Standard Black Bold
-                $sheet->getStyle('C1:F1')->getFont()->setBold(true);
-                $sheet->getStyle('I1:AA1')->getFont()->setBold(true);
+                $sheet->getStyle('C1:G1')->getFont()->setBold(true);
+                $sheet->getStyle('J1:AD1')->getFont()->setBold(true);
 
                 // 4. Instruction Sheet
                 $spreadsheet = $sheet->getParent();
@@ -195,38 +197,40 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
                 $instructionSheet->setCellValue('B11', 'Wajib. Kode unik produk. Digunakan sebagai kunci utama saat import.');
                 $instructionSheet->setCellValue('A12', 'Name *');
                 $instructionSheet->setCellValue('B12', 'Wajib. Nama produk yang akan tampil di laporan dan transaksi.');
-                $instructionSheet->setCellValue('A13', 'Description');
-                $instructionSheet->setCellValue('B13', 'Opsional. Deskripsi tambahan produk.');
-                $instructionSheet->setCellValue('A14', 'Barcode');
-                $instructionSheet->setCellValue('B14', 'Opsional. Barcode produk jika digunakan.');
-                $instructionSheet->setCellValue('A15', 'Category');
-                $instructionSheet->setCellValue('B15', 'Opsional. Nama kategori produk. Jika kosong, kategori akan dibiarkan null.');
-                $instructionSheet->setCellValue('A16', 'Unit');
-                $instructionSheet->setCellValue('B16', 'Opsional. Kode satuan dasar (mis. PCS, KG). Jika kosong, sistem dapat menggunakan default.');
-                $instructionSheet->setCellValue('A17', 'Item Type *');
-                $instructionSheet->setCellValue('B17', "Wajib. Jenis item: product, service, atau consumable. Gunakan dropdown di sheet utama.");
-                $instructionSheet->setCellValue('A18', 'Product Type *');
-                $instructionSheet->setCellValue('B18', "Wajib. Tipe produk: raw_material, wip, finished_good, atau spare_part. Gunakan dropdown.");
-                $instructionSheet->setCellValue('A19', 'Cost Price');
-                $instructionSheet->setCellValue('B19', 'Opsional. Harga pokok standar. Bisa diisi 0 jika belum ditentukan.');
-                $instructionSheet->setCellValue('A20', 'Selling Price');
-                $instructionSheet->setCellValue('B20', 'Opsional. Harga jual standar yang akan dipakai sebagai default di Sales Order jika tidak ada harga kontrak.');
-                $instructionSheet->setCellValue('A21', 'Min Stock / Reorder Point / Reorder Qty / Max Stock');
-                $instructionSheet->setCellValue('B21', 'Opsional. Pengaturan stok minimum, titik pemesanan ulang, qty pemesanan ulang, dan stok maksimum.');
-                $instructionSheet->setCellValue('A22', 'Lead Time (Days)');
-                $instructionSheet->setCellValue('B22', 'Opsional. Estimasi waktu pemenuhan pembelian/produksi dalam hari.');
-                $instructionSheet->setCellValue('A23', 'Weight & Weight Unit');
-                $instructionSheet->setCellValue('B23', 'Opsional. Berat produk dan satuannya (mis. kg).');
-                $instructionSheet->setCellValue('A24', 'Length / Width / Height / Dimension Unit');
-                $instructionSheet->setCellValue('B24', 'Opsional. Dimensi produk dan satuannya (mis. cm).');
-                $instructionSheet->setCellValue('A25', 'Is Manufactured / Is Purchased / Is Sold');
-                $instructionSheet->setCellValue('B25', "Opsional. Diisi 'Yes' atau 'No'. Menentukan apakah produk bisa diproduksi, dibeli, atau dijual.");
-                $instructionSheet->setCellValue('A26', 'Track Serial / Track Batch / Track Expiry');
-                $instructionSheet->setCellValue('B26', "Opsional. Diisi 'Yes' atau 'No'. Mengaktifkan penelusuran nomor seri, batch, atau kadaluarsa.");
-                $instructionSheet->setCellValue('A27', 'Customer Name');
-                $instructionSheet->setCellValue('B27', "Opsional. Nama Customer untuk produk eksklusif. Harus sesuai dengan nama di master Customer.");
-                $instructionSheet->setCellValue('A28', 'Supplier Name');
-                $instructionSheet->setCellValue('B28', "Opsional. Nama Supplier utama. Harus sesuai dengan nama di master Supplier.");
+                $instructionSheet->setCellValue('A13', 'Product Family');
+                $instructionSheet->setCellValue('B13', 'Opsional. Nama kelompok/family untuk mengelompokkan produk sejenis.');
+                $instructionSheet->setCellValue('A14', 'Description');
+                $instructionSheet->setCellValue('B14', 'Opsional. Deskripsi tambahan produk.');
+                $instructionSheet->setCellValue('A15', 'Barcode');
+                $instructionSheet->setCellValue('B15', 'Opsional. Barcode produk jika digunakan.');
+                $instructionSheet->setCellValue('A16', 'Category');
+                $instructionSheet->setCellValue('B16', 'Opsional. Nama kategori produk. Jika kosong, kategori akan dibiarkan null.');
+                $instructionSheet->setCellValue('A17', 'Unit');
+                $instructionSheet->setCellValue('B17', 'Opsional. Kode satuan dasar (mis. PCS, KG). Jika kosong, sistem dapat menggunakan default.');
+                $instructionSheet->setCellValue('A18', 'Item Type *');
+                $instructionSheet->setCellValue('B18', "Wajib. Jenis item: product, service, atau consumable. Gunakan dropdown di sheet utama.");
+                $instructionSheet->setCellValue('A19', 'Product Type *');
+                $instructionSheet->setCellValue('B19', "Wajib. Tipe produk: raw_material, wip, finished_good, atau spare_part. Gunakan dropdown.");
+                $instructionSheet->setCellValue('A20', 'Cost Price');
+                $instructionSheet->setCellValue('B20', 'Opsional. Harga pokok standar. Bisa diisi 0 jika belum ditentukan.');
+                $instructionSheet->setCellValue('A21', 'Selling Price');
+                $instructionSheet->setCellValue('B21', 'Opsional. Harga jual standar yang akan dipakai sebagai default di Sales Order jika tidak ada harga kontrak.');
+                $instructionSheet->setCellValue('A22', 'Min Stock / Reorder Point / Reorder Qty / Max Stock');
+                $instructionSheet->setCellValue('B22', 'Opsional. Pengaturan stok minimum, titik pemesanan ulang, qty pemesanan ulang, dan stok maksimum.');
+                $instructionSheet->setCellValue('A23', 'Lead Time (Days)');
+                $instructionSheet->setCellValue('B23', 'Opsional. Estimasi waktu pemenuhan pembelian/produksi dalam hari.');
+                $instructionSheet->setCellValue('A24', 'Weight & Weight Unit');
+                $instructionSheet->setCellValue('B24', 'Opsional. Berat produk dan satuannya (mis. kg).');
+                $instructionSheet->setCellValue('A25', 'Length / Width / Height / Dimension Unit');
+                $instructionSheet->setCellValue('B25', 'Opsional. Dimensi produk dan satuannya (mis. cm).');
+                $instructionSheet->setCellValue('A26', 'Is Manufactured / Is Purchased / Is Sold');
+                $instructionSheet->setCellValue('B26', "Opsional. Diisi 'Yes' atau 'No'. Menentukan apakah produk bisa diproduksi, dibeli, atau dijual.");
+                $instructionSheet->setCellValue('A27', 'Track Serial / Track Batch / Track Expiry');
+                $instructionSheet->setCellValue('B27', "Opsional. Diisi 'Yes' atau 'No'. Mengaktifkan penelusuran nomor seri, batch, atau kadaluarsa.");
+                $instructionSheet->setCellValue('A28', 'Customer Name');
+                $instructionSheet->setCellValue('B28', "Opsional. Nama Customer untuk produk eksklusif. Harus sesuai dengan nama di master Customer.");
+                $instructionSheet->setCellValue('A29', 'Supplier Name');
+                $instructionSheet->setCellValue('B29', "Opsional. Nama Supplier utama. Harus sesuai dengan nama di master Supplier.");
 
                 $instructionSheet->getColumnDimension('A')->setWidth(40);
                 $instructionSheet->getColumnDimension('B')->setWidth(110);

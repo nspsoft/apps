@@ -14,10 +14,11 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
 {
     public function collection()
     {
-        return Product::with(['category', 'unit'])->get()->map(function ($product) {
+        return Product::with(['category', 'unit', 'customer', 'supplier'])->get()->map(function ($product) {
             return [
                 $product->sku,
                 $product->name,
+                $product->product_family,
                 $product->description,
                 $product->barcode,
                 $product->category ? $product->category->name : '',
@@ -43,6 +44,8 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
                 $product->track_serial ? 'Yes' : 'No',
                 $product->track_batch ? 'Yes' : 'No',
                 $product->track_expiry ? 'Yes' : 'No',
+                $product->customer?->name ?? '',
+                $product->supplier?->name ?? '',
             ];
         });
     }
@@ -52,6 +55,7 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
         return [
             'SKU',
             'Name',
+            'Product Family',
             'Description',
             'Barcode',
             'Category',
@@ -77,8 +81,9 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
             'Track Serial',
             'Track Batch',
             'Track Expiry',
+            'Customer Name',
+            'Supplier Name',
         ];
-
     }
 
     public function registerEvents(): array
@@ -88,13 +93,15 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
                 $sheet = $event->sheet;
 
                 // 1. Add Comments (Instructions)
-                $sheet->getComment('G1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable");
-                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- raw_material\n- wip\n- finished_good\n- spare_part");
-                $sheet->getComment('V1')->getText()->createTextRun("Fill with 'Yes' or 'No'");
+                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable");
+                $sheet->getComment('I1')->getText()->createTextRun("Options:\n- raw_material\n- wip\n- finished_good\n- spare_part");
+                $sheet->getComment('W1')->getText()->createTextRun("Fill with 'Yes' or 'No'");
+                $sheet->getComment('AC1')->getText()->createTextRun("Optional: Exclusive Customer Name");
+                $sheet->getComment('AD1')->getText()->createTextRun("Optional: Preferred Supplier Name");
                 
                 // 2. Data Validation (Dropdowns)
-                // Item Type (Column G)
-                $validation = $sheet->getCell('G2')->getDataValidation();
+                // Item Type (Column H)
+                $validation = $sheet->getCell('H2')->getDataValidation();
                 $validation->setType(DataValidation::TYPE_LIST);
                 $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
                 $validation->setAllowBlank(false);
@@ -103,10 +110,10 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
                 $validation->setShowDropDown(true);
                 $validation->setFormula1('"product,service,consumable"');
                 // Apply to rows 2-1000
-                $sheet->setDataValidation('G2:G1000', $validation);
+                $sheet->setDataValidation('H2:H1000', $validation);
 
-                // Product Type (Column H)
-                $validation2 = $sheet->getCell('H2')->getDataValidation();
+                // Product Type (Column I)
+                $validation2 = $sheet->getCell('I2')->getDataValidation();
                 $validation2->setType(DataValidation::TYPE_LIST);
                 $validation2->setErrorStyle(DataValidation::STYLE_INFORMATION);
                 $validation2->setAllowBlank(false);
@@ -114,31 +121,30 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
                 $validation2->setShowErrorMessage(true);
                 $validation2->setShowDropDown(true);
                 $validation2->setFormula1('"raw_material,wip,finished_good,spare_part"');
-                $sheet->setDataValidation('H2:H1000', $validation2);
+                $sheet->setDataValidation('I2:I1000', $validation2);
 
-                // Boolean Fields (Yes/No) - Columns V, W, X, Y, Z, AA
-                $validation3 = $sheet->getCell('V2')->getDataValidation();
+                // Boolean Fields (Yes/No) - Columns W, X, Y, Z, AA, AB
+                $validation3 = $sheet->getCell('W2')->getDataValidation();
                 $validation3->setType(DataValidation::TYPE_LIST);
                 $validation3->setAllowBlank(true);
                 $validation3->setShowDropDown(true);
                 $validation3->setFormula1('"Yes,No"');
                 
-                $sheet->setDataValidation('V2:V1000', $validation3); // Is Manufactured
-                $sheet->setDataValidation('W2:W1000', $validation3); // Is Purchased
-                $sheet->setDataValidation('X2:X1000', $validation3); // Is Sold
-                $sheet->setDataValidation('Y2:Y1000', $validation3); // Track Serial
-                $sheet->setDataValidation('Z2:Z1000', $validation3); // Track Batch
-                $sheet->setDataValidation('AA2:AA1000', $validation3); // Track Expiry
-                $sheet->setDataValidation('AA2:AA1000', $validation3); // Track Expiry
+                $sheet->setDataValidation('W2:W1000', $validation3); // Is Manufactured
+                $sheet->setDataValidation('X2:X1000', $validation3); // Is Purchased
+                $sheet->setDataValidation('Y2:Y1000', $validation3); // Is Sold
+                $sheet->setDataValidation('Z2:Z1000', $validation3); // Track Serial
+                $sheet->setDataValidation('AA2:AA1000', $validation3); // Track Batch
+                $sheet->setDataValidation('AB2:AB1000', $validation3); // Track Expiry
 
                 // 3. Visual Cues (Mandatory Fields = Red & Bold)
-                // Mandatory: SKU (A1), Name (B1), Item Type (G1), Product Type (H1)
+                // Mandatory: SKU (A1), Name (B1), Item Type (H1), Product Type (I1)
                 $sheet->getStyle('A1:B1')->getFont()->setBold(true)->setColor(new Color(Color::COLOR_RED));
-                $sheet->getStyle('G1:H1')->getFont()->setBold(true)->setColor(new Color(Color::COLOR_RED));
+                $sheet->getStyle('H1:I1')->getFont()->setBold(true)->setColor(new Color(Color::COLOR_RED));
                 
                 // Optional: Standard Black Bold
-                $sheet->getStyle('C1:F1')->getFont()->setBold(true);
-                $sheet->getStyle('I1:AA1')->getFont()->setBold(true);
+                $sheet->getStyle('C1:G1')->getFont()->setBold(true);
+                $sheet->getStyle('J1:AD1')->getFont()->setBold(true);
             },
         ];
     }
