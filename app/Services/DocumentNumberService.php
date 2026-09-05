@@ -27,7 +27,7 @@ class DocumentNumberService
             }
 
             // Check reset period
-            $this->checkResetPeriod($config);
+            $this->checkResetPeriod($config, $date);
 
             // Increment number
             $config->current_number++;
@@ -56,7 +56,7 @@ class DocumentNumberService
             $nextNumber = $config->current_number + 1;
             
             // Simulate checking reset (if reset needed, start from 1)
-            if ($this->shouldReset($config)) {
+            if ($this->shouldReset($config, $date)) {
                 $nextNumber = 1;
             }
         }
@@ -64,34 +64,34 @@ class DocumentNumberService
         return $this->format($config, $nextNumber, $params, $date);
     }
 
-    protected function checkResetPeriod(DocumentNumbering $config): void
+    protected function checkResetPeriod(DocumentNumbering $config, $date = null): void
     {
-        if ($this->shouldReset($config)) {
+        $targetDate = $date ? ($date instanceof Carbon ? $date : Carbon::parse($date)) : now();
+
+        if (!$config->last_reset_date) {
+            $config->last_reset_date = $targetDate;
+        }
+
+        if ($this->shouldReset($config, $targetDate)) {
             $config->current_number = 0;
-            $config->last_reset_date = now();
+            $config->last_reset_date = $targetDate;
             // Note: We don't save here, saving happens after increment
         }
     }
 
-    protected function shouldReset(DocumentNumbering $config): bool
+    protected function shouldReset(DocumentNumbering $config, $date = null): bool
     {
         if ($config->reset_period === 'never' || !$config->last_reset_date) {
-            if (!$config->last_reset_date) {
-                // First run, set date but don't reset number if it already has value
-                // Or maybe we treat it as initialization. 
-                // Logic: If no date, treat as today is the start.
-                return false; 
-            }
             return false;
         }
 
-        $now = now();
+        $targetDate = $date ? ($date instanceof Carbon ? $date : Carbon::parse($date)) : now();
         $lastReset = Carbon::parse($config->last_reset_date);
 
         return match ($config->reset_period) {
-            'daily' => !$now->isSameDay($lastReset),
-            'monthly' => !$now->isSameMonth($lastReset) || !$now->isSameYear($lastReset),
-            'yearly' => !$now->isSameYear($lastReset),
+            'daily' => !$targetDate->isSameDay($lastReset),
+            'monthly' => !$targetDate->isSameMonth($lastReset) || !$targetDate->isSameYear($lastReset),
+            'yearly' => !$targetDate->isSameYear($lastReset),
             default => false,
         };
     }

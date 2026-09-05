@@ -111,7 +111,7 @@ class SalesOrderController extends Controller
     {
         return Inertia::render('Sales/Orders/Form', [
             'salesOrder' => null,
-            'soNumber' => SalesOrder::generateSoNumber(),
+            'soNumber' => SalesOrder::previewSoNumber(),
             'customers' => Customer::active()->orderBy('name')->get(),
             'warehouses' => Warehouse::active()->orderBy('name')->get(),
             'products' => Product::active()->where('is_sold', true)->select('id','sku','name','unit_id','cost_price','selling_price')->with('unit:id,name,symbol')->orderBy('name')->get()->each->setAppends([]),
@@ -129,7 +129,7 @@ class SalesOrderController extends Controller
 
         return Inertia::render('Sales/Orders/Form', [
             'salesOrder' => null,
-            'soNumber' => SalesOrder::generateSoNumber(),
+            'soNumber' => SalesOrder::previewSoNumber(),
             'customers' => Customer::active()->orderBy('name')->get(),
             'warehouses' => Warehouse::active()->orderBy('name')->get(),
             'products' => Product::active()->where('is_sold', true)->select('id','sku','name','unit_id','cost_price','selling_price')->with('unit:id,name,symbol')->orderBy('name')->get()->each->setAppends([]),
@@ -157,7 +157,7 @@ class SalesOrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'so_number' => 'required|string|max:30|unique:sales_orders,so_number',
+            'so_number' => 'nullable|string|max:50',
             'customer_po_number' => \App\Models\AppSetting::get('require_po_number', false) ? 'required|string|max:50' : 'nullable|string|max:50',
             'customer_id' => 'required|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
@@ -176,9 +176,22 @@ class SalesOrderController extends Controller
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated, $request) {
+            // If user explicitly provided a custom SO number (Admin only) that is unused, use it.
+            // Otherwise, generate the official number atomically on save!
+            $isAdmin = auth()->user()?->hasRole('Super Admin') || auth()->user()?->hasRole('IT Administrator');
+            $inputSoNumber = $request->input('so_number');
+            $previewNumber = SalesOrder::previewSoNumber($validated['order_date'] ?? null);
+
+            if ($isAdmin && !empty($inputSoNumber) && $inputSoNumber !== $previewNumber && !SalesOrder::where('so_number', $inputSoNumber)->exists()) {
+                $soNumber = $inputSoNumber;
+                app(\App\Services\DocumentNumberService::class)->sync('sales_order', $soNumber, $validated['order_date'] ?? null);
+            } else {
+                $soNumber = SalesOrder::generateSoNumber($validated['order_date'] ?? null);
+            }
+
             $so = SalesOrder::create([
-                'so_number' => $validated['so_number'],
+                'so_number' => $soNumber,
                 'customer_po_number' => $validated['customer_po_number'] ?? null,
                 'customer_id' => $validated['customer_id'],
                 'warehouse_id' => $validated['warehouse_id'],

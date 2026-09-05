@@ -171,10 +171,14 @@ class SalesOrder extends Model
         return in_array($this->status, [self::STATUS_CONFIRMED, self::STATUS_PROCESSING, self::STATUS_WAITING_PO]);
     }
 
-    public static function generateSoNumber(): string
+    public static function generateSoNumber($date = null): string
     {
         try {
-            return app(\App\Services\DocumentNumberService::class)->generate('sales_order');
+            do {
+                $number = app(\App\Services\DocumentNumberService::class)->generate('sales_order', [], $date);
+            } while (static::where('so_number', $number)->exists());
+
+            return $number;
         } catch (\Exception $e) {
             // Fallback to old method if config missing (for safety)
             \Illuminate\Support\Facades\Log::warning("Document Numbering failing for sales_order: " . $e->getMessage());
@@ -195,6 +199,32 @@ class SalesOrder extends Model
             }
     
             return $prefix . $newNumber;
+        }
+    }
+
+    public static function previewSoNumber($date = null): string
+    {
+        try {
+            $service = app(\App\Services\DocumentNumberService::class);
+            $preview = $service->preview('sales_order', [], $date);
+
+            $config = \App\Models\DocumentNumbering::where('code', 'sales_order')->first();
+            if ($config) {
+                $offset = 1;
+                while (static::where('so_number', $preview)->exists() && $offset <= 1000) {
+                    $preview = $service->preview(
+                        'sales_order',
+                        [],
+                        $date,
+                        $config->current_number + $offset
+                    );
+                    $offset++;
+                }
+            }
+
+            return $preview;
+        } catch (\Exception $e) {
+            return '';
         }
     }
 
