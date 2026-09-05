@@ -241,7 +241,7 @@ class ReportController extends Controller
 
         $query = Product::with(['category', 'unit'])
             ->where('is_active', true)
-            ->whereIn('type', ['product', 'consumable'])
+            ->whereIn('type', ['product', 'consumable', 'fabrication'])
             ->addSelect(['last_out_date' => \App\Models\StockMovement::selectRaw('MAX(created_at)')
                 ->whereColumn('product_id', 'products.id')
                 ->where('type', 'out')

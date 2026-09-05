@@ -221,7 +221,7 @@ class Product extends Model
      */
     public function scopeStockManaged($query)
     {
-        return $query->whereIn('type', ['product', 'consumable']);
+        return $query->whereIn('type', ['product', 'consumable', 'fabrication']);
     }
 
     /**

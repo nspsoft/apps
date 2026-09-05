@@ -112,6 +112,7 @@ const itemTypes = [
     { value: 'product', label: 'Product' },
     { value: 'service', label: 'Service' },
     { value: 'consumable', label: 'Consumable' },
+    { value: 'fabrication', label: 'Fabrication' },
 ];
 
 const addInitialStock = () => {
@@ -290,7 +291,8 @@ watch([() => form.cost_price, profitMargin, autoCalculate], ([newCost, newMargin
                                                     <span class="font-bold block mb-1">Jenis Item</span>
                                                     • <b>Product</b>: Barang fisik yang disimpan.<br>
                                                     • <b>Service</b>: Jasa (tidak ada stok).<br>
-                                                    • <b>Consumable</b>: Barang habis pakai (ATK, dll).
+                                                    • <b>Consumable</b>: Barang habis pakai (ATK, dll).<br>
+                                                    • <b>Fabrication</b>: Barang hasil fabrikasi/custom.
                                                 </p>
                                                 <div class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-50 dark:bg-slate-800 border-r border-b border-slate-200 dark:border-slate-700"></div>
                                             </div>

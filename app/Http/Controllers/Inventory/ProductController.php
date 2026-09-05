@@ -46,6 +46,9 @@ class ProductController extends Controller
             ->when($request->product_type, function ($q, $type) {
                 $q->where('product_type', $type);
             })
+            ->when($request->type, function ($q, $type) {
+                $q->where('type', $type);
+            })
             ->when($request->status !== null, function ($q) use ($request) {
                 $q->where('is_active', $request->status === 'active');
             });
@@ -73,12 +76,18 @@ class ProductController extends Controller
             'products' => $products,
             'categories' => Category::where('type', 'product')->orderBy('name')->get(),
             'productFamilies' => Product::whereNotNull('product_family')->where('product_family', '!=', '')->distinct()->orderBy('product_family')->pluck('product_family'),
-            'filters' => $request->only(['search', 'category', 'product_family', 'product_type', 'status', 'sort', 'direction']),
+            'filters' => $request->only(['search', 'category', 'product_family', 'product_type', 'type', 'status', 'sort', 'direction']),
             'productTypes' => [
                 ['value' => 'raw_material', 'label' => 'Raw Material'],
                 ['value' => 'wip', 'label' => 'Work in Progress'],
                 ['value' => 'finished_good', 'label' => 'Finished Good'],
                 ['value' => 'spare_part', 'label' => 'Spare Part'],
+            ],
+            'itemTypes' => [
+                ['value' => 'product', 'label' => 'Product'],
+                ['value' => 'service', 'label' => 'Service'],
+                ['value' => 'consumable', 'label' => 'Consumable'],
+                ['value' => 'fabrication', 'label' => 'Fabrication'],
             ],
         ]);
     }
@@ -163,7 +172,7 @@ class ProductController extends Controller
             'product_family' => 'nullable|string|max:100',
             'customer_id' => 'nullable|exists:customers,id',
             'supplier_id' => 'nullable|exists:suppliers,id',
-            'type' => 'required|in:product,service,consumable',
+            'type' => 'required|in:product,service,consumable,fabrication',
             'product_type' => 'required|in:raw_material,wip,finished_good,spare_part',
             'unit_id' => 'nullable|exists:units,id',
             'cost_price' => 'nullable|numeric|min:0',
@@ -261,7 +270,7 @@ class ProductController extends Controller
             'product_family' => 'nullable|string|max:100',
             'customer_id' => 'nullable|exists:customers,id',
             'supplier_id' => 'nullable|exists:suppliers,id',
-            'type' => 'required|in:product,service,consumable',
+            'type' => 'required|in:product,service,consumable,fabrication',
             'product_type' => 'required|in:raw_material,wip,finished_good,spare_part',
             'unit_id' => 'nullable|exists:units,id',
             'cost_price' => 'nullable|numeric|min:0',

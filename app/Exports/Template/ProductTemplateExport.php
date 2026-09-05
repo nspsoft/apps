@@ -123,7 +123,7 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
                 $sheet = $event->sheet;
 
                 // 1. Add Comments (Instructions)
-                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable");
+                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable\n- fabrication");
                 $sheet->getComment('I1')->getText()->createTextRun("Options:\n- raw_material\n- wip\n- finished_good\n- spare_part");
                 $sheet->getComment('W1')->getText()->createTextRun("Fill with 'Yes' or 'No'");
                 $sheet->getComment('AC1')->getText()->createTextRun("Optional: Exclusive Customer Name");
@@ -138,7 +138,7 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
                 $validation->setShowInputMessage(true);
                 $validation->setShowErrorMessage(true);
                 $validation->setShowDropDown(true);
-                $validation->setFormula1('"product,service,consumable"');
+                $validation->setFormula1('"product,service,consumable,fabrication"');
                 // Apply to rows 2-1000
                 $sheet->setDataValidation('H2:H1000', $validation);
 
@@ -208,7 +208,7 @@ class ProductTemplateExport implements FromCollection, WithHeadings, WithEvents
                 $instructionSheet->setCellValue('A17', 'Unit');
                 $instructionSheet->setCellValue('B17', 'Opsional. Kode satuan dasar (mis. PCS, KG). Jika kosong, sistem dapat menggunakan default.');
                 $instructionSheet->setCellValue('A18', 'Item Type *');
-                $instructionSheet->setCellValue('B18', "Wajib. Jenis item: product, service, atau consumable. Gunakan dropdown di sheet utama.");
+                $instructionSheet->setCellValue('B18', "Wajib. Jenis item: product, service, consumable, atau fabrication. Gunakan dropdown di sheet utama.");
                 $instructionSheet->setCellValue('A19', 'Product Type *');
                 $instructionSheet->setCellValue('B19', "Wajib. Tipe produk: raw_material, wip, finished_good, atau spare_part. Gunakan dropdown.");
                 $instructionSheet->setCellValue('A20', 'Cost Price');

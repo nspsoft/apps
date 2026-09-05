@@ -47,6 +47,7 @@ const getItemTypeLabel = (type) => {
         product: 'Product',
         service: 'Service',
         consumable: 'Consumable',
+        fabrication: 'Fabrication',
     };
     return labels[type] || type;
 };

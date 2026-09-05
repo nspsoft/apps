@@ -30,12 +30,14 @@ const props = defineProps({
     productFamilies: Array,
     filters: Object,
     productTypes: Array,
+    itemTypes: Array,
 });
 
 const search = ref(props.filters.search || '');
 const selectedCategory = ref(props.filters.category || '');
 const selectedFamily = ref(props.filters.product_family || '');
 const selectedType = ref(props.filters.product_type || '');
+const selectedItemType = ref(props.filters.type || '');
 const sortField = ref(props.filters.sort || 'name');
 const sortDirection = ref(props.filters.direction || 'asc');
 const showFilters = ref(false);
@@ -51,6 +53,7 @@ const applyFilters = debounce(() => {
         category: selectedCategory.value || undefined,
         product_family: selectedFamily.value || undefined,
         product_type: selectedType.value || undefined,
+        type: selectedItemType.value || undefined,
         sort: sortField.value,
         direction: sortDirection.value,
     }, {
@@ -59,7 +62,7 @@ const applyFilters = debounce(() => {
     });
 }, 300);
 
-watch([search, selectedCategory, selectedFamily, selectedType], applyFilters);
+watch([search, selectedCategory, selectedFamily, selectedType, selectedItemType], applyFilters);
 
 const filterByFamily = (family) => {
     selectedFamily.value = family;
@@ -82,6 +85,7 @@ const clearFilters = () => {
     selectedCategory.value = '';
     selectedFamily.value = '';
     selectedType.value = '';
+    selectedItemType.value = '';
     sortField.value = 'name';
     sortDirection.value = 'asc';
     applyFilters(); // Trigger update
@@ -176,6 +180,26 @@ const getProductTypeLabel = (type) => {
         wip: 'WIP',
         finished_good: 'Finished Good',
         spare_part: 'Spare Part',
+    };
+    return labels[type] || type;
+};
+
+const getItemTypeBadge = (type) => {
+    const badges = {
+        product: 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30',
+        service: 'bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/30',
+        consumable: 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30',
+        fabrication: 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/30',
+    };
+    return badges[type] || 'bg-slate-500/20 text-slate-600 dark:text-slate-400 border-slate-500/30';
+};
+
+const getItemTypeLabel = (type) => {
+    const labels = {
+        product: 'Product',
+        service: 'Service',
+        consumable: 'Consumable',
+        fabrication: 'Fabrication',
     };
     return labels[type] || type;
 };
@@ -553,7 +577,7 @@ const closeUsageModal = () => {
             leave-to-class="opacity-0 -translate-y-2"
         >
             <div v-if="showFilters" class="mb-6 rounded-2xl glass-card p-4">
-                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Category</label>
                         <select
@@ -563,6 +587,23 @@ const closeUsageModal = () => {
                             <option value="">All Categories</option>
                             <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                                 {{ cat.name }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Item Type</label>
+                        <select
+                            v-model="selectedItemType"
+                            class="block w-full rounded-xl border-0 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50"
+                        >
+                            <option value="">All Item Types</option>
+                            <option v-for="type in (itemTypes || [
+                                { value: 'product', label: 'Product' },
+                                { value: 'service', label: 'Service' },
+                                { value: 'consumable', label: 'Consumable' },
+                                { value: 'fabrication', label: 'Fabrication' },
+                            ])" :key="type.value" :value="type.value">
+                                {{ type.label }}
                             </option>
                         </select>
                     </div>
@@ -639,11 +680,26 @@ const closeUsageModal = () => {
                                 </div>
                             </th>
                             <th 
+                                @click="sort('type')"
+                                class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
+                            >
+                                <div class="flex items-center gap-2">
+                                    Item Type
+                                    <span v-if="sortField === 'type'" class="text-blue-500">
+                                        <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
+                                        <ChevronDownIcon v-else class="h-3 w-3" />
+                                    </span>
+                                    <span v-else class="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <ChevronUpIcon class="h-3 w-3" />
+                                    </span>
+                                </div>
+                            </th>
+                            <th 
                                 @click="sort('product_type')"
                                 class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group"
                             >
                                 <div class="flex items-center gap-2">
-                                    Type
+                                    Product Type
                                     <span v-if="sortField === 'product_type'" class="text-blue-500">
                                         <ChevronUpIcon v-if="sortDirection === 'asc'" class="h-3 w-3" />
                                         <ChevronDownIcon v-else class="h-3 w-3" />
@@ -751,6 +807,14 @@ const closeUsageModal = () => {
                             <td class="px-4 py-2 whitespace-nowrap">
                                 <span 
                                     class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
+                                    :class="getItemTypeBadge(product.type)"
+                                >
+                                    {{ getItemTypeLabel(product.type) }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2 whitespace-nowrap">
+                                <span 
+                                    class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium"
                                     :class="getProductTypeBadge(product.product_type)"
                                 >
                                     {{ getProductTypeLabel(product.product_type) }}
@@ -814,7 +878,7 @@ const closeUsageModal = () => {
                             </td>
                         </tr>
                         <tr v-if="products.data.length === 0">
-                            <td colspan="7" class="px-4 py-12 text-center text-slate-500 italic">No products found.</td>
+                            <td colspan="9" class="px-4 py-12 text-center text-slate-500 italic">No products found.</td>
                         </tr>
                     </tbody>
                 </table>

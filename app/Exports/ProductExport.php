@@ -34,7 +34,8 @@ class ProductExport implements FromCollection, WithHeadings, WithMapping, Should
             'Name',
             'Product Family',
             'Category',
-            'Type',
+            'Item Type',
+            'Product Type',
             'Unit',
             'On Hand',
             'Min Stock',
@@ -63,6 +64,7 @@ class ProductExport implements FromCollection, WithHeadings, WithMapping, Should
             $product->name,
             $product->product_family ?? '-',
             $product->category->name ?? '-',
+            $product->type,
             $product->product_type,
             $product->unit->symbol ?? 'pcs',
             $product->stocks->sum('qty_on_hand'),
@@ -107,14 +109,14 @@ class ProductExport implements FromCollection, WithHeadings, WithMapping, Should
                 $sheet = $event->sheet->getDelegate();
                 
                 // 1. Insert Title and Date
-                $sheet->mergeCells('A1:V1'); // Merge title across columns
+                $sheet->mergeCells('A1:W1'); // Merge title across columns
                 $sheet->setCellValue('A1', 'PRODUCT MASTER DATA');
                 $sheet->getStyle('A1')->applyFromArray([
                     'font' => ['bold' => true, 'size' => 16],
                     'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
                 ]);
 
-                $sheet->mergeCells('A2:V2');
+                $sheet->mergeCells('A2:W2');
                 $sheet->setCellValue('A2', 'Export Date: ' . now()->format('d F Y H:i'));
                 $sheet->getStyle('A2')->applyFromArray([
                     'font' => ['italic' => true],

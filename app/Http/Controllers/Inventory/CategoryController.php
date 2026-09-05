@@ -76,7 +76,7 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255',
             'parent_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
-            'type' => 'required|in:product,service,consumable', // or just strict string if dynamic
+            'type' => 'required|in:product,service,consumable,fabrication', // or just strict string if dynamic
             'is_active' => 'boolean'
         ]);
 

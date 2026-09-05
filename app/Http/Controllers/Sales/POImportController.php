@@ -201,7 +201,7 @@ class POImportController extends Controller
             'category_id' => 'nullable|exists:categories,id',
             'unit_id' => 'required|exists:units,id',
             'selling_price' => 'nullable|numeric|min:0',
-            'type' => 'required|in:product,service,consumable',
+            'type' => 'required|in:product,service,consumable,fabrication',
             'product_type' => 'required|in:raw_material,wip,finished_good,spare_part',
         ]);
 

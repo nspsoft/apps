@@ -93,7 +93,7 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
                 $sheet = $event->sheet;
 
                 // 1. Add Comments (Instructions)
-                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable");
+                $sheet->getComment('H1')->getText()->createTextRun("Options:\n- product\n- service\n- consumable\n- fabrication");
                 $sheet->getComment('I1')->getText()->createTextRun("Options:\n- raw_material\n- wip\n- finished_good\n- spare_part");
                 $sheet->getComment('W1')->getText()->createTextRun("Fill with 'Yes' or 'No'");
                 $sheet->getComment('AC1')->getText()->createTextRun("Optional: Exclusive Customer Name");
@@ -108,7 +108,7 @@ class ProductDataExport implements FromCollection, WithHeadings, WithEvents
                 $validation->setShowInputMessage(true);
                 $validation->setShowErrorMessage(true);
                 $validation->setShowDropDown(true);
-                $validation->setFormula1('"product,service,consumable"');
+                $validation->setFormula1('"product,service,consumable,fabrication"');
                 // Apply to rows 2-1000
                 $sheet->setDataValidation('H2:H1000', $validation);
 
