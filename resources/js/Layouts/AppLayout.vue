@@ -174,6 +174,9 @@ const hasPermission = (permission) => {
     const auth = page.props.auth;
     if (!auth) return false;
     if (auth.roles?.includes('Super Admin')) return true;
+    if (permission === 'hr_payroll.work_schedules.view') {
+        return auth.permissions?.includes('hr_payroll.work_schedules.view') || auth.permissions?.includes('hr_payroll.attendance.view');
+    }
     return auth.permissions?.includes(permission);
 };
 
@@ -477,13 +480,13 @@ const navigation = [
         icon: UsersIcon, 
         current: false,
         children: [
-            { name: 'Employee Self Service', isHeader: true },
-            { name: 'Smart Attendance', href: '/employee/attendance/clock', icon: VideoCameraIcon },
-            { name: 'My Attendance', href: '/employee/attendance', icon: ClockIcon },
-            { name: 'My Time-Off', href: '/my-timeoff', icon: CalendarIcon },
-            { name: 'My Overtime', href: '/employee/overtime', icon: ClockIcon },
-            { name: 'My Reimbursements', href: '/employee/reimbursements', icon: BanknotesIcon },
-            { name: 'My Performance', href: '/employee/performance', icon: ChartBarIcon },
+            { name: 'Employee Self Service', isHeader: true, requiresEmployee: true },
+            { name: 'Smart Attendance', href: '/employee/attendance/clock', icon: VideoCameraIcon, requiresEmployee: true },
+            { name: 'My Attendance', href: '/employee/attendance', icon: ClockIcon, requiresEmployee: true },
+            { name: 'My Time-Off', href: '/my-timeoff', icon: CalendarIcon, requiresEmployee: true },
+            { name: 'My Overtime', href: '/employee/overtime', icon: ClockIcon, requiresEmployee: true },
+            { name: 'My Reimbursements', href: '/employee/reimbursements', icon: BanknotesIcon, requiresEmployee: true },
+            { name: 'My Performance', href: '/employee/performance', icon: ChartBarIcon, requiresEmployee: true },
             
             { name: 'HR Administration', isHeader: true },
             { name: 'Employee Directory', href: '/hr/employees', icon: IdentificationIcon, permission: 'hr_payroll.employee_directory.view' },
@@ -494,7 +497,7 @@ const navigation = [
             { name: 'Overtime Requests', href: '/hr/overtime', icon: ClockIcon, permission: 'hr_payroll.overtime.view' },
             { name: 'HR Reimbursements', href: '/hr/reimbursements', icon: BanknotesIcon, permission: 'hr_payroll.reimbursements.view' },
             { name: 'Payroll', href: '/hr/payroll', icon: BanknotesIcon, permission: 'hr_payroll.payroll.view' },
-            { name: 'Jadwal & Shift', href: '/hr/work-schedules', icon: CalendarDaysIcon, permission: 'hr_payroll.attendance.view' },
+            { name: 'Jadwal & Shift', href: '/hr/work-schedules', icon: CalendarDaysIcon, permission: 'hr_payroll.work_schedules.view' },
             { name: 'Performance Monitoring', href: '/hr/performance', icon: ChartBarIcon, permission: 'hr_payroll.performance.view' },
             { name: 'Job Postings (ATS)', href: '/hr/recruitment/jobs', icon: BriefcaseIcon, permission: 'hr_payroll.recruitment.view' },
             { name: 'Applicant Tracking', href: '/hr/recruitment/applicants', icon: UsersIcon, permission: 'hr_payroll.recruitment.view' },
@@ -596,8 +599,14 @@ const filteredNavigation = computed(() => {
         .filter(item => hasPermission(item.permission))
         .map(item => {
             if (item.children) {
-                // First filter by permission
+                // First filter by permission and employee requirements
+                const hasEmp = !!page.props.auth?.has_employee;
+                const isSuperAdmin = page.props.auth?.roles?.includes('Super Admin');
+
                 const filteredChildren = item.children.filter(child => {
+                    if (child.requiresEmployee && !hasEmp && !isSuperAdmin) {
+                        return false;
+                    }
                     // Header items themselves have no explicit permission requirement
                     if (child.isHeader) return true;
                     return hasPermission(child.permission);

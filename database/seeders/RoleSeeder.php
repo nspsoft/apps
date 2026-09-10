@@ -47,7 +47,7 @@ class RoleSeeder extends Seeder
                 'General Ledger', 'Profit & Loss', 'AP & AR Monitoring', 'Production Costing', 'Overhead Allocation', 'Profitability Analytic'
             ],
             'HR & Payroll' => [
-                'Employee Directory', 'Attendance', 'Leave Management',
+                'Employee Directory', 'Attendance', 'Work Schedules', 'Leave Management',
                 'Overtime', 'Reimbursements', 'Payroll', 'Performance', 'Recruitment'
             ],
             'General Affair' => [

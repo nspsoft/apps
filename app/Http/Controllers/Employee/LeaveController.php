@@ -19,7 +19,11 @@ class LeaveController extends Controller
         $employee = auth()->user()->employee;
         
         if (!$employee) {
-            return redirect()->route('dashboard')->with('error', 'You are not registered as an employee.');
+            $user = auth()->user();
+            if ($user && ($user->hasRole('Super Admin') || $user->can('hr_payroll.leave_management.view'))) {
+                return redirect()->route('hr.leaves.index')->with('info', 'Akun admin tidak ditautkan ke karyawan individu. Menampilkan Manajemen Cuti.');
+            }
+            return redirect()->route('dashboard')->with('error', 'Akun Anda belum ditautkan ke data karyawan.');
         }
 
         $year = Carbon::now()->year;

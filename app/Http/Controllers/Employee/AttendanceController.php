@@ -14,7 +14,13 @@ class AttendanceController extends Controller
     public function index()
     {
         $employee = auth()->user()->employee;
-        if (!$employee) abort(403);
+        if (!$employee) {
+            $user = auth()->user();
+            if ($user && ($user->hasRole('Super Admin') || $user->can('hr_payroll.attendance.view'))) {
+                return redirect()->route('hr.attendance.index')->with('info', 'Akun admin tidak ditautkan ke karyawan individu. Menampilkan Manajemen Absensi.');
+            }
+            return redirect()->route('dashboard')->with('error', 'Akun Anda belum ditautkan ke data karyawan.');
+        }
 
         $attendances = Attendance::where('employee_id', $employee->id)
             ->latest('date')
@@ -29,7 +35,11 @@ class AttendanceController extends Controller
     {
         $employee = auth()->user()->employee;
         if (!$employee) {
-            return redirect()->route('dashboard')->with('error', 'You are not registered as an employee.');
+            $user = auth()->user();
+            if ($user && ($user->hasRole('Super Admin') || $user->can('hr_payroll.attendance.view'))) {
+                return redirect()->route('hr.attendance.dashboard')->with('info', 'Akun admin tidak ditautkan ke karyawan individu. Menampilkan Dashboard Absensi.');
+            }
+            return redirect()->route('dashboard')->with('error', 'Akun Anda belum ditautkan ke data karyawan.');
         }
 
         $appSettings = AppSetting::first();

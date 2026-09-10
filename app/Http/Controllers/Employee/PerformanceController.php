@@ -14,7 +14,11 @@ class PerformanceController extends Controller
     {
         $employee = auth()->user()->employee;
         if (!$employee) {
-            return redirect()->back()->with('error', 'You are not registered as an employee.');
+            $user = auth()->user();
+            if ($user && ($user->hasRole('Super Admin') || $user->can('hr_payroll.performance.view'))) {
+                return redirect()->route('hr.performance.index')->with('info', 'Akun admin tidak ditautkan ke karyawan individu. Menampilkan Monitoring Performa.');
+            }
+            return redirect()->route('dashboard')->with('error', 'You are not registered as an employee.');
         }
 
         $period = $request->query('period', date('Y') . '-Q' . ceil(date('n') / 3));

@@ -14,6 +14,10 @@ class ReimbursementController extends Controller
     {
         $employee = auth()->user()->employee;
         if (!$employee) {
+            $user = auth()->user();
+            if ($user && ($user->hasRole('Super Admin') || $user->can('hr_payroll.reimbursements.view'))) {
+                return redirect()->route('hr.reimbursements.index')->with('info', 'Akun admin tidak ditautkan ke karyawan individu. Menampilkan Klaim Reimbursement.');
+            }
             return redirect()->route('dashboard')->with('error', 'You are not registered as an employee.');
         }
 

@@ -16,6 +16,10 @@ class OvertimeController extends Controller
     {
         $employee = auth()->user()->employee;
         if (!$employee) {
+            $user = auth()->user();
+            if ($user && ($user->hasRole('Super Admin') || $user->can('hr_payroll.overtime.view'))) {
+                return redirect()->route('hr.overtime.index')->with('info', 'Akun admin tidak ditautkan ke karyawan individu. Menampilkan Permintaan Lembur.');
+            }
             return redirect()->route('dashboard')->with('error', 'Anda tidak terdaftar sebagai karyawan.');
         }
 

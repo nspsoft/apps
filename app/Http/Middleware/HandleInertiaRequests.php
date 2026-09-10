@@ -89,6 +89,7 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user,
                 'permissions' => $user ? $user->getAllPermissions()->pluck('name') : [],
                 'roles' => $user ? $user->getRoleNames() : [],
+                'has_employee' => $user ? $user->employee()->exists() : false,
                 'unreadNotificationsCount' => $user ? $user->unreadNotifications()->count() : 0,
                 'recentNotifications' => $user ? $user->notifications()->latest()->limit(5)->get() : [],
             ],
