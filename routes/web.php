@@ -641,6 +641,13 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     // Attendance Requests Management
     Route::post('/attendance-requests/{attendanceRequest}/approve', [\App\Http\Controllers\HR\AttendanceRequestController::class, 'approve'])->name('attendance-requests.approve');
     Route::post('/attendance-requests/{attendanceRequest}/reject', [\App\Http\Controllers\HR\AttendanceRequestController::class, 'reject'])->name('attendance-requests.reject');
+
+    // Work Schedules & Shift Management
+    Route::get('/work-schedules', [\App\Http\Controllers\HR\WorkScheduleController::class, 'index'])->name('work-schedules.index');
+    Route::post('/work-schedules', [\App\Http\Controllers\HR\WorkScheduleController::class, 'store'])->name('work-schedules.store');
+    Route::put('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'update'])->name('work-schedules.update');
+    Route::delete('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'destroy'])->name('work-schedules.destroy');
+    Route::put('/penalty-rules/{penaltyRule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'updatePenaltyRule'])->name('penalty-rules.update');
 });
 
 // Warehouse (Loading Queue for Warehouse Staff)

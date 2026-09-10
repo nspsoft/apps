@@ -310,36 +310,49 @@ class AttendanceController extends Controller
         $now = Carbon::now();
         $timeStr = $now->format('H:i:s');
         $isLate = false;
+        $lateMinutes = 0;
         
-        // Check if employee is in an Office department (starts at 08:00) vs Production shifts
-        $deptName = strtolower($employee->department->name ?? '');
-        $isOfficeDept = in_array($deptName, ['hr', 'finance', 'purchasing', 'sales', 'it', 'management', 'ppic', 'office', 'general', 'accounting']);
-        
-        if ($isOfficeDept) {
-            // Office Schedule: Late if after 08:00
-            if ($timeStr > '08:00:00') {
+        // Fetch employee's schedule for today
+        $scheduleDetail = $employee->getScheduleForDate($date);
+
+        if ($scheduleDetail && $scheduleDetail->is_workday && $scheduleDetail->start_time) {
+            $standardStartTime = Carbon::parse($date . ' ' . $scheduleDetail->start_time);
+            if ($now->greaterThan($standardStartTime)) {
                 $isLate = true;
+                $lateMinutes = $now->diffInMinutes($standardStartTime);
             }
         } else {
-            // Shift Schedule: auto-detect based on current time window
-            if ($timeStr >= '05:00:00' && $timeStr < '13:00:00') {
-                // Shift 1: 07:00 - 15:00. Late if after 07:00
-                if ($timeStr > '07:00:00') {
+            // Fallback: Check department / time windows
+            $deptName = strtolower($employee->department->name ?? '');
+            $isOfficeDept = in_array($deptName, ['hr', 'finance', 'purchasing', 'sales', 'it', 'management', 'ppic', 'office', 'general', 'accounting']);
+            
+            if ($isOfficeDept) {
+                if ($timeStr > '08:00:00') {
                     $isLate = true;
-                }
-            } elseif ($timeStr >= '13:00:00' && $timeStr < '21:00:00') {
-                // Shift 2: 15:00 - 23:00. Late if after 15:00
-                if ($timeStr > '15:00:00') {
-                    $isLate = true;
+                    $lateMinutes = $now->diffInMinutes(Carbon::parse($date . ' 08:00:00'));
                 }
             } else {
-                // Shift 3: 23:00 - 07:00. Late if after 23:00
-                if ($timeStr > '23:00:00' || ($timeStr < '05:00:00' && $timeStr > '00:00:00')) {
-                    $isLate = true;
+                if ($timeStr >= '05:00:00' && $timeStr < '13:00:00') {
+                    if ($timeStr > '07:00:00') {
+                        $isLate = true;
+                        $lateMinutes = $now->diffInMinutes(Carbon::parse($date . ' 07:00:00'));
+                    }
+                } elseif ($timeStr >= '13:00:00' && $timeStr < '21:00:00') {
+                    if ($timeStr > '15:00:00') {
+                        $isLate = true;
+                        $lateMinutes = $now->diffInMinutes(Carbon::parse($date . ' 15:00:00'));
+                    }
+                } else {
+                    if ($timeStr > '23:00:00' || ($timeStr < '05:00:00' && $timeStr > '00:00:00')) {
+                        $isLate = true;
+                        $lateMinutes = 1;
+                    }
                 }
             }
         }
-        
+
+        $lateRule = \App\Models\PenaltyRule::getActiveRule('late');
+        $penaltyLateMinutes = $lateRule ? $lateRule->calculatePenaltyMinutes($lateMinutes) : $lateMinutes;
         $status = $isLate ? 'late' : 'present';
 
         // Check if there is already an attendance today
@@ -353,15 +366,35 @@ class AttendanceController extends Controller
                 'employee_id' => $employee->id,
                 'date' => $date,
                 'clock_in' => $now,
-                'status' => $status
+                'status' => $status,
+                'late_minutes' => $lateMinutes,
+                'penalty_late_minutes' => $penaltyLateMinutes,
             ]);
             $action = 'clock_in';
             $message = "Absen masuk berhasil. Selamat pagi {$employee->full_name}, selamat bekerja!";
         } else {
             // Clock Out
             if (empty($attendance->clock_out)) {
+                $earlyLeaveMinutes = 0;
+                $overtimeMinutes = 0;
+
+                if ($scheduleDetail && $scheduleDetail->is_workday && $scheduleDetail->end_time) {
+                    $standardEndTime = Carbon::parse($date . ' ' . $scheduleDetail->end_time);
+                    if ($now->lessThan($standardEndTime)) {
+                        $earlyLeaveMinutes = $standardEndTime->diffInMinutes($now);
+                    } elseif ($now->greaterThan($standardEndTime)) {
+                        $overtimeMinutes = $now->diffInMinutes($standardEndTime);
+                    }
+                }
+
+                $earlyRule = \App\Models\PenaltyRule::getActiveRule('early_leave');
+                $penaltyEarlyMinutes = $earlyRule ? $earlyRule->calculatePenaltyMinutes($earlyLeaveMinutes) : $earlyLeaveMinutes;
+
                 $attendance->update([
-                    'clock_out' => $now
+                    'clock_out' => $now,
+                    'early_leave_minutes' => $earlyLeaveMinutes,
+                    'penalty_early_leave_minutes' => $penaltyEarlyMinutes,
+                    'overtime_minutes' => $overtimeMinutes,
                 ]);
                 $action = 'clock_out';
                 $message = "Absen pulang berhasil. Terima kasih {$employee->full_name}, hati-hati di jalan!";

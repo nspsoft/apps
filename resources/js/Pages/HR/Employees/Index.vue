@@ -30,6 +30,7 @@ const props = defineProps({
     employees: Object,
     departments: Array,
     positions: Array,
+    workSchedules: Array,
     filters: Object,
     users: Array,
 });
@@ -64,6 +65,7 @@ const form = useForm({
     department_id: '',
     section: '',
     position_id: '',
+    work_schedule_id: '',
     golongan: '',
     tax_status: 'TK/0',
     joining_date: new Date().toISOString().split('T')[0],
@@ -88,6 +90,7 @@ const openModal = (employee = null) => {
         form.department_id = employee.department_id;
         form.section = employee.section || '';
         form.position_id = employee.position_id;
+        form.work_schedule_id = employee.work_schedule_id || '';
         form.golongan = employee.golongan || '';
         form.tax_status = employee.tax_status || 'TK/0';
         form.joining_date = employee.joining_date;
@@ -101,6 +104,7 @@ const openModal = (employee = null) => {
         form.profile_picture = null;
     } else {
         form.reset();
+        form.work_schedule_id = '';
         form.joining_date = new Date().toISOString().split('T')[0];
         form.salary_type = 'monthly';
         form.tax_status = 'TK/0';
@@ -299,6 +303,9 @@ const deleteFace = (employee) => {
                             <span class="text-xs font-medium">
                                 {{ employee.position?.name }}
                                 <span v-if="employee.golongan" class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Gol. {{ employee.golongan }}</span>
+                                <span class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    {{ employee.work_schedule?.name || 'Office Regular' }}
+                                </span>
                             </span>
                         </div>
                         <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
@@ -525,6 +532,17 @@ const deleteFace = (employee) => {
                                                 <input v-model="form.section" type="text" placeholder="e.g. Produksi, Quality, Warehouse" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                                                 <p v-if="form.errors.section" class="text-[10px] text-red-500 italic">{{ form.errors.section }}</p>
                                             </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Jadwal Kerja / Shift</label>
+                                                <select v-model="form.work_schedule_id" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium">
+                                                    <option value="">-- Default (Office Regular) --</option>
+                                                    <option v-for="ws in workSchedules" :key="ws.id" :value="ws.id">
+                                                        {{ ws.name }} {{ ws.is_default ? '(Default)' : '' }}
+                                                    </option>
+                                                </select>
+                                                <p v-if="form.errors.work_schedule_id" class="text-[10px] text-red-500 italic">{{ form.errors.work_schedule_id }}</p>
+                                            </div>
+
                                             <div class="space-y-2">
                                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Golongan</label>
                                                 <input v-model="form.golongan" type="text" placeholder="e.g. 1A, 2B, 3, Staff" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all" />

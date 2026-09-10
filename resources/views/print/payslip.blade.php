@@ -254,6 +254,14 @@
         $potBpjstk = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtoupper($i->name), 'BPJSTK'))->first()?->amount ?? 0;
         $potBpjskes = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtoupper($i->name), 'BPJSKES'))->first()?->amount ?? 0;
 
+        $potTelatItem = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtolower($i->name), 'telat'))->first();
+        $potTelat = $potTelatItem?->amount ?? 0;
+        $potTelatLabel = $potTelatItem?->name ?? 'Pot. Telat';
+
+        $potPulangCepatItem = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtolower($i->name), 'pulang cepat'))->first();
+        $potPulangCepat = $potPulangCepatItem?->amount ?? 0;
+        $potPulangCepatLabel = $potPulangCepatItem?->name ?? 'Pot. Pulang Cepat';
+
         $gajiBruto = $payroll->basic_salary + $payroll->total_allowances;
         $totalPotongan = $payroll->total_deductions;
         $gajiNetto = $payroll->net_salary;
@@ -316,9 +324,9 @@
                         <td class="meta-lbl">BAGIAN / DEPT</td>
                         <td class="meta-sep">:</td>
                         <td class="meta-val">{{ strtoupper($payroll->employee->section ?? ($payroll->employee->department->name ?? 'GENERAL')) }}</td>
-                        <td class="meta-lbl">GOLONGAN</td>
+                        <td class="meta-lbl">JADWAL/SHIFT</td>
                         <td class="meta-sep">:</td>
-                        <td class="meta-val">{{ $payroll->employee->golongan ?? '-' }}</td>
+                        <td class="meta-val font-bold" style="color: #003680;">{{ strtoupper($payroll->employee->workSchedule->name ?? 'Office Regular') }}</td>
                     </tr>
                 </table>
             </div>
@@ -386,11 +394,17 @@
                             $clockInStr = $att && $att->clock_in ? \Carbon\Carbon::parse($att->clock_in)->format('H:i') : '-';
                             $clockOutStr = $att && $att->clock_out ? \Carbon\Carbon::parse($att->clock_out)->format('H:i') : '-';
 
-                            // Telat (Masuk > 07:30 atau late_minutes > 0 atau status late)
+                            // Ambil jadwal kerja karyawan untuk tanggal ini
+                            $empSchedule = $payroll->employee->getScheduleForDate($date);
+                            $schedStart = ($empSchedule && $empSchedule->start_time) ? substr($empSchedule->start_time, 0, 5) : '08:00';
+                            $schedEnd = ($empSchedule && $empSchedule->end_time) ? substr($empSchedule->end_time, 0, 5) : '16:00';
+                            $isSchedWorkday = $empSchedule ? $empSchedule->is_workday : !$isSunday;
+
+                            // Telat (Masuk melebihi jam jadwal kerja, late_minutes > 0, atau status late)
                             $isLate = false;
-                            if ($att && !empty($att->clock_in)) {
+                            if ($isSchedWorkday && $att && !empty($att->clock_in)) {
                                 $cIn = \Carbon\Carbon::parse($att->clock_in);
-                                if ($att->late_minutes > 0 || $att->status === 'late' || $cIn->format('H:i:s') > '07:30:00') {
+                                if ($att->late_minutes > 0 || $att->penalty_late_minutes > 0 || $att->status === 'late' || $cIn->format('H:i') > $schedStart) {
                                     $isLate = true;
                                 }
                             }
@@ -403,11 +417,11 @@
                                 $dailyJamKerja = 8.0;
                             }
 
-                            // Pulang Cepat (early_leave_minutes > 0, status early_leave, atau pulang sebelum 17:00 dan jam kerja < 8.0)
+                            // Pulang Cepat (Pulang sebelum jam jadwal kerja, early_leave_minutes > 0, atau status early_leave)
                             $isEarlyLeave = false;
-                            if ($att && !empty($att->clock_out)) {
+                            if ($isSchedWorkday && $att && !empty($att->clock_out)) {
                                 $cOut = \Carbon\Carbon::parse($att->clock_out);
-                                if ($att->early_leave_minutes > 0 || $att->status === 'early_leave' || ($cOut->format('H:i:s') < '17:00:00' && $dailyJamKerja < 8.0)) {
+                                if ($att->early_leave_minutes > 0 || $att->penalty_early_leave_minutes > 0 || $att->status === 'early_leave' || $cOut->format('H:i') < $schedEnd) {
                                     $isEarlyLeave = true;
                                 }
                             }
@@ -540,9 +554,9 @@
                         <td class="info-lbl">Departemen</td>
                         <td class="info-sep">:</td>
                         <td class="info-val">{{ $payroll->employee->department->name ?? '-' }}</td>
-                        <td class="info-lbl">Golongan</td>
+                        <td class="info-lbl">Jadwal/Shift</td>
                         <td class="info-sep">:</td>
-                        <td class="info-val">{{ $payroll->employee->golongan ?? '-' }}</td>
+                        <td class="info-val font-bold" style="color: #003680;">{{ $payroll->employee->workSchedule->name ?? 'Office Regular' }}</td>
                     </tr>
                     <tr>
                         <td class="info-lbl">Bagian</td>
@@ -644,19 +658,29 @@
                     <div class="salary-body">
                         <table class="salary-table">
                             <tr>
-                                <td>PPh21</td>
-                                <td width="8">:</td>
-                                <td class="text-right">-</td>
-                            </tr>
-                            <tr>
                                 <td>BPJSTK</td>
-                                <td>:</td>
+                                <td width="8">:</td>
                                 <td class="text-right">{{ $potBpjstk > 0 ? '-' . number_format($potBpjstk, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>BPJSKes</td>
                                 <td>:</td>
                                 <td class="text-right">{{ $potBpjskes > 0 ? '-' . number_format($potBpjskes, 0, ',', '.') : '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td>{{ $potTelat > 0 ? $potTelatLabel : 'Pot. Telat' }}</td>
+                                <td>:</td>
+                                <td class="text-right" style="{{ $potTelat > 0 ? 'color: #dc2626; font-weight: bold;' : '' }}">{{ $potTelat > 0 ? '-' . number_format($potTelat, 0, ',', '.') : '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td>{{ $potPulangCepat > 0 ? $potPulangCepatLabel : 'Pot. Pulang Cepat' }}</td>
+                                <td>:</td>
+                                <td class="text-right" style="{{ $potPulangCepat > 0 ? 'color: #dc2626; font-weight: bold;' : '' }}">{{ $potPulangCepat > 0 ? '-' . number_format($potPulangCepat, 0, ',', '.') : '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td>PPh21</td>
+                                <td>:</td>
+                                <td class="text-right">-</td>
                             </tr>
                             <tr>
                                 <td>Lain - lain</td>

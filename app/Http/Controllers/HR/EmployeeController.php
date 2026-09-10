@@ -16,11 +16,13 @@ use App\Imports\EmployeeImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 
+use App\Models\WorkSchedule;
+
 class EmployeeController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Employee::with(['department', 'position', 'user'])
+        $query = Employee::with(['department', 'position', 'user', 'workSchedule'])
             ->orderBy('full_name');
 
         if ($request->search) {
@@ -43,6 +45,7 @@ class EmployeeController extends Controller
             'employees' => $query->paginate(20)->withQueryString(),
             'departments' => Department::all(),
             'positions' => Position::all(),
+            'workSchedules' => WorkSchedule::active()->with('details')->get(),
             'users' => \App\Models\User::orderBy('name')->get(['id', 'name', 'email']),
             'filters' => $request->only(['search', 'department_id', 'status']),
         ]);
@@ -112,6 +115,7 @@ class EmployeeController extends Controller
             'department_id' => 'required|exists:hr_departments,id',
             'section' => 'nullable|string|max:100',
             'position_id' => 'required|exists:hr_positions,id',
+            'work_schedule_id' => 'nullable|exists:hr_work_schedules,id',
             'golongan' => 'nullable|string|max:50',
             'tax_status' => 'nullable|string|max:20',
             'joining_date' => 'required|date',
@@ -159,6 +163,7 @@ class EmployeeController extends Controller
             'department_id' => 'required|exists:hr_departments,id',
             'section' => 'nullable|string|max:100',
             'position_id' => 'required|exists:hr_positions,id',
+            'work_schedule_id' => 'nullable|exists:hr_work_schedules,id',
             'golongan' => 'nullable|string|max:50',
             'tax_status' => 'nullable|string|max:20',
             'joining_date' => 'required|date',

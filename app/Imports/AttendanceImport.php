@@ -28,9 +28,17 @@ class AttendanceImport implements ToModel, WithHeadingRow, WithCalculatedFormula
         $clockIn = $this->transformTime($row['clock_in']);
         $clockOut = isset($row['clock_out']) ? $this->transformTime($row['clock_out']) : null;
 
-        // Fetch settings for calculation
-        $standardStart = \App\Models\PayrollSetting::getByKey('standard_start_time', '08:00');
-        $standardEnd = \App\Models\PayrollSetting::getByKey('standard_end_time', '17:00');
+        // Fetch schedule for this employee on this date
+        $scheduleDetail = $employee->getScheduleForDate($date);
+        $isWorkday = $scheduleDetail ? $scheduleDetail->is_workday : true;
+
+        $standardStart = ($scheduleDetail && $scheduleDetail->start_time) 
+            ? substr($scheduleDetail->start_time, 0, 5) 
+            : \App\Models\PayrollSetting::getByKey('standard_start_time', '08:00');
+
+        $standardEnd = ($scheduleDetail && $scheduleDetail->end_time) 
+            ? substr($scheduleDetail->end_time, 0, 5) 
+            : \App\Models\PayrollSetting::getByKey('standard_end_time', '16:00');
 
         $clockInTime = Carbon::parse($date . ' ' . $clockIn);
         $clockOutTime = $clockOut ? Carbon::parse($date . ' ' . $clockOut) : null;
@@ -42,19 +50,33 @@ class AttendanceImport implements ToModel, WithHeadingRow, WithCalculatedFormula
         $earlyLeaveMinutes = 0;
         $overtimeMinutes = 0;
 
-        // Late
-        if ($clockInTime->greaterThan($standardStartTime)) {
-            $lateMinutes = $clockInTime->diffInMinutes($standardStartTime);
-        }
+        if ($isWorkday) {
+            // Late
+            if ($clockInTime->greaterThan($standardStartTime)) {
+                $lateMinutes = $clockInTime->diffInMinutes($standardStartTime);
+            }
 
-        // Early Leave & Overtime (if clocked out)
-        if ($clockOutTime) {
-            if ($clockOutTime->lessThan($standardEndTime)) {
-                $earlyLeaveMinutes = $standardEndTime->diffInMinutes($clockOutTime);
-            } elseif ($clockOutTime->greaterThan($standardEndTime)) {
-                $overtimeMinutes = $clockOutTime->diffInMinutes($standardEndTime);
+            // Early Leave & Overtime (if clocked out)
+            if ($clockOutTime) {
+                if ($clockOutTime->lessThan($standardEndTime)) {
+                    $earlyLeaveMinutes = $standardEndTime->diffInMinutes($clockOutTime);
+                } elseif ($clockOutTime->greaterThan($standardEndTime)) {
+                    $overtimeMinutes = $clockOutTime->diffInMinutes($standardEndTime);
+                }
+            }
+        } else {
+            // Day off / Holiday: any work is overtime
+            if ($clockOutTime && $clockOutTime->greaterThan($clockInTime)) {
+                $overtimeMinutes = $clockOutTime->diffInMinutes($clockInTime);
             }
         }
+
+        // Apply penalty rules (e.g. 30-min rounding)
+        $lateRule = \App\Models\PenaltyRule::getActiveRule('late');
+        $earlyRule = \App\Models\PenaltyRule::getActiveRule('early_leave');
+
+        $penaltyLateMinutes = $lateRule ? $lateRule->calculatePenaltyMinutes($lateMinutes) : $lateMinutes;
+        $penaltyEarlyMinutes = $earlyRule ? $earlyRule->calculatePenaltyMinutes($earlyLeaveMinutes) : $earlyLeaveMinutes;
 
         $status = $lateMinutes > 0 ? 'late' : 'present';
 
@@ -69,6 +91,8 @@ class AttendanceImport implements ToModel, WithHeadingRow, WithCalculatedFormula
                 'status' => $status,
                 'late_minutes' => $lateMinutes,
                 'early_leave_minutes' => $earlyLeaveMinutes,
+                'penalty_late_minutes' => $penaltyLateMinutes,
+                'penalty_early_leave_minutes' => $penaltyEarlyMinutes,
                 'overtime_minutes' => $overtimeMinutes,
                 'note' => $row['note'] ?? 'Imported from Fingerprint',
             ]

@@ -494,6 +494,7 @@ const navigation = [
             { name: 'Overtime Requests', href: '/hr/overtime', icon: ClockIcon, permission: 'hr_payroll.overtime.view' },
             { name: 'HR Reimbursements', href: '/hr/reimbursements', icon: BanknotesIcon, permission: 'hr_payroll.reimbursements.view' },
             { name: 'Payroll', href: '/hr/payroll', icon: BanknotesIcon, permission: 'hr_payroll.payroll.view' },
+            { name: 'Jadwal & Shift', href: '/hr/work-schedules', icon: CalendarDaysIcon, permission: 'hr_payroll.attendance.view' },
             { name: 'Performance Monitoring', href: '/hr/performance', icon: ChartBarIcon, permission: 'hr_payroll.performance.view' },
             { name: 'Job Postings (ATS)', href: '/hr/recruitment/jobs', icon: BriefcaseIcon, permission: 'hr_payroll.recruitment.view' },
             { name: 'Applicant Tracking', href: '/hr/recruitment/applicants', icon: UsersIcon, permission: 'hr_payroll.recruitment.view' },

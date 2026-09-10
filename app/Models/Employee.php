@@ -21,7 +21,7 @@ class Employee extends Model
     protected $table = 'hr_employees';
     protected $fillable = [
         'user_id', 'nik', 'full_name', 'email', 'phone', 
-        'address', 'department_id', 'section', 'position_id', 'golongan', 'tax_status',
+        'address', 'department_id', 'section', 'position_id', 'work_schedule_id', 'golongan', 'tax_status',
         'joining_date', 'employment_status', 
         'basic_salary', 'salary_type', 'hourly_rate', 'profile_picture', 'is_active'
     ];
@@ -45,6 +45,27 @@ class Employee extends Model
     public function position(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Position::class);
+    }
+
+    public function workSchedule(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(WorkSchedule::class, 'work_schedule_id');
+    }
+
+    /**
+     * Get the effective schedule detail for a specific date
+     */
+    public function getScheduleForDate($date): ?WorkScheduleDetail
+    {
+        $schedule = $this->workSchedule;
+        if (!$schedule) {
+            $schedule = WorkSchedule::default()->active()->with('details')->first();
+        }
+        if (!$schedule) {
+            $schedule = WorkSchedule::active()->with('details')->first();
+        }
+
+        return $schedule ? $schedule->getScheduleForDate($date) : null;
     }
 
     public function leaveBalances(): \Illuminate\Database\Eloquent\Relations\HasMany

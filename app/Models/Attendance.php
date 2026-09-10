@@ -23,6 +23,7 @@ class Attendance extends Model
     protected $fillable = [
         'employee_id', 'date', 'clock_in', 'clock_out', 
         'status', 'late_minutes', 'early_leave_minutes', 'overtime_minutes',
+        'penalty_late_minutes', 'penalty_early_leave_minutes',
         'location_lat', 'location_lng', 'note'
     ];
 
@@ -30,6 +31,11 @@ class Attendance extends Model
         'date' => 'date',
         'clock_in' => 'datetime',
         'clock_out' => 'datetime',
+        'late_minutes' => 'integer',
+        'early_leave_minutes' => 'integer',
+        'overtime_minutes' => 'integer',
+        'penalty_late_minutes' => 'integer',
+        'penalty_early_leave_minutes' => 'integer',
     ];
 
     protected $appends = ['time_in', 'time_out'];

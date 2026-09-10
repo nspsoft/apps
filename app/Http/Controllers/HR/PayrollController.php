@@ -70,7 +70,10 @@ class PayrollController extends Controller
         $bpjstkRate = (double)($settings['bpjstk_deduction_rate']->value ?? 3);
         $bpjskesRate = (double)($settings['bpjskes_deduction_rate']->value ?? 1);
 
-        DB::transaction(function () use ($employees, $month, $year, $cutoffStart, $cutoffEnd, $mealRate, $overtimeMealRate, $bpjstkRate, $bpjskesRate, &$generatedCount) {
+        $lateRule = \App\Models\PenaltyRule::getActiveRule('late');
+        $earlyRule = \App\Models\PenaltyRule::getActiveRule('early_leave');
+
+        DB::transaction(function () use ($employees, $month, $year, $cutoffStart, $cutoffEnd, $mealRate, $overtimeMealRate, $bpjstkRate, $bpjskesRate, $lateRule, $earlyRule, &$generatedCount) {
             foreach ($employees as $employee) {
                 if (Payroll::where('employee_id', $employee->id)->where('period_month', $month)->where('period_year', $year)->exists()) {
                     continue;
@@ -94,6 +97,8 @@ class PayrollController extends Controller
                 $totalOvertimeHours = 0;
                 $workingDaysCount = 0;
                 $overtimeDaysCount = 0;
+                $totalPenaltyLateMinutes = 0;
+                $totalPenaltyEarlyMinutes = 0;
 
                 foreach ($periodDates as $dateObj) {
                     $dateStr = $dateObj->toDateString();
@@ -106,6 +111,21 @@ class PayrollController extends Controller
                     if ($att && (in_array($att->status, ['present', 'late']) || !empty($att->clock_in))) {
                         $dailyWorkingHours = 8.0;
                         $workingDaysCount++;
+
+                        // Accumulate penalty minutes
+                        $lateM = $att->late_minutes ?? 0;
+                        $earlyM = $att->early_leave_minutes ?? 0;
+
+                        $pLateM = ($att->penalty_late_minutes > 0)
+                            ? $att->penalty_late_minutes
+                            : ($lateRule ? $lateRule->calculatePenaltyMinutes($lateM) : $lateM);
+
+                        $pEarlyM = ($att->penalty_early_leave_minutes > 0)
+                            ? $att->penalty_early_leave_minutes
+                            : ($earlyRule ? $earlyRule->calculatePenaltyMinutes($earlyM) : $earlyM);
+
+                        $totalPenaltyLateMinutes += $pLateM;
+                        $totalPenaltyEarlyMinutes += $pEarlyM;
                     }
 
                     if ($ot && $ot->approved_minutes > 0) {
@@ -160,7 +180,17 @@ class PayrollController extends Controller
                 $bpjstkDeduction = round($totalGross * ($bpjstkRate / 100));
                 $bpjskesDeduction = round($totalGross * ($bpjskesRate / 100));
 
-                $totalDeductions = $bpjstkDeduction + $bpjskesDeduction;
+                // Late and early leave penalties
+                $lateDeduction = $lateRule 
+                    ? $lateRule->calculateDeduction($totalPenaltyLateMinutes, $hourlyRate) 
+                    : round(($totalPenaltyLateMinutes / 60) * $hourlyRate, 2);
+                $earlyDeduction = $earlyRule 
+                    ? $earlyRule->calculateDeduction($totalPenaltyEarlyMinutes, $hourlyRate) 
+                    : round(($totalPenaltyEarlyMinutes / 60) * $hourlyRate, 2);
+
+                $totalPenaltyDeductions = $lateDeduction + $earlyDeduction;
+
+                $totalDeductions = $bpjstkDeduction + $bpjskesDeduction + $totalPenaltyDeductions;
                 $netSalary = $totalGross - $totalDeductions;
                 // Round take home pay up to nearest Rp 100
                 $roundedNetSalary = ceil($netSalary / 100) * 100;
@@ -230,6 +260,7 @@ class PayrollController extends Controller
                     ]);
                 }
 
+                // Deductions
                 PayrollItem::create([
                     'payroll_id' => $payroll->id,
                     'name' => "BPJSTK (3%)",
@@ -243,6 +274,24 @@ class PayrollController extends Controller
                     'amount' => $bpjskesDeduction,
                     'type' => 'deduction'
                 ]);
+
+                if ($lateDeduction > 0) {
+                    PayrollItem::create([
+                        'payroll_id' => $payroll->id,
+                        'name' => "Pot. Telat ({$totalPenaltyLateMinutes} mnt)",
+                        'amount' => $lateDeduction,
+                        'type' => 'deduction'
+                    ]);
+                }
+
+                if ($earlyDeduction > 0) {
+                    PayrollItem::create([
+                        'payroll_id' => $payroll->id,
+                        'name' => "Pot. Pulang Cepat ({$totalPenaltyEarlyMinutes} mnt)",
+                        'amount' => $earlyDeduction,
+                        'type' => 'deduction'
+                    ]);
+                }
 
                 $generatedCount++;
             }
@@ -274,7 +323,7 @@ class PayrollController extends Controller
 
     public function print(Payroll $payroll)
     {
-        $payroll->load(['employee.department', 'employee.position', 'items']);
+        $payroll->load(['employee.department', 'employee.position', 'employee.workSchedule.details', 'items']);
 
         $cutoffStart = $payroll->cutoff_start ? Carbon::parse($payroll->cutoff_start)->toDateString() : Carbon::create($payroll->period_year, $payroll->period_month, 1)->subMonth()->day(26)->toDateString();
         $cutoffEnd = $payroll->cutoff_end ? Carbon::parse($payroll->cutoff_end)->toDateString() : Carbon::create($payroll->period_year, $payroll->period_month, 25)->toDateString();
