@@ -142,6 +142,13 @@
         .att-table tr:nth-child(even) td {
             background-color: #f8fafc;
         }
+        .att-table tr.bg-red-date td {
+            background-color: #fee2e2 !important;
+        }
+        .text-late, .text-early {
+            color: #dc2626 !important;
+            font-weight: 800;
+        }
         .att-table tr.total-row td {
             border-top: 1.5pt solid #003680;
             border-bottom: 1.5pt solid #003680;
@@ -340,6 +347,28 @@
                         $sumAmountLembur = 0;
                         $sumTMakan = 0;
                         $sumTMakanLembur = 0;
+
+                        // Daftar Hari Libur Nasional Resmi Indonesia (Fixed & 2026)
+                        $publicHolidays = [
+                            '01-01' => 'Tahun Baru Masehi',
+                            '05-01' => 'Hari Buruh Internasional',
+                            '06-01' => 'Hari Lahir Pancasila',
+                            '08-17' => 'Hari Kemerdekaan RI',
+                            '12-25' => 'Hari Raya Natal',
+                            '2026-01-16' => 'Isra Mi\'raj',
+                            '2026-02-17' => 'Tahun Baru Imlek 2577',
+                            '2026-03-19' => 'Hari Suci Nyepi',
+                            '2026-03-20' => 'Hari Raya Idul Fitri',
+                            '2026-03-21' => 'Hari Raya Idul Fitri',
+                            '2026-04-03' => 'Wafat Yesus Kristus',
+                            '2026-05-01' => 'Hari Buruh',
+                            '2026-05-14' => 'Kenaikan Yesus Kristus',
+                            '2026-05-27' => 'Hari Raya Idul Adha',
+                            '2026-05-31' => 'Hari Raya Waisak',
+                            '2026-06-16' => 'Tahun Baru Islam',
+                            '2026-08-17' => 'Hari Kemerdekaan RI',
+                            '2026-08-25' => 'Maulid Nabi Muhammad SAW',
+                        ];
                     @endphp
 
                     @foreach($periodDates as $date)
@@ -348,8 +377,23 @@
                             $att = $attendances->get($dateStr);
                             $ot = $overtimeRequests->get($dateStr);
 
+                            // Libur: Hari Minggu atau Tanggal Merah
+                            $isSunday = $date->isSunday();
+                            $holidayTitle = $publicHolidays[$dateStr] ?? $publicHolidays[$date->format('m-d')] ?? null;
+                            $isHoliday = !empty($holidayTitle) || ($att && $att->status === 'holiday');
+                            $isRedDate = $isSunday || $isHoliday;
+
                             $clockInStr = $att && $att->clock_in ? \Carbon\Carbon::parse($att->clock_in)->format('H:i') : '-';
                             $clockOutStr = $att && $att->clock_out ? \Carbon\Carbon::parse($att->clock_out)->format('H:i') : '-';
+
+                            // Telat (Masuk > 07:30 atau late_minutes > 0 atau status late)
+                            $isLate = false;
+                            if ($att && !empty($att->clock_in)) {
+                                $cIn = \Carbon\Carbon::parse($att->clock_in);
+                                if ($att->late_minutes > 0 || $att->status === 'late' || $cIn->format('H:i:s') > '07:30:00') {
+                                    $isLate = true;
+                                }
+                            }
 
                             // Determine working hours
                             $isWorking = false;
@@ -357,6 +401,15 @@
                             if ($att && (in_array($att->status, ['present', 'late']) || !empty($att->clock_in))) {
                                 $isWorking = true;
                                 $dailyJamKerja = 8.0;
+                            }
+
+                            // Pulang Cepat (early_leave_minutes > 0, status early_leave, atau pulang sebelum 17:00 dan jam kerja < 8.0)
+                            $isEarlyLeave = false;
+                            if ($att && !empty($att->clock_out)) {
+                                $cOut = \Carbon\Carbon::parse($att->clock_out);
+                                if ($att->early_leave_minutes > 0 || $att->status === 'early_leave' || ($cOut->format('H:i:s') < '17:00:00' && $dailyJamKerja < 8.0)) {
+                                    $isEarlyLeave = true;
+                                }
                             }
 
                             // Determine overtime hours
@@ -391,11 +444,11 @@
                             $sumTMakan += $dailyTMakan;
                             $sumTMakanLembur += $dailyTMakanLembur;
                         @endphp
-                        <tr>
+                        <tr class="{{ $isRedDate ? 'bg-red-date' : '' }}">
                             <td class="text-center">{{ $rowNo++ }}</td>
-                            <td class="text-center font-bold">{{ $date->format('d-M') }}</td>
-                            <td class="text-center">{{ $clockInStr }}</td>
-                            <td class="text-center">{{ $clockOutStr }}</td>
+                            <td class="text-center font-bold" style="{{ $isRedDate ? 'color: #b91c1c;' : '' }}" @if($holidayTitle) title="{{ $holidayTitle }}" @endif>{{ $date->format('d-M') }}</td>
+                            <td class="text-center {{ $isLate ? 'text-late' : '' }}" @if($isLate && $att && $att->late_minutes > 0) title="Telat {{ $att->late_minutes }}m" @endif>{{ $clockInStr }}</td>
+                            <td class="text-center {{ $isEarlyLeave ? 'text-early' : '' }}" @if($isEarlyLeave && $att && $att->early_leave_minutes > 0) title="Pulang cepat {{ $att->early_leave_minutes }}m" @endif>{{ $clockOutStr }}</td>
                             <td class="text-center">{{ $dailyJamKerja > 0 ? number_format($dailyJamKerja, 1, ',', '.') : '-' }}</td>
                             <td class="text-center">{{ $dailyJamLembur > 0 ? number_format($dailyJamLembur, 1, ',', '.') : '-' }}</td>
                             <td class="text-right">{{ $amountGP > 0 ? 'Rp ' . number_format($amountGP, 0, ',', '.') : 'Rp -' }}</td>
@@ -417,6 +470,12 @@
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Legend Info -->
+            <div style="font-size: 5.5pt; color: #64748b; margin-top: 3px; display: flex; justify-content: space-between; align-items: center; padding: 0 2px;">
+                <span><span style="display: inline-block; width: 7px; height: 7px; background-color: #fee2e2; border: 0.5pt solid #fca5a5; vertical-align: middle; margin-right: 3px; border-radius: 1px;"></span> Latar Merah Muda: Hari Minggu / Tanggal Merah</span>
+                <span><span style="color: #dc2626; font-weight: bold; margin-right: 2px;">07:41</span> Teks Merah: Telat / Pulang Cepat (Perlu Cek Shift)</span>
+            </div>
         </div>
 
         <!-- ==================== LEMBAR KANAN: SLIP GAJI KARYAWAN ==================== -->
