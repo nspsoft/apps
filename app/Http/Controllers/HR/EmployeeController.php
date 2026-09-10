@@ -11,6 +11,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 use App\Exports\EmployeeExport;
+use App\Exports\Template\EmployeeTemplateExport;
 use App\Imports\EmployeeImport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
@@ -58,7 +59,7 @@ class EmployeeController extends Controller
     public function template()
     {
         return Excel::download(
-            new EmployeeExport(null, null),
+            new EmployeeTemplateExport(),
             'employee-template.xlsx'
         );
     }
@@ -67,14 +68,36 @@ class EmployeeController extends Controller
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
-            'overwrite' => 'boolean'
+            'overwrite' => 'nullable|boolean'
         ]);
 
         try {
-            Excel::import(new EmployeeImport($request->overwrite), $request->file('file'));
-            return redirect()->back()->with('success', 'Employees data imported successfully.');
+            $import = new EmployeeImport($request->boolean('overwrite'));
+            Excel::import($import, $request->file('file'));
+
+            if (!empty($import->errors)) {
+                return redirect()->back()->with('error', implode(' ', $import->errors));
+            }
+
+            $totalProcessed = $import->importedCount + $import->updatedCount;
+            if ($totalProcessed === 0) {
+                if ($import->skippedCount > 0) {
+                    return redirect()->back()->with('warning', "Tidak ada data baru yang diimpor. {$import->skippedCount} data karyawan dilewati karena NIK sudah terdaftar (aktifkan opsi 'Overwrite' jika ingin memperbarui).");
+                }
+                return redirect()->back()->with('error', 'Tidak ada data karyawan yang valid ditemukan dalam file. Pastikan baris data memiliki NIK dan Nama Lengkap.');
+            }
+
+            $message = "Berhasil mengimpor {$import->importedCount} data karyawan baru.";
+            if ($import->updatedCount > 0) {
+                $message .= " ({$import->updatedCount} data diperbarui).";
+            }
+            if ($import->skippedCount > 0) {
+                $message .= " ({$import->skippedCount} data dilewati karena sudah ada).";
+            }
+
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error importing data: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengimpor data: ' . $e->getMessage());
         }
     }
 
