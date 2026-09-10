@@ -117,14 +117,14 @@ class PayrollController extends Controller
                     $totalWorkingHours += $dailyWorkingHours;
                     $totalOvertimeHours += $dailyOvertimeHours;
 
-                    // T. Makan Lembur: ada jika pulang nya lebih dari jam 19.00
+                    // T. Makan Lembur: ada jika pulang jam 19.00 atau lebih (>= 19:00)
                     $hasOvertimeMeal = false;
                     if ($att && !empty($att->clock_out)) {
                         $clockOutTime = Carbon::parse($att->clock_out)->format('H:i:s');
-                        if ($clockOutTime > '19:00:00') {
+                        if ($clockOutTime >= '19:00:00') {
                             $hasOvertimeMeal = true;
                         }
-                    } elseif ($dailyOvertimeHours >= 2.5) {
+                    } elseif ($dailyOvertimeHours >= 2.0) {
                         $hasOvertimeMeal = true;
                     }
 
