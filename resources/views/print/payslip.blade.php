@@ -240,19 +240,31 @@
 
             <table class="meta-table">
                 <tr>
-                    <td width="70">NAMA</td>
+                    <td width="65">NAMA</td>
                     <td width="10">:</td>
-                    <td>{{ strtoupper($payroll->employee->full_name) }}</td>
+                    <td class="font-bold">{{ strtoupper($payroll->employee->full_name) }}</td>
+                    <td width="95" class="text-right">PRICE / HOUR :</td>
+                    <td width="105" class="font-bold">
+                        @if($payroll->employee->salary_type === 'hourly' || $payroll->hourly_rate > 0)
+                            Rp {{ number_format($pricePerHour, 2, ',', '.') }}
+                        @else
+                            - (GP Tetap)
+                        @endif
+                    </td>
                 </tr>
                 <tr>
                     <td>PERIODE</td>
                     <td>:</td>
                     <td>{{ \Carbon\Carbon::create(null, $payroll->period_month)->translatedFormat('F') }} {{ $payroll->period_year }}</td>
+                    <td class="text-right">STATUS :</td>
+                    <td>{{ $payroll->employee->tax_status ?? 'TK/0' }}</td>
                 </tr>
                 <tr>
                     <td>BAGIAN</td>
                     <td>:</td>
                     <td>{{ strtoupper($payroll->employee->section ?? ($payroll->employee->department->name ?? 'GENERAL')) }}</td>
+                    <td class="text-right">GOLONGAN :</td>
+                    <td>{{ $payroll->employee->golongan ?? '-' }}</td>
                 </tr>
             </table>
 
@@ -260,16 +272,15 @@
                 <thead>
                     <tr>
                         <th width="16">No</th>
-                        <th width="32">Date</th>
-                        <th width="28">Masuk</th>
-                        <th width="28">Keluar</th>
-                        <th width="42">Price/Hour</th>
-                        <th width="24">Jam Kerja</th>
-                        <th width="24">Jam Lembur</th>
-                        <th width="48">Amount Gaji Pokok</th>
-                        <th width="44">Amount T. Lembur</th>
-                        <th width="38">T. Makan</th>
-                        <th width="38">T. Makan Lembur</th>
+                        <th width="34">Date</th>
+                        <th width="30">Masuk</th>
+                        <th width="30">Keluar</th>
+                        <th width="26">Jam Kerja</th>
+                        <th width="26">Jam Lembur</th>
+                        <th width="54">Amount Gaji Pokok</th>
+                        <th width="50">Amount T. Lembur</th>
+                        <th width="42">T. Makan</th>
+                        <th width="46">T. Makan Lembur</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -311,7 +322,18 @@
                             $amountGP = $dailyJamKerja * $pricePerHour;
                             $amountLembur = $dailyJamLembur * $pricePerHour;
                             $dailyTMakan = $isWorking ? 12500 : 0;
-                            $dailyTMakanLembur = $dailyJamLembur > 0 ? 12500 : 0;
+                            
+                            // T. Makan Lembur ada jika pulang nya lebih dari jam 19.00
+                            $hasOvertimeMeal = false;
+                            if ($att && !empty($att->clock_out)) {
+                                $clockOutTime = \Carbon\Carbon::parse($att->clock_out)->format('H:i:s');
+                                if ($clockOutTime > '19:00:00') {
+                                    $hasOvertimeMeal = true;
+                                }
+                            } elseif ($dailyJamLembur >= 2.5) {
+                                $hasOvertimeMeal = true;
+                            }
+                            $dailyTMakanLembur = $hasOvertimeMeal ? 12500 : 0;
 
                             // Accumulate
                             $sumJamKerja += $dailyJamKerja;
@@ -326,7 +348,6 @@
                             <td class="text-center font-bold">{{ $date->format('d-M') }}</td>
                             <td class="text-center">{{ $clockInStr }}</td>
                             <td class="text-center">{{ $clockOutStr }}</td>
-                            <td class="text-right">Rp {{ number_format($pricePerHour, 0, ',', '.') }}</td>
                             <td class="text-center">{{ $dailyJamKerja > 0 ? number_format($dailyJamKerja, 1, ',', '.') : '-' }}</td>
                             <td class="text-center">{{ $dailyJamLembur > 0 ? number_format($dailyJamLembur, 1, ',', '.') : '-' }}</td>
                             <td class="text-right">{{ $amountGP > 0 ? 'Rp ' . number_format($amountGP, 0, ',', '.') : 'Rp -' }}</td>
@@ -338,7 +359,7 @@
 
                     <!-- Total Row -->
                     <tr class="total-row">
-                        <td colspan="5" class="text-center font-bold">Total</td>
+                        <td colspan="4" class="text-center font-bold">Total</td>
                         <td class="text-center font-bold">{{ number_format($sumJamKerja, 1, ',', '.') }}</td>
                         <td class="text-center font-bold">{{ number_format($sumJamLembur, 1, ',', '.') }}</td>
                         <td class="text-right font-bold">{{ number_format($sumAmountGP, 0, ',', '.') }},0</td>
@@ -559,15 +580,27 @@
             <div class="signature-box">
                 <table width="100%">
                     <tr>
-                        <td width="60%" style="vertical-align: top;">
+                        <td width="55%" style="vertical-align: top;">
                             <div style="margin-bottom: 45px;">Diterima</div>
                             <div class="font-bold">{{ strtoupper($payroll->employee->full_name) }}</div>
                         </td>
-                        <td width="40%" style="text-align: right; vertical-align: top;">
-                            <div style="font-size: 6pt; color: #888; font-style: italic; margin-top: 50px;">
-                                Cetak otomatis Sistem ERP Jidoka<br>
-                                {{ date('d/m/Y H:i') }}
-                            </div>
+                        <td width="45%" style="text-align: right; vertical-align: bottom;">
+                            <table style="float: right; border-collapse: collapse; margin-top: 15px;">
+                                <tr>
+                                    <td style="vertical-align: middle; padding-right: 8px; text-align: right; border: none;">
+                                        <div style="font-size: 6pt; font-weight: bold; color: #000; letter-spacing: 0.5px; margin-bottom: 2px;">DOKUMEN SAH DIGITAL</div>
+                                        <div style="font-size: 5.5pt; color: #666; font-style: italic; line-height: 1.25;">
+                                            Cetak otomatis Sistem ERP Jidoka<br>
+                                            {{ date('d/m/Y H:i') }}
+                                        </div>
+                                    </td>
+                                    <td style="vertical-align: middle; text-align: center; border: 0.5pt solid #000; padding: 2px; background: #fff;">
+                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={{ urlencode(route('payroll.public-validate', $payroll->id)) }}" 
+                                             alt="QR Validasi" 
+                                             style="width: 44px; height: 44px; display: block;">
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
                 </table>
