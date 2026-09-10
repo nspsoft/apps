@@ -6,7 +6,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 0.5cm 0.6cm;
+            margin: 0.3cm 0.8cm 0.3cm 0.8cm;
         }
         * {
             box-sizing: border-box;
@@ -16,7 +16,7 @@
             font-size: 7pt;
             color: #1e293b;
             margin: 0;
-            padding: 0;
+            padding: 8px 30px;
             background-color: #fff;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
@@ -26,7 +26,7 @@
         .container {
             display: flex;
             justify-content: space-between;
-            gap: 12px;
+            gap: 14px;
             width: 100%;
             align-items: stretch;
         }
@@ -35,7 +35,7 @@
             width: 50%;
             border: 1.2pt solid #003680;
             border-radius: 4px;
-            padding: 8px 10px;
+            padding: 6px 14px 4px 14px;
             background-color: #fff;
             display: flex;
             flex-direction: column;
@@ -213,14 +213,14 @@
         /* Signature & Footer Section */
         .signature-box {
             margin-top: auto;
-            padding-top: 8px;
+            padding-top: 4px;
             border-top: 1pt dashed #cbd5e1;
         }
 
         @media print {
             .no-print { display: none !important; }
-            body { background: transparent; }
-            .page-col { padding: 7px 9px; }
+            body { background: transparent; padding: 0 !important; margin: 0 !important; }
+            .page-col { padding: 5px 12px 3px 12px; }
         }
     </style>
 </head>
@@ -647,7 +647,7 @@
                 <table style="width: 100%; border-collapse: collapse;">
                     <tr>
                         <td style="width: 50%; vertical-align: bottom;">
-                            <div style="font-size: 6.5pt; color: #475569; margin-bottom: 30px;">Diterima Oleh,</div>
+                            <div style="font-size: 6.5pt; color: #475569; margin-bottom: 18px;">Diterima Oleh,</div>
                             <div style="font-weight: bold; font-size: 7.5pt; text-decoration: underline; color: #0f172a;">{{ strtoupper($payroll->employee->full_name) }}</div>
                             <div style="font-size: 6pt; color: #64748b;">NIK: {{ $payroll->employee->nik }}</div>
                         </td>
