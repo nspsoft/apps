@@ -104,18 +104,49 @@ const getStatusBadge = (status) => {
                                 <p class="text-xs text-slate-500 font-mono font-bold tracking-[0.3em] uppercase mt-1">Personnel ID: {{ payroll.employee.nik }}</p>
                             </div>
 
-                            <div class="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
                                 <div class="flex flex-col">
-                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1">Department</span>
-                                    <span class="text-sm font-bold text-slate-600 dark:text-slate-300">{{ payroll.employee.department?.name }}</span>
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Department / Section</span>
+                                    <span class="text-sm font-bold text-slate-600 dark:text-slate-300">
+                                        {{ payroll.employee.department?.name }}
+                                        <span v-if="payroll.employee.section" class="text-slate-400"> • {{ payroll.employee.section }}</span>
+                                    </span>
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1">Position</span>
-                                    <span class="text-sm font-bold text-slate-600 dark:text-slate-300">{{ payroll.employee.position?.name }}</span>
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Position / Gol.</span>
+                                    <span class="text-sm font-bold text-slate-600 dark:text-slate-300">
+                                        {{ payroll.employee.position?.name }}
+                                        <span v-if="payroll.employee.golongan" class="text-indigo-400"> (Gol. {{ payroll.employee.golongan }})</span>
+                                    </span>
                                 </div>
                                 <div class="flex flex-col">
-                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1">Period</span>
-                                    <span class="text-sm font-bold text-indigo-400">{{ new Date(payroll.period_year, payroll.period_month - 1).toLocaleString('default', { month: 'long', year: 'numeric' }) }}</span>
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status PTKP</span>
+                                    <span class="text-sm font-bold text-slate-600 dark:text-slate-300">{{ payroll.employee.tax_status || '-' }}</span>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Cutoff Periode</span>
+                                    <span class="text-sm font-bold text-indigo-400 font-mono">
+                                        {{ payroll.cutoff_start ? payroll.cutoff_start + ' s/d ' + payroll.cutoff_end : new Date(payroll.period_year, payroll.period_month - 1).toLocaleString('default', { month: 'long', year: 'numeric' }) }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+                                <div>
+                                    <span class="text-slate-500">Skema:</span>
+                                    <span class="ml-1 font-bold text-slate-700 dark:text-slate-200 uppercase">{{ payroll.employee.salary_type === 'hourly' ? 'Price/Hour' : 'GP Bulanan' }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Rate / Jam:</span>
+                                    <span class="ml-1 font-mono font-bold text-emerald-500 dark:text-emerald-400">Rp {{ formatNumber(payroll.hourly_rate) }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Jam Kerja:</span>
+                                    <span class="ml-1 font-mono font-bold text-slate-700 dark:text-slate-200">{{ payroll.total_working_hours }} jam ({{ payroll.total_working_days }} hari)</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-500">Jam Lembur:</span>
+                                    <span class="ml-1 font-mono font-bold text-amber-500 dark:text-amber-400">{{ payroll.total_overtime_hours }} jam ({{ payroll.total_overtime_days }} hari)</span>
                                 </div>
                             </div>
                         </div>
@@ -180,8 +211,13 @@ const getStatusBadge = (status) => {
                     </div>
                     
                     <div class="relative z-10 text-center md:text-left">
-                        <span class="text-xs font-black text-indigo-200 uppercase tracking-[0.3em]">NET PAYABLE (Take Home Pay)</span>
-                        <div class="text-4xl font-black text-slate-900 dark:text-white tracking-tight mt-1">{{ formatCurrency(payroll.net_salary) }}</div>
+                        <span class="text-xs font-black text-indigo-200 uppercase tracking-[0.3em]">NET PAYABLE (Dibayar)</span>
+                        <div class="text-4xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
+                            {{ formatCurrency(payroll.rounded_net_salary || payroll.net_salary) }}
+                        </div>
+                        <p v-if="payroll.rounded_net_salary && payroll.rounded_net_salary != payroll.net_salary" class="text-xs text-indigo-200 font-mono mt-1">
+                            * Dibulatkan ke atas ke ratusan rupiah terdekat (Netto: {{ formatCurrency(payroll.net_salary) }})
+                        </p>
                     </div>
 
                     <div class="relative z-10 text-center md:text-right hidden sm:block">

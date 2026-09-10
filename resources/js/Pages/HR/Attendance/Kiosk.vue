@@ -4,45 +4,6 @@ import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
 
-// Icons
-import {
-    ArrowLeftIcon,
-    ClockIcon,
-    UsersIcon,
-    RefreshCwIcon,
-    VideoCameraIcon,
-    CheckCircle2Icon,
-    XCircleIcon,
-    CalendarIcon
-} from 'lucide-vue-next';
-
-// Chart JS imports
-import { Line, Doughnut } from 'vue-chartjs';
-import { 
-    Chart as ChartJS, 
-    Title, 
-    Tooltip, 
-    Legend, 
-    LineElement, 
-    PointElement, 
-    CategoryScale, 
-    LinearScale, 
-    ArcElement, 
-    Filler
-} from 'chart.js';
-
-ChartJS.register(
-    Title, 
-    Tooltip, 
-    Legend, 
-    LineElement, 
-    PointElement, 
-    CategoryScale, 
-    LinearScale, 
-    ArcElement, 
-    Filler
-);
-
 const props = defineProps({
     employees: Array
 });

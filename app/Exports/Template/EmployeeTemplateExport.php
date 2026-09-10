@@ -14,28 +14,38 @@ class EmployeeTemplateExport implements FromCollection, WithHeadings, ShouldAuto
     {
         return collect([
             [
-                'EMP-001',                      // NIK
-                'Budi Santoso',                 // Full Name
-                'budi.santoso@example.com',     // Email
+                'JRI-2016.12.2.002',            // NIK
+                'NANANG MULYANA',               // Full Name
+                'nanang.mulyana@example.com',   // Email
                 '081234567890',                 // Phone
-                'Jl. Raya Rungkut Industri No. 10, Surabaya', // Address
-                'PPIC',                         // Department
-                'Staff PPIC',                   // Position
-                '2026-01-15',                   // Joining Date (YYYY-MM-DD)
-                'permanent',                    // Employment Status (permanent, contract, probation, internship)
-                5000000,                        // Basic Salary
-                'Active',                       // Status (Active / Inactive)
+                'Cikarang, Bekasi',             // Address
+                'MMKI',                         // Department
+                'PIC Mitsubishi Group',         // Section / Bagian
+                'Admin/PIC',                    // Position / Jabatan
+                'I',                            // Golongan
+                '1',                            // Tax Status / Status PTKP
+                '2024-01-15',                   // Joining Date (YYYY-MM-DD)
+                'permanent',                    // Employment Status
+                'hourly',                       // Salary Type (hourly / monthly)
+                22310,                          // Price/Hour (Tarif per jam)
+                4885890,                        // Basic Salary (GP Tetap bulanan)
+                'Active',                       // Status
             ],
             [
                 'EMP-002',                      // NIK
                 'Siti Aminah',                  // Full Name
                 'siti.aminah@example.com',      // Email
                 '081987654321',                 // Phone
-                'Jl. Ahmad Yani No. 45, Sidoarjo', // Address
+                'Karawang, Jawa Barat',         // Address
                 'Production',                   // Department
-                'Operator Produksi',            // Position
-                '2026-02-01',                   // Joining Date
+                'Line 1',                       // Section / Bagian
+                'Operator Produksi',            // Position / Jabatan
+                'II',                           // Golongan
+                'TK/0',                         // Tax Status
+                '2025-02-01',                   // Joining Date
                 'contract',                     // Employment Status
+                'monthly',                      // Salary Type
+                0,                              // Price/Hour (0 jika monthly)
                 4500000,                        // Basic Salary
                 'Active',                       // Status
             ]
@@ -51,9 +61,14 @@ class EmployeeTemplateExport implements FromCollection, WithHeadings, ShouldAuto
             'Phone',
             'Address',
             'Department',
+            'Section',
             'Position',
+            'Golongan',
+            'Tax Status',
             'Joining Date',
             'Employment Status',
+            'Salary Type',
+            'Price/Hour',
             'Basic Salary',
             'Status',
         ];

@@ -11,7 +11,6 @@ import {
     AlertCircleIcon,
     UserMinusIcon,
     RefreshCwIcon,
-    ListBulletIcon,
     CalendarIcon
 } from 'lucide-vue-next';
 

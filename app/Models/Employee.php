@@ -21,9 +21,15 @@ class Employee extends Model
     protected $table = 'hr_employees';
     protected $fillable = [
         'user_id', 'nik', 'full_name', 'email', 'phone', 
-        'address', 'department_id', 'position_id', 
+        'address', 'department_id', 'section', 'position_id', 'golongan', 'tax_status',
         'joining_date', 'employment_status', 
-        'basic_salary', 'profile_picture', 'is_active'
+        'basic_salary', 'salary_type', 'hourly_rate', 'profile_picture', 'is_active'
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'basic_salary' => 'double',
+        'hourly_rate' => 'double',
     ];
 
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo

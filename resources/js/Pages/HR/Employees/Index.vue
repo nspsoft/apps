@@ -62,10 +62,15 @@ const form = useForm({
     phone: '',
     address: '',
     department_id: '',
+    section: '',
     position_id: '',
+    golongan: '',
+    tax_status: 'TK/0',
     joining_date: new Date().toISOString().split('T')[0],
     employment_status: 'probation',
+    salary_type: 'monthly',
     basic_salary: 0,
+    hourly_rate: 0,
     is_active: true,
     user_id: '',
     create_user: true,
@@ -81,10 +86,15 @@ const openModal = (employee = null) => {
         form.phone = employee.phone;
         form.address = employee.address;
         form.department_id = employee.department_id;
+        form.section = employee.section || '';
         form.position_id = employee.position_id;
+        form.golongan = employee.golongan || '';
+        form.tax_status = employee.tax_status || 'TK/0';
         form.joining_date = employee.joining_date;
         form.employment_status = employee.employment_status;
+        form.salary_type = employee.salary_type || 'monthly';
         form.basic_salary = employee.basic_salary;
+        form.hourly_rate = employee.hourly_rate || 0;
         form.is_active = employee.is_active === 1 || employee.is_active === true;
         form.user_id = employee.user_id || '';
         form.create_user = false;
@@ -92,6 +102,10 @@ const openModal = (employee = null) => {
     } else {
         form.reset();
         form.joining_date = new Date().toISOString().split('T')[0];
+        form.salary_type = 'monthly';
+        form.tax_status = 'TK/0';
+        form.basic_salary = 0;
+        form.hourly_rate = 0;
         form.is_active = true;
         form.user_id = '';
         form.create_user = true;
@@ -268,18 +282,37 @@ const deleteFace = (employee) => {
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                         <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
                             <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">
                                 <BuildingOfficeIcon class="h-4 w-4" />
                             </div>
-                            <span class="text-xs font-medium">{{ employee.department?.name }}</span>
+                            <span class="text-xs font-medium">
+                                {{ employee.department?.name }}
+                                <span v-if="employee.section" class="text-slate-400"> • {{ employee.section }}</span>
+                            </span>
                         </div>
                         <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
                             <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">
                                 <BriefcaseIcon class="h-4 w-4" />
                             </div>
-                            <span class="text-xs font-medium">{{ employee.position?.name }}</span>
+                            <span class="text-xs font-medium">
+                                {{ employee.position?.name }}
+                                <span v-if="employee.golongan" class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Gol. {{ employee.golongan }}</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                            <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">
+                                <CurrencyDollarIcon class="h-4 w-4" />
+                            </div>
+                            <span class="text-xs font-medium">
+                                <span v-if="employee.salary_type === 'hourly'" class="text-emerald-500 font-bold">
+                                    Rp {{ formatNumber(employee.hourly_rate) }} / jam
+                                </span>
+                                <span v-else class="text-slate-600 dark:text-slate-300 font-medium">
+                                    GP: Rp {{ formatNumber(employee.basic_salary) }}
+                                </span>
+                            </span>
                         </div>
                     </div>
 
@@ -488,6 +521,17 @@ const deleteFace = (employee) => {
                                             </div>
 
                                             <div class="space-y-2">
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Section / Bagian</label>
+                                                <input v-model="form.section" type="text" placeholder="e.g. Produksi, Quality, Warehouse" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                                                <p v-if="form.errors.section" class="text-[10px] text-red-500 italic">{{ form.errors.section }}</p>
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Golongan</label>
+                                                <input v-model="form.golongan" type="text" placeholder="e.g. 1A, 2B, 3, Staff" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                                                <p v-if="form.errors.golongan" class="text-[10px] text-red-500 italic">{{ form.errors.golongan }}</p>
+                                            </div>
+
+                                            <div class="space-y-2">
                                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Joining Date</label>
                                                 <input v-model="form.joining_date" type="date" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all" />
                                                 <p v-if="form.errors.joining_date" class="text-[10px] text-red-500 italic">{{ form.errors.joining_date }}</p>
@@ -502,7 +546,22 @@ const deleteFace = (employee) => {
                                                 </select>
                                                 <p v-if="form.errors.employment_status" class="text-[10px] text-red-500 italic">{{ form.errors.employment_status }}</p>
                                             </div>
-                                            
+
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status Pajak (PTKP)</label>
+                                                <select v-model="form.tax_status" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all">
+                                                    <option value="TK/0">TK/0 (Tidak Kawin / 0 Tanggungan)</option>
+                                                    <option value="TK/1">TK/1 (Tidak Kawin / 1 Tanggungan)</option>
+                                                    <option value="TK/2">TK/2 (Tidak Kawin / 2 Tanggungan)</option>
+                                                    <option value="TK/3">TK/3 (Tidak Kawin / 3 Tanggungan)</option>
+                                                    <option value="K/0">K/0 (Kawin / 0 Tanggungan)</option>
+                                                    <option value="K/1">K/1 (Kawin / 1 Tanggungan)</option>
+                                                    <option value="K/2">K/2 (Kawin / 2 Tanggungan)</option>
+                                                    <option value="K/3">K/3 (Kawin / 3 Tanggungan)</option>
+                                                </select>
+                                                <p v-if="form.errors.tax_status" class="text-[10px] text-red-500 italic">{{ form.errors.tax_status }}</p>
+                                            </div>
+
                                             <div v-if="editingEmployee" class="space-y-2">
                                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Account Status</label>
                                                 <select v-model="form.is_active" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all">
@@ -512,8 +571,30 @@ const deleteFace = (employee) => {
                                                 <p v-if="form.errors.is_active" class="text-[10px] text-red-500 italic">{{ form.errors.is_active }}</p>
                                             </div>
 
-                                            <div class="space-y-2 md:col-span-2">
-                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Basic Salary (Monthly)</label>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Skema Penggajian</label>
+                                                <select v-model="form.salary_type" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all font-semibold">
+                                                    <option value="monthly">Bulanan (Gaji Pokok Tetap)</option>
+                                                    <option value="hourly">Per Jam (Price / Hour)</option>
+                                                </select>
+                                                <p v-if="form.errors.salary_type" class="text-[10px] text-red-500 italic">{{ form.errors.salary_type }}</p>
+                                            </div>
+
+                                            <div v-if="form.salary_type === 'hourly'" class="space-y-2">
+                                                <label class="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Rate Per Jam (Price / Hour)</label>
+                                                <div class="relative">
+                                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                        <span class="text-xs text-slate-500 font-bold">Rp</span>
+                                                    </div>
+                                                    <input v-model="form.hourly_rate" type="number" step="0.01" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 pl-12 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono font-bold" />
+                                                </div>
+                                                <p v-if="form.errors.hourly_rate" class="text-[10px] text-red-500 italic">{{ form.errors.hourly_rate }}</p>
+                                            </div>
+
+                                            <div class="space-y-2" :class="form.salary_type === 'hourly' ? '' : 'md:col-span-2'">
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                    {{ form.salary_type === 'hourly' ? 'Estimasi GP Bulanan (Optional)' : 'Gaji Pokok Bulanan (GP)' }}
+                                                </label>
                                                 <div class="relative">
                                                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                                         <span class="text-xs text-slate-500 font-bold">Rp</span>

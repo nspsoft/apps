@@ -135,6 +135,16 @@ class EmployeeImport implements ToCollection, WithCalculatedFormulas
             $phone = isset($headerMap['phone']) ? trim((string)($row[$headerMap['phone']] ?? '')) : null;
             $address = isset($headerMap['address']) ? trim((string)($row[$headerMap['address']] ?? '')) : null;
             
+            $section = isset($headerMap['section']) ? trim((string)($row[$headerMap['section']] ?? '')) : null;
+            $golongan = isset($headerMap['golongan']) ? trim((string)($row[$headerMap['golongan']] ?? '')) : null;
+            $taxStatus = isset($headerMap['tax_status']) ? trim((string)($row[$headerMap['tax_status']] ?? '')) : null;
+
+            $salaryTypeRaw = isset($headerMap['salary_type']) ? strtolower(trim((string)($row[$headerMap['salary_type']] ?? ''))) : 'monthly';
+            $salaryType = in_array($salaryTypeRaw, ['hourly', 'per jam', 'perjam', 'jam']) ? 'hourly' : 'monthly';
+
+            $hourlyRateRaw = isset($headerMap['hourly_rate']) ? ($row[$headerMap['hourly_rate']] ?? 0) : 0;
+            $hourlyRate = $this->parseNumeric($hourlyRateRaw);
+
             $joiningDateRaw = isset($headerMap['joining_date']) ? ($row[$headerMap['joining_date']] ?? null) : null;
             $joiningDate = $this->transformDate($joiningDateRaw);
 
@@ -153,9 +163,14 @@ class EmployeeImport implements ToCollection, WithCalculatedFormulas
                 'phone'             => $phone !== '' ? $phone : null,
                 'address'           => $address !== '' ? $address : null,
                 'department_id'     => $department->id,
+                'section'           => $section !== '' ? $section : null,
                 'position_id'       => $position->id,
+                'golongan'          => $golongan !== '' ? $golongan : null,
+                'tax_status'        => $taxStatus !== '' ? $taxStatus : null,
                 'joining_date'      => $joiningDate,
                 'employment_status' => $employmentStatus,
+                'salary_type'       => $salaryType,
+                'hourly_rate'       => $hourlyRate > 0 ? $hourlyRate : null,
                 'basic_salary'      => $basicSalary,
                 'is_active'         => $isActive,
             ];
@@ -196,17 +211,32 @@ class EmployeeImport implements ToCollection, WithCalculatedFormulas
         if (in_array($clean, ['address', 'alamat', 'domisili'])) {
             return 'address';
         }
-        if (in_array($clean, ['department', 'departemen', 'divisi', 'bagian', 'unit', 'dept'])) {
+        if (in_array($clean, ['department', 'departemen', 'divisi', 'dept'])) {
             return 'department';
+        }
+        if (in_array($clean, ['section', 'bagian', 'unit', 'kelompok', 'group'])) {
+            return 'section';
         }
         if (in_array($clean, ['position', 'jabatan', 'posisi', 'role'])) {
             return 'position';
+        }
+        if (in_array($clean, ['golongan', 'grade', 'gol', 'level'])) {
+            return 'golongan';
+        }
+        if (in_array($clean, ['taxstatus', 'statuspajak', 'ptkp', 'tanggungan'])) {
+            return 'tax_status';
         }
         if (in_array($clean, ['joiningdate', 'joindate', 'tanggalbergabung', 'tglmasuk', 'tanggalmasuk', 'tglbergabung'])) {
             return 'joining_date';
         }
         if (in_array($clean, ['employmentstatus', 'statuskaryawan', 'statuskerja', 'statuskepegawaian', 'tipekaryawan'])) {
             return 'employment_status';
+        }
+        if (in_array($clean, ['salarytype', 'tipegaji', 'sistemgaji', 'jenissalary'])) {
+            return 'salary_type';
+        }
+        if (in_array($clean, ['hourlyrate', 'priceperhour', 'pricehour', 'tarifperjam', 'upahperjam', 'tarifjam', 'ratejam'])) {
+            return 'hourly_rate';
         }
         if (in_array($clean, ['basicsalary', 'gaji', 'gajipokok', 'salary', 'gajidasar', 'upah'])) {
             return 'basic_salary';
