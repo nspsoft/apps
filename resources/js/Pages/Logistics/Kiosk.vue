@@ -884,15 +884,13 @@ const getStatusBadgeStyle = (statusCode) => {
                                 <thead class="bg-[#070B14] text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-800/80">
                                     <tr>
                                         <th class="py-2.5 px-4 w-10 text-center">#</th>
-                                        <th class="py-2.5 px-4 w-36">Kode / SKU</th>
+                                        <th class="py-2.5 px-4 w-40">Kode / SKU</th>
                                         <th class="py-2.5 px-4">Nama Barang & Spesifikasi</th>
-                                        <th class="py-2.5 px-4 text-right w-24">Qty Order</th>
-                                        <th class="py-2.5 px-4 text-right w-24">Qty Kirim</th>
-                                        <th class="py-2.5 px-4 text-center w-20">Satuan</th>
-                                        <th class="py-2.5 px-4 text-right w-28">Est. Berat</th>
-                                        <th class="py-2.5 px-4 w-32">No. Lot / Batch</th>
-                                        <th class="py-2.5 px-4 w-32">Staging</th>
-                                        <th class="py-2.5 px-4 text-center w-40">Status Muat / Barang</th>
+                                        <th class="py-2.5 px-4 text-right w-28">Qty Order</th>
+                                        <th class="py-2.5 px-4 text-right w-28">Qty Kirim</th>
+                                        <th class="py-2.5 px-4 text-center w-24">Satuan</th>
+                                        <th class="py-2.5 px-4 w-36">Staging Gudang</th>
+                                        <th class="py-2.5 px-4 text-center w-48">Status Muat / Barang</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-800/40 text-xs">
@@ -908,8 +906,6 @@ const getStatusBadgeStyle = (statusCode) => {
                                         <td class="py-2.5 px-4 text-right font-mono text-slate-400">{{ Number(item.qty_ordered).toLocaleString('id-ID') }}</td>
                                         <td class="py-2.5 px-4 text-right font-mono font-black text-white">{{ Number(item.qty_delivered).toLocaleString('id-ID') }}</td>
                                         <td class="py-2.5 px-4 text-center text-slate-400 font-bold text-[11px]">{{ item.unit }}</td>
-                                        <td class="py-2.5 px-4 text-right font-mono font-bold text-cyan-300">{{ Number(item.weight_kg).toLocaleString('id-ID') }} Kg</td>
-                                        <td class="py-2.5 px-4 font-mono text-slate-400 text-[11px]">{{ item.batch_number }}</td>
                                         <td class="py-2.5 px-4 text-slate-300 text-[11px]">{{ item.location }}</td>
                                         <td class="py-2.5 px-4 text-center">
                                             <span 
@@ -931,7 +927,7 @@ const getStatusBadgeStyle = (statusCode) => {
                                         </td>
                                     </tr>
                                     <tr v-if="!doOrder.items || doOrder.items.length === 0">
-                                        <td colspan="10" class="py-4 text-center text-slate-500 text-xs italic">
+                                        <td colspan="8" class="py-4 text-center text-slate-500 text-xs italic">
                                             Rincian item barang pada Delivery Order ini belum diinput.
                                         </td>
                                     </tr>
