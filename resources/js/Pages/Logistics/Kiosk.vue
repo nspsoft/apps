@@ -181,8 +181,8 @@ const barChartOptions = {
 
 const doughnutOptions = {
     responsive: true,
-    maintainAspectRatio: false,
-    cutout: '72%',
+    maintainAspectRatio: true,
+    cutout: '70%',
     plugins: {
         legend: {
             display: false,
@@ -1215,9 +1215,9 @@ const getStatusBadgeStyle = (statusCode) => {
                 </div>
 
                 <!-- Main 4-Chart Analytics Dashboard (2x2 Grid) -->
-                <div class="flex-1 grid grid-cols-12 gap-4 min-h-0">
+                <div class="flex-1 grid grid-cols-12 grid-rows-2 gap-4 min-h-0">
                     <!-- Chart 1: Hourly Dispatch & Tonnage Trend (Col 7) -->
-                    <div class="col-span-7 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0">
+                    <div class="col-span-7 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0 overflow-hidden">
                         <div class="flex items-center justify-between mb-2 shrink-0">
                             <div class="flex items-center gap-2">
                                 <div class="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></div>
@@ -1225,13 +1225,13 @@ const getStatusBadgeStyle = (statusCode) => {
                             </div>
                             <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Dispatch Throughput</span>
                         </div>
-                        <div class="flex-1 min-h-0 relative">
+                        <div class="flex-1 min-h-0 relative w-full">
                             <Line :data="hourlyChartData" :options="lineChartOptions" />
                         </div>
                     </div>
 
                     <!-- Chart 2: Status Breakdown Doughnut (Col 5) -->
-                    <div class="col-span-5 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0">
+                    <div class="col-span-5 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0 overflow-hidden">
                         <div class="flex items-center justify-between mb-2 shrink-0">
                             <div class="flex items-center gap-2">
                                 <div class="h-2 w-2 rounded-full bg-emerald-400"></div>
@@ -1239,42 +1239,34 @@ const getStatusBadgeStyle = (statusCode) => {
                             </div>
                             <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Live Progress</span>
                         </div>
-                        <div class="flex-1 min-h-0 grid grid-cols-12 items-center gap-3">
-                            <div class="col-span-5 h-full relative flex items-center justify-center">
-                                <Doughnut :data="statusDoughnutData" :options="doughnutOptions" />
-                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <span class="text-xl font-black text-white font-mono leading-none">{{ kioskData.manifest_summary?.total_dos || 0 }}</span>
-                                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total DO</span>
+                        <div class="flex-1 min-h-0 grid grid-cols-12 items-center gap-4">
+                            <div class="col-span-5 flex items-center justify-center min-h-0">
+                                <div class="relative w-full max-w-[160px] aspect-square flex items-center justify-center">
+                                    <Doughnut :data="statusDoughnutData" :options="doughnutOptions" />
+                                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                        <span class="text-2xl font-black text-white font-mono leading-none">{{ kioskData.manifest_summary?.total_dos || 0 }}</span>
+                                        <span class="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total DO</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-span-7 space-y-1.5 text-xs">
-                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/80">
-                                    <span class="flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
-                                        <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-                                        Terkirim (Delivered)
+                            <div class="col-span-7 flex flex-col justify-center space-y-1.5 text-xs">
+                                <div 
+                                    v-for="(label, idx) in statusDoughnutData.labels" 
+                                    :key="label"
+                                    class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800/80"
+                                >
+                                    <span class="flex items-center gap-2 font-bold text-[11px] truncate mr-2" :style="{ color: statusDoughnutData.datasets[0].backgroundColor[idx] }">
+                                        <span class="h-2 w-2 rounded-full shrink-0" :style="{ backgroundColor: statusDoughnutData.datasets[0].backgroundColor[idx] }"></span>
+                                        <span class="truncate">{{ label }}</span>
                                     </span>
-                                    <span class="font-mono font-black text-white">{{ kioskData.kpis?.total_rits_done || 0 }} Rit</span>
-                                </div>
-                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/80">
-                                    <span class="flex items-center gap-1.5 text-cyan-400 font-bold text-[11px]">
-                                        <span class="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                                        On The Road
-                                    </span>
-                                    <span class="font-mono font-black text-white">{{ kioskData.kpis?.total_rits_running || 0 }} Truk</span>
-                                </div>
-                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/80">
-                                    <span class="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
-                                        <span class="h-2 w-2 rounded-full bg-amber-400"></span>
-                                        Siap di Dock
-                                    </span>
-                                    <span class="font-mono font-black text-white">{{ kioskData.kpis?.total_rits_waiting || 0 }} DO</span>
+                                    <span class="font-mono font-black text-white shrink-0 text-xs">{{ statusDoughnutData.datasets[0].data[idx] || 0 }} DO</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Chart 3: Truck Capacity vs Actual Load Bar Chart (Col 7) -->
-                    <div class="col-span-7 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0">
+                    <div class="col-span-7 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0 overflow-hidden">
                         <div class="flex items-center justify-between mb-2 shrink-0">
                             <div class="flex items-center gap-2">
                                 <div class="h-2 w-2 rounded-full bg-blue-400"></div>
@@ -1282,13 +1274,13 @@ const getStatusBadgeStyle = (statusCode) => {
                             </div>
                             <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Muatan vs Max Kapasitas</span>
                         </div>
-                        <div class="flex-1 min-h-0 relative">
+                        <div class="flex-1 min-h-0 relative w-full">
                             <Bar :data="truckCapacityChartData" :options="barChartOptions" />
                         </div>
                     </div>
 
                     <!-- Chart 4: Loading Dock Throughput Matrix (Col 5) -->
-                    <div class="col-span-5 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl justify-between min-h-0">
+                    <div class="col-span-5 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl justify-between min-h-0 overflow-hidden">
                         <div class="flex items-center justify-between mb-2 shrink-0">
                             <div class="flex items-center gap-2">
                                 <div class="h-2 w-2 rounded-full bg-purple-400"></div>
@@ -1296,7 +1288,7 @@ const getStatusBadgeStyle = (statusCode) => {
                             </div>
                             <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Crane Dock #1 - #4</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-2.5 flex-1 items-center">
+                        <div class="grid grid-cols-2 gap-2.5 flex-1 items-center min-h-0">
                             <div 
                                 v-for="dock in kioskData.analytics_charts?.dock_throughput || []" 
                                 :key="dock.name"
