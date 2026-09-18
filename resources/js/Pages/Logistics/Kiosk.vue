@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -34,8 +34,33 @@ const props = defineProps({
     selectedDateFilter: String
 });
 
+const page = usePage();
+
 // State
 const kioskData = ref(props.initialData || {});
+
+// Dynamic Company Profile
+const companyName = computed(() => {
+    return kioskData.value?.company_info?.name 
+        || page.props.company?.name 
+        || 'JICOS';
+});
+
+const companyLogo = computed(() => {
+    return kioskData.value?.company_info?.logo 
+        || page.props.company?.logo 
+        || null;
+});
+
+const companyInitials = computed(() => {
+    const name = (companyName.value || '').replace(/[^a-zA-Z0-9]/g, '');
+    return (name.slice(0, 2) || 'JC').toUpperCase();
+});
+
+const plantName = computed(() => {
+    return kioskData.value?.company_info?.plant_name 
+        || `${companyName.value} Central Logistics Plant`;
+});
 const activeDate = ref(props.selectedDateFilter || 'today');
 const currentSlide = ref(0); // 0: Matrix, 1: Radar, 2: Tomorrow, 3: KPIs
 const isPaused = ref(false);
@@ -222,7 +247,7 @@ const renderMapMarkers = () => {
     });
     const plantMarker = L.marker([-6.2850, 107.1500], { icon: plantIcon })
         .addTo(mapInstance.value)
-        .bindTooltip('<b class="text-xs">SPINDO Central Logistics Plant</b>', { permanent: true, direction: 'top', className: 'hud-tooltip' });
+        .bindTooltip(`<b class="text-xs">${plantName.value}</b>`, { permanent: true, direction: 'top', className: 'hud-tooltip' });
     mapMarkers.value.push(plantMarker);
 
     // Truck markers
@@ -321,7 +346,7 @@ const getStatusBadgeStyle = (statusCode) => {
 </script>
 
 <template>
-    <Head title="Logistics Kiosk TV Display - Dispatch Hub" />
+    <Head :title="`${companyName} - Logistics Kiosk TV Display`" />
 
     <div class="h-screen w-screen bg-[#070B14] text-slate-100 flex flex-col select-none overflow-hidden font-sans antialiased">
         
@@ -334,11 +359,14 @@ const getStatusBadgeStyle = (statusCode) => {
                     class="h-10 px-3 bg-slate-900 border border-slate-700/80 rounded-xl flex items-center gap-2.5 hover:bg-slate-800 transition-colors group"
                     title="Kembali ke Logistics Admin"
                 >
-                    <div class="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white text-xs">
-                        SP
+                    <div v-if="companyLogo" class="h-7 w-7 rounded-lg overflow-hidden flex items-center justify-center bg-slate-800 p-0.5 border border-slate-700 shrink-0">
+                        <img :src="companyLogo" :alt="companyName" class="h-full w-full object-contain" />
+                    </div>
+                    <div v-else class="h-6 w-6 rounded-lg bg-blue-600 flex items-center justify-center font-black text-white text-xs shrink-0">
+                        {{ companyInitials }}
                     </div>
                     <div class="hidden xl:block text-left">
-                        <p class="text-[11px] font-black uppercase tracking-wider text-slate-200 group-hover:text-blue-400 transition-colors leading-tight">SPINDO ERP</p>
+                        <p class="text-[11px] font-black uppercase tracking-wider text-slate-200 group-hover:text-blue-400 transition-colors leading-tight">{{ companyName }} ERP</p>
                         <p class="text-[9px] font-bold text-slate-500 leading-tight">Logistics Command</p>
                     </div>
                 </Link>
@@ -829,7 +857,7 @@ const getStatusBadgeStyle = (statusCode) => {
                         </div>
                         <div class="my-4">
                             <h2 class="text-4xl font-black text-cyan-400 font-mono tracking-tight">{{ kioskData.kpis?.total_tonnage_today || 0 }} <span class="text-xl font-bold text-slate-400">Ton</span></h2>
-                            <p class="text-xs text-slate-400 font-medium mt-1">Akumulasi pengiriman baja pipa & hollow</p>
+                            <p class="text-xs text-slate-400 font-medium mt-1">Akumulasi pengiriman order logistik</p>
                         </div>
                         <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                             <div class="bg-cyan-400 h-full w-4/5"></div>

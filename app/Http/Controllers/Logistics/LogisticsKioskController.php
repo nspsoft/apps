@@ -243,6 +243,13 @@ class LogisticsKioskController extends Controller
                 'on_time_departure_rate' => $onTimeDepartureRate,
                 'fleet_utilization_pct' => count($vehicles) > 0 ? round(($totalDispatchedTrucks / count($vehicles)) * 100) : 85,
             ],
+            'company_info' => [
+                'name' => \App\Models\Company::first()?->name ?? 'JICOS',
+                'legal_name' => \App\Models\Company::first()?->legal_name ?? 'PT. JIDOKA RESULT INDONESIA',
+                'logo' => \App\Models\Company::first()?->logo,
+                'plant_name' => (\App\Models\Company::first()?->name ?? 'JICOS') . ' Central Logistics Plant',
+                'city' => \App\Models\Company::first()?->city ?? 'Bekasi',
+            ],
         ];
     }
 
