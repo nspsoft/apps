@@ -622,6 +622,9 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::post('/payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
     Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
     Route::get('/payroll/{payroll}/print', [PayrollController::class, 'print'])->name('payroll.print');
+    Route::get('/payroll/{payroll}/pdf', [PayrollController::class, 'downloadPdf'])->name('payroll.pdf');
+    Route::post('/payroll/{payroll}/send', [PayrollController::class, 'sendSingle'])->name('payroll.send');
+    Route::post('/payroll/send-bulk', [PayrollController::class, 'sendBulk'])->name('payroll.send-bulk');
     Route::put('/payroll/{payroll}/status', [PayrollController::class, 'updateStatus'])->name('payroll.update-status');
 
     // Leaves Management
@@ -648,6 +651,15 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::put('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'update'])->name('work-schedules.update');
     Route::delete('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'destroy'])->name('work-schedules.destroy');
     Route::put('/penalty-rules/{penaltyRule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'updatePenaltyRule'])->name('penalty-rules.update');
+
+    // WhatsApp Center for HR & Employees
+    Route::get('/whatsapp', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'index'])->name('whatsapp.index');
+    Route::get('/whatsapp/history/{phone}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'history'])->name('whatsapp.history');
+    Route::delete('/whatsapp/history/{phone}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'destroy'])->name('whatsapp.destroy');
+    Route::post('/whatsapp/send', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'send'])->name('whatsapp.send');
+    Route::get('/whatsapp/unread-count', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'unreadCount'])->name('whatsapp.unread-count');
+    Route::post('/whatsapp/labels', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'addLabel'])->name('whatsapp.labels.store');
+    Route::delete('/whatsapp/labels/{label}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'removeLabel'])->name('whatsapp.labels.destroy');
 });
 
 // Warehouse (Loading Queue for Warehouse Staff)
@@ -661,6 +673,8 @@ Route::middleware(['auth'])->prefix('warehouse')->name('warehouse.')->group(func
 // Logistics
 Route::middleware(['auth'])->prefix('logistics')->name('logistics.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Logistics\LogisticsDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/kiosk', [App\Http\Controllers\Logistics\LogisticsKioskController::class, 'index'])->name('kiosk');
+    Route::get('/kiosk/data', [App\Http\Controllers\Logistics\LogisticsKioskController::class, 'fetchData'])->name('kiosk.data');
     Route::get('/planning', [App\Http\Controllers\Logistics\LogisticsController::class, 'index'])->name('planning');
     Route::post('/planning/assign', [App\Http\Controllers\Logistics\LogisticsController::class, 'assignVehicle'])->name('planning.assign');
 
@@ -794,6 +808,7 @@ Route::middleware(['auth'])->prefix('employee')->name('employee.')->group(functi
 
     // Overtime
     Route::get('overtime', [\App\Http\Controllers\Employee\OvertimeController::class, 'index'])->name('overtime.index');
+    Route::get('overtime/create', [\App\Http\Controllers\Employee\OvertimeController::class, 'create'])->name('overtime.create');
     Route::post('overtime', [\App\Http\Controllers\Employee\OvertimeController::class, 'store'])->name('overtime.store');
 });
 

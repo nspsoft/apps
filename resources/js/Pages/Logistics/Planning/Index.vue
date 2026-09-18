@@ -39,6 +39,9 @@ const form = useForm({
     delivery_order_ids: [],
     vehicle_id: '',
     driver_name: '',
+    rit_number: 1,
+    loading_dock: 'Dock #1',
+    estimated_departure_time: '07:30',
     travel_allowance: 0,
     travel_allowance_notes: ''
 });
@@ -91,8 +94,20 @@ const getStatusColor = (status) => {
     <Head title="Delivery Planning" />
 
     <AppLayout title="Delivery Planning">
-        <div class="mb-8">
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest leading-none">Perencanaan Pengiriman Barang</p>
+        <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400 font-medium uppercase tracking-widest leading-none">Perencanaan Pengiriman Barang & Multi-Rit</p>
+            </div>
+            <div>
+                <Link
+                    :href="route('logistics.kiosk')"
+                    target="_blank"
+                    class="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                    <TruckIcon class="h-4 w-4" />
+                    <span>Buka Kiosk TV Display (40")</span>
+                </Link>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -262,6 +277,47 @@ const getStatusColor = (status) => {
                                         {{ v.license_plate }} - {{ v.vehicle_type }}
                                     </option>
                                 </select>
+                            </div>
+
+                            <!-- Multi-Rit & Dock Dispatch Setup -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/60 dark:border-slate-700/60">
+                                <!-- Rit Ke- -->
+                                <div class="space-y-1.5">
+                                    <label class="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400">Rit Ke-</label>
+                                    <select 
+                                        v-model="form.rit_number"
+                                        class="w-full bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-3 py-2.5 text-xs font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                    >
+                                        <option :value="1">Rit 1 (Pagi)</option>
+                                        <option :value="2">Rit 2 (Siang)</option>
+                                        <option :value="3">Rit 3 (Sore/Malam)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Loading Dock -->
+                                <div class="space-y-1.5">
+                                    <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Loading Dock</label>
+                                    <select 
+                                        v-model="form.loading_dock"
+                                        class="w-full bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                    >
+                                        <option value="Dock #1">Dock #1</option>
+                                        <option value="Dock #2">Dock #2</option>
+                                        <option value="Dock #3">Dock #3</option>
+                                        <option value="Dock #4">Dock #4</option>
+                                        <option value="Staging Area">Staging Area</option>
+                                    </select>
+                                </div>
+
+                                <!-- Est. Departure Time -->
+                                <div class="space-y-1.5">
+                                    <label class="text-[10px] font-black uppercase tracking-wider text-slate-500">Jam Berangkat</label>
+                                    <input 
+                                        v-model="form.estimated_departure_time"
+                                        type="time"
+                                        class="w-full bg-white dark:bg-slate-900 border-0 ring-1 ring-slate-200 dark:ring-slate-700 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                    />
+                                </div>
                             </div>
 
                             <!-- Driver Info (Optional override) -->

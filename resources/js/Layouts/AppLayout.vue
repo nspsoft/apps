@@ -110,6 +110,8 @@ const waUnreadCount = ref(0);
 let waUnreadInterval = null;
 const waPurchasingUnreadCount = ref(0);
 let waPurchasingUnreadInterval = null;
+const waHrUnreadCount = ref(0);
+let waHrUnreadInterval = null;
 
 // Flash Notifications Logic
 const flashSuccess = computed(() => page.props.flash?.success);
@@ -449,6 +451,7 @@ const navigation = [
         permission: 'logistics.view',
         children: [
             { name: 'Logistics Hub', href: '/logistics/dashboard', icon: PresentationChartBarIcon, permission: 'logistics.view' },
+            { name: 'Logistics Kiosk TV', href: '/logistics/kiosk', icon: ComputerDesktopIcon, permission: 'logistics.view' },
             { name: 'Loading Queue', href: '/warehouse/loading', icon: CubeIcon, permission: 'logistics.view' },
             { name: 'Delivery Planning', href: '/logistics/planning', icon: MapIcon, permission: 'logistics.delivery_planning.view' },
             { name: 'Dispatch', href: '/logistics/dispatch', icon: TruckIcon, permission: 'logistics.view' },
@@ -489,6 +492,7 @@ const navigation = [
             { name: 'My Performance', href: '/employee/performance', icon: ChartBarIcon, requiresEmployee: true },
             
             { name: 'HR Administration', isHeader: true },
+            { name: 'WhatsApp Center', href: '/hr/whatsapp', icon: ChatBubbleLeftRightIcon, permission: 'hr_payroll.payroll.view', badgeKey: 'waHrUnread' },
             { name: 'Employee Directory', href: '/hr/employees', icon: IdentificationIcon, permission: 'hr_payroll.employee_directory.view' },
             { name: 'Attendance', href: '/hr/attendance', icon: ClockIcon, permission: 'hr_payroll.attendance.view' },
             { name: 'Attendance Dashboard', href: '/hr/attendance/dashboard', icon: ChartBarIcon, permission: 'hr_payroll.attendance.view' },
@@ -779,6 +783,15 @@ onMounted(() => {
     fetchWaPurchasingUnread();
     waPurchasingUnreadInterval = setInterval(fetchWaPurchasingUnread, 30000);
 
+    // Poll HR WhatsApp unread count every 30 seconds
+    const fetchWaHrUnread = () => {
+        axios.get('/hr/whatsapp/unread-count').then(r => {
+            waHrUnreadCount.value = r.data?.total || 0;
+        }).catch(() => {});
+    };
+    fetchWaHrUnread();
+    waHrUnreadInterval = setInterval(fetchWaHrUnread, 30000);
+
     // Listen to fullscreen change events
     document.addEventListener('fullscreenchange', () => {
         isFullscreen.value = !!document.fullscreenElement;
@@ -826,12 +839,14 @@ const toggleTheme = () => {
 const getBadge = (child) => {
     if (child.badgeKey === 'waUnread') return waUnreadCount.value;
     if (child.badgeKey === 'waPurchasingUnread') return waPurchasingUnreadCount.value;
+    if (child.badgeKey === 'waHrUnread') return waHrUnreadCount.value;
     return 0;
 };
 
 onUnmounted(() => {
     if (waUnreadInterval) clearInterval(waUnreadInterval);
     if (waPurchasingUnreadInterval) clearInterval(waPurchasingUnreadInterval);
+    if (waHrUnreadInterval) clearInterval(waHrUnreadInterval);
 });
 
 </script>

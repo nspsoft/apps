@@ -42,6 +42,9 @@ class LogisticsController extends Controller
             'delivery_order_ids.*' => 'exists:delivery_orders,id',
             'vehicle_id' => 'required|exists:vehicles,id',
             'driver_name' => 'nullable|string',
+            'rit_number' => 'nullable|integer|min:1|max:5',
+            'loading_dock' => 'nullable|string|max:30',
+            'estimated_departure_time' => 'nullable|string',
             'travel_allowance' => 'nullable|numeric|min:0',
             'travel_allowance_notes' => 'nullable|string',
         ]);
@@ -63,6 +66,9 @@ class LogisticsController extends Controller
         
         $travelAllowance = $request->travel_allowance ?? 0;
         $travelAllowanceStatus = $travelAllowance > 0 ? 'requested' : 'none';
+        $ritNumber = $request->rit_number ? intval($request->rit_number) : 1;
+        $loadingDock = $request->loading_dock ?: 'Dock #1';
+        $departureTime = $request->estimated_departure_time ?: null;
 
         foreach ($deliveryOrderIds as $id) {
             $isPrimary = ($id == $primaryDoId);
@@ -72,6 +78,9 @@ class LogisticsController extends Controller
                 'driver_name' => $driverName,
                 'driver_user_id' => $driverUserId,
                 'shipment_number' => $shipmentNumber,
+                'rit_number' => $ritNumber,
+                'loading_dock' => $loadingDock,
+                'estimated_departure_time' => $departureTime,
                 'travel_allowance' => $isPrimary ? $travelAllowance : 0,
                 'travel_allowance_notes' => $isPrimary ? $request->travel_allowance_notes : null,
                 'travel_allowance_status' => $isPrimary ? $travelAllowanceStatus : 'none',
@@ -79,6 +88,6 @@ class LogisticsController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'Vehicles and travel allowance assigned to shipment ' . $shipmentNumber . ' successfully.');
+        return redirect()->back()->with('success', 'Armada dan Rit ' . $ritNumber . ' berhasil di-assign untuk Shipment ' . $shipmentNumber . '.');
     }
 }
