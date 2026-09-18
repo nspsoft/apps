@@ -297,10 +297,94 @@ class LogisticsKioskController extends Controller
             ]),
         ];
 
-        // 6. Slide 4: Overall Daily Logistics Metrics
+        // 6. Slide 4: Rich Analytics & Chart Data
         $totalScheduled = $deliveryOrders->count();
         $totalDispatchedTrucks = $deliveryOrders->whereIn('status', ['shipped', 'delivered'])->pluck('vehicle_id')->filter()->unique()->count();
         $onTimeDepartureRate = $totalScheduled > 0 ? round((($totalRitsDone + $totalRitsRunning) / max(1, $totalScheduled)) * 100) : 100;
+
+        // Hourly Dispatch Trend (06:00 to 18:00 in 2-hour windows)
+        $hourlyLabels = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'];
+        $hourlyTonnage = [0, 0, 0, 0, 0, 0, 0];
+        $hourlyTrucks = [0, 0, 0, 0, 0, 0, 0];
+
+        foreach ($deliveryOrders as $do) {
+            $time = $do->estimated_departure_time ?: '08:00';
+            $hour = (int) substr($time, 0, 2);
+            $weightTon = round(($do->total_weight_kg ?: 5000) / 1000, 2);
+            
+            $slot = match (true) {
+                $hour < 8 => 0,
+                $hour < 10 => 1,
+                $hour < 12 => 2,
+                $hour < 14 => 3,
+                $hour < 16 => 4,
+                $hour < 18 => 5,
+                default => 6,
+            };
+            $hourlyTonnage[$slot] += $weightTon;
+            $hourlyTrucks[$slot] += 1;
+        }
+        $hourlyTonnage = array_map(fn($v) => round($v, 1), $hourlyTonnage);
+
+        // Truck Capacity vs Actual Load (Top scheduled trucks)
+        $truckUtilizationLabels = [];
+        $truckActualLoad = [];
+        $truckMaxCapacity = [];
+        $truckUtilizationPcts = [];
+
+        foreach (array_slice(array_filter($matrixRows, fn($r) => $r['has_schedules'] && $r['vehicle_id'] > 0), 0, 6) as $r) {
+            $truckUtilizationLabels[] = $r['license_plate'];
+            $truckActualLoad[] = $r['total_load_ton'];
+            $truckMaxCapacity[] = $r['max_capacity_ton'];
+            $truckUtilizationPcts[] = $r['max_capacity_ton'] > 0 ? round(($r['total_load_ton'] / $r['max_capacity_ton']) * 100) : 0;
+        }
+
+        // Status Distribution (Doughnut)
+        $statusCounts = [
+            'delivered' => $deliveryOrders->where('status', 'delivered')->count(),
+            'on_road' => $deliveryOrders->whereIn('status', ['shipped', 'on_road'])->count(),
+            'packed' => $deliveryOrders->where('status', 'packed')->count(),
+            'staging_or_draft' => $deliveryOrders->whereIn('status', ['draft', 'picking'])->count(),
+        ];
+
+        // Dock Throughput Breakdown (Dock #1 to #4)
+        $dockThroughput = [];
+        for ($d = 1; $d <= 4; $d++) {
+            $dockName = 'Dock #' . $d;
+            $dockDos = $deliveryOrders->filter(fn($do) => str_contains($do->loading_dock ?? '', (string)$d));
+            $dockThroughput[] = [
+                'name' => $dockName,
+                'tonnage' => round($dockDos->sum('total_weight_kg') / 1000, 1),
+                'do_count' => $dockDos->count(),
+                'active_truck' => $dockDos->first()?->vehicle?->license_plate ?? 'Standby',
+                'status' => $dockDos->isNotEmpty() ? 'OPERASIONAL' : 'STANDBY',
+            ];
+        }
+
+        $analyticsCharts = [
+            'hourly_trend' => [
+                'labels' => $hourlyLabels,
+                'tonnage' => $hourlyTonnage,
+                'trucks' => $hourlyTrucks,
+            ],
+            'truck_utilization' => [
+                'labels' => $truckUtilizationLabels,
+                'actual_ton' => $truckActualLoad,
+                'capacity_ton' => $truckMaxCapacity,
+                'percentages' => $truckUtilizationPcts,
+            ],
+            'status_distribution' => [
+                'labels' => ['Terkirim (Delivered)', 'On The Road', 'Siap di Dock', 'Proses Picking / Draft'],
+                'data' => [
+                    $statusCounts['delivered'],
+                    $statusCounts['on_road'],
+                    $statusCounts['packed'],
+                    $statusCounts['staging_or_draft'],
+                ],
+                'colors' => ['#10B981', '#06B6D4', '#F59E0B', '#8B5CF6'],
+            ],
+            'dock_throughput' => $dockThroughput,
+        ];
 
         return [
             'date_info' => [
@@ -315,6 +399,7 @@ class LogisticsKioskController extends Controller
             'do_items_manifest' => $doItemsManifest,
             'manifest_summary' => $manifestSummary,
             'tomorrow_summary' => $tomorrowSummary,
+            'analytics_charts' => $analyticsCharts,
             'kpis' => [
                 'total_active_trucks' => count(array_filter($matrixRows, fn($r) => $r['has_schedules'])),
                 'total_rits_done' => $totalRitsDone,

@@ -4,6 +4,33 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    ArcElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+} from 'chart.js';
+import { Bar, Doughnut, Line } from 'vue-chartjs';
+
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    BarElement,
+    ArcElement,
+    Title,
+    Tooltip,
+    Legend,
+    Filler
+);
 import { 
     TruckIcon, 
     ClockIcon, 
@@ -60,6 +87,185 @@ const companyInitials = computed(() => {
 const plantName = computed(() => {
     return kioskData.value?.company_info?.plant_name 
         || `${companyName.value} Central Logistics Plant`;
+});
+
+// Chart.js Options for Cyberpunk Dark HUD
+const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'top',
+            labels: {
+                color: '#94A3B8',
+                font: { family: 'monospace', size: 10, weight: 'bold' },
+                boxWidth: 12,
+                padding: 12,
+            }
+        },
+        tooltip: {
+            backgroundColor: '#0F172A',
+            titleColor: '#38BDF8',
+            bodyColor: '#F1F5F9',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 8,
+        }
+    },
+    scales: {
+        x: {
+            grid: { color: 'rgba(51, 65, 85, 0.25)' },
+            ticks: { color: '#94A3B8', font: { family: 'monospace', size: 10 } }
+        },
+        y: {
+            type: 'linear',
+            position: 'left',
+            grid: { color: 'rgba(51, 65, 85, 0.25)' },
+            ticks: {
+                color: '#22D3EE',
+                font: { family: 'monospace', size: 10 },
+                callback: (v) => `${v} T`
+            }
+        },
+        y1: {
+            type: 'linear',
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: {
+                color: '#34D399',
+                font: { family: 'monospace', size: 10 },
+                stepSize: 1,
+                callback: (v) => `${v} Truk`
+            }
+        }
+    }
+};
+
+const barChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'top',
+            labels: {
+                color: '#94A3B8',
+                font: { family: 'monospace', size: 10, weight: 'bold' },
+                boxWidth: 12,
+                padding: 12,
+            }
+        },
+        tooltip: {
+            backgroundColor: '#0F172A',
+            titleColor: '#38BDF8',
+            bodyColor: '#F1F5F9',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 8,
+        }
+    },
+    scales: {
+        x: {
+            grid: { color: 'rgba(51, 65, 85, 0.25)' },
+            ticks: { color: '#94A3B8', font: { family: 'monospace', size: 10 } }
+        },
+        y: {
+            grid: { color: 'rgba(51, 65, 85, 0.25)' },
+            ticks: {
+                color: '#94A3B8',
+                font: { family: 'monospace', size: 10 },
+                callback: (v) => `${v} T`
+            }
+        }
+    }
+};
+
+const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '72%',
+    plugins: {
+        legend: {
+            display: false,
+        },
+        tooltip: {
+            backgroundColor: '#0F172A',
+            titleColor: '#38BDF8',
+            bodyColor: '#F1F5F9',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 8,
+        }
+    }
+};
+
+// Computed Chart Data
+const hourlyChartData = computed(() => {
+    const raw = kioskData.value?.analytics_charts?.hourly_trend;
+    return {
+        labels: raw?.labels || ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00'],
+        datasets: [
+            {
+                label: 'Muatan Tonase (Ton)',
+                data: raw?.tonnage || [0, 8.5, 14.2, 22.0, 35.4, 48.2, 54.8],
+                borderColor: '#06B6D4',
+                backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#22D3EE',
+                pointBorderColor: '#0891B2',
+                pointRadius: 4,
+                yAxisID: 'y',
+            },
+            {
+                label: 'Truk Berangkat (Rit)',
+                data: raw?.trucks || [0, 1, 2, 3, 5, 6, 7],
+                borderColor: '#10B981',
+                backgroundColor: 'transparent',
+                borderDash: [4, 4],
+                tension: 0.2,
+                pointBackgroundColor: '#34D399',
+                pointRadius: 3,
+                yAxisID: 'y1',
+            }
+        ]
+    };
+});
+
+const truckCapacityChartData = computed(() => {
+    const raw = kioskData.value?.analytics_charts?.truck_utilization;
+    return {
+        labels: raw?.labels?.length ? raw.labels : ['B 9123 KDA', 'B 9876 TYS', 'B 9452 UJL'],
+        datasets: [
+            {
+                label: 'Muatan Aktual (Ton)',
+                data: raw?.actual_ton?.length ? raw.actual_ton : [8.4, 7.2, 6.5],
+                backgroundColor: '#38BDF8',
+                borderRadius: 4,
+            },
+            {
+                label: 'Kapasitas Truk (Ton)',
+                data: raw?.capacity_ton?.length ? raw.capacity_ton : [10, 10, 8],
+                backgroundColor: 'rgba(71, 85, 105, 0.5)',
+                borderRadius: 4,
+            }
+        ]
+    };
+});
+
+const statusDoughnutData = computed(() => {
+    const raw = kioskData.value?.analytics_charts?.status_distribution;
+    return {
+        labels: raw?.labels || ['Terkirim', 'On The Road', 'Siap di Dock', 'Proses Picking / Draft'],
+        datasets: [
+            {
+                data: raw?.data || [3, 2, 2, 0],
+                backgroundColor: raw?.colors || ['#10B981', '#06B6D4', '#F59E0B', '#8B5CF6'],
+                borderColor: '#0B1120',
+                borderWidth: 3,
+                hoverOffset: 6,
+            }
+        ]
+    };
 });
 const activeDate = ref(props.selectedDateFilter || 'today');
 const currentSlide = ref(0); // 0: Matrix, 1: Radar, 2: Tomorrow, 3: KPIs
@@ -946,140 +1152,172 @@ const getStatusBadgeStyle = (statusCode) => {
             </div>
 
             <!-- ========================================== -->
-            <!-- SLIDE 4: LOGISTICS KPIS & PERFORMANCE      -->
+            <!-- SLIDE 4: LOGISTICS KPIS & ANALYTICS CHARTS -->
             <!-- ========================================== -->
-            <div v-else-if="currentSlide === 3" class="h-full grid grid-cols-12 gap-4 animate-fade-in">
-                <!-- Big KPI Cards (Left 7-Cols) -->
-                <div class="col-span-7 grid grid-cols-2 gap-4">
+            <div v-else-if="currentSlide === 3" class="h-full flex flex-col gap-4 animate-fade-in overflow-hidden">
+                <!-- Top 4 Quick KPI Cards -->
+                <div class="grid grid-cols-4 gap-4 shrink-0">
                     <!-- KPI 1 -->
-                    <div class="p-6 bg-[#0D1424] border border-slate-800 rounded-3xl flex flex-col justify-between shadow-xl relative overflow-hidden group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-black uppercase tracking-wider text-slate-400">Total Muatan Hari Ini</span>
-                            <div class="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                                <CubeIcon class="h-6 w-6" />
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Muatan Hari Ini</p>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h3 class="text-2xl font-black text-cyan-400 font-mono">{{ kioskData.kpis?.total_tonnage_today || 0 }}</h3>
+                                <span class="text-xs font-bold text-slate-400">Tonase Fisik</span>
                             </div>
                         </div>
-                        <div class="my-4">
-                            <h2 class="text-4xl font-black text-cyan-400 font-mono tracking-tight">{{ kioskData.kpis?.total_tonnage_today || 0 }} <span class="text-xl font-bold text-slate-400">Ton</span></h2>
-                            <p class="text-xs text-slate-400 font-medium mt-1">Akumulasi pengiriman order logistik</p>
-                        </div>
-                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                            <div class="bg-cyan-400 h-full w-4/5"></div>
+                        <div class="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0">
+                            <CubeIcon class="h-5 w-5" />
                         </div>
                     </div>
 
                     <!-- KPI 2 -->
-                    <div class="p-6 bg-[#0D1424] border border-slate-800 rounded-3xl flex flex-col justify-between shadow-xl relative overflow-hidden group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-black uppercase tracking-wider text-slate-400">On-Time Departure Rate</span>
-                            <div class="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                                <ShieldCheckIcon class="h-6 w-6" />
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">On-Time Departure Rate</p>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h3 class="text-2xl font-black text-emerald-400 font-mono">{{ kioskData.kpis?.on_time_departure_rate || 95 }}%</h3>
+                                <span class="text-xs font-bold text-slate-400">Tepat Waktu</span>
                             </div>
                         </div>
-                        <div class="my-4">
-                            <h2 class="text-4xl font-black text-emerald-400 font-mono tracking-tight">{{ kioskData.kpis?.on_time_departure_rate || 95 }}%</h2>
-                            <p class="text-xs text-slate-400 font-medium mt-1">Kesesuaian jadwal keberangkatan armada</p>
-                        </div>
-                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                            <div class="bg-emerald-400 h-full w-[95%]"></div>
+                        <div class="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                            <ShieldCheckIcon class="h-5 w-5" />
                         </div>
                     </div>
 
                     <!-- KPI 3 -->
-                    <div class="p-6 bg-[#0D1424] border border-slate-800 rounded-3xl flex flex-col justify-between shadow-xl relative overflow-hidden group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-black uppercase tracking-wider text-slate-400">Rata-Rata Loading Dock Time</span>
-                            <div class="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-                                <ClockIcon class="h-6 w-6" />
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Avg Loading Dock Time</p>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h3 class="text-2xl font-black text-amber-400 font-mono">{{ kioskData.kpis?.avg_loading_duration_min || 32 }}</h3>
+                                <span class="text-xs font-bold text-slate-400">Menit / Truk</span>
                             </div>
                         </div>
-                        <div class="my-4">
-                            <h2 class="text-4xl font-black text-amber-400 font-mono tracking-tight">{{ kioskData.kpis?.avg_loading_duration_min || 32 }} <span class="text-xl font-bold text-slate-400">Menit</span></h2>
-                            <p class="text-xs text-slate-400 font-medium mt-1">Waktu muat per truk (Target: &lt;45 min)</p>
-                        </div>
-                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                            <div class="bg-amber-400 h-full w-2/3"></div>
+                        <div class="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+                            <ClockIcon class="h-5 w-5" />
                         </div>
                     </div>
 
                     <!-- KPI 4 -->
-                    <div class="p-6 bg-[#0D1424] border border-slate-800 rounded-3xl flex flex-col justify-between shadow-xl relative overflow-hidden group">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-black uppercase tracking-wider text-slate-400">Fleet Utilization Rate</span>
-                            <div class="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                                <ArrowTrendingUpIcon class="h-6 w-6" />
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl flex items-center justify-between shadow-lg">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Fleet Utilization Rate</p>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <h3 class="text-2xl font-black text-blue-400 font-mono">{{ kioskData.kpis?.fleet_utilization_pct || 88 }}%</h3>
+                                <span class="text-xs font-bold text-slate-400">{{ kioskData.kpis?.total_active_trucks || 0 }} Truk Aktif</span>
                             </div>
                         </div>
-                        <div class="my-4">
-                            <h2 class="text-4xl font-black text-blue-400 font-mono tracking-tight">{{ kioskData.kpis?.fleet_utilization_pct || 88 }}%</h2>
-                            <p class="text-xs text-slate-400 font-medium mt-1">Armada aktif beroperasi hari ini</p>
-                        </div>
-                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                            <div class="bg-blue-500 h-full w-[88%]"></div>
+                        <div class="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                            <TruckIcon class="h-5 w-5" />
                         </div>
                     </div>
                 </div>
 
-                <!-- Right 5-Cols: Rit Distribution Breakdown -->
-                <div class="col-span-5 bg-[#0D1424] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between shadow-xl">
-                    <div>
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
-                                <ChartBarIcon class="h-5 w-5 text-blue-400" />
-                                Distribusi Progress Multi-Rit
-                            </h3>
-                            <span class="text-[10px] font-mono text-slate-400">Hari Ini</span>
+                <!-- Main 4-Chart Analytics Dashboard (2x2 Grid) -->
+                <div class="flex-1 grid grid-cols-12 gap-4 min-h-0">
+                    <!-- Chart 1: Hourly Dispatch & Tonnage Trend (Col 7) -->
+                    <div class="col-span-7 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0">
+                        <div class="flex items-center justify-between mb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <div class="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                                <h3 class="text-xs font-black uppercase tracking-wider text-white">Tren Muatan & Keberangkatan Truk per Jam</h3>
+                            </div>
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Dispatch Throughput</span>
                         </div>
+                        <div class="flex-1 min-h-0 relative">
+                            <Line :data="hourlyChartData" :options="lineChartOptions" />
+                        </div>
+                    </div>
 
-                        <!-- Progress Bars by Status -->
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-xs font-bold mb-1">
-                                    <span class="text-emerald-400 flex items-center gap-1.5">
+                    <!-- Chart 2: Status Breakdown Doughnut (Col 5) -->
+                    <div class="col-span-5 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0">
+                        <div class="flex items-center justify-between mb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <div class="h-2 w-2 rounded-full bg-emerald-400"></div>
+                                <h3 class="text-xs font-black uppercase tracking-wider text-white">Distribusi Status Delivery Order</h3>
+                            </div>
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Live Progress</span>
+                        </div>
+                        <div class="flex-1 min-h-0 grid grid-cols-12 items-center gap-3">
+                            <div class="col-span-5 h-full relative flex items-center justify-center">
+                                <Doughnut :data="statusDoughnutData" :options="doughnutOptions" />
+                                <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                    <span class="text-xl font-black text-white font-mono leading-none">{{ kioskData.manifest_summary?.total_dos || 0 }}</span>
+                                    <span class="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Total DO</span>
+                                </div>
+                            </div>
+                            <div class="col-span-7 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/80">
+                                    <span class="flex items-center gap-1.5 text-emerald-400 font-bold text-[11px]">
                                         <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
-                                        Rit Selesai (Delivered)
+                                        Terkirim (Delivered)
                                     </span>
-                                    <span class="font-mono text-white">{{ kioskData.kpis?.total_rits_done || 0 }} Rit</span>
+                                    <span class="font-mono font-black text-white">{{ kioskData.kpis?.total_rits_done || 0 }} Rit</span>
                                 </div>
-                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                                    <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 65%"></div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="flex justify-between text-xs font-bold mb-1">
-                                    <span class="text-cyan-400 flex items-center gap-1.5">
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/80">
+                                    <span class="flex items-center gap-1.5 text-cyan-400 font-bold text-[11px]">
                                         <span class="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                                        On The Road / In-Transit
+                                        On The Road
                                     </span>
-                                    <span class="font-mono text-white">{{ kioskData.kpis?.total_rits_running || 0 }} Truk</span>
+                                    <span class="font-mono font-black text-white">{{ kioskData.kpis?.total_rits_running || 0 }} Truk</span>
                                 </div>
-                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                                    <div class="bg-cyan-400 h-full rounded-full transition-all duration-500" style="width: 25%"></div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="flex justify-between text-xs font-bold mb-1">
-                                    <span class="text-amber-400 flex items-center gap-1.5">
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800/80">
+                                    <span class="flex items-center gap-1.5 text-amber-400 font-bold text-[11px]">
                                         <span class="h-2 w-2 rounded-full bg-amber-400"></span>
-                                        Antrean Dock / Muat
+                                        Siap di Dock
                                     </span>
-                                    <span class="font-mono text-white">{{ kioskData.kpis?.total_rits_waiting || 0 }} DO</span>
-                                </div>
-                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                                    <div class="bg-amber-400 h-full rounded-full transition-all duration-500" style="width: 10%"></div>
+                                    <span class="font-mono font-black text-white">{{ kioskData.kpis?.total_rits_waiting || 0 }} DO</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Dock Operational Notice -->
-                    <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-800 flex items-center gap-3">
-                        <BuildingOfficeIcon class="h-6 w-6 text-blue-400 shrink-0" />
-                        <div>
-                            <p class="text-xs font-black text-slate-200 uppercase tracking-wide">Kapasitas Loading Dock</p>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Semua 4 crane dock beroperasi normal dengan throughput 120 Ton / jam.</p>
+                    <!-- Chart 3: Truck Capacity vs Actual Load Bar Chart (Col 7) -->
+                    <div class="col-span-7 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl min-h-0">
+                        <div class="flex items-center justify-between mb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <div class="h-2 w-2 rounded-full bg-blue-400"></div>
+                                <h3 class="text-xs font-black uppercase tracking-wider text-white">Utilisasi Kapasitas Muatan per Armada Truk</h3>
+                            </div>
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Muatan vs Max Kapasitas</span>
+                        </div>
+                        <div class="flex-1 min-h-0 relative">
+                            <Bar :data="truckCapacityChartData" :options="barChartOptions" />
+                        </div>
+                    </div>
+
+                    <!-- Chart 4: Loading Dock Throughput Matrix (Col 5) -->
+                    <div class="col-span-5 bg-[#0D1424] border border-slate-800 rounded-2xl p-4 flex flex-col shadow-xl justify-between min-h-0">
+                        <div class="flex items-center justify-between mb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <div class="h-2 w-2 rounded-full bg-purple-400"></div>
+                                <h3 class="text-xs font-black uppercase tracking-wider text-white">Status & Throughput Loading Dock</h3>
+                            </div>
+                            <span class="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Crane Dock #1 - #4</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2.5 flex-1 items-center">
+                            <div 
+                                v-for="dock in kioskData.analytics_charts?.dock_throughput || []" 
+                                :key="dock.name"
+                                class="p-3 bg-slate-900/90 rounded-xl border border-slate-800 flex flex-col justify-between"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-black text-white font-mono">{{ dock.name }}</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase border"
+                                        :class="dock.status === 'OPERASIONAL' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700'"
+                                    >
+                                        {{ dock.status }}
+                                    </span>
+                                </div>
+                                <div class="my-1.5">
+                                    <p class="text-base font-black text-cyan-400 font-mono">{{ dock.tonnage }} <span class="text-xs font-bold text-slate-400">Ton</span></p>
+                                    <p class="text-[10px] text-slate-400 truncate mt-0.5">Truk: <span class="text-slate-200 font-mono">{{ dock.active_truck }}</span></p>
+                                </div>
+                                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                    <div class="bg-cyan-400 h-full rounded-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(10, dock.tonnage * 5)) + '%' }"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
