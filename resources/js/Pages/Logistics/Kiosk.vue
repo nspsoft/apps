@@ -188,11 +188,11 @@ const initRadarMap = () => {
         mapInstance.value = L.map(mapEl.value, {
             zoomControl: false,
             attributionControl: false
-        }).setView([-6.2900, 107.1200], 10);
+        }).setView([-6.2900, 107.1200], 11);
 
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            subdomains: 'abcd'
+            className: 'dark-hud-tiles'
         }).addTo(mapInstance.value);
 
         renderMapMarkers();
@@ -254,6 +254,12 @@ const renderMapMarkers = () => {
 
         mapMarkers.value.push(marker);
     });
+
+    // Auto-fit map viewport to frame plant and all active trucks
+    if (mapMarkers.value.length > 1) {
+        const group = L.featureGroup(mapMarkers.value);
+        mapInstance.value.fitBounds(group.getBounds().pad(0.25));
+    }
 };
 
 // Lifecycle Hooks
@@ -953,6 +959,14 @@ const getStatusBadgeStyle = (statusCode) => {
 
 <style scoped>
 /* HUD Dark Leaflet Overrides */
+:deep(.dark-hud-tiles) {
+    filter: invert(100%) hue-rotate(180deg) brightness(80%) contrast(120%) saturate(25%) !important;
+}
+
+:deep(.leaflet-container) {
+    background: #070b14 !important;
+}
+
 :deep(.hud-tooltip) {
     background: rgba(11, 17, 32, 0.95) !important;
     border: 1px solid rgba(56, 189, 248, 0.4) !important;
