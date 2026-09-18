@@ -80,7 +80,7 @@ const updateClock = () => {
 const refreshData = async (dateParam = activeDate.value) => {
     isRefreshing.value = true;
     try {
-        const response = await axios.get(route('logistics.kiosk.data', { date: dateParam }));
+        const response = await axios.get('/logistics/kiosk/data', { params: { date: dateParam } });
         if (response.data?.success) {
             kioskData.value = response.data.data;
             lastSyncTime.value = response.data.timestamp || new Date().toLocaleTimeString('id-ID');
@@ -324,7 +324,7 @@ const getStatusBadgeStyle = (statusCode) => {
             <!-- Left Branding & Live Pulse -->
             <div class="flex items-center gap-4">
                 <Link 
-                    :href="route('logistics.planning.index')"
+                    href="/logistics/planning"
                     class="h-10 px-3 bg-slate-900 border border-slate-700/80 rounded-xl flex items-center gap-2.5 hover:bg-slate-800 transition-colors group"
                     title="Kembali ke Logistics Admin"
                 >

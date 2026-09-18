@@ -676,6 +676,7 @@ Route::middleware(['auth'])->prefix('logistics')->name('logistics.')->group(func
     Route::get('/kiosk', [App\Http\Controllers\Logistics\LogisticsKioskController::class, 'index'])->name('kiosk');
     Route::get('/kiosk/data', [App\Http\Controllers\Logistics\LogisticsKioskController::class, 'fetchData'])->name('kiosk.data');
     Route::get('/planning', [App\Http\Controllers\Logistics\LogisticsController::class, 'index'])->name('planning');
+    Route::get('/planning/index', [App\Http\Controllers\Logistics\LogisticsController::class, 'index'])->name('planning.index');
     Route::post('/planning/assign', [App\Http\Controllers\Logistics\LogisticsController::class, 'assignVehicle'])->name('planning.assign');
 
     // Dispatch Panel
