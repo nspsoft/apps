@@ -65,7 +65,7 @@ class LogisticsKioskController extends Controller
             ->get();
 
         // 2. Fetch all DOs for the target date
-        $deliveryOrders = DeliveryOrder::with(['customer', 'items.product', 'vehicle'])
+        $deliveryOrders = DeliveryOrder::with(['customer', 'items.product', 'items.unit', 'items.location', 'vehicle'])
             ->whereDate('delivery_date', $dateString)
             ->whereNotIn('status', ['cancelled'])
             ->orderBy('rit_number')
@@ -192,7 +192,88 @@ class LogisticsKioskController extends Controller
             }
         }
 
-        // 5. Slide 3: Tomorrow's Preview Data
+        // 5. Slide 3: Manifest Barang per Delivery Order & Statusnya
+        $doItemsManifest = $deliveryOrders->map(function ($do) {
+            $totalItems = $do->items->count();
+            $loadedItems = $do->items->where('is_loaded', true)->count();
+            $progressPct = $totalItems > 0 
+                ? round(($loadedItems / $totalItems) * 100) 
+                : (in_array($do->status, ['delivered', 'shipped', 'on_road']) ? 100 : 0);
+
+            return [
+                'id' => $do->id,
+                'do_number' => $do->do_number,
+                'customer_name' => $do->customer?->name ?? $do->shipping_name ?? 'Customer',
+                'destination' => $do->shipping_address ?? ($do->customer?->city ?? 'Area Pengiriman'),
+                'truck' => $do->vehicle?->license_plate ?? $do->vehicle_number ?? 'Belum Di-Assign',
+                'truck_type' => $do->vehicle?->vehicle_type ?? 'Truck',
+                'driver_name' => $do->driver_name ?? $do->vehicle?->driver_name ?? 'Supir',
+                'rit_number' => $do->rit_number ?? 1,
+                'loading_dock' => $do->loading_dock ?? 'Dock #1',
+                'departure_time' => $do->estimated_departure_time ? substr($do->estimated_departure_time, 0, 5) : '08:00',
+                'weight_ton' => round(($do->total_weight_kg ?: $do->items->sum('kg_delivered') ?: 5000) / 1000, 2),
+                'status_code' => $do->status,
+                'status_label' => match ($do->status) {
+                    'delivered' => 'Terkirim',
+                    'shipped', 'on_road' => 'On The Road',
+                    'packed' => 'Siap / Staging',
+                    'picking' => 'Picking',
+                    'draft' => 'Draft Rencana',
+                    default => strtoupper($do->status),
+                },
+                'total_items' => $totalItems,
+                'loaded_items' => $loadedItems,
+                'progress_pct' => $progressPct,
+                'items' => $do->items->map(function ($item, $itemIdx) use ($do) {
+                    $itemStatus = 'Menunggu Muat';
+                    $itemBadge = 'waiting';
+                    if ($do->status === 'delivered') {
+                        $itemStatus = 'Terkirim (Delivered)';
+                        $itemBadge = 'delivered';
+                    } elseif (in_array($do->status, ['shipped', 'on_road'])) {
+                        $itemStatus = 'On Truck (In Transit)';
+                        $itemBadge = 'in_transit';
+                    } elseif ($item->is_loaded) {
+                        $itemStatus = 'Termuat di Truk';
+                        $itemBadge = 'loaded';
+                    } elseif ($do->status === 'packed') {
+                        $itemStatus = 'Siap di Staging Dock';
+                        $itemBadge = 'staged';
+                    } elseif ($do->status === 'picking') {
+                        $itemStatus = 'Proses Picking';
+                        $itemBadge = 'picking';
+                    }
+
+                    return [
+                        'id' => $item->id,
+                        'no' => $itemIdx + 1,
+                        'product_code' => $item->product?->sku ?? ('SKU-' . str_pad($item->product_id ?? ($itemIdx + 1), 4, '0', STR_PAD_LEFT)),
+                        'product_name' => $item->product?->name ?? 'Produk Manufaktur',
+                        'qty_ordered' => (float) $item->qty_ordered,
+                        'qty_delivered' => (float) ($item->qty_delivered ?: $item->qty_ordered),
+                        'unit' => $item->unit?->code ?? $item->unit?->name ?? 'PCS',
+                        'weight_kg' => (float) ($item->kg_delivered ?: 0),
+                        'batch_number' => $item->batch_number ?? '-',
+                        'location' => $item->location?->name ?? 'Staging Area',
+                        'is_loaded' => (bool) $item->is_loaded,
+                        'status' => $itemStatus,
+                        'status_badge' => $itemBadge,
+                    ];
+                })->values()->all(),
+            ];
+        })->values();
+
+        $manifestSummary = [
+            'total_dos' => $doItemsManifest->count(),
+            'total_items_count' => $doItemsManifest->sum('total_items'),
+            'total_tonnage' => round($doItemsManifest->sum('weight_ton'), 2),
+            'total_loaded_items' => $doItemsManifest->sum('loaded_items'),
+            'overall_loading_pct' => $doItemsManifest->sum('total_items') > 0 
+                ? round(($doItemsManifest->sum('loaded_items') / $doItemsManifest->sum('total_items')) * 100) 
+                : 100,
+        ];
+
+        // Tomorrow's Preview Data (retained for backward compatibility)
         $tomorrowDate = Carbon::tomorrow()->toDateString();
         $tomorrowDos = DeliveryOrder::with(['customer', 'vehicle'])
             ->whereDate('delivery_date', $tomorrowDate)
@@ -231,6 +312,8 @@ class LogisticsKioskController extends Controller
             ],
             'matrix_rows' => $matrixRows,
             'active_fleet_radar' => $activeFleetRadar,
+            'do_items_manifest' => $doItemsManifest,
+            'manifest_summary' => $manifestSummary,
             'tomorrow_summary' => $tomorrowSummary,
             'kpis' => [
                 'total_active_trucks' => count(array_filter($matrixRows, fn($r) => $r['has_schedules'])),

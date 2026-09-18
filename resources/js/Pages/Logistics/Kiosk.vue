@@ -90,7 +90,7 @@ const mapMarkers = ref([]);
 const slides = [
     { id: 0, key: 'matrix', title: 'MATRIKS RIT & DISPATCH DOCK', short: 'Rit Matrix', icon: TruckIcon },
     { id: 1, key: 'radar', title: 'FLEET RADAR & LIVE GPS ETA', short: 'Fleet Radar', icon: SignalIcon },
-    { id: 2, key: 'tomorrow', title: 'JADWAL H+1 & STAGING PREVIEW', short: 'Jadwal Besok', icon: CalendarDaysIcon },
+    { id: 2, key: 'manifest', title: 'MANIFEST ITEM & STATUS BARANG PER DO', short: 'Item DO', icon: Square3Stack3DIcon },
     { id: 3, key: 'kpis', title: 'REKAP KPI & PERFORMA LOGISTIK', short: 'KPI & Metrik', icon: ChartBarIcon },
 ];
 
@@ -770,73 +770,181 @@ const getStatusBadgeStyle = (statusCode) => {
             </div>
 
             <!-- ========================================== -->
-            <!-- SLIDE 3: TOMORROW'S PREVIEW & STAGING      -->
+            <!-- SLIDE 3: MANIFEST ITEM BARANG PER DO       -->
             <!-- ========================================== -->
             <div v-else-if="currentSlide === 2" class="h-full flex flex-col gap-4 animate-fade-in">
-                <!-- Header Scorecard -->
+                <!-- Header Scorecard: Manifest Items -->
                 <div class="grid grid-cols-4 gap-4 shrink-0">
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg">
-                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Target Tanggal H+1</p>
-                        <h3 class="text-base font-black text-white mt-1">{{ kioskData.tomorrow_summary?.date_formatted || 'Besok' }}</h3>
+                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Delivery Order</p>
+                            <h3 class="text-2xl font-black text-white font-mono mt-1">{{ kioskData.manifest_summary?.total_dos || 0 }} <span class="text-xs font-bold text-slate-400">DO</span></h3>
+                        </div>
+                        <div class="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                            <TruckIcon class="h-5 w-5" />
+                        </div>
                     </div>
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg">
-                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Pengiriman Besok</p>
-                        <h3 class="text-xl font-black text-blue-400 font-mono mt-1">{{ kioskData.tomorrow_summary?.total_orders || 0 }} DO</h3>
+                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Baris Barang / SKU</p>
+                            <h3 class="text-2xl font-black text-cyan-400 font-mono mt-1">{{ kioskData.manifest_summary?.total_items_count || 0 }} <span class="text-xs font-bold text-slate-400">Item</span></h3>
+                        </div>
+                        <div class="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                            <CubeIcon class="h-5 w-5" />
+                        </div>
                     </div>
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg">
-                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Estimasi Tonase Muatan</p>
-                        <h3 class="text-xl font-black text-cyan-400 font-mono mt-1">{{ kioskData.tomorrow_summary?.total_tonnage || 0 }} Ton</h3>
+                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Akumulasi Tonase Fisik</p>
+                            <h3 class="text-2xl font-black text-amber-400 font-mono mt-1">{{ kioskData.manifest_summary?.total_tonnage || 0 }} <span class="text-xs font-bold text-slate-400">Ton</span></h3>
+                        </div>
+                        <div class="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                            <ArrowTrendingUpIcon class="h-5 w-5" />
+                        </div>
                     </div>
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg">
-                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Armada Dialokasikan</p>
-                        <h3 class="text-xl font-black text-emerald-400 font-mono mt-1">{{ kioskData.tomorrow_summary?.allocated_trucks || 0 }} Unit</h3>
+                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Kesiapan Muat Barang</p>
+                            <h3 class="text-2xl font-black text-emerald-400 font-mono mt-1">
+                                {{ kioskData.manifest_summary?.overall_loading_pct || 0 }}%
+                                <span class="text-xs font-bold text-slate-400 font-mono">({{ kioskData.manifest_summary?.total_loaded_items || 0 }}/{{ kioskData.manifest_summary?.total_items_count || 0 }})</span>
+                            </h3>
+                        </div>
+                        <div class="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                            <ShieldCheckIcon class="h-5 w-5" />
+                        </div>
                     </div>
                 </div>
 
-                <!-- Tomorrow's Orders Table -->
-                <div class="flex-1 bg-[#0D1424] border border-slate-800 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
-                    <div class="p-4 bg-[#0B1120] border-b border-slate-800 flex items-center justify-between shrink-0">
-                        <div class="flex items-center gap-2">
-                            <CalendarDaysIcon class="h-5 w-5 text-blue-400" />
-                            <h3 class="text-xs font-black uppercase tracking-wider text-white">Daftar Antrean Delivery Order Besok (Staging Plan)</h3>
+                <!-- Manifest Items List Grouped by DO -->
+                <div class="flex-1 overflow-y-auto space-y-3.5 pr-1 custom-scrollbar">
+                    <div 
+                        v-for="doOrder in kioskData.do_items_manifest" 
+                        :key="doOrder.do_number"
+                        class="bg-[#0D1424] border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden shadow-xl transition-all"
+                    >
+                        <!-- DO Header Bar -->
+                        <div class="p-3.5 bg-[#0A0F1D] border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                            <div class="flex items-center gap-3">
+                                <div class="px-2.5 py-1 rounded-lg bg-cyan-950/80 border border-cyan-700 text-cyan-300 font-mono font-black text-xs tracking-wider">
+                                    {{ doOrder.do_number }}
+                                </div>
+                                <div>
+                                    <h3 class="text-xs sm:text-sm font-black text-white flex items-center gap-2">
+                                        {{ doOrder.customer_name }}
+                                        <span class="text-[10px] font-bold text-slate-400 font-normal truncate max-w-xs">({{ doOrder.destination }})</span>
+                                    </h3>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2.5 text-xs font-bold">
+                                <!-- Truck & Driver -->
+                                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[11px]">
+                                    <TruckIcon class="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                                    <span class="font-black text-white">{{ doOrder.truck }}</span>
+                                    <span class="text-slate-600">•</span>
+                                    <span class="text-slate-400 font-sans truncate max-w-[120px]">{{ doOrder.driver_name }}</span>
+                                </div>
+
+                                <!-- Rit Badge -->
+                                <span class="px-2 py-0.5 rounded text-[10px] font-black border font-mono"
+                                    :class="doOrder.rit_number === 1 ? 'bg-cyan-950 text-cyan-300 border-cyan-800' : (doOrder.rit_number === 2 ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-purple-950 text-purple-300 border-purple-800')"
+                                >
+                                    RIT {{ doOrder.rit_number }}
+                                </span>
+
+                                <!-- Dock Badge -->
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-mono border border-slate-700">
+                                    {{ doOrder.loading_dock }}
+                                </span>
+
+                                <!-- Weight -->
+                                <span class="px-2 py-0.5 rounded bg-slate-900 text-cyan-400 font-mono text-[10px] font-black border border-slate-800">
+                                    {{ doOrder.weight_ton }} Ton
+                                </span>
+
+                                <!-- DO Status Badge -->
+                                <span class="px-2.5 py-0.5 rounded text-[10px] font-black uppercase border tracking-wider" :class="getStatusBadgeStyle(doOrder.status_code)">
+                                    {{ doOrder.status_label }}
+                                </span>
+
+                                <!-- Loading Status Percentage -->
+                                <div class="flex items-center gap-1.5 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 text-[11px]">
+                                    <span class="text-slate-500 text-[10px]">Muat:</span>
+                                    <span class="font-mono font-black" :class="doOrder.progress_pct === 100 ? 'text-emerald-400' : 'text-amber-400'">
+                                        {{ doOrder.loaded_items }}/{{ doOrder.total_items }} Item ({{ doOrder.progress_pct }}%)
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <span class="text-[10px] font-bold text-slate-400">Persiapan Material Dock #1 - #4</span>
+
+                        <!-- Items Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-[#070B14] text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-800/80">
+                                    <tr>
+                                        <th class="py-2.5 px-4 w-10 text-center">#</th>
+                                        <th class="py-2.5 px-4 w-36">Kode / SKU</th>
+                                        <th class="py-2.5 px-4">Nama Barang & Spesifikasi</th>
+                                        <th class="py-2.5 px-4 text-right w-24">Qty Order</th>
+                                        <th class="py-2.5 px-4 text-right w-24">Qty Kirim</th>
+                                        <th class="py-2.5 px-4 text-center w-20">Satuan</th>
+                                        <th class="py-2.5 px-4 text-right w-28">Est. Berat</th>
+                                        <th class="py-2.5 px-4 w-32">No. Lot / Batch</th>
+                                        <th class="py-2.5 px-4 w-32">Staging</th>
+                                        <th class="py-2.5 px-4 text-center w-40">Status Muat / Barang</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/40 text-xs">
+                                    <tr 
+                                        v-for="item in doOrder.items" 
+                                        :key="item.id"
+                                        class="hover:bg-[#111A2E]/70 transition-colors"
+                                        :class="{ 'bg-emerald-500/[0.02]': item.is_loaded }"
+                                    >
+                                        <td class="py-2.5 px-4 text-center font-mono text-slate-500 text-[11px]">{{ item.no }}</td>
+                                        <td class="py-2.5 px-4 font-mono font-bold text-cyan-400 text-xs">{{ item.product_code }}</td>
+                                        <td class="py-2.5 px-4 font-bold text-slate-200">{{ item.product_name }}</td>
+                                        <td class="py-2.5 px-4 text-right font-mono text-slate-400">{{ Number(item.qty_ordered).toLocaleString('id-ID') }}</td>
+                                        <td class="py-2.5 px-4 text-right font-mono font-black text-white">{{ Number(item.qty_delivered).toLocaleString('id-ID') }}</td>
+                                        <td class="py-2.5 px-4 text-center text-slate-400 font-bold text-[11px]">{{ item.unit }}</td>
+                                        <td class="py-2.5 px-4 text-right font-mono font-bold text-cyan-300">{{ Number(item.weight_kg).toLocaleString('id-ID') }} Kg</td>
+                                        <td class="py-2.5 px-4 font-mono text-slate-400 text-[11px]">{{ item.batch_number }}</td>
+                                        <td class="py-2.5 px-4 text-slate-300 text-[11px]">{{ item.location }}</td>
+                                        <td class="py-2.5 px-4 text-center">
+                                            <span 
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-black uppercase border"
+                                                :class="{
+                                                    'bg-emerald-500/20 text-emerald-300 border-emerald-500/40': item.status_badge === 'delivered',
+                                                    'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 animate-pulse': item.status_badge === 'in_transit',
+                                                    'bg-emerald-500/10 text-emerald-400 border-emerald-500/30': item.status_badge === 'loaded',
+                                                    'bg-amber-500/20 text-amber-300 border-amber-500/40': item.status_badge === 'staged',
+                                                    'bg-purple-500/20 text-purple-300 border-purple-500/40': item.status_badge === 'picking',
+                                                    'bg-slate-800 text-slate-400 border-slate-700': item.status_badge === 'waiting'
+                                                }"
+                                            >
+                                                <CheckCircleIcon v-if="item.status_badge === 'loaded' || item.status_badge === 'delivered'" class="h-3 w-3" />
+                                                <TruckIcon v-else-if="item.status_badge === 'in_transit'" class="h-3 w-3" />
+                                                <ClockIcon v-else class="h-3 w-3" />
+                                                <span>{{ item.status }}</span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!doOrder.items || doOrder.items.length === 0">
+                                        <td colspan="10" class="py-4 text-center text-slate-500 text-xs italic">
+                                            Rincian item barang pada Delivery Order ini belum diinput.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <div class="flex-1 overflow-y-auto custom-scrollbar">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-[#090E1A] text-[10px] font-black uppercase tracking-wider text-slate-400 sticky top-0 border-b border-slate-800">
-                                <tr>
-                                    <th class="py-3 px-4">No. DO</th>
-                                    <th class="py-3 px-4">Customer Tujuan</th>
-                                    <th class="py-3 px-4">Alokasi Truk</th>
-                                    <th class="py-3 px-4">Rit</th>
-                                    <th class="py-3 px-4">Loading Dock</th>
-                                    <th class="py-3 px-4 text-right">Tonase</th>
-                                    <th class="py-3 px-4 text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/60 text-xs">
-                                <tr v-for="order in kioskData.tomorrow_summary?.orders" :key="order.do_number" class="hover:bg-[#111A2E] transition-colors">
-                                    <td class="py-3 px-4 font-mono font-bold text-cyan-400">{{ order.do_number }}</td>
-                                    <td class="py-3 px-4 font-black text-white">{{ order.customer }}</td>
-                                    <td class="py-3 px-4 font-mono font-bold text-slate-300">{{ order.truck }}</td>
-                                    <td class="py-3 px-4 font-bold text-blue-400">Rit {{ order.rit }}</td>
-                                    <td class="py-3 px-4 font-bold text-slate-300">{{ order.dock }}</td>
-                                    <td class="py-3 px-4 text-right font-mono font-black text-cyan-400">{{ order.weight_ton }} T</td>
-                                    <td class="py-3 px-4 text-center">
-                                        <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-slate-800 text-slate-400 border border-slate-700">
-                                            {{ order.status }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr v-if="!kioskData.tomorrow_summary?.orders || kioskData.tomorrow_summary?.orders.length === 0">
-                                    <td colspan="7" class="py-12 text-center text-slate-500 font-bold">
-                                        Belum ada jadwal DO yang diset untuk besok hari.
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Empty state -->
+                    <div v-if="!kioskData.do_items_manifest || kioskData.do_items_manifest.length === 0" class="p-12 text-center bg-slate-900/40 rounded-2xl border border-slate-800">
+                        <Square3Stack3DIcon class="h-12 w-12 text-slate-600 mx-auto mb-3" />
+                        <h3 class="text-base font-black text-slate-300">Tidak ada item Delivery Order untuk tanggal ini</h3>
+                        <p class="text-xs text-slate-500 mt-1">Silakan ganti filter tanggal atau tambahkan rencana pengiriman di Logistics Dispatch.</p>
                     </div>
                 </div>
             </div>

@@ -146,6 +146,28 @@ class LogisticsKioskDemoSeeder extends Seeder
                     'notes' => 'Multi-rit scheduled delivery batch',
                 ]
             );
+
+            // Seed 2 to 3 realistic item lines per DO
+            $do->items()->delete();
+            $numItems = rand(2, 3);
+            $unitId = \App\Models\Unit::first()?->id ?? 1;
+            for ($i = 0; $i < $numItems; $i++) {
+                $p = $products[($idx * 2 + $i) % max(1, $products->count())] ?? null;
+                $qty = rand(20, 80);
+                $isLoaded = in_array($s['status'], ['delivered', 'shipped']) || ($s['status'] === 'packed' && $i === 0);
+
+                \App\Models\DeliveryOrderItem::create([
+                    'delivery_order_id' => $do->id,
+                    'product_id' => $p?->id,
+                    'qty_ordered' => $qty,
+                    'qty_delivered' => $qty,
+                    'unit_id' => $unitId,
+                    'is_loaded' => $isLoaded,
+                    'kg_delivered' => round($s['weight'] / $numItems, 2),
+                    'batch_number' => 'LOT-' . date('Ym') . '-' . str_pad($idx * 3 + $i + 1, 3, '0', STR_PAD_LEFT),
+                    'notes' => 'Loading slot ' . $s['dock'],
+                ]);
+            }
         }
 
         // Add 3 sample orders for tomorrow
@@ -182,6 +204,25 @@ class LogisticsKioskDemoSeeder extends Seeder
                     'notes' => 'Advance staging requirement',
                 ]
             );
+
+            $do->items()->delete();
+            $numItems = rand(2, 3);
+            for ($i = 0; $i < $numItems; $i++) {
+                $p = $products[($tIdx * 2 + $i) % max(1, $products->count())] ?? null;
+                $qty = rand(15, 60);
+
+                \App\Models\DeliveryOrderItem::create([
+                    'delivery_order_id' => $do->id,
+                    'product_id' => $p?->id,
+                    'qty_ordered' => $qty,
+                    'qty_delivered' => $qty,
+                    'unit_id' => $unitId,
+                    'is_loaded' => false,
+                    'kg_delivered' => round($t['weight'] / $numItems, 2),
+                    'batch_number' => 'LOT-STG-' . str_pad($tIdx * 3 + $i + 1, 3, '0', STR_PAD_LEFT),
+                    'notes' => 'Planned staging slot ' . $t['dock'],
+                ]);
+            }
         }
     }
 }
