@@ -155,12 +155,14 @@ class LogisticsKioskDemoSeeder extends Seeder
                 $p = $products[($idx * 2 + $i) % max(1, $products->count())] ?? null;
                 $qty = rand(20, 80);
                 $isLoaded = in_array($s['status'], ['delivered', 'shipped']) || ($s['status'] === 'packed' && $i === 0);
+                // Simulate realistic delay for some items currently staging in dock
+                $qtyDelivered = ($s['status'] === 'packed' && $i === 1) ? round($qty * 0.7) : $qty;
 
                 \App\Models\DeliveryOrderItem::create([
                     'delivery_order_id' => $do->id,
                     'product_id' => $p?->id,
                     'qty_ordered' => $qty,
-                    'qty_delivered' => $qty,
+                    'qty_delivered' => $qtyDelivered,
                     'unit_id' => $unitId,
                     'is_loaded' => $isLoaded,
                     'kg_delivered' => round($s['weight'] / $numItems, 2),

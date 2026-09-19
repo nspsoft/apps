@@ -980,44 +980,56 @@ const getStatusBadgeStyle = (statusCode) => {
             <!-- ========================================== -->
             <div v-else-if="currentSlide === 2" class="h-full flex flex-col gap-4 animate-fade-in">
                 <!-- Header Scorecard: Manifest Items -->
-                <div class="grid grid-cols-4 gap-4 shrink-0">
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                <!-- Header Scorecard: Manifest Items -->
+                <div class="grid grid-cols-5 gap-3.5 shrink-0">
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
                         <div>
                             <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Delivery Order</p>
-                            <h3 class="text-2xl font-black text-white font-mono mt-1">{{ kioskData.manifest_summary?.total_dos || 0 }} <span class="text-xs font-bold text-slate-400">DO</span></h3>
+                            <h3 class="text-xl font-black text-white font-mono mt-0.5">{{ kioskData.manifest_summary?.total_dos || 0 }} <span class="text-xs font-bold text-slate-400">DO</span></h3>
                         </div>
-                        <div class="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                            <TruckIcon class="h-5 w-5" />
-                        </div>
-                    </div>
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
-                        <div>
-                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Baris Barang / SKU</p>
-                            <h3 class="text-2xl font-black text-cyan-400 font-mono mt-1">{{ kioskData.manifest_summary?.total_items_count || 0 }} <span class="text-xs font-bold text-slate-400">Item</span></h3>
-                        </div>
-                        <div class="h-10 w-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
-                            <CubeIcon class="h-5 w-5" />
+                        <div class="h-9 w-9 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+                            <TruckIcon class="h-4.5 w-4.5" />
                         </div>
                     </div>
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Akumulasi Tonase Fisik</p>
-                            <h3 class="text-2xl font-black text-amber-400 font-mono mt-1">{{ kioskData.manifest_summary?.total_tonnage || 0 }} <span class="text-xs font-bold text-slate-400">Ton</span></h3>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Total Baris Barang</p>
+                            <h3 class="text-xl font-black text-cyan-400 font-mono mt-0.5">{{ kioskData.manifest_summary?.total_items_count || 0 }} <span class="text-xs font-bold text-slate-400">Item</span></h3>
                         </div>
-                        <div class="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-                            <ArrowTrendingUpIcon class="h-5 w-5" />
+                        <div class="h-9 w-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0">
+                            <CubeIcon class="h-4.5 w-4.5" />
                         </div>
                     </div>
-                    <div class="p-4 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Kesiapan Muat Barang</p>
-                            <h3 class="text-2xl font-black text-emerald-400 font-mono mt-1">
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Akumulasi Tonase</p>
+                            <h3 class="text-xl font-black text-amber-400 font-mono mt-0.5">{{ kioskData.manifest_summary?.total_tonnage || 0 }} <span class="text-xs font-bold text-slate-400">Ton</span></h3>
+                        </div>
+                        <div class="h-9 w-9 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0">
+                            <ArrowTrendingUpIcon class="h-4.5 w-4.5" />
+                        </div>
+                    </div>
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Kesiapan Muat</p>
+                            <h3 class="text-xl font-black text-emerald-400 font-mono mt-0.5">
                                 {{ kioskData.manifest_summary?.overall_loading_pct || 0 }}%
-                                <span class="text-xs font-bold text-slate-400 font-mono">({{ kioskData.manifest_summary?.total_loaded_items || 0 }}/{{ kioskData.manifest_summary?.total_items_count || 0 }})</span>
+                                <span class="text-[10px] font-bold text-slate-400 font-mono">({{ kioskData.manifest_summary?.total_loaded_items || 0 }}/{{ kioskData.manifest_summary?.total_items_count || 0 }})</span>
                             </h3>
                         </div>
-                        <div class="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                            <ShieldCheckIcon class="h-5 w-5" />
+                        <div class="h-9 w-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
+                            <ShieldCheckIcon class="h-4.5 w-4.5" />
+                        </div>
+                    </div>
+                    <div class="p-3.5 bg-[#0D1424] border border-slate-800 rounded-2xl shadow-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Item Delay / Tertunda</p>
+                            <h3 class="text-xl font-black font-mono mt-0.5" :class="(kioskData.manifest_summary?.total_delay_items || 0) > 0 ? 'text-amber-400' : 'text-slate-400'">
+                                {{ kioskData.manifest_summary?.total_delay_items || 0 }} <span class="text-xs font-bold text-slate-400">Item</span>
+                            </h3>
+                        </div>
+                        <div class="h-9 w-9 rounded-xl flex items-center justify-center shrink-0" :class="(kioskData.manifest_summary?.total_delay_items || 0) > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-800 text-slate-500'">
+                            <ClockIcon class="h-4.5 w-4.5" />
                         </div>
                     </div>
                 </div>
@@ -1089,14 +1101,16 @@ const getStatusBadgeStyle = (statusCode) => {
                             <table class="w-full text-left border-collapse">
                                 <thead class="bg-[#070B14] text-[10px] font-black uppercase tracking-wider text-slate-500 border-b border-slate-800/80">
                                     <tr>
-                                        <th class="py-2.5 px-4 w-10 text-center">#</th>
-                                        <th class="py-2.5 px-4 w-40">Kode / SKU</th>
-                                        <th class="py-2.5 px-4">Nama Barang & Spesifikasi</th>
-                                        <th class="py-2.5 px-4 text-right w-28">Qty Order</th>
-                                        <th class="py-2.5 px-4 text-right w-28">Qty Kirim</th>
-                                        <th class="py-2.5 px-4 text-center w-24">Satuan</th>
-                                        <th class="py-2.5 px-4 w-36">Staging Gudang</th>
-                                        <th class="py-2.5 px-4 text-center w-48">Status Muat / Barang</th>
+                                        <th class="py-2.5 px-3.5 w-10 text-center">#</th>
+                                        <th class="py-2.5 px-3.5 w-36">Kode / SKU</th>
+                                        <th class="py-2.5 px-3.5">Nama Barang & Spesifikasi</th>
+                                        <th class="py-2.5 px-3 text-right w-24">Qty Order</th>
+                                        <th class="py-2.5 px-3 text-right w-24">Qty Kirim</th>
+                                        <th class="py-2.5 px-3 text-right w-24">Qty Stock</th>
+                                        <th class="py-2.5 px-3 text-right w-24">Qty Delay</th>
+                                        <th class="py-2.5 px-3 text-center w-20">Satuan</th>
+                                        <th class="py-2.5 px-3.5 w-32">Staging Gudang</th>
+                                        <th class="py-2.5 px-3.5 text-center w-44">Status Muat / Barang</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-800/40 text-xs">
@@ -1106,14 +1120,31 @@ const getStatusBadgeStyle = (statusCode) => {
                                         class="hover:bg-[#111A2E]/70 transition-colors"
                                         :class="{ 'bg-emerald-500/[0.02]': item.is_loaded }"
                                     >
-                                        <td class="py-2.5 px-4 text-center font-mono text-slate-500 text-[11px]">{{ item.no }}</td>
-                                        <td class="py-2.5 px-4 font-mono font-bold text-cyan-400 text-xs">{{ item.product_code }}</td>
-                                        <td class="py-2.5 px-4 font-bold text-slate-200">{{ item.product_name }}</td>
-                                        <td class="py-2.5 px-4 text-right font-mono text-slate-400">{{ Number(item.qty_ordered).toLocaleString('id-ID') }}</td>
-                                        <td class="py-2.5 px-4 text-right font-mono font-black text-white">{{ Number(item.qty_delivered).toLocaleString('id-ID') }}</td>
-                                        <td class="py-2.5 px-4 text-center text-slate-400 font-bold text-[11px]">{{ item.unit }}</td>
-                                        <td class="py-2.5 px-4 text-slate-300 text-[11px]">{{ item.location }}</td>
-                                        <td class="py-2.5 px-4 text-center">
+                                        <td class="py-2.5 px-3.5 text-center font-mono text-slate-500 text-[11px]">{{ item.no }}</td>
+                                        <td class="py-2.5 px-3.5 font-mono font-bold text-cyan-400 text-xs">{{ item.product_code }}</td>
+                                        <td class="py-2.5 px-3.5 font-bold text-slate-200">{{ item.product_name }}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono text-slate-400">{{ Number(item.qty_ordered).toLocaleString('id-ID') }}</td>
+                                        <td class="py-2.5 px-3 text-right font-mono font-black text-white">{{ Number(item.qty_delivered).toLocaleString('id-ID') }}</td>
+                                        
+                                        <!-- Qty Stock Column -->
+                                        <td class="py-2.5 px-3 text-right font-mono font-bold" :class="item.qty_stock > 0 ? 'text-emerald-400' : 'text-slate-500'">
+                                            {{ Number(item.qty_stock).toLocaleString('id-ID') }}
+                                        </td>
+
+                                        <!-- Qty Delay Column -->
+                                        <td class="py-2.5 px-3 text-right font-mono">
+                                            <span 
+                                                v-if="item.qty_delay > 0" 
+                                                class="inline-block px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-black text-[11px]"
+                                            >
+                                                {{ Number(item.qty_delay).toLocaleString('id-ID') }}
+                                            </span>
+                                            <span v-else class="text-slate-600 font-bold">0</span>
+                                        </td>
+
+                                        <td class="py-2.5 px-3 text-center text-slate-400 font-bold text-[11px]">{{ item.unit }}</td>
+                                        <td class="py-2.5 px-3.5 text-slate-300 text-[11px]">{{ item.location }}</td>
+                                        <td class="py-2.5 px-3.5 text-center">
                                             <span 
                                                 class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-black uppercase border"
                                                 :class="{
@@ -1133,7 +1164,7 @@ const getStatusBadgeStyle = (statusCode) => {
                                         </td>
                                     </tr>
                                     <tr v-if="!doOrder.items || doOrder.items.length === 0">
-                                        <td colspan="8" class="py-4 text-center text-slate-500 text-xs italic">
+                                        <td colspan="10" class="py-4 text-center text-slate-500 text-xs italic">
                                             Rincian item barang pada Delivery Order ini belum diinput.
                                         </td>
                                     </tr>

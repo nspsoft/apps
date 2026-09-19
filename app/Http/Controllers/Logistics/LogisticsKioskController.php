@@ -65,7 +65,7 @@ class LogisticsKioskController extends Controller
             ->get();
 
         // 2. Fetch all DOs for the target date
-        $deliveryOrders = DeliveryOrder::with(['customer', 'items.product', 'items.unit', 'items.location', 'vehicle'])
+        $deliveryOrders = DeliveryOrder::with(['customer', 'items.product.stocks', 'items.unit', 'items.location', 'vehicle'])
             ->whereDate('delivery_date', $dateString)
             ->whereNotIn('status', ['cancelled'])
             ->orderBy('rit_number')
@@ -243,14 +243,27 @@ class LogisticsKioskController extends Controller
                         $itemStatus = 'Proses Picking';
                         $itemBadge = 'picking';
                     }
+                    $stockQty = $item->product 
+                        ? (float) ($item->product->stocks?->sum('qty_on_hand') ?? $item->product->total_stock ?? 0) 
+                        : 0;
+                    $ordered = (float) $item->qty_ordered;
+                    $delivered = (float) ($item->qty_delivered !== null ? $item->qty_delivered : $ordered);
+                    $delay = max(0, $ordered - $delivered);
+
+                    $isPastDue = $do->delivery_date && Carbon::parse($do->delivery_date)->isPast() && !Carbon::parse($do->delivery_date)->isToday() && $do->status !== 'delivered';
+                    if ($isPastDue && $delay == 0 && $do->status !== 'delivered') {
+                        $delay = $ordered;
+                    }
 
                     return [
                         'id' => $item->id,
                         'no' => $itemIdx + 1,
                         'product_code' => $item->product?->sku ?? ('SKU-' . str_pad($item->product_id ?? ($itemIdx + 1), 4, '0', STR_PAD_LEFT)),
                         'product_name' => $item->product?->name ?? 'Produk Manufaktur',
-                        'qty_ordered' => (float) $item->qty_ordered,
-                        'qty_delivered' => (float) ($item->qty_delivered ?: $item->qty_ordered),
+                        'qty_ordered' => $ordered,
+                        'qty_delivered' => $delivered,
+                        'qty_stock' => $stockQty,
+                        'qty_delay' => $delay,
                         'unit' => $item->unit?->code ?? $item->unit?->name ?? 'PCS',
                         'weight_kg' => (float) ($item->kg_delivered ?: 0),
                         'batch_number' => $item->batch_number ?? '-',
@@ -263,11 +276,13 @@ class LogisticsKioskController extends Controller
             ];
         })->values();
 
+        $totalDelayItems = $doItemsManifest->sum(fn($d) => collect($d['items'])->where('qty_delay', '>', 0)->count());
         $manifestSummary = [
             'total_dos' => $doItemsManifest->count(),
             'total_items_count' => $doItemsManifest->sum('total_items'),
             'total_tonnage' => round($doItemsManifest->sum('weight_ton'), 2),
             'total_loaded_items' => $doItemsManifest->sum('loaded_items'),
+            'total_delay_items' => $totalDelayItems,
             'overall_loading_pct' => $doItemsManifest->sum('total_items') > 0 
                 ? round(($doItemsManifest->sum('loaded_items') / $doItemsManifest->sum('total_items')) * 100) 
                 : 100,
