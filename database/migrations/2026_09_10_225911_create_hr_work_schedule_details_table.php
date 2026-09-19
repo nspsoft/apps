@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('hr_work_schedule_details', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('work_schedule_id')->constrained('hr_work_schedules')->cascadeOnDelete();
-            $table->tinyInteger('day_of_week')->comment('0=Sunday, 1=Monday, ..., 6=Saturday');
-            $table->boolean('is_workday')->default(true);
-            $table->time('start_time')->nullable();
-            $table->time('end_time')->nullable();
-            $table->integer('break_minutes')->default(60);
-            $table->timestamps();
+        if (!Schema::hasTable('hr_work_schedule_details')) {
+            Schema::create('hr_work_schedule_details', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('work_schedule_id')->constrained('hr_work_schedules')->cascadeOnDelete();
+                $table->tinyInteger('day_of_week')->comment('0=Sunday, 1=Monday, ..., 6=Saturday');
+                $table->boolean('is_workday')->default(true);
+                $table->time('start_time')->nullable();
+                $table->time('end_time')->nullable();
+                $table->integer('break_minutes')->default(60);
+                $table->timestamps();
 
-            $table->unique(['work_schedule_id', 'day_of_week']);
-        });
+                $table->unique(['work_schedule_id', 'day_of_week']);
+            });
+        }
     }
 
     /**

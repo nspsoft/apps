@@ -12,14 +12,30 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('hr_payrolls', function (Blueprint $table) {
-            $table->date('cutoff_start')->nullable()->after('period_year');
-            $table->date('cutoff_end')->nullable()->after('cutoff_start');
-            $table->decimal('total_working_hours', 8, 2)->default(0)->after('cutoff_end');
-            $table->decimal('total_overtime_hours', 8, 2)->default(0)->after('total_working_hours');
-            $table->integer('total_working_days')->default(0)->after('total_overtime_hours');
-            $table->integer('total_overtime_days')->default(0)->after('total_working_days');
-            $table->decimal('hourly_rate', 15, 2)->nullable()->after('basic_salary');
-            $table->decimal('rounded_net_salary', 15, 2)->nullable()->after('net_salary');
+            if (!Schema::hasColumn('hr_payrolls', 'cutoff_start')) {
+                $table->date('cutoff_start')->nullable()->after('period_year');
+            }
+            if (!Schema::hasColumn('hr_payrolls', 'cutoff_end')) {
+                $table->date('cutoff_end')->nullable()->after('cutoff_start');
+            }
+            if (!Schema::hasColumn('hr_payrolls', 'total_working_hours')) {
+                $table->decimal('total_working_hours', 8, 2)->default(0)->after('cutoff_end');
+            }
+            if (!Schema::hasColumn('hr_payrolls', 'total_overtime_hours')) {
+                $table->decimal('total_overtime_hours', 8, 2)->default(0)->after('total_working_hours');
+            }
+            if (!Schema::hasColumn('hr_payrolls', 'total_working_days')) {
+                $table->integer('total_working_days')->default(0)->after('total_overtime_hours');
+            }
+            if (!Schema::hasColumn('hr_payrolls', 'total_overtime_days')) {
+                $table->integer('total_overtime_days')->default(0)->after('total_working_days');
+            }
+            if (!Schema::hasColumn('hr_payrolls', 'hourly_rate')) {
+                $table->decimal('hourly_rate', 15, 2)->nullable()->after('basic_salary');
+            }
+            if (!Schema::hasColumn('hr_payrolls', 'rounded_net_salary')) {
+                $table->decimal('rounded_net_salary', 15, 2)->nullable()->after('net_salary');
+            }
         });
     }
 

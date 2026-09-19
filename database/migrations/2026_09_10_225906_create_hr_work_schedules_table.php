@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('hr_work_schedules', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('code')->unique()->nullable();
-            $table->text('description')->nullable();
-            $table->boolean('is_default')->default(false);
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('hr_work_schedules')) {
+            Schema::create('hr_work_schedules', function (Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('code')->unique()->nullable();
+                $table->text('description')->nullable();
+                $table->boolean('is_default')->default(false);
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

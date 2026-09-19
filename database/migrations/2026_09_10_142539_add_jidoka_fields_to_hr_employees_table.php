@@ -12,11 +12,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('hr_employees', function (Blueprint $table) {
-            $table->string('section', 100)->nullable()->after('department_id');
-            $table->string('golongan', 50)->nullable()->after('position_id');
-            $table->string('tax_status', 20)->nullable()->after('golongan');
-            $table->enum('salary_type', ['monthly', 'hourly'])->default('monthly')->after('basic_salary');
-            $table->decimal('hourly_rate', 15, 2)->nullable()->after('salary_type');
+            if (!Schema::hasColumn('hr_employees', 'section')) {
+                $table->string('section', 100)->nullable()->after('department_id');
+            }
+            if (!Schema::hasColumn('hr_employees', 'golongan')) {
+                $table->string('golongan', 50)->nullable()->after('position_id');
+            }
+            if (!Schema::hasColumn('hr_employees', 'tax_status')) {
+                $table->string('tax_status', 20)->nullable()->after('golongan');
+            }
+            if (!Schema::hasColumn('hr_employees', 'salary_type')) {
+                $table->enum('salary_type', ['monthly', 'hourly'])->default('monthly')->after('basic_salary');
+            }
+            if (!Schema::hasColumn('hr_employees', 'hourly_rate')) {
+                $table->decimal('hourly_rate', 15, 2)->nullable()->after('salary_type');
+            }
         });
     }
 

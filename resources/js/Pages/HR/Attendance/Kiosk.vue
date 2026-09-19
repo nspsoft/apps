@@ -122,21 +122,14 @@ const playChime = () => {
     }
 };
 
-// SpeechSynthesis TTS Voice Announcement (Opsi 1)
+// SpeechSynthesis TTS Voice Announcement (Singkat)
 const speakAnnouncement = (name, action) => {
     if (!('speechSynthesis' in window)) return;
     
     // Cancel active speech to prevent overlap
     window.speechSynthesis.cancel();
     
-    let text = '';
-    const greeting = getGreetingTime();
-    if (action === 'clock_in') {
-        text = `Absen masuk berhasil. ${greeting} ${name}, selamat bekerja dan semoga hari Anda menyenangkan!`;
-    } else {
-        text = `Absen pulang berhasil. Terima kasih ${name}, hati-hati di jalan dan selamat beristirahat!`;
-    }
-    
+    const text = action === 'clock_in' ? 'Silahkan Masuk' : 'Sampai Jumpa';
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'id-ID';
     utterance.rate = 1.0;
@@ -174,13 +167,13 @@ const playWarningChime = () => {
     }
 };
 
-// SpeechSynthesis for warning/rejection
+// SpeechSynthesis for warning/rejection (Singkat)
 const speakWarning = (message) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(message);
+    const utterance = new SpeechSynthesisUtterance('Silahkan Coba lagi');
     utterance.lang = 'id-ID';
-    utterance.rate = 0.9;
+    utterance.rate = 1.0;
     const voices = window.speechSynthesis.getVoices();
     const idVoice = voices.find(voice => voice.lang.includes('id') || voice.lang.includes('ID'));
     if (idVoice) utterance.voice = idVoice;
@@ -372,7 +365,7 @@ const registerKioskClock = async (employeeId) => {
             setTimeout(() => {
                 showSuccessOverlay.value = false;
                 isScanning.value = true;
-            }, 4500);
+            }, 2500);
         } else if (payload.success === false) {
             // Attendance REJECTED by backend (time restriction, non-workday, etc.)
             warningData.value = {
@@ -386,7 +379,7 @@ const registerKioskClock = async (employeeId) => {
             setTimeout(() => {
                 showWarningOverlay.value = false;
                 isScanning.value = true;
-            }, 6000);
+            }, 2500);
         } else {
             isScanning.value = true;
         }
@@ -405,7 +398,7 @@ const registerKioskClock = async (employeeId) => {
             setTimeout(() => {
                 showWarningOverlay.value = false;
                 isScanning.value = true;
-            }, 6000);
+            }, 2500);
         } else {
             isScanning.value = true;
         }
@@ -583,6 +576,96 @@ const formatTimeString = (dateTime) => {
                             <!-- Scanner laser animation line -->
                             <div class="absolute left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent top-1/2 -translate-y-1/2 animate-[bounce_3s_infinite] shadow-[0_0_10px_#22d3ee]"></div>
                         </div>
+
+                        <!-- IN-CAMERA SUCCESS CARD OVERLAY (Tidak Fullscreen) -->
+                        <Transition
+                            enter-active-class="transition duration-300 ease-out"
+                            enter-from-class="opacity-0 translate-y-6 scale-95"
+                            enter-to-class="opacity-100 translate-y-0 scale-100"
+                            leave-active-class="transition duration-200 ease-in"
+                            leave-from-class="opacity-100 translate-y-0 scale-100"
+                            leave-to-class="opacity-0 translate-y-6 scale-95"
+                        >
+                            <div 
+                                v-if="showSuccessOverlay" 
+                                class="absolute inset-x-4 bottom-4 z-30 bg-slate-950/95 border-2 border-emerald-500/60 rounded-2xl p-4 shadow-[0_0_35px_rgba(16,185,129,0.35)] backdrop-blur-md flex flex-col gap-3 select-none"
+                            >
+                                <div class="flex items-center gap-3.5">
+                                    <!-- Avatar -->
+                                    <div class="w-13 h-13 w-12 h-12 rounded-xl overflow-hidden border-2 border-emerald-400 bg-slate-900 flex items-center justify-center shrink-0 shadow-md">
+                                        <img 
+                                            v-if="successData.avatar" 
+                                            :src="successData.avatar" 
+                                            alt="Avatar" 
+                                            class="w-full h-full object-cover"
+                                        />
+                                        <span v-else class="text-lg font-black text-emerald-400">
+                                            {{ successData.name ? successData.name.charAt(0).toUpperCase() : '✓' }}
+                                        </span>
+                                    </div>
+
+                                    <!-- Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span 
+                                                class="inline-flex items-center text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border"
+                                                :class="successData.action === 'clock_in' ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-cyan-500/15 border-cyan-500/30 text-cyan-400'"
+                                            >
+                                                {{ successData.action === 'clock_in' ? 'MASUK' : 'PULANG' }} SUKSES
+                                            </span>
+                                            <span class="text-[10px] font-mono font-bold text-slate-300 ml-auto">{{ successData.time }}</span>
+                                        </div>
+                                        <h3 class="text-sm font-black text-white truncate tracking-tight mt-1">{{ successData.name }}</h3>
+                                        <p class="text-[11px] text-slate-400 font-semibold truncate">{{ successData.nik }} &bull; <span class="text-indigo-300">{{ successData.department }}</span></p>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+                                    <span class="text-emerald-400 font-bold flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                        {{ successData.action === 'clock_in' ? 'Silahkan Masuk' : 'Sampai Jumpa' }}
+                                    </span>
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sistem Absensi</span>
+                                </div>
+                            </div>
+                        </Transition>
+
+                        <!-- IN-CAMERA WARNING/ERROR CARD OVERLAY (Tidak Fullscreen) -->
+                        <Transition
+                            enter-active-class="transition duration-300 ease-out"
+                            enter-from-class="opacity-0 translate-y-6 scale-95"
+                            enter-to-class="opacity-100 translate-y-0 scale-100"
+                            leave-active-class="transition duration-200 ease-in"
+                            leave-from-class="opacity-100 translate-y-0 scale-100"
+                            leave-to-class="opacity-0 translate-y-6 scale-95"
+                        >
+                            <div 
+                                v-if="showWarningOverlay" 
+                                class="absolute inset-x-4 bottom-4 z-30 bg-slate-950/95 border-2 border-rose-500/60 rounded-2xl p-4 shadow-[0_0_35px_rgba(239,68,68,0.35)] backdrop-blur-md flex flex-col gap-2.5 select-none"
+                            >
+                                <div class="flex items-start gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0 mt-0.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded-md inline-block">
+                                            ABSENSI GAGAL / DITOLAK
+                                        </span>
+                                        <p class="text-xs font-bold text-white mt-1 leading-snug">{{ warningData.message }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+                                    <span class="text-rose-400 font-bold flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
+                                        Silahkan Coba lagi
+                                    </span>
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ warningData.status ? warningData.status.replace(/_/g, ' ') : 'GAGAL' }}</span>
+                                </div>
+                            </div>
+                        </Transition>
                     </div>
                 </div>
             </section>
@@ -678,112 +761,6 @@ const formatTimeString = (dateTime) => {
                 </div>
             </section>
         </main>
-
-        <!-- IMMERSIVE SCAN SUCCESS OVERLAY -->
-        <Transition
-            enter-active-class="transition duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition duration-200 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-        >
-            <div 
-                v-if="showSuccessOverlay" 
-                class="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-8 select-none"
-            >
-                <div class="max-w-xl w-full bg-slate-900 border border-emerald-500/30 rounded-[3rem] p-8 text-center shadow-[0_0_50px_rgba(16,185,129,0.2)] relative overflow-hidden">
-                    <!-- Glowing Background Circle -->
-                    <div class="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                    <!-- Close indicator -->
-                    <span class="absolute top-6 right-6 text-[9px] text-slate-500 font-bold uppercase tracking-widest">Auto close in 4s</span>
-
-                    <!-- Success icon -->
-                    <div class="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6">
-                        <CheckCircle2Icon class="w-10 h-10 animate-bounce" />
-                    </div>
-
-                    <!-- Greeting & Header -->
-                    <span class="text-xs font-black tracking-widest text-emerald-400 uppercase">ABSENSI BERHASIL DICATAT</span>
-                    <h2 class="text-3xl font-black text-white tracking-tight mt-2">{{ successData.name }}</h2>
-                    <p class="text-sm text-slate-400 mt-1 font-bold">{{ successData.nik }} &bull; <span class="text-indigo-400">{{ successData.department }}</span></p>
-
-                    <!-- Avatar container -->
-                    <div class="my-6 mx-auto w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-500/30 bg-slate-950 flex items-center justify-center shadow-xl">
-                        <img 
-                            v-if="successData.avatar" 
-                            :src="successData.avatar" 
-                            alt="Employee face" 
-                            class="w-full h-full object-cover"
-                        />
-                        <div v-else class="text-4xl font-black text-emerald-400 uppercase">
-                            {{ successData.name.charAt(0) }}
-                        </div>
-                    </div>
-
-                    <!-- Success Meta Details -->
-                    <div class="grid grid-cols-2 gap-4 mt-6 bg-slate-950/50 border border-white/5 rounded-2xl p-4">
-                        <div class="text-left border-r border-white/5 pr-4">
-                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Waktu Terdaftar</span>
-                            <span class="font-mono text-sm font-black text-white mt-0.5 block">{{ successData.time }}</span>
-                        </div>
-                        <div class="text-right pl-4">
-                            <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Jenis Absensi</span>
-                            <span 
-                                class="text-xs font-black uppercase tracking-widest mt-1 inline-block"
-                                :class="successData.action === 'clock_in' ? 'text-emerald-400' : 'text-cyan-400'"
-                            >
-                                {{ successData.action === 'clock_in' ? 'MASUK' : 'PULANG' }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Greeting bottom text -->
-                    <p class="text-xs font-bold text-slate-400 italic mt-6">
-                        {{ successData.action === 'clock_in' ? getGreetingTime() + ', selamat bekerja dan semoga hari Anda menyenangkan!' : 'Hati-hati di jalan dan selamat beristirahat!' }}
-                    </p>
-                </div>
-            </div>
-        </Transition>
-
-        <!-- WARNING/REJECTION OVERLAY -->
-        <Transition
-            enter-active-class="transition duration-300 ease-out"
-            enter-from-class="opacity-0 scale-95"
-            enter-to-class="opacity-100 scale-100"
-            leave-active-class="transition duration-200 ease-in"
-            leave-from-class="opacity-100 scale-100"
-            leave-to-class="opacity-0 scale-95"
-        >
-            <div 
-                v-if="showWarningOverlay" 
-                class="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-8 select-none"
-            >
-                <div class="max-w-xl w-full bg-slate-900 border border-rose-500/30 rounded-[3rem] p-8 text-center shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden">
-                    <div class="absolute -top-24 -left-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                    <span class="absolute top-6 right-6 text-[9px] text-slate-500 font-bold uppercase tracking-widest">Auto close in 6s</span>
-
-                    <div class="mx-auto w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                        </svg>
-                    </div>
-
-                    <span class="text-xs font-black tracking-widest text-rose-400 uppercase">ABSENSI DITOLAK</span>
-                    <p class="text-lg font-bold text-white mt-4 leading-relaxed">{{ warningData.message }}</p>
-                    
-                    <div class="mt-6 bg-slate-950/50 border border-white/5 rounded-2xl p-4">
-                        <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Status</span>
-                        <span class="text-xs font-black uppercase tracking-widest mt-1 inline-block text-rose-400">{{ warningData.status.replace(/_/g, ' ') }}</span>
-                    </div>
-
-                    <p class="text-xs font-bold text-slate-400 italic mt-6">
-                        Silakan hubungi HRD jika Anda merasa ini adalah kesalahan.
-                    </p>
-                </div>
-            </div>
-        </Transition>
     </div>
 </template>
 
