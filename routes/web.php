@@ -472,6 +472,7 @@ Route::prefix('manufacturing')->name('manufacturing.')->middleware(['auth'])->gr
     Route::get('/work-orders/{workOrder}/print', [WorkOrderController::class, 'print'])->name('work-orders.print');
     Route::get('/work-orders/{workOrder}/record-production', [WorkOrderController::class, 'recordProductionForm'])->name('work-orders.record-production-form');
     Route::post('/work-orders/{workOrder}/record-production', [WorkOrderController::class, 'recordProduction'])->name('work-orders.record-production');
+    Route::post('/work-orders/{workOrder}/sync-bom', [WorkOrderController::class, 'syncBom'])->name('work-orders.sync-bom');
     
     Route::get('/production-entry', [WorkOrderController::class, 'productionEntryIndex'])->name('production-entry.index');
     Route::get('/production-reports', [\App\Http\Controllers\Manufacturing\ProductionEntryController::class, 'index'])->name('production-reports.index');
@@ -486,6 +487,7 @@ Route::prefix('manufacturing')->name('manufacturing.')->middleware(['auth'])->gr
     Route::post('/subcontract-orders/{subcontractOrder}/dispatch', [SubcontractOrderController::class, 'dispatchMaterials'])->name('subcontract-orders.dispatch');
     Route::post('/subcontract-orders/{subcontractOrder}/return-materials', [SubcontractOrderController::class, 'returnMaterials'])->name('subcontract-orders.return-materials');
     Route::post('/subcontract-orders/{subcontractOrder}/receive', [SubcontractOrderController::class, 'receiveGoods'])->name('subcontract-orders.receive');
+    Route::post('/subcontract-orders/{subcontractOrder}/sync-bom', [SubcontractOrderController::class, 'syncBom'])->name('subcontract-orders.sync-bom');
     Route::get('/subcontract-orders/{subcontractOrder}/print', [SubcontractOrderController::class, 'print'])->name('subcontract-orders.print');
     Route::get('/subcontract-orders/{subcontractOrder}/print-delivery-note', [SubcontractOrderController::class, 'printDeliveryNote'])->name('subcontract-orders.print-delivery-note');
     Route::get('/subcontract-orders/{movement}/print-grn', [SubcontractOrderController::class, 'printGrn'])->name('subcontract-orders.print-grn');

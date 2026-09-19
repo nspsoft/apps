@@ -14,6 +14,7 @@ class WhatsappMessage extends Model
         'phone',
         'customer_id',
         'supplier_id',
+        'employee_id',
         'direction',
         'message',
         'intent',
@@ -42,6 +43,14 @@ class WhatsappMessage extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    /**
+     * Get the employee that owns the message
+     */
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
     }
 
     /**

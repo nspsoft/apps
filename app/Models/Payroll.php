@@ -28,13 +28,16 @@ class Payroll extends Model
         'basic_salary', 'hourly_rate',
         'total_allowances', 'total_deductions', 
         'net_salary', 'rounded_net_salary',
-        'status', 'payment_date', 'note'
+        'status', 'payment_date', 'note',
+        'wa_sent_at', 'wa_status', 'email_sent_at', 'email_status', 'pdf_path'
     ];
 
     protected $casts = [
         'cutoff_start' => 'date',
         'cutoff_end' => 'date',
         'payment_date' => 'datetime',
+        'wa_sent_at' => 'datetime',
+        'email_sent_at' => 'datetime',
         'total_working_hours' => 'double',
         'total_overtime_hours' => 'double',
         'total_working_days' => 'integer',

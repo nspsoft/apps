@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatNumber, formatCurrency } from '@/helpers';
@@ -141,19 +141,36 @@ const dispatchForm = useForm({
 
 const openDispatchModal = (order) => {
     selectedOrderForDispatch.value = order;
-    dispatchForm.items = order.work_order?.components.map(c => ({
-        id: c.id,
-        name: c.product?.name,
-        sku: c.product?.sku,
-        qty_required: parseFloat(c.qty_required),
-        qty_consumed: parseFloat(c.qty_consumed),
-        qty: Math.max(0, parseFloat(c.qty_required) - parseFloat(c.qty_consumed)),
-    })) || [];
+    dispatchForm.clearErrors();
+    dispatchForm.items = order.work_order?.components.map(c => {
+        const remaining = Math.max(0, parseFloat(c.qty_required || 0) - parseFloat(c.qty_consumed || 0));
+        return {
+            id: c.id,
+            name: c.product?.name,
+            sku: c.product?.sku,
+            qty_required: parseFloat(c.qty_required || 0),
+            qty_consumed: parseFloat(c.qty_consumed || 0),
+            qty: remaining,
+        };
+    }) || [];
     showDispatchModal.value = true;
 };
 
+const hasInvalidDispatch = computed(() => {
+    if (!dispatchForm.items || dispatchForm.items.length === 0) return true;
+    let totalQty = 0;
+    for (const item of dispatchForm.items) {
+        const remaining = Math.max(0, parseFloat(item.qty_required || 0) - parseFloat(item.qty_consumed || 0));
+        const sendQty = parseFloat(item.qty || 0);
+        if (sendQty < 0) return true;
+        if (sendQty > (remaining + 0.0001)) return true;
+        totalQty += sendQty;
+    }
+    return totalQty <= 0;
+});
+
 const submitDispatch = () => {
-    if (!selectedOrderForDispatch.value) return;
+    if (!selectedOrderForDispatch.value || hasInvalidDispatch.value) return;
     dispatchForm.post(route('manufacturing.subcontract-orders.dispatch', selectedOrderForDispatch.value.id), {
         onSuccess: () => {
             showDispatchModal.value = false;
@@ -495,20 +512,29 @@ const canDispatch = (order) => {
                             <div class="flex-1">
                                 <div class="text-sm font-bold text-slate-900 dark:text-white">{{ item.name }}</div>
                                 <div class="text-[10px] text-slate-500 font-mono">{{ item.sku }}</div>
-                                <div class="mt-1 flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+                                <div class="mt-1 flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-wider">
                                     <span class="text-slate-500">Required: {{ formatNumber(item.qty_required) }}</span>
                                     <span class="text-emerald-500">Sent: {{ formatNumber(item.qty_consumed) }}</span>
+                                    <span class="text-blue-500">Remaining: {{ formatNumber(Math.max(0, item.qty_required - item.qty_consumed)) }}</span>
                                 </div>
                             </div>
-                            <div class="w-32">
+                            <div class="w-36">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty to send</label>
                                 <input 
-                                    v-model="item.qty"
+                                    v-model.number="item.qty"
                                     type="number"
                                     step="0.01"
-                                    class="w-full bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 rounded-xl py-2 px-3 text-blue-400 font-mono font-bold focus:ring-blue-500"
+                                    min="0"
+                                    :max="Math.max(0, item.qty_required - item.qty_consumed)"
+                                    class="w-full bg-white dark:bg-slate-950 rounded-xl py-2 px-3 font-mono font-bold focus:ring-blue-500 text-sm"
+                                    :class="parseFloat(item.qty || 0) > (Math.max(0, item.qty_required - item.qty_consumed) + 0.0001)
+                                        ? 'border-red-500 text-red-500 focus:border-red-500 focus:ring-red-500'
+                                        : 'border-slate-200 dark:border-slate-700 text-blue-500 dark:text-blue-400'"
                                     placeholder="0"
                                 />
+                                <p v-if="parseFloat(item.qty || 0) > (Math.max(0, item.qty_required - item.qty_consumed) + 0.0001)" class="text-[10px] text-red-500 font-semibold mt-1">
+                                    Maks: {{ formatNumber(Math.max(0, item.qty_required - item.qty_consumed)) }}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -523,8 +549,8 @@ const canDispatch = (order) => {
                         </button>
                         <button 
                             type="submit"
-                            :disabled="dispatchForm.processing"
-                            class="flex-1 py-3 font-bold text-slate-900 dark:text-white bg-blue-600 rounded-xl hover:bg-blue-500 shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                            :disabled="dispatchForm.processing || hasInvalidDispatch"
+                            class="flex-1 py-3 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Confirm Dispatch
                         </button>

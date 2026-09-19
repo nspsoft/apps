@@ -32,6 +32,20 @@ class OvertimeController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $employee = auth()->user()->employee;
+        if (!$employee) {
+            $user = auth()->user();
+            if ($user && ($user->hasRole('Super Admin') || $user->can('hr_payroll.overtime.view'))) {
+                return redirect()->route('hr.overtime.index')->with('info', 'Akun admin tidak ditautkan ke karyawan individu.');
+            }
+            return redirect()->route('dashboard')->with('error', 'Anda tidak terdaftar sebagai karyawan.');
+        }
+
+        return Inertia::render('Employee/Overtime/Create');
+    }
+
     public function store(Request $request)
     {
         $employee = auth()->user()->employee;

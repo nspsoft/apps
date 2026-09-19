@@ -186,6 +186,27 @@ const rejectDocument = () => {
         });
     }
 };
+
+const syncingBom = ref(false);
+const totalConsumed = computed(() => {
+    return (props.workOrder?.components || []).reduce((acc, c) => acc + (parseFloat(c.qty_consumed) || 0), 0);
+});
+
+const syncBom = () => {
+    if (totalConsumed.value > 0.0001) {
+        alert('Tidak dapat melakukan Sync BOM karena sudah ada komponen material yang digunakan/dikirim (Consumed/Dispatched > 0).\n\nSilakan kembalikan material terlebih dahulu sebelum merevisi BoM.');
+        return;
+    }
+
+    if (!confirm('Perbarui kebutuhan komponen material dari master BOM aktif terbaru?')) return;
+    syncingBom.value = true;
+    router.post(route('manufacturing.work-orders.sync-bom', props.workOrder.id), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            syncingBom.value = false;
+        },
+    });
+};
 </script>
 
 <template>
@@ -491,11 +512,21 @@ const rejectDocument = () => {
 
                     <!-- Components -->
                     <div class="glass-card rounded-3xl shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-slate-200 dark:border-slate-800">
+                        <div class="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                             <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 font-mono">
                                 <div class="h-6 w-1 bg-cyan-500 rounded-full"></div>
                                 COMPONENTS
                             </h3>
+                            <button 
+                                v-if="!['completed', 'cancelled'].includes(workOrder.status)"
+                                @click="syncBom"
+                                :disabled="syncingBom"
+                                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 rounded-xl transition-all disabled:opacity-50"
+                                title="Sinkronkan kebutuhan komponen dari revisi BOM terbaru"
+                            >
+                                <ArrowPathIcon class="h-4 w-4" :class="{ 'animate-spin': syncingBom }" />
+                                <span>Sync BOM</span>
+                            </button>
                         </div>
                         <div class="overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar relative">
                             <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">

@@ -7,6 +7,7 @@ import {
     BanknotesIcon, 
     NoSymbolIcon, 
     ClockIcon,
+    FingerPrintIcon,
     CheckCircleIcon,
     ArrowLeftIcon
 } from '@heroicons/vue/24/outline';
@@ -38,6 +39,7 @@ const tabs = [
     { id: 'allowance', name: 'Allowances', icon: BanknotesIcon },
     { id: 'deduction', name: 'Deductions', icon: NoSymbolIcon },
     { id: 'overtime', name: 'Overtime', icon: ClockIcon },
+    { id: 'attendance', name: 'Attendance & Kiosk', icon: FingerPrintIcon },
 ];
 </script>
 
@@ -110,7 +112,36 @@ const tabs = [
                                         <span class="text-[10px] font-mono text-indigo-400/70">{{ setting.key }}</span>
                                     </div>
                                     
-                                    <div class="relative group">
+                                    <!-- Boolean toggle for attendance settings -->
+                                    <div v-if="category.id === 'attendance' && setting.key && (setting.key.includes('restriction') || setting.key.includes('allow_holiday'))" class="relative group">
+                                        <button 
+                                            type="button"
+                                            @click="setting.value = setting.value === '1' || setting.value === 1 ? '0' : '1'"
+                                            class="w-full flex items-center justify-between bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-5 transition-all shadow-sm"
+                                        >
+                                            <span class="text-sm font-bold" :class="setting.value === '1' || setting.value === 1 ? 'text-emerald-500' : 'text-slate-400'">{{ setting.value === '1' || setting.value === 1 ? 'Aktif' : 'Nonaktif' }}</span>
+                                            <div class="relative w-11 h-6 rounded-full transition-colors duration-200" :class="setting.value === '1' || setting.value === 1 ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'">
+                                                <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200" :class="setting.value === '1' || setting.value === 1 ? 'translate-x-5' : ''"></span>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    <!-- Number input for attendance settings (no IDR prefix) -->
+                                    <div v-else-if="category.id === 'attendance'" class="relative group">
+                                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm group-focus-within:text-indigo-500 transition-colors">
+                                            {{ setting.key.includes('hours') ? 'JAM' : 'MIN' }}
+                                        </div>
+                                        <input 
+                                            v-model="setting.value" 
+                                            type="number" 
+                                            min="0"
+                                            class="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-14 pr-4 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm"
+                                            placeholder="0"
+                                        />
+                                    </div>
+
+                                    <!-- Default IDR input for other categories -->
+                                    <div v-else class="relative group">
                                         <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm group-focus-within:text-indigo-500 transition-colors">
                                             IDR
                                         </div>
@@ -122,7 +153,8 @@ const tabs = [
                                         />
                                     </div>
                                     <p class="text-[10px] text-slate-400/60 leading-relaxed italic px-1">
-                                        * This value will be applied automatically to all employees during generation.
+                                        <template v-if="category.id === 'attendance'">* Pengaturan ini mengontrol kapan karyawan boleh absen melalui Kiosk.</template>
+                                        <template v-else>* This value will be applied automatically to all employees during generation.</template>
                                     </p>
                                 </div>
                                 

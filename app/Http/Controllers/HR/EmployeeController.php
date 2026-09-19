@@ -123,10 +123,17 @@ class EmployeeController extends Controller
             'basic_salary' => 'required|numeric|min:0',
             'salary_type' => 'nullable|in:monthly,hourly',
             'hourly_rate' => 'nullable|numeric|min:0',
+            'has_bpjstk' => 'nullable|boolean',
+            'has_bpjskes' => 'nullable|boolean',
+            'bpjstk_number' => 'nullable|string|max:50',
+            'bpjskes_number' => 'nullable|string|max:50',
             'user_id' => 'nullable|exists:users,id',
             'create_user' => 'nullable|boolean',
             'profile_picture' => 'nullable|image|max:2048', // max 2MB
         ]);
+
+        $validated['has_bpjstk'] = $request->boolean('has_bpjstk');
+        $validated['has_bpjskes'] = $request->boolean('has_bpjskes');
 
         if (empty($validated['user_id']) && !empty($validated['email'])) {
             $user = \App\Models\User::where('email', $validated['email'])->first();
@@ -171,11 +178,18 @@ class EmployeeController extends Controller
             'basic_salary' => 'required|numeric|min:0',
             'salary_type' => 'nullable|in:monthly,hourly',
             'hourly_rate' => 'nullable|numeric|min:0',
+            'has_bpjstk' => 'nullable|boolean',
+            'has_bpjskes' => 'nullable|boolean',
+            'bpjstk_number' => 'nullable|string|max:50',
+            'bpjskes_number' => 'nullable|string|max:50',
             'is_active' => 'required|boolean',
             'user_id' => 'nullable|exists:users,id',
             'create_user' => 'nullable|boolean',
             'profile_picture' => 'nullable|image|max:2048',
         ]);
+
+        $validated['has_bpjstk'] = $request->boolean('has_bpjstk');
+        $validated['has_bpjskes'] = $request->boolean('has_bpjskes');
 
         if (empty($validated['user_id']) && !empty($validated['email'])) {
             $user = \App\Models\User::where('email', $validated['email'])->first();

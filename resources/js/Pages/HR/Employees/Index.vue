@@ -73,6 +73,10 @@ const form = useForm({
     salary_type: 'monthly',
     basic_salary: 0,
     hourly_rate: 0,
+    has_bpjstk: true,
+    has_bpjskes: true,
+    bpjstk_number: '',
+    bpjskes_number: '',
     is_active: true,
     user_id: '',
     create_user: true,
@@ -98,6 +102,10 @@ const openModal = (employee = null) => {
         form.salary_type = employee.salary_type || 'monthly';
         form.basic_salary = employee.basic_salary;
         form.hourly_rate = employee.hourly_rate || 0;
+        form.has_bpjstk = employee.has_bpjstk === 1 || employee.has_bpjstk === true;
+        form.has_bpjskes = employee.has_bpjskes === 1 || employee.has_bpjskes === true;
+        form.bpjstk_number = employee.bpjstk_number || '';
+        form.bpjskes_number = employee.bpjskes_number || '';
         form.is_active = employee.is_active === 1 || employee.is_active === true;
         form.user_id = employee.user_id || '';
         form.create_user = false;
@@ -110,6 +118,10 @@ const openModal = (employee = null) => {
         form.tax_status = 'TK/0';
         form.basic_salary = 0;
         form.hourly_rate = 0;
+        form.has_bpjstk = false;
+        form.has_bpjskes = false;
+        form.bpjstk_number = '';
+        form.bpjskes_number = '';
         form.is_active = true;
         form.user_id = '';
         form.create_user = true;
@@ -324,9 +336,17 @@ const deleteFace = (employee) => {
                     </div>
 
                     <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
-                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border" :class="getStatusBadge(employee.employment_status)">
-                            {{ employee.employment_status }}
-                        </span>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border" :class="getStatusBadge(employee.employment_status)">
+                                {{ employee.employment_status }}
+                            </span>
+                            <span v-if="employee.has_bpjstk" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20" title="BPJS Ketenagakerjaan Aktif">
+                                TK
+                            </span>
+                            <span v-if="employee.has_bpjskes" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" title="BPJS Kesehatan Aktif">
+                                KES
+                            </span>
+                        </div>
                         
                         <div class="flex items-center gap-3">
                             <Link 
@@ -407,23 +427,29 @@ const deleteFace = (employee) => {
                                         <div class="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 space-y-3">
                                             <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-2">
                                                 <DocumentArrowDownIcon class="h-4 w-4" />
-                                                Instructions
+                                                Petunjuk & Template
                                             </h4>
-                                            <p class="text-xs text-slate-500 leading-relaxed italic">
-                                                Please use our standard template to ensure data compatibility. You can fill the Department and Position by their names.
+                                            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                                Gunakan template standar kami. Kolom <strong>Salary Type</strong> dapat diisi <code class="px-1 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-mono font-bold">monthly</code> (Bulanan) atau <code class="px-1 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 font-mono font-bold">hourly</code> (Per Jam/Harian). Kolom <strong>BPJS TK</strong> & <strong>BPJS Kes</strong> dapat diisi <code class="px-1 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-mono font-bold">Ya</code> atau <code class="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono">Tidak</code>.
                                             </p>
-                                            <button 
-                                                type="button"
-                                                @click="downloadTemplate"
-                                                class="text-xs font-bold text-indigo-500 hover:text-indigo-400 underline underline-offset-4"
-                                            >
-                                                Download Excel Template
-                                            </button>
+                                            <div class="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                                                💡 <strong>Tips Update Massal (Gaji / BPJS / Data):</strong> Anda juga dapat mendownload data seluruh karyawan saat ini lewat tombol <strong>Export</strong>, perbarui kolom yang diinginkan di Excel (misal: <em>Salary Type</em>, <em>Price/Hour</em>, <em>Basic Salary</em>, <em>BPJS</em>), lalu upload kembali file tersebut di modal ini dengan mencentang <em>"Overwrite existing data"</em> di bawah.
+                                            </div>
+                                            <div>
+                                                <button 
+                                                    type="button"
+                                                    @click="downloadTemplate"
+                                                    class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1.5"
+                                                >
+                                                    <DocumentArrowDownIcon class="h-4 w-4" />
+                                                    Download Blank Template Excel
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <div class="space-y-4">
                                             <div class="space-y-2">
-                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Select Excel File</label>
+                                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pilih File Excel</label>
                                                 <input 
                                                     type="file" 
                                                     @input="importForm.file = $event.target.files[0]"
@@ -433,15 +459,18 @@ const deleteFace = (employee) => {
                                                 <p v-if="importForm.errors.file" class="text-[10px] text-red-500 italic">{{ importForm.errors.file }}</p>
                                             </div>
 
-                                            <div class="flex items-center gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                                            <div class="flex items-start gap-3 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                                                 <input 
                                                     v-model="importForm.overwrite"
                                                     type="checkbox" 
                                                     id="overwrite"
-                                                    class="h-5 w-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all"
+                                                    class="mt-0.5 h-5 w-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                                                 />
-                                                <label for="overwrite" class="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-                                                    Overwrite existing data (Match by NIK)
+                                                <label for="overwrite" class="text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer space-y-1">
+                                                    <span class="font-bold block text-slate-900 dark:text-white">Overwrite existing data (Match by NIK)</span>
+                                                    <span class="text-[11px] text-slate-500 block leading-normal">
+                                                        Centang opsi ini untuk mengupdate massal data atau status BPJS karyawan lama berdasarkan NIK tanpa membuat data baru.
+                                                    </span>
                                                 </label>
                                             </div>
                                         </div>
@@ -620,6 +649,54 @@ const deleteFace = (employee) => {
                                                     <input v-model="form.basic_salary" type="number" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 pl-12 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono font-bold" />
                                                 </div>
                                                 <p v-if="form.errors.basic_salary" class="text-[10px] text-red-500 italic">{{ form.errors.basic_salary }}</p>
+                                            </div>
+
+                                            <div class="md:col-span-2 p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-500/20 space-y-4">
+                                                <div class="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-500/20 pb-2.5">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                                        <h4 class="text-xs font-black text-indigo-900 dark:text-indigo-300 uppercase tracking-widest">Kepesertaan BPJS</h4>
+                                                    </div>
+                                                    <span class="text-[10px] text-slate-500 dark:text-slate-400">Atur hak tunjangan & potongan BPJS slip gaji</span>
+                                                </div>
+
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <!-- BPJS Ketenagakerjaan -->
+                                                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 space-y-3">
+                                                        <div class="flex items-center justify-between">
+                                                            <div>
+                                                                <span class="text-xs font-bold text-slate-800 dark:text-white block">BPJS Ketenagakerjaan (BPJSTK)</span>
+                                                                <span class="text-[10px] text-slate-500">Iuran 3% & Tunjangan Perusahaan</span>
+                                                            </div>
+                                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" v-model="form.has_bpjstk" class="sr-only peer">
+                                                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-blue-600"></div>
+                                                            </label>
+                                                        </div>
+                                                        <div v-if="form.has_bpjstk" class="pt-2 border-t border-slate-100 dark:border-white/5">
+                                                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">No. Kartu BPJSTK (Opsional)</label>
+                                                            <input v-model="form.bpjstk_number" type="text" placeholder="e.g. 00012345678" class="block w-full rounded-lg border-0 bg-slate-50 dark:bg-slate-950 py-2 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/50" />
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- BPJS Kesehatan -->
+                                                    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 space-y-3">
+                                                        <div class="flex items-center justify-between">
+                                                            <div>
+                                                                <span class="text-xs font-bold text-slate-800 dark:text-white block">BPJS Kesehatan (BPJSKES)</span>
+                                                                <span class="text-[10px] text-slate-500">Iuran 1% & Tunjangan Perusahaan</span>
+                                                            </div>
+                                                            <label class="relative inline-flex items-center cursor-pointer">
+                                                                <input type="checkbox" v-model="form.has_bpjskes" class="sr-only peer">
+                                                                <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-600"></div>
+                                                            </label>
+                                                        </div>
+                                                        <div v-if="form.has_bpjskes" class="pt-2 border-t border-slate-100 dark:border-white/5">
+                                                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">No. Kartu BPJSKes (Opsional)</label>
+                                                            <input v-model="form.bpjskes_number" type="text" placeholder="e.g. 00087654321" class="block w-full rounded-lg border-0 bg-slate-50 dark:bg-slate-950 py-2 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50" />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             <div class="space-y-2 md:col-span-2">

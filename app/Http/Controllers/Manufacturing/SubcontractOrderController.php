@@ -260,12 +260,38 @@ class SubcontractOrderController extends Controller
             'items.*.qty' => 'required|numeric|min:0',
         ]);
 
+        $hasPositiveQty = false;
+        foreach ($validated['items'] as $item) {
+            $qty = (float)($item['qty'] ?? 0);
+            if ($qty <= 0) continue;
+            $hasPositiveQty = true;
+
+            $component = $workOrder->components()->with('product')->find($item['id']);
+            if (!$component) continue;
+
+            $remainingAllowed = max(0, (float)$component->qty_required - (float)$component->qty_consumed);
+            if ($qty > ($remainingAllowed + 0.0001)) {
+                $productName = $component->product?->name ?? 'Material';
+                return back()->with('error', "Jumlah kirim untuk material '{$productName}' ({$qty}) melebihi sisa kebutuhan ({$remainingAllowed}). Dispatched tidak boleh melebihi Required.");
+            }
+        }
+
+        if (!$hasPositiveQty) {
+            return back()->with('error', 'Masukkan jumlah material yang akan dikirim (lebih dari 0).');
+        }
+
         DB::transaction(function () use ($subcontractOrder, $validated, $workOrder, $subcontWarehouseId, $materialWarehouseId) {
             foreach ($validated['items'] as $item) {
                 if ($item['qty'] <= 0) continue;
 
-                $component = $workOrder->components()->find($item['id']);
+                $component = $workOrder->components()->lockForUpdate()->find($item['id']);
                 if (!$component) continue;
+
+                $remainingAllowed = max(0, (float)$component->qty_required - (float)$component->qty_consumed);
+                if ((float)$item['qty'] > ($remainingAllowed + 0.0001)) {
+                    $productName = $component->product?->name ?? 'Material';
+                    throw new \Exception("Jumlah kirim untuk material '{$productName}' melebihi sisa kebutuhan ({$remainingAllowed}).");
+                }
 
                 // Update actual stock balance and log movement
                 $sourceStock = ProductStock::firstOrCreate([
@@ -312,6 +338,28 @@ class SubcontractOrderController extends Controller
         });
 
         return back()->with('success', 'Materials dispatched and stock updated.');
+    }
+
+    public function syncBom(SubcontractOrder $subcontractOrder)
+    {
+        if (in_array($subcontractOrder->status, ['completed', 'cancelled'])) {
+            return back()->with('error', 'Cannot sync BOM for completed or cancelled subcontract orders.');
+        }
+
+        $workOrder = $subcontractOrder->workOrder;
+        if (!$workOrder) {
+            return back()->with('error', 'Work Order terkait tidak ditemukan.');
+        }
+
+        try {
+            DB::transaction(function () use ($workOrder) {
+                $workOrder->syncComponentsFromBom();
+            });
+
+            return back()->with('success', 'Materials dispatch plan successfully synced with current BOM.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal menyinkronkan BOM: ' . $e->getMessage());
+        }
     }
 
     public function receiveGoods(Request $request, SubcontractOrder $subcontractOrder)

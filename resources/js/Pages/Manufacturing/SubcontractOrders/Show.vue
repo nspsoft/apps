@@ -75,19 +75,42 @@ const submitReturn = () => {
 };
 
 const openDispatchModal = () => {
-    // Refresh items in case props changed
-    dispatchForm.items = props.order.work_order?.components.map(c => ({
-        id: c.id,
-        name: c.product?.name,
-        sku: c.product?.sku,
-        qty_required: parseFloat(c.qty_required),
-        qty_consumed: parseFloat(c.qty_consumed),
-        qty: Math.max(0, parseFloat(c.qty_required) - parseFloat(c.qty_consumed)),
-    }));
+    dispatchForm.clearErrors();
+    dispatchForm.items = props.order.work_order?.components.map(c => {
+        const remaining = Math.max(0, parseFloat(c.qty_required || 0) - parseFloat(c.qty_consumed || 0));
+        return {
+            id: c.id,
+            name: c.product?.name,
+            sku: c.product?.sku,
+            qty_required: parseFloat(c.qty_required || 0),
+            qty_consumed: parseFloat(c.qty_consumed || 0),
+            qty: remaining,
+        };
+    }) || [];
     showDispatchModal.value = true;
 };
 
+const isFullyDispatched = computed(() => {
+    const components = props.order.work_order?.components || [];
+    if (components.length === 0) return false;
+    return components.every(c => (parseFloat(c.qty_consumed || 0) >= parseFloat(c.qty_required || 0)));
+});
+
+const hasInvalidDispatch = computed(() => {
+    if (!dispatchForm.items || dispatchForm.items.length === 0) return true;
+    let totalQty = 0;
+    for (const item of dispatchForm.items) {
+        const remaining = Math.max(0, parseFloat(item.qty_required || 0) - parseFloat(item.qty_consumed || 0));
+        const sendQty = parseFloat(item.qty || 0);
+        if (sendQty < 0) return true;
+        if (sendQty > (remaining + 0.0001)) return true;
+        totalQty += sendQty;
+    }
+    return totalQty <= 0;
+});
+
 const submitDispatch = () => {
+    if (hasInvalidDispatch.value) return;
     dispatchForm.post(route('manufacturing.subcontract-orders.dispatch', props.order.id), {
         onSuccess: () => {
             showDispatchModal.value = false;
@@ -149,6 +172,27 @@ const generatePo = () => {
     if (confirm('Create a Purchase Order Draft for this subcontract service?')) {
         router.post(route('manufacturing.subcontract-orders.generate-po', props.order.id));
     }
+};
+
+const syncingBom = ref(false);
+const totalDispatched = computed(() => {
+    return (props.order.work_order?.components || []).reduce((acc, c) => acc + (parseFloat(c.qty_consumed) || 0), 0);
+});
+
+const syncBom = () => {
+    if (totalDispatched.value > 0.0001) {
+        alert('Tidak dapat melakukan Sync BOM karena masih ada material yang terkirim ke Subkontraktor (Dispatched > 0).\n\nSilakan lakukan "Return Materials" terlebih dahulu hingga seluruh material kembali ke gudang utama (Dispatched = 0) sebelum menyinkronkan BoM.');
+        return;
+    }
+
+    if (!confirm('Perbarui kebutuhan material sesuai master BoM aktif terbaru?')) return;
+    syncingBom.value = true;
+    router.post(route('manufacturing.subcontract-orders.sync-bom', props.order.id), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            syncingBom.value = false;
+        },
+    });
 };
 
 const canDispatch = computed(() => !['completed', 'cancelled'].includes(props.order.status));
@@ -216,12 +260,17 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                         Resume Surat Jalan
                     </a>
                     <button 
-                        v-if="canDispatch"
-                        @click="showDispatchModal = true"
-                        class="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20"
+                        v-if="!['completed', 'cancelled'].includes(order.status)"
+                        @click="openDispatchModal"
+                        :disabled="isFullyDispatched"
+                        class="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all shadow-lg"
+                        :class="isFullyDispatched 
+                            ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none' 
+                            : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20'"
                     >
                         <ArrowUpTrayIcon class="h-5 w-5" />
-                        Dispatch Materials (OUT)
+                        <span v-if="isFullyDispatched">All Materials Dispatched</span>
+                        <span v-else>Dispatch Materials (OUT)</span>
                     </button>
                     <button 
                         v-if="canReceive"
@@ -273,9 +322,21 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                                 <div class="h-6 w-1 bg-blue-500 rounded-full"></div>
                                 MATERIALS_DISPATCH_PLAN
                             </h3>
-                            <span class="text-[10px] items-center gap-1.5 text-slate-500 font-mono flex uppercase font-bold px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                                 WO Ref: {{ order.work_order?.wo_number }}
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <button 
+                                    v-if="!['completed', 'cancelled'].includes(order.status)"
+                                    @click="syncBom"
+                                    :disabled="syncingBom"
+                                    class="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-lg transition-all disabled:opacity-50"
+                                    title="Sinkronkan kebutuhan material dari revisi BOM terbaru"
+                                >
+                                    <ArrowPathIcon class="h-3.5 w-3.5" :class="{ 'animate-spin': syncingBom }" />
+                                    <span>Sync BOM</span>
+                                </button>
+                                <span class="text-[10px] items-center gap-1.5 text-slate-500 font-mono flex uppercase font-bold px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                                     WO Ref: {{ order.work_order?.wo_number }}
+                                </span>
+                            </div>
                         </div>
                         <div class="overflow-x-auto max-h-[300px] overflow-y-auto custom-scrollbar relative">
                             <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800 text-sm">
@@ -297,10 +358,14 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                                         <td class="px-6 py-4 text-right text-emerald-400 font-mono">{{ formatNumber(comp.qty_consumed) }}</td>
                                         <td class="px-6 py-4 text-center">
                                             <span 
-                                                class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                                                :class="comp.qty_consumed >= comp.qty_required ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-50 dark:bg-slate-800 text-slate-500'"
+                                                class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border"
+                                                :class="comp.qty_consumed >= comp.qty_required 
+                                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                                                    : (comp.qty_consumed > 0 
+                                                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' 
+                                                        : 'bg-slate-500/10 text-slate-500 border-slate-500/20')"
                                             >
-                                                {{ comp.qty_consumed >= comp.qty_required ? 'Sent' : 'Pending' }}
+                                                {{ comp.qty_consumed >= comp.qty_required ? 'Fulfilled' : (comp.qty_consumed > 0 ? 'Partial' : 'Pending') }}
                                             </span>
                                         </td>
                                     </tr>
@@ -583,20 +648,29 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                             <div class="flex-1">
                                 <div class="text-sm font-bold text-slate-900 dark:text-white">{{ item.name }}</div>
                                 <div class="text-[10px] text-slate-500 font-mono">{{ item.sku }}</div>
-                                <div class="mt-1 flex gap-3 text-[10px] font-bold uppercase tracking-wider">
+                                <div class="mt-1 flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-wider">
                                     <span class="text-slate-500">Required: {{ formatNumber(item.qty_required) }}</span>
                                     <span class="text-emerald-500">Sent: {{ formatNumber(item.qty_consumed) }}</span>
+                                    <span class="text-blue-500">Remaining: {{ formatNumber(Math.max(0, item.qty_required - item.qty_consumed)) }}</span>
                                 </div>
                             </div>
-                            <div class="w-32">
+                            <div class="w-36">
                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Qty to send</label>
                                 <input 
-                                    v-model="item.qty"
+                                    v-model.number="item.qty"
                                     type="number"
                                     step="0.01"
-                                    class="w-full bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-700 rounded-xl py-2 px-3 text-blue-400 font-mono font-bold focus:ring-blue-500"
+                                    min="0"
+                                    :max="Math.max(0, item.qty_required - item.qty_consumed)"
+                                    class="w-full bg-white dark:bg-slate-950 rounded-xl py-2 px-3 font-mono font-bold focus:ring-blue-500 text-sm"
+                                    :class="parseFloat(item.qty || 0) > (Math.max(0, item.qty_required - item.qty_consumed) + 0.0001)
+                                        ? 'border-red-500 text-red-500 focus:border-red-500 focus:ring-red-500'
+                                        : 'border-slate-200 dark:border-slate-700 text-blue-500 dark:text-blue-400'"
                                     placeholder="0"
                                 />
+                                <p v-if="parseFloat(item.qty || 0) > (Math.max(0, item.qty_required - item.qty_consumed) + 0.0001)" class="text-[10px] text-red-500 font-semibold mt-1">
+                                    Maks: {{ formatNumber(Math.max(0, item.qty_required - item.qty_consumed)) }}
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -611,8 +685,8 @@ const canReturn = computed(() => !['completed', 'cancelled'].includes(props.orde
                         </button>
                         <button 
                             type="submit"
-                            :disabled="dispatchForm.processing"
-                            class="flex-1 py-3 font-bold text-slate-900 dark:text-white bg-blue-600 rounded-xl hover:bg-blue-500 shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                            :disabled="dispatchForm.processing || hasInvalidDispatch"
+                            class="flex-1 py-3 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-500 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Confirm Dispatch
                         </button>

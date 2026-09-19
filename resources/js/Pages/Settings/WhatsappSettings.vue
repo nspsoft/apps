@@ -19,7 +19,8 @@ import {
     BookOpenIcon,
     SparklesIcon,
     ShoppingBagIcon,
-    BriefcaseIcon
+    BriefcaseIcon,
+    UserGroupIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -29,6 +30,7 @@ const props = defineProps({
 const page = usePage();
 const showToken = ref(false);
 const showPurchasingToken = ref(false);
+const showHrToken = ref(false);
 const copied = ref(false);
 const activeTab = ref('sales');
 
@@ -74,10 +76,27 @@ const form = useForm({
     purchasing_wablas_device: props.settings?.purchasing_wablas_device || '',
     purchasing_wablas_server_url: props.settings?.purchasing_wablas_server_url || 'https://pati.wablas.com',
     purchasing_whatsapp_bot_instruction: props.settings?.purchasing_whatsapp_bot_instruction || '',
+
+    // HR & Payroll Settings
+    hr_whatsapp_mode: props.settings?.hr_whatsapp_mode || 'same_as_sales',
+    hr_whatsapp_provider: props.settings?.hr_whatsapp_provider || 'fonnte',
+    hr_fonnte_api_token: props.settings?.hr_fonnte_api_token || '',
+    hr_fonnte_device: props.settings?.hr_fonnte_device || '',
+    hr_wablas_api_token: props.settings?.hr_wablas_api_token || '',
+    hr_wablas_device: props.settings?.hr_wablas_device || '',
+    hr_wablas_server_url: props.settings?.hr_wablas_server_url || 'https://pati.wablas.com',
+    hr_whatsapp_bot_instruction: props.settings?.hr_whatsapp_bot_instruction || '',
 });
 
 const selectedProvider = computed(() => {
-    const providerId = activeTab.value === 'purchasing' ? form.purchasing_whatsapp_provider : form.whatsapp_provider;
+    let providerId;
+    if (activeTab.value === 'purchasing') {
+        providerId = form.purchasing_whatsapp_provider;
+    } else if (activeTab.value === 'hr') {
+        providerId = form.hr_whatsapp_mode === 'same_as_sales' ? form.whatsapp_provider : form.hr_whatsapp_provider;
+    } else {
+        providerId = form.whatsapp_provider;
+    }
     return providers.find(p => p.id === providerId);
 });
 
@@ -91,6 +110,8 @@ const webhookUrl = computed(() => {
     const base = page.props.appUrl || window.location.origin;
     if (activeTab.value === 'purchasing') {
         return `${base}/whatsapp-purchasing/webhook`;
+    } else if (activeTab.value === 'hr') {
+        return `${base}/whatsapp-hr/webhook`;
     }
     return `${base}/whatsapp/webhook`;
 });
@@ -179,7 +200,7 @@ const clearChatHistory = () => {
                     </a>
                     <div>
                         <h2 class="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">WhatsApp Configuration</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Configure WhatsApp gateway and AI bot settings independently for Sales and Purchasing</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">Configure WhatsApp gateway and AI bot settings independently for Sales, Purchasing, and HR & Payroll</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -212,6 +233,15 @@ const clearChatHistory = () => {
                 >
                     <ShoppingBagIcon class="h-4 w-4" />
                     Purchasing Bot (Supplier)
+                </button>
+                <button 
+                    type="button"
+                    @click="activeTab = 'hr'"
+                    class="py-4 px-6 font-black text-xs border-b-2 uppercase tracking-widest transition-all flex items-center gap-2"
+                    :class="activeTab === 'hr' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-950 dark:hover:text-white'"
+                >
+                    <UserGroupIcon class="h-4 w-4" />
+                    HR & Payroll (Internal)
                 </button>
             </div>
 
@@ -588,11 +618,246 @@ const clearChatHistory = () => {
                     </div>
                 </div>
 
+                <!-- HR & PAYROLL CONFIGURATION -->
+                <div v-if="activeTab === 'hr'" class="space-y-6">
+                    <!-- Mode Selection Card -->
+                    <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
+                        <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <StarIcon class="h-6 w-6" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Mode WhatsApp Gateway (HR & Payroll)</h4>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <!-- Shared with Sales -->
+                            <div 
+                                @click="form.hr_whatsapp_mode = 'same_as_sales'"
+                                class="cursor-pointer p-6 rounded-2xl border-2 transition-all text-left group"
+                                :class="form.hr_whatsapp_mode === 'same_as_sales' 
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg shadow-blue-500/20' 
+                                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
+                            >
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center border-blue-500">
+                                        <div v-if="form.hr_whatsapp_mode === 'same_as_sales'" class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    </div>
+                                    <h5 class="text-base font-bold text-slate-900 dark:text-white">Gunakan Nomor Sales (Shared)</h5>
+                                </div>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    Pengiriman slip gaji & notifikasi HR akan menggunakan nomor WhatsApp yang sama dengan konfigurasi Sales Bot (<strong>{{ form.whatsapp_provider.toUpperCase() }}</strong>). Cocok jika kantor hanya menggunakan 1 nomor resmi.
+                                </p>
+                            </div>
+
+                            <!-- Dedicated HR -->
+                            <div 
+                                @click="form.hr_whatsapp_mode = 'dedicated'"
+                                class="cursor-pointer p-6 rounded-2xl border-2 transition-all text-left group"
+                                :class="form.hr_whatsapp_mode === 'dedicated' 
+                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg shadow-blue-500/20' 
+                                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
+                            >
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center border-blue-500">
+                                        <div v-if="form.hr_whatsapp_mode === 'dedicated'" class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    </div>
+                                    <h5 class="text-base font-bold text-slate-900 dark:text-white">Nomor Khusus HRD (Dedicated)</h5>
+                                </div>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    Gunakan nomor WhatsApp & token gateway tersendiri khusus untuk HRD / Personalia. Slip gaji dan notifikasi karyawan tidak akan bercampur dengan penjualan.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shared Mode Info Notice -->
+                    <div v-if="form.hr_whatsapp_mode === 'same_as_sales'" class="bg-blue-500/10 rounded-2xl p-6 border border-blue-500/20 flex items-start gap-4">
+                        <InformationCircleIcon class="h-6 w-6 text-blue-500 shrink-0 mt-0.5" />
+                        <div class="space-y-1">
+                            <h5 class="text-sm font-bold text-blue-700 dark:text-blue-300">Modul HR Terhubung ke Sales Gateway</h5>
+                            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Seluruh pengiriman slip gaji PDF, notifikasi presensi, dan persetujuan cuti otomatis dikirimkan menggunakan nomor WhatsApp resmi pada tab <strong>Sales Bot</strong> (Provider: {{ form.whatsapp_provider.toUpperCase() }}). Anda tidak perlu mengisi token ganda.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Dedicated Gateway Settings -->
+                    <template v-if="form.hr_whatsapp_mode === 'dedicated'">
+                        <!-- Provider Selection -->
+                        <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
+                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <StarIcon class="h-6 w-6" />
+                                <h4 class="text-sm font-black uppercase tracking-widest">Pilih Provider Gateway (HR)</h4>
+                            </div>
+
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <button 
+                                    v-for="provider in providers" 
+                                    :key="'hr-' + provider.id"
+                                    type="button"
+                                    @click="form.hr_whatsapp_provider = provider.id"
+                                    class="relative p-6 rounded-2xl border-2 transition-all text-left group"
+                                    :class="form.hr_whatsapp_provider === provider.id 
+                                        ? `border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg shadow-blue-500/20` 
+                                        : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
+                                >
+                                    <div v-if="provider.recommended" class="absolute -top-2 -right-2 bg-yellow-500 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                        RECOMMENDED
+                                    </div>
+
+                                    <div class="flex items-center gap-3 mb-3">
+                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors border-blue-500">
+                                            <div v-if="form.hr_whatsapp_provider === provider.id" class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                        </div>
+                                        <h5 class="text-lg font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
+                                    <a :href="provider.website" target="_blank" class="text-xs text-blue-400 hover:underline mt-1 inline-block">
+                                        {{ provider.website }}
+                                    </a>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Fonnte Settings for HR -->
+                        <div v-if="form.hr_whatsapp_provider === 'fonnte'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
+                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <DevicePhoneMobileIcon class="h-6 w-6" />
+                                <h4 class="text-sm font-black uppercase tracking-widest">Fonnte Gateway Settings (HR)</h4>
+                            </div>
+
+                            <div class="space-y-8">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <KeyIcon class="h-3 w-3" />
+                                        Fonnte API Token
+                                    </label>
+                                    <div class="relative">
+                                        <input 
+                                            v-model="form.hr_fonnte_api_token" 
+                                            :type="showHrToken ? 'text' : 'password'" 
+                                            class="form-input pr-10 focus:ring-blue-500/50 focus:border-blue-500" 
+                                            placeholder="Masukkan token dari dashboard Fonnte" 
+                                        />
+                                        <button 
+                                            type="button"
+                                            @click="showHrToken = !showHrToken"
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                        >
+                                            <EyeIcon v-if="!showHrToken" class="h-5 w-5" />
+                                            <EyeSlashIcon v-else class="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <DevicePhoneMobileIcon class="h-3 w-3" />
+                                        Device / Phone Number
+                                    </label>
+                                    <input 
+                                        v-model="form.hr_fonnte_device" 
+                                        type="text" 
+                                        class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
+                                        placeholder="e.g. 6281234567890" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Wablas Settings for HR -->
+                        <div v-if="form.hr_whatsapp_provider === 'wablas'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
+                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <DevicePhoneMobileIcon class="h-6 w-6" />
+                                <h4 class="text-sm font-black uppercase tracking-widest">Wablas Gateway Settings (HR)</h4>
+                            </div>
+
+                            <div class="space-y-8">
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <KeyIcon class="h-3 w-3" />
+                                        Wablas API Token
+                                    </label>
+                                    <div class="relative">
+                                        <input 
+                                            v-model="form.hr_wablas_api_token" 
+                                            :type="showHrToken ? 'text' : 'password'" 
+                                            class="form-input pr-10 focus:ring-blue-500/50 focus:border-blue-500" 
+                                            placeholder="Masukkan token dari dashboard Wablas" 
+                                        />
+                                        <button 
+                                            type="button"
+                                            @click="showHrToken = !showHrToken"
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                        >
+                                            <EyeIcon v-if="!showHrToken" class="h-5 w-5" />
+                                            <EyeSlashIcon v-else class="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <DevicePhoneMobileIcon class="h-3 w-3" />
+                                        Device / Phone Number
+                                    </label>
+                                    <input 
+                                        v-model="form.hr_wablas_device" 
+                                        type="text" 
+                                        class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
+                                        placeholder="e.g. 6281234567890" 
+                                    />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <GlobeAltIcon class="h-3 w-3" />
+                                        Wablas Server URL
+                                    </label>
+                                    <input 
+                                        v-model="form.hr_wablas_server_url" 
+                                        type="text" 
+                                        class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
+                                        placeholder="https://pati.wablas.com" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bot Personality for HR -->
+                        <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
+                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
+                                <SparklesIcon class="h-6 w-6" />
+                                <h4 class="text-sm font-black uppercase tracking-widest">WhatsApp Bot Personality (HR & Internal)</h4>
+                            </div>
+
+                            <div class="space-y-6">
+                                <div class="bg-blue-500/5 rounded-2xl p-4 border border-blue-500/10 flex gap-3">
+                                    <InformationCircleIcon class="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                        Instruksi ini akan menjadi dasar bagi AI dalam merespon pesan WhatsApp masuk dari Karyawan mengenai slip gaji, cuti, absensi, atau kebijakan kantor.
+                                    </p>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <BookOpenIcon class="h-3 w-3" />
+                                        Custom Bot Instructions / Prompt
+                                    </label>
+                                    <textarea 
+                                        v-model="form.hr_whatsapp_bot_instruction" 
+                                        class="form-input min-h-[120px] resize-none focus:ring-blue-500/50 focus:border-blue-500" 
+                                        placeholder="Gaya bahasa ramah, profesional, informatif..."
+                                    ></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
                 <!-- Webhook URL Info (Dynamic depending on active tab) -->
                 <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
                     <div class="flex items-center gap-3 text-cyan-600 dark:text-cyan-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
                         <GlobeAltIcon class="h-6 w-6" />
-                        <h4 class="text-sm font-black uppercase tracking-widest">Webhook Configuration ({{ activeTab === 'sales' ? 'Sales' : 'Purchasing' }})</h4>
+                        <h4 class="text-sm font-black uppercase tracking-widest">Webhook Configuration ({{ activeTab === 'sales' ? 'Sales' : (activeTab === 'purchasing' ? 'Purchasing' : 'HR & Payroll') }})</h4>
                     </div>
 
                     <div class="space-y-4">
@@ -622,7 +887,7 @@ const clearChatHistory = () => {
                 <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
                     <div class="flex items-center gap-3 text-orange-600 dark:text-orange-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
                         <SignalIcon class="h-6 w-6" />
-                        <h4 class="text-sm font-black uppercase tracking-widest">🔌 Test Connection ({{ activeTab === 'sales' ? 'Sales Bot' : 'Purchasing Bot' }})</h4>
+                        <h4 class="text-sm font-black uppercase tracking-widest">🔌 Test Connection ({{ activeTab === 'sales' ? 'Sales Bot' : (activeTab === 'purchasing' ? 'Purchasing Bot' : 'HR & Payroll') }})</h4>
                     </div>
 
                     <div class="space-y-4">

@@ -14,14 +14,14 @@ class EmployeeTemplateExport implements FromCollection, WithHeadings, ShouldAuto
     {
         return collect([
             [
-                'JRI-2016.12.2.002',            // NIK
-                'NANANG MULYANA',               // Full Name
-                'nanang.mulyana@example.com',   // Email
+                'EMP-001',                      // NIK
+                'Budi Santoso',                 // Full Name
+                'budi.santoso@example.com',     // Email
                 '081234567890',                 // Phone
                 'Cikarang, Bekasi',             // Address
-                'MMKI',                         // Department
-                'PIC Mitsubishi Group',         // Section / Bagian
-                'Admin/PIC',                    // Position / Jabatan
+                'Produksi',                     // Department
+                'Line A',                       // Section / Bagian
+                'Staff Operator',               // Position / Jabatan
                 'I',                            // Golongan
                 '1',                            // Tax Status / Status PTKP
                 '2024-01-15',                   // Joining Date (YYYY-MM-DD)
@@ -29,6 +29,10 @@ class EmployeeTemplateExport implements FromCollection, WithHeadings, ShouldAuto
                 'hourly',                       // Salary Type (hourly / monthly)
                 22310,                          // Price/Hour (Tarif per jam)
                 4885890,                        // Basic Salary (GP Tetap bulanan)
+                'Ya',                           // BPJS TK (Ya / Tidak)
+                '00012345678',                  // No BPJS TK (opsional)
+                'Ya',                           // BPJS Kes (Ya / Tidak)
+                '00087654321',                  // No BPJS Kes (opsional)
                 'Active',                       // Status
             ],
             [
@@ -47,6 +51,10 @@ class EmployeeTemplateExport implements FromCollection, WithHeadings, ShouldAuto
                 'monthly',                      // Salary Type
                 0,                              // Price/Hour (0 jika monthly)
                 4500000,                        // Basic Salary
+                'Tidak',                        // BPJS TK (Ya / Tidak)
+                '',                             // No BPJS TK (opsional)
+                'Tidak',                        // BPJS Kes (Ya / Tidak)
+                '',                             // No BPJS Kes (opsional)
                 'Active',                       // Status
             ]
         ]);
@@ -70,6 +78,10 @@ class EmployeeTemplateExport implements FromCollection, WithHeadings, ShouldAuto
             'Salary Type',
             'Price/Hour',
             'Basic Salary',
+            'BPJS TK',
+            'No BPJS TK',
+            'BPJS Kes',
+            'No BPJS Kes',
             'Status',
         ];
     }

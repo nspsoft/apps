@@ -11,6 +11,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
 use App\Models\HR\AttendanceRequest;
+use App\Models\HR\OvertimeRequest;
+use App\Models\PayrollSetting;
 
 use App\Imports\AttendanceImport;
 use App\Exports\AttendanceTemplateExport;
@@ -309,11 +311,99 @@ class AttendanceController extends Controller
 
         $now = Carbon::now();
         $timeStr = $now->format('H:i:s');
-        $isLate = false;
-        $lateMinutes = 0;
+        
+        // Check if there is already an attendance today
+        $attendance = Attendance::where('employee_id', $employee->id)
+            ->where('date', $date)
+            ->first();
+
+        $isClockIn = !$attendance;
+
+        $useRestriction = (bool) PayrollSetting::getByKey('kiosk_attendance_restriction', 0);
         
         // Fetch employee's schedule for today
         $scheduleDetail = $employee->getScheduleForDate($date);
+
+        if ($useRestriction && $scheduleDetail) {
+            if (!$scheduleDetail->is_workday) {
+                $allowHolidayWithoutSpl = (bool) PayrollSetting::getByKey('kiosk_allow_holiday_without_spl', 0);
+                if (!$allowHolidayWithoutSpl) {
+                    $hasOvertime = OvertimeRequest::where('employee_id', $employee->id)
+                        ->where('overtime_date', $date)
+                        ->where('status', 'approved')
+                        ->exists();
+
+                    if (!$hasOvertime) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'rejected_schedule',
+                            'message' => 'Maaf, hari ini bukan jadwal kerja Anda dan tidak ada SPL (Surat Perintah Lembur) yang disetujui.',
+                            'employee' => $employee
+                        ]);
+                    }
+                }
+            }
+
+            if ($scheduleDetail->is_workday && $scheduleDetail->start_time && $scheduleDetail->end_time) {
+                $standardStartTime = Carbon::parse($date . ' ' . $scheduleDetail->start_time);
+                $standardEndTime = Carbon::parse($date . ' ' . $scheduleDetail->end_time);
+
+                if ($isClockIn) {
+                    $earliestInMin = (int) PayrollSetting::getByKey('kiosk_earliest_in_minutes', 120);
+                    $latestInMin = (int) PayrollSetting::getByKey('kiosk_latest_in_minutes', 240);
+
+                    $earliestIn = $standardStartTime->copy()->subMinutes($earliestInMin);
+                    $latestIn = $standardStartTime->copy()->addMinutes($latestInMin);
+
+                    if ($now->lessThan($earliestIn)) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'too_early_in',
+                            'message' => 'Terlalu awal untuk absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', absen masuk dibuka mulai pukul ' . $earliestIn->format('H:i') . '.',
+                            'employee' => $employee
+                        ]);
+                    }
+
+                    if ($now->greaterThan($latestIn)) {
+                        return response()->json([
+                            'success' => false,
+                            'status' => 'too_late_in',
+                            'message' => 'Sudah melewati batas waktu absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', batas akhir absen pukul ' . $latestIn->format('H:i') . '.',
+                            'employee' => $employee
+                        ]);
+                    }
+                } else {
+                    if (empty($attendance->clock_out)) {
+                        $earliestOutMin = (int) PayrollSetting::getByKey('kiosk_earliest_out_minutes', 60);
+                        $minWorkHours = (int) PayrollSetting::getByKey('kiosk_min_work_hours', 4);
+
+                        $earliestOut = $standardEndTime->copy()->subMinutes($earliestOutMin);
+
+                        if ($now->lessThan($earliestOut)) {
+                            return response()->json([
+                                'success' => false,
+                                'status' => 'too_early_out',
+                                'message' => 'Belum waktunya pulang. Jam pulang Anda: ' . $standardEndTime->format('H:i') . ', absen pulang dibuka mulai pukul ' . $earliestOut->format('H:i') . '.',
+                                'employee' => $employee
+                            ]);
+                        }
+
+                        $workedHours = $now->diffInHours(Carbon::parse($attendance->clock_in));
+                        if ($workedHours < $minWorkHours) {
+                            return response()->json([
+                                'success' => false,
+                                'status' => 'too_early_out',
+                                'message' => "Minimal jam kerja belum terpenuhi. Anda baru bekerja selama " . number_format($workedHours, 1) . " jam (Minimal: {$minWorkHours} jam).",
+                                'employee' => $employee
+                            ]);
+                        }
+                    }
+                }
+            }
+        }
+
+        $isLate = false;
+        $lateMinutes = 0;
 
         if ($scheduleDetail && $scheduleDetail->is_workday && $scheduleDetail->start_time) {
             $standardStartTime = Carbon::parse($date . ' ' . $scheduleDetail->start_time);
@@ -354,11 +444,6 @@ class AttendanceController extends Controller
         $lateRule = \App\Models\PenaltyRule::getActiveRule('late');
         $penaltyLateMinutes = $lateRule ? $lateRule->calculatePenaltyMinutes($lateMinutes) : $lateMinutes;
         $status = $isLate ? 'late' : 'present';
-
-        // Check if there is already an attendance today
-        $attendance = Attendance::where('employee_id', $employee->id)
-            ->where('date', $date)
-            ->first();
 
         if (!$attendance) {
             // Clock In

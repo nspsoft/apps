@@ -1,5 +1,7 @@
 <script setup>
+import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { formatNumber, formatCurrency } from '@/helpers';
 import { 
@@ -12,13 +14,44 @@ import {
     UserIcon,
     BuildingOfficeIcon,
     BriefcaseIcon,
-    ArrowPathIcon
+    ArrowPathIcon,
+    ChatBubbleLeftRightIcon,
+    EnvelopeIcon,
+    ArrowDownTrayIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     payroll: Object,
 });
 
+const isSendingWa = ref(false);
+const isSendingEmail = ref(false);
+
+const sendSingle = (channel) => {
+    const channelName = channel === 'whatsapp' ? 'WhatsApp' : 'Email';
+    if (!confirm(`Kirim slip gaji resmi ke ${props.payroll.employee.full_name} via ${channelName}?`)) {
+        return;
+    }
+
+    if (channel === 'whatsapp') isSendingWa.value = true;
+    if (channel === 'email') isSendingEmail.value = true;
+
+    axios.post(route('hr.payroll.send', props.payroll.id), { channel })
+        .then((res) => {
+            if (res.data.status === 'success') {
+                router.reload();
+            } else {
+                alert('Gagal mengirim: ' + (res.data.errors?.join(', ') || 'Unknown error'));
+            }
+        })
+        .catch((err) => {
+            alert('Gagal mengirim: ' + (err.response?.data?.message || err.message));
+        })
+        .finally(() => {
+            if (channel === 'whatsapp') isSendingWa.value = false;
+            if (channel === 'email') isSendingEmail.value = false;
+        });
+};
 
 const updateStatus = (status) => {
     if (confirm(`Update payroll status to ${status.toUpperCase()}?`)) {
@@ -49,21 +82,56 @@ const getStatusBadge = (status) => {
                     Back to Payroll List
                 </Link>
 
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <!-- Unduh PDF Resmi -->
+                    <a 
+                        :href="route('hr.payroll.pdf', payroll.id)" 
+                        target="_blank"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold transition-all shadow-sm"
+                    >
+                        <ArrowDownTrayIcon class="h-4 w-4 text-indigo-500" />
+                        Unduh PDF Resmi
+                    </a>
+
+                    <!-- Kirim WA -->
+                    <button 
+                        @click="sendSingle('whatsapp')"
+                        :disabled="isSendingWa"
+                        type="button"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-900/20 disabled:opacity-60"
+                    >
+                        <ArrowPathIcon v-if="isSendingWa" class="h-4 w-4 animate-spin" />
+                        <ChatBubbleLeftRightIcon v-else class="h-4 w-4" />
+                        Kirim WA
+                    </button>
+
+                    <!-- Kirim Email -->
+                    <button 
+                        @click="sendSingle('email')"
+                        :disabled="isSendingEmail"
+                        type="button"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-900/20 disabled:opacity-60"
+                    >
+                        <ArrowPathIcon v-if="isSendingEmail" class="h-4 w-4 animate-spin" />
+                        <EnvelopeIcon v-else class="h-4 w-4" />
+                        Kirim Email
+                    </button>
+
                     <a 
                         :href="route('hr.payroll.print', payroll.id)" 
                         target="_blank"
+                        title="Print Preview / Cetak"
                         class="p-2.5 rounded-xl glass-card text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:text-white transition-all shadow-sm"
                     >
                         <PrinterIcon class="h-5 w-5" />
                     </a>
                     
-                    <div class="h-8 w-px bg-slate-50 dark:bg-slate-800 mx-2"></div>
+                    <div class="h-8 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
 
                     <template v-if="payroll.status === 'draft'">
                         <button 
                             @click="updateStatus('confirmed')"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white dark:text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-900/20"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-blue-900/20"
                         >
                             <CheckIcon class="h-4 w-4" />
                             Confirm Payroll
@@ -73,7 +141,7 @@ const getStatusBadge = (status) => {
                     <template v-if="payroll.status === 'confirmed'">
                         <button 
                             @click="updateStatus('paid')"
-                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-900 dark:text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-900/20"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-emerald-900/20"
                         >
                             <BanknotesIcon class="h-4 w-4" />
                             Record Payment
@@ -94,7 +162,7 @@ const getStatusBadge = (status) => {
                 <!-- Header Info -->
                 <div class="p-10 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50">
                     <div class="flex flex-col md:flex-row gap-10">
-                        <div class="w-24 h-24 rounded-3xl bg-indigo-600 flex items-center justify-center text-3xl font-black text-slate-900 dark:text-white shadow-2xl shadow-indigo-500/20">
+                        <div class="w-24 h-24 rounded-3xl bg-indigo-600 flex items-center justify-center text-3xl font-black text-white shadow-2xl shadow-indigo-500/20">
                             {{ payroll.employee.full_name.charAt(0) }}
                         </div>
                         
@@ -147,6 +215,31 @@ const getStatusBadge = (status) => {
                                 <div>
                                     <span class="text-slate-500">Jam Lembur:</span>
                                     <span class="ml-1 font-mono font-bold text-amber-500 dark:text-amber-400">{{ payroll.total_overtime_hours }} jam ({{ payroll.total_overtime_days }} hari)</span>
+                                </div>
+                            </div>
+
+                            <!-- Delivery Status Badges Strip -->
+                            <div class="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/60 text-xs">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">WhatsApp:</span>
+                                    <span 
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border"
+                                        :class="payroll.wa_status === 'sent' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : payroll.wa_status === 'failed' ? 'bg-rose-500/10 text-rose-500 border-rose-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'"
+                                    >
+                                        <ChatBubbleLeftRightIcon class="h-3 w-3" />
+                                        {{ payroll.wa_status === 'sent' ? 'Terkirim (' + payroll.wa_sent_at + ')' : payroll.wa_status === 'failed' ? 'Gagal Terkirim' : 'Belum Dikirim' }}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email:</span>
+                                    <span 
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border"
+                                        :class="payroll.email_status === 'sent' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30' : payroll.email_status === 'failed' ? 'bg-rose-500/10 text-rose-500 border-rose-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'"
+                                    >
+                                        <EnvelopeIcon class="h-3 w-3" />
+                                        {{ payroll.email_status === 'sent' ? 'Terkirim (' + payroll.email_sent_at + ')' : payroll.email_status === 'failed' ? 'Gagal Terkirim' : 'Belum Dikirim' }}
+                                    </span>
                                 </div>
                             </div>
                         </div>

@@ -54,6 +54,7 @@ class LeaveController extends Controller
             'leaves' => $leaves,
             'attendanceRequests' => $attendanceRequests,
             'stats' => $stats,
+            'leaveTypes' => LeaveType::where('is_active', true)->get(),
         ]);
     }
 

@@ -14,7 +14,8 @@ class OvertimeController extends Controller
 {
     public function index()
     {
-        $overtimes = OvertimeRequest::with(['employee.department', 'employee.position', 'approver'])
+        $overtimes = OvertimeRequest::whereHas('employee')
+            ->with(['employee.department', 'employee.position', 'approver'])
             ->orderBy('date', 'desc')
             ->get()
             ->map(function ($ot) {

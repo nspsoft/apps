@@ -241,18 +241,33 @@
     </div>
 
     @php
-        $pricePerHour = $payroll->hourly_rate > 0 ? $payroll->hourly_rate : ($payroll->employee->hourly_rate > 0 ? $payroll->employee->hourly_rate : round($payroll->basic_salary / 173, 2));
+        $settings = $settings ?? \App\Models\PayrollSetting::all()->keyBy('key');
+        $overtimeDivisor = (double)($settings['overtime_divisor']->value ?? 173);
+        $mealRate = (double)($settings['meal_allowance_daily']->value ?? 12500);
+        $otMealRate = (double)($settings['overtime_meal_allowance_daily']->value ?? 12500);
+        $mealRateStr = ($mealRate >= 1000 && ($mealRate % 1000 == 0)) 
+            ? ($mealRate / 1000) . 'K' 
+            : ($mealRate >= 1000 ? round($mealRate / 1000, 1) . 'K' : number_format($mealRate, 0, ',', '.'));
+
+        $pricePerHour = $payroll->hourly_rate > 0 ? $payroll->hourly_rate : ($payroll->employee->hourly_rate > 0 ? $payroll->employee->hourly_rate : round($payroll->basic_salary / $overtimeDivisor, 2));
         
-        // Extract components from payroll items
-        $tMakan = $payroll->items->filter(fn($i) => str_contains(strtolower($i->name), 'makan') && !str_contains(strtolower($i->name), 'lembur'))->first()?->amount ?? ($payroll->total_working_days * 12500);
+        // Extract components dynamically from payroll items
+        $tMakan = $payroll->items->filter(fn($i) => str_contains(strtolower($i->name), 'makan') && !str_contains(strtolower($i->name), 'lembur'))->first()?->amount ?? ($payroll->total_working_days * $mealRate);
         $tLembur = $payroll->items->filter(fn($i) => str_contains(strtolower($i->name), 't.lembur') || str_contains(strtolower($i->name), 'overtime'))->first()?->amount ?? ($payroll->total_overtime_hours * $pricePerHour);
-        $tMakanLembur = $payroll->items->filter(fn($i) => str_contains(strtolower($i->name), 'makan lembur'))->first()?->amount ?? ($payroll->total_overtime_days * 12500);
+        $tMakanLembur = $payroll->items->filter(fn($i) => str_contains(strtolower($i->name), 'makan lembur'))->first()?->amount ?? ($payroll->total_overtime_days * $otMealRate);
         
+        $tShiftMalam = $payroll->items->where('type', 'allowance')->filter(fn($i) => str_contains(strtolower($i->name), 'shift'))->first()?->amount ?? 0;
+        $tThr = $payroll->items->where('type', 'allowance')->filter(fn($i) => str_contains(strtolower($i->name), 'thr'))->first()?->amount ?? 0;
+        $tBonus = $payroll->items->where('type', 'allowance')->filter(fn($i) => str_contains(strtolower($i->name), 'bonus') || str_contains(strtolower($i->name), 'insentif'))->first()?->amount ?? 0;
+        $tTechAllowance = $payroll->items->where('type', 'allowance')->filter(fn($i) => str_contains(strtolower($i->name), 'tech'))->first()?->amount ?? 0;
+        $tSkillAllowance = $payroll->items->where('type', 'allowance')->filter(fn($i) => str_contains(strtolower($i->name), 'skill'))->first()?->amount ?? 0;
+
         $tBpjstk = $payroll->items->where('type', 'allowance')->filter(fn($i) => str_contains(strtoupper($i->name), 'BPJSTK'))->first()?->amount ?? 0;
         $tBpjskes = $payroll->items->where('type', 'allowance')->filter(fn($i) => str_contains(strtoupper($i->name), 'BPJSKES'))->first()?->amount ?? 0;
 
         $potBpjstk = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtoupper($i->name), 'BPJSTK'))->first()?->amount ?? 0;
         $potBpjskes = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtoupper($i->name), 'BPJSKES'))->first()?->amount ?? 0;
+        $potPph21 = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtolower($i->name), 'pph') || str_contains(strtolower($i->name), 'pajak'))->first()?->amount ?? 0;
 
         $potTelatItem = $payroll->items->where('type', 'deduction')->filter(fn($i) => str_contains(strtolower($i->name), 'telat'))->first();
         $potTelat = $potTelatItem?->amount ?? 0;
@@ -262,9 +277,40 @@
         $potPulangCepat = $potPulangCepatItem?->amount ?? 0;
         $potPulangCepatLabel = $potPulangCepatItem?->name ?? 'Pot. Pulang Cepat';
 
+        // Fallback for late/early deductions if not yet recorded in payroll_items
+        if (!$potTelatItem && $payroll->employee->salary_type !== 'hourly') {
+            $activeLateRule = \App\Models\PenaltyRule::getActiveRule('late');
+            $totLateM = 0;
+            foreach ($attendances as $a) {
+                if ($a && ($a->late_minutes > 0 || $a->penalty_late_minutes > 0 || $a->status === 'late')) {
+                    $totLateM += ($a->penalty_late_minutes > 0) ? $a->penalty_late_minutes : ($activeLateRule ? $activeLateRule->calculatePenaltyMinutes($a->late_minutes ?? 0) : ($a->late_minutes ?? 0));
+                }
+            }
+            if ($totLateM > 0) {
+                $potTelat = $activeLateRule ? $activeLateRule->calculateDeduction($totLateM, $pricePerHour) : round(($totLateM / 60) * $pricePerHour);
+                $potTelatLabel = "Pot. Telat ({$totLateM} mnt)";
+            }
+        }
+
+        if (!$potPulangCepatItem && $payroll->employee->salary_type !== 'hourly') {
+            $activeEarlyRule = \App\Models\PenaltyRule::getActiveRule('early_leave');
+            $totEarlyM = 0;
+            foreach ($attendances as $a) {
+                if ($a && ($a->early_leave_minutes > 0 || $a->penalty_early_leave_minutes > 0 || $a->status === 'early_leave')) {
+                    $totEarlyM += ($a->penalty_early_leave_minutes > 0) ? $a->penalty_early_leave_minutes : ($activeEarlyRule ? $activeEarlyRule->calculatePenaltyMinutes($a->early_leave_minutes ?? 0) : ($a->early_leave_minutes ?? 0));
+                }
+            }
+            if ($totEarlyM > 0) {
+                $potPulangCepat = $activeEarlyRule ? $activeEarlyRule->calculateDeduction($totEarlyM, $pricePerHour) : round(($totEarlyM / 60) * $pricePerHour);
+                $potPulangCepatLabel = "Pot. Pulang Cepat ({$totEarlyM} mnt)";
+            }
+        }
+
+        $otherDeductions = $payroll->items->where('type', 'deduction')->reject(fn($i) => str_contains(strtoupper($i->name), 'BPJS') || str_contains(strtolower($i->name), 'telat') || str_contains(strtolower($i->name), 'pulang cepat') || str_contains(strtolower($i->name), 'pph') || str_contains(strtolower($i->name), 'pajak'))->sum('amount');
+
         $gajiBruto = $payroll->basic_salary + $payroll->total_allowances;
-        $totalPotongan = $payroll->total_deductions;
-        $gajiNetto = $payroll->net_salary;
+        $totalPotongan = $potBpjstk + $potBpjskes + $potTelat + $potPulangCepat + $potPph21 + $otherDeductions;
+        $gajiNetto = $gajiBruto - $totalPotongan;
         $dibayar = $payroll->rounded_net_salary ?: ceil($gajiNetto / 100) * 100;
     @endphp
 
@@ -377,6 +423,9 @@
                             '2026-08-17' => 'Hari Kemerdekaan RI',
                             '2026-08-25' => 'Maulid Nabi Muhammad SAW',
                         ];
+
+                        $lateRule = \App\Models\PenaltyRule::getActiveRule('late');
+                        $earlyRule = \App\Models\PenaltyRule::getActiveRule('early_leave');
                     @endphp
 
                     @foreach($periodDates as $date)
@@ -402,53 +451,99 @@
 
                             // Telat (Masuk melebihi jam jadwal kerja, late_minutes > 0, atau status late)
                             $isLate = false;
+                            $lateMinutes = $att ? ($att->late_minutes ?? 0) : 0;
                             if ($isSchedWorkday && $att && !empty($att->clock_in)) {
                                 $cIn = \Carbon\Carbon::parse($att->clock_in);
-                                if ($att->late_minutes > 0 || $att->penalty_late_minutes > 0 || $att->status === 'late' || $cIn->format('H:i') > $schedStart) {
+                                if ($lateMinutes > 0 || ($att->penalty_late_minutes > 0) || $att->status === 'late' || $cIn->format('H:i') > $schedStart) {
                                     $isLate = true;
+                                    if ($lateMinutes <= 0 && $cIn->format('H:i') > $schedStart) {
+                                        $schedStartObj = \Carbon\Carbon::parse($dateStr . ' ' . $schedStart);
+                                        if ($cIn->greaterThan($schedStartObj)) {
+                                            $lateMinutes = $cIn->diffInMinutes($schedStartObj);
+                                        }
+                                    }
                                 }
-                            }
-
-                            // Determine working hours
-                            $isWorking = false;
-                            $dailyJamKerja = 0.0;
-                            if ($att && (in_array($att->status, ['present', 'late']) || !empty($att->clock_in))) {
-                                $isWorking = true;
-                                $dailyJamKerja = 8.0;
                             }
 
                             // Pulang Cepat (Pulang sebelum jam jadwal kerja, early_leave_minutes > 0, atau status early_leave)
                             $isEarlyLeave = false;
+                            $earlyMinutes = $att ? ($att->early_leave_minutes ?? 0) : 0;
                             if ($isSchedWorkday && $att && !empty($att->clock_out)) {
                                 $cOut = \Carbon\Carbon::parse($att->clock_out);
-                                if ($att->early_leave_minutes > 0 || $att->penalty_early_leave_minutes > 0 || $att->status === 'early_leave' || $cOut->format('H:i') < $schedEnd) {
+                                if ($earlyMinutes > 0 || ($att->penalty_early_leave_minutes > 0) || $att->status === 'early_leave' || $cOut->format('H:i') < $schedEnd) {
                                     $isEarlyLeave = true;
+                                    if ($earlyMinutes <= 0 && $cOut->format('H:i') < $schedEnd) {
+                                        $schedEndObj = \Carbon\Carbon::parse($dateStr . ' ' . $schedEnd);
+                                        if ($cOut->lessThan($schedEndObj)) {
+                                            $earlyMinutes = $schedEndObj->diffInMinutes($cOut);
+                                        }
+                                    }
                                 }
                             }
 
-                            // Determine overtime hours
+                            // Penalty minutes based on PenaltyRule
+                            $pLateM = 0;
+                            if ($isLate) {
+                                $pLateM = ($att && $att->penalty_late_minutes > 0)
+                                    ? $att->penalty_late_minutes
+                                    : ($lateRule ? $lateRule->calculatePenaltyMinutes($lateMinutes) : $lateMinutes);
+                            }
+
+                            $pEarlyM = 0;
+                            if ($isEarlyLeave) {
+                                $pEarlyM = ($att && $att->penalty_early_leave_minutes > 0)
+                                    ? $att->penalty_early_leave_minutes
+                                    : ($earlyRule ? $earlyRule->calculatePenaltyMinutes($earlyMinutes) : $earlyMinutes);
+                            }
+
+                            $penaltyHours = round(($pLateM + $pEarlyM) / 60, 2);
+
+                            // Determine working hours (Standard 8.0 hours/day consistent with payroll generator)
+                            $isWorking = false;
+                            $dailyJamKerja = 0.0;
+                            if ($att && (in_array($att->status, ['present', 'late']) || !empty($att->clock_in))) {
+                                $isWorking = true;
+                                $baseHours = 8.0;
+                                $dailyJamKerja = max(0.0, round($baseHours - $penaltyHours, 1));
+                            }
+
+                            // Determine overtime hours: ONLY approved overtime requests are counted (no fallback to biometric)
                             $dailyJamLembur = 0.0;
                             if ($ot && $ot->approved_minutes > 0) {
                                 $dailyJamLembur = round($ot->approved_minutes / 60, 1);
-                            } elseif ($att && $att->overtime_minutes > 0) {
-                                $dailyJamLembur = round($att->overtime_minutes / 60, 1);
                             }
 
-                            $amountGP = $dailyJamKerja * $pricePerHour;
-                            $amountLembur = $dailyJamLembur * $pricePerHour;
-                            $dailyTMakan = $isWorking ? 12500 : 0;
-                            
-                            // T. Makan Lembur ada jika pulang jam 19.00 atau lebih (>= 19:00)
-                            $hasOvertimeMeal = false;
-                            if ($att && !empty($att->clock_out)) {
-                                $clockOutTime = \Carbon\Carbon::parse($att->clock_out)->format('H:i:s');
-                                if ($clockOutTime >= '19:00:00') {
-                                    $hasOvertimeMeal = true;
-                                }
-                            } elseif ($dailyJamLembur >= 2.0) {
-                                $hasOvertimeMeal = true;
+                            // Amount Gaji Pokok (Reconciled with Right Panel Gaji Pokok)
+                            if ($payroll->employee->salary_type === 'hourly') {
+                                $amountGP = $dailyJamKerja * $pricePerHour;
+                            } else {
+                                // For monthly/fixed salary employees: prorated per attended working day
+                                $amountGP = ($isWorking && $payroll->total_working_days > 0) 
+                                    ? round($payroll->basic_salary / $payroll->total_working_days, 2) 
+                                    : 0;
                             }
-                            $dailyTMakanLembur = $hasOvertimeMeal ? 12500 : 0;
+
+                            $amountLembur = $dailyJamLembur * $pricePerHour;
+                            $dailyTMakan = $isWorking ? $mealRate : 0;
+                            
+                            // T. Makan Lembur: diberikan jika lembur disetujui dan (jam lembur >= 2.5 jam ATAU jam pulang >= 19:00)
+                            $hasOvertimeMeal = false;
+                            if ($dailyJamLembur > 0) {
+                                if ($dailyJamLembur >= 2.5) {
+                                    $hasOvertimeMeal = true;
+                                } elseif ($att && !empty($att->clock_out)) {
+                                    $clockOutTime = \Carbon\Carbon::parse($att->clock_out)->format('H:i:s');
+                                    if ($clockOutTime >= '19:00:00') {
+                                        $hasOvertimeMeal = true;
+                                    }
+                                } elseif ($ot && !empty($ot->end_time)) {
+                                    $otEnd = \Carbon\Carbon::parse($ot->end_time)->format('H:i:s');
+                                    if ($otEnd >= '19:00:00') {
+                                        $hasOvertimeMeal = true;
+                                    }
+                                }
+                            }
+                            $dailyTMakanLembur = $hasOvertimeMeal ? $otMealRate : 0;
 
                             // Accumulate
                             $sumJamKerja += $dailyJamKerja;
@@ -461,8 +556,8 @@
                         <tr class="{{ $isRedDate ? 'bg-red-date' : '' }}">
                             <td class="text-center">{{ $rowNo++ }}</td>
                             <td class="text-center font-bold" style="{{ $isRedDate ? 'color: #b91c1c;' : '' }}" @if($holidayTitle) title="{{ $holidayTitle }}" @endif>{{ $date->format('d-M') }}</td>
-                            <td class="text-center {{ $isLate ? 'text-late' : '' }}" @if($isLate && $att && $att->late_minutes > 0) title="Telat {{ $att->late_minutes }}m" @endif>{{ $clockInStr }}</td>
-                            <td class="text-center {{ $isEarlyLeave ? 'text-early' : '' }}" @if($isEarlyLeave && $att && $att->early_leave_minutes > 0) title="Pulang cepat {{ $att->early_leave_minutes }}m" @endif>{{ $clockOutStr }}</td>
+                            <td class="text-center {{ $isLate ? 'text-late' : '' }}" @if($isLate && $lateMinutes > 0) title="Telat {{ $lateMinutes }}m (Penalti {{ $pLateM }}m)" @endif>{{ $clockInStr }}</td>
+                            <td class="text-center {{ $isEarlyLeave ? 'text-early' : '' }}" @if($isEarlyLeave && $earlyMinutes > 0) title="Pulang cepat {{ $earlyMinutes }}m (Penalti {{ $pEarlyM }}m)" @endif>{{ $clockOutStr }}</td>
                             <td class="text-center">{{ $dailyJamKerja > 0 ? number_format($dailyJamKerja, 1, ',', '.') : '-' }}</td>
                             <td class="text-center">{{ $dailyJamLembur > 0 ? number_format($dailyJamLembur, 1, ',', '.') : '-' }}</td>
                             <td class="text-right">{{ $amountGP > 0 ? 'Rp ' . number_format($amountGP, 0, ',', '.') : 'Rp -' }}</td>
@@ -477,7 +572,7 @@
                         <td colspan="4" class="text-center font-bold">TOTAL</td>
                         <td class="text-center font-bold">{{ number_format($sumJamKerja, 1, ',', '.') }}</td>
                         <td class="text-center font-bold">{{ number_format($sumJamLembur, 1, ',', '.') }}</td>
-                        <td class="text-right font-bold">{{ number_format($sumAmountGP, 0, ',', '.') }}</td>
+                        <td class="text-right font-bold">{{ number_format($payroll->employee->salary_type === 'hourly' ? $sumAmountGP : $payroll->basic_salary, 0, ',', '.') }}</td>
                         <td class="text-right font-bold">{{ number_format($sumAmountLembur, 0, ',', '.') }}</td>
                         <td class="text-right font-bold">{{ number_format($sumTMakan, 0, ',', '.') }}</td>
                         <td class="text-right font-bold">{{ number_format($sumTMakanLembur, 0, ',', '.') }}</td>
@@ -590,34 +685,34 @@
                                 <td class="text-right">{{ number_format($payroll->basic_salary, 0, ',', '.') }}</td>
                             </tr>
                             <tr>
-                                <td>T.Makan @12.5K/Hari</td>
+                                <td>T.Makan @{{ $mealRateStr }}/Hari</td>
                                 <td>:</td>
-                                <td class="text-right">{{ number_format($tMakan, 0, ',', '.') }}</td>
+                                <td class="text-right">{{ $tMakan > 0 ? number_format($tMakan, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>T.Lembur</td>
                                 <td>:</td>
-                                <td class="text-right">{{ number_format($tLembur, 0, ',', '.') }}</td>
+                                <td class="text-right">{{ $tLembur > 0 ? number_format($tLembur, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>T. Makan Lembur</td>
                                 <td>:</td>
-                                <td class="text-right">{{ number_format($tMakanLembur, 0, ',', '.') }}</td>
+                                <td class="text-right">{{ $tMakanLembur > 0 ? number_format($tMakanLembur, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
-                                <td>T. Shift Malam 10K/hari</td>
+                                <td>T. Shift Malam</td>
                                 <td>:</td>
-                                <td class="text-right">-</td>
+                                <td class="text-right">{{ $tShiftMalam > 0 ? number_format($tShiftMalam, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>THR</td>
                                 <td>:</td>
-                                <td class="text-right">-</td>
+                                <td class="text-right">{{ $tThr > 0 ? number_format($tThr, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>Bonus</td>
                                 <td>:</td>
-                                <td class="text-right">-</td>
+                                <td class="text-right">{{ $tBonus > 0 ? number_format($tBonus, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>T. BPJSTK</td>
@@ -632,12 +727,12 @@
                             <tr>
                                 <td>Tech. Allowance</td>
                                 <td>:</td>
-                                <td class="text-right">-</td>
+                                <td class="text-right">{{ $tTechAllowance > 0 ? number_format($tTechAllowance, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>Skill Allowance</td>
                                 <td>:</td>
-                                <td class="text-right">-</td>
+                                <td class="text-right">{{ $tSkillAllowance > 0 ? number_format($tSkillAllowance, 0, ',', '.') : '-' }}</td>
                             </tr>
                         </table>
                     </div>
@@ -680,12 +775,12 @@
                             <tr>
                                 <td>PPh21</td>
                                 <td>:</td>
-                                <td class="text-right">-</td>
+                                <td class="text-right">{{ $potPph21 > 0 ? '-' . number_format($potPph21, 0, ',', '.') : '-' }}</td>
                             </tr>
                             <tr>
                                 <td>Lain - lain</td>
                                 <td>:</td>
-                                <td class="text-right">-</td>
+                                <td class="text-right">{{ $otherDeductions > 0 ? '-' . number_format($otherDeductions, 0, ',', '.') : '-' }}</td>
                             </tr>
                         </table>
                     </div>

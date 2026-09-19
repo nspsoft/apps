@@ -169,6 +169,50 @@ class WorkOrder extends Model
     }
 
     /**
+     * Synchronize work order components from current BOM revision
+     */
+    public function syncComponentsFromBom(): void
+    {
+        $existingComponents = $this->components()->with('product')->get();
+        $dispatchedComponents = $existingComponents->filter(fn($c) => (float) $c->qty_consumed > 0.0001);
+
+        if ($dispatchedComponents->isNotEmpty()) {
+            $names = $dispatchedComponents->map(fn($c) => $c->product?->name ?? 'Material')->join(', ');
+            throw new \Exception("Tidak dapat melakukan Sync BOM karena masih terdapat material yang telah dikirim ke Subkontraktor ({$names} dengan Dispatched > 0). Silakan lakukan 'Return Materials' terlebih dahulu hingga seluruh material kembali ke gudang utama (Dispatched = 0).");
+        }
+
+        $bom = Bom::where('product_id', $this->product_id)->where('is_active', true)->first()
+            ?? $this->bom;
+
+        if ($bom) {
+            if ($this->bom_id !== $bom->id) {
+                $this->update(['bom_id' => $bom->id]);
+            }
+        } else {
+            throw new \Exception('BOM aktif tidak ditemukan untuk produk Work Order ini.');
+        }
+
+        $bom->load('components.product');
+        $bomQty = (float) $bom->qty > 0 ? (float) $bom->qty : 1.0;
+        $multiplier = (float) $this->qty_planned / $bomQty;
+
+        // Clean reset: delete old components since all have Dispatched = 0
+        $this->components()->delete();
+
+        // Create fresh components purely from the active BOM revision
+        foreach ($bom->components as $bomComp) {
+            $requiredQty = (float) $bomComp->required_qty * $multiplier;
+            $this->components()->create([
+                'bom_component_id' => $bomComp->id,
+                'product_id' => $bomComp->product_id,
+                'qty_required' => $requiredQty,
+                'qty_consumed' => 0,
+                'unit_id' => $bomComp->unit_id,
+            ]);
+        }
+    }
+
+    /**
      * Start production
      */
     public function start(): void

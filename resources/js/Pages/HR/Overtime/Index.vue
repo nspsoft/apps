@@ -34,7 +34,8 @@ const submitReject = () => {
 };
 
 const approve = (ot) => {
-    if (confirm(`Setujui pengajuan lembur untuk ${ot.employee.full_name}? Sistem akan otomatis menghitung durasi lembur berdasarkan jam absensi pulang aktual.`)) {
+    const empName = ot.employee?.full_name || 'Karyawan';
+    if (confirm(`Setujui pengajuan lembur untuk ${empName}? Sistem akan otomatis menghitung durasi lembur berdasarkan jam absensi pulang aktual.`)) {
         router.post(route('hr.overtime.approve', ot.id));
     }
 };
@@ -107,11 +108,11 @@ const formatDate = (dateStr) => {
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center space-x-3">
                                             <div class="h-10 w-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center rounded-xl font-bold">
-                                                {{ ot.employee.full_name ? ot.employee.full_name.charAt(0).toUpperCase() : 'E' }}
+                                                {{ ot.employee?.full_name ? ot.employee.full_name.charAt(0).toUpperCase() : 'E' }}
                                             </div>
                                             <div>
-                                                <div class="text-sm font-bold text-slate-900 dark:text-white">{{ ot.employee.full_name }}</div>
-                                                <div class="text-xs text-slate-400 mt-0.5">{{ ot.employee.department?.name }} • {{ ot.employee.position?.title }}</div>
+                                                <div class="text-sm font-bold text-slate-900 dark:text-white">{{ ot.employee?.full_name || 'Karyawan' }}</div>
+                                                <div class="text-xs text-slate-400 mt-0.5">{{ ot.employee?.department?.name || 'No Dept' }} • {{ ot.employee?.position?.name || '-' }}</div>
                                             </div>
                                         </div>
                                     </td>

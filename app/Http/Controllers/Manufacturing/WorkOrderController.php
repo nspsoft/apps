@@ -254,6 +254,23 @@ class WorkOrderController extends Controller
         return back()->with('success', 'Work Order reverted to draft for revision.');
     }
 
+    public function syncBom(WorkOrder $workOrder)
+    {
+        if (in_array($workOrder->status, ['completed', 'cancelled'])) {
+            return back()->with('error', 'Cannot sync BOM for completed or cancelled work orders.');
+        }
+
+        try {
+            DB::transaction(function () use ($workOrder) {
+                $workOrder->syncComponentsFromBom();
+            });
+
+            return back()->with('success', 'Work Order components successfully synced with current BOM.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal menyinkronkan BOM: ' . $e->getMessage());
+        }
+    }
+
     public function submitForApproval(WorkOrder $workOrder)
     {
         if ($workOrder->status !== 'draft') {

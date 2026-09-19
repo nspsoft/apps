@@ -1,39 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import Modal from '@/Components/Modal.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import { ClockIcon, CalendarIcon, CheckCircleIcon, ExclamationTriangleIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import { ClockIcon, CalendarIcon, CheckCircleIcon, PlusIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     overtimes: Array
 });
-
-const showRequestModal = ref(false);
-
-const form = useForm({
-    type: 'pre_planned',
-    date: '',
-    start_time: '17:00',
-    end_time: '19:00',
-    reason: ''
-});
-
-const submit = () => {
-    form.post(route('employee.overtime.store'), {
-        onSuccess: () => {
-            showRequestModal.value = false;
-            form.reset();
-        }
-    });
-};
-
-const openRequestModal = () => {
-    form.reset();
-    showRequestModal.value = true;
-};
 
 // Summary stats
 const stats = computed(() => {
@@ -79,9 +52,9 @@ const formatDate = (dateStr) => {
                     <h2 class="font-bold text-2xl text-slate-800 dark:text-slate-200 leading-tight">Pengajuan Lembur</h2>
                     <p class="text-xs text-slate-500 mt-1">Kelola dan pantau waktu kerja lembur Anda.</p>
                 </div>
-                <button @click="openRequestModal" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-indigo-500 transition-all">
+                <Link :href="route('employee.overtime.create')" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg hover:bg-indigo-500 transition-all">
                     <PlusIcon class="w-4 h-4" /> Ajukan Lembur
-                </button>
+                </Link>
             </div>
         </template>
 
@@ -195,81 +168,6 @@ const formatDate = (dateStr) => {
 
             </div>
         </div>
-
-        <!-- Request Overtime Modal -->
-        <Modal :show="showRequestModal" @close="showRequestModal = false" maxWidth="lg">
-            <form @submit.prevent="submit" class="p-6">
-                <h3 class="text-lg font-bold text-slate-800 dark:text-white mb-2">Formulir Pengajuan Lembur</h3>
-                <p class="text-xs text-slate-400 mb-6">Silakan isi detail rencana lembur atau klaim lembur Anda.</p>
-
-                <div class="space-y-5">
-                    <!-- Tipe Pengajuan -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Tipe Lembur</label>
-                        <div class="grid grid-cols-2 gap-4">
-                            <label class="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
-                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Rencana Awal (Opsi A)</span>
-                                <input type="radio" v-model="form.type" value="pre_planned" class="text-indigo-600 focus:ring-indigo-500 border-slate-300" />
-                            </label>
-                            <label class="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-850/50 transition">
-                                <span class="text-xs font-bold text-slate-700 dark:text-slate-300">Klaim Akhir (Opsi B)</span>
-                                <input type="radio" v-model="form.type" value="post_claim" class="text-indigo-600 focus:ring-indigo-500 border-slate-300" />
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Banner Info Tipe -->
-                    <div class="p-3.5 rounded-xl border flex items-start space-x-3" 
-                         :class="form.type === 'pre_planned' ? 'bg-blue-50/50 border-blue-150 text-blue-800 dark:bg-blue-900/10 dark:border-blue-900/30 dark:text-blue-400' : 'bg-purple-50/50 border-purple-150 text-purple-800 dark:bg-purple-900/10 dark:border-purple-900/30 dark:text-purple-400'">
-                        <ExclamationTriangleIcon class="w-5 h-5 shrink-0 mt-0.5" />
-                        <div class="text-xs leading-relaxed">
-                            <span v-if="form.type === 'pre_planned'">
-                                <strong>Rencana Awal:</strong> Ajukan sebelum lembur dikerjakan. Setelah Anda melakukan Clock Out fisik nanti, sistem akan otomatis merekonsiliasi (mengambil nilai terkecil) jam rencana dengan jam kerja aktual Anda.
-                            </span>
-                            <span v-else>
-                                <strong>Klaim Akhir (Unpredictable):</strong> Ajukan setelah selesai lembur. Sistem akan memvalidasi pengajuan ini langsung terhadap jam Clock Out fisik Anda pada tanggal yang Anda klaim.
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Tanggal -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Tanggal Lembur</label>
-                        <input type="date" v-model="form.date" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition shadow-sm" />
-                        <p v-if="form.errors.date" class="text-xs text-red-500 mt-1">{{ form.errors.date }}</p>
-                    </div>
-
-                    <!-- Waktu Mulai & Selesai -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Jam Mulai</label>
-                            <input type="time" v-model="form.start_time" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition shadow-sm" />
-                            <p v-if="form.errors.start_time" class="text-xs text-red-500 mt-1">{{ form.errors.start_time }}</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Jam Selesai</label>
-                            <input type="time" v-model="form.end_time" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition shadow-sm" />
-                            <p v-if="form.errors.end_time" class="text-xs text-red-500 mt-1">{{ form.errors.end_time }}</p>
-                        </div>
-                    </div>
-
-                    <!-- Alasan / Keterangan Tugas -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Deskripsi Tugas / Alasan</label>
-                        <textarea v-model="form.reason" required placeholder="Tuliskan pekerjaan yang akan/telah Anda kerjakan selama lembur..." rows="3" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition shadow-sm"></textarea>
-                        <p v-if="form.errors.reason" class="text-xs text-red-500 mt-1">{{ form.errors.reason }}</p>
-                    </div>
-                </div>
-
-                <!-- Footer / Actions -->
-                <div class="mt-8 flex justify-end space-x-3">
-                    <SecondaryButton @click="showRequestModal = false">Batal</SecondaryButton>
-                    <PrimaryButton type="submit" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                        Kirim Pengajuan
-                    </PrimaryButton>
-                </div>
-            </form>
-        </Modal>
 
     </AppLayout>
 </template>

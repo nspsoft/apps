@@ -16,6 +16,8 @@ const modelsLoaded = ref(false);
 const statusMessage = ref('Memuat modul kecerdasan buatan...');
 const isScanning = ref(false);
 const showSuccessOverlay = ref(false);
+const showWarningOverlay = ref(false);
+const warningData = ref({ message: '', status: '' });
 const successData = ref({
     name: '',
     nik: '',
@@ -147,22 +149,77 @@ const speakAnnouncement = (name, action) => {
     window.speechSynthesis.speak(utterance);
 };
 
-// Load face detection models
-const loadModels = async () => {
+// Warning chime (descending tones)
+const playWarningChime = () => {
     try {
-        statusMessage.value = 'Memuat modul kecerdasan buatan...';
-        await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-        ]);
-        modelsLoaded.value = true;
-        statusMessage.value = 'Modul selesai dimuat. Membuka kamera lobi...';
-        startVideo();
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContextClass();
+        const playTone = (freq, time, duration) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(0.12, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(time);
+            osc.stop(time + duration);
+        };
+        playTone(440, ctx.currentTime, 0.3);
+        playTone(349.23, ctx.currentTime + 0.15, 0.3);
+        playTone(261.63, ctx.currentTime + 0.30, 0.5);
     } catch (e) {
-        statusMessage.value = 'Gagal memuat modul kecerdasan buatan.';
-        console.error(e);
+        console.error('Failed to play warning chime:', e);
     }
+};
+
+// SpeechSynthesis for warning/rejection
+const speakWarning = (message) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = 'id-ID';
+    utterance.rate = 0.9;
+    const voices = window.speechSynthesis.getVoices();
+    const idVoice = voices.find(voice => voice.lang.includes('id') || voice.lang.includes('ID'));
+    if (idVoice) utterance.voice = idVoice;
+    window.speechSynthesis.speak(utterance);
+};
+
+// Retry state
+const modelLoadFailed = ref(false);
+
+// Load face detection models with multi-path fallback
+const loadModels = async () => {
+    modelLoadFailed.value = false;
+    const candidatePaths = [
+        '/models',
+        window.location.origin + '/models',
+        'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'
+    ];
+    
+    for (const modelPath of candidatePaths) {
+        try {
+            statusMessage.value = `Memuat modul AI dari ${modelPath}...`;
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
+                faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
+                faceapi.nets.faceRecognitionNet.loadFromUri(modelPath)
+            ]);
+            modelsLoaded.value = true;
+            statusMessage.value = 'Modul selesai dimuat. Membuka kamera lobi...';
+            startVideo();
+            return;
+        } catch (e) {
+            console.warn(`Failed to load models from ${modelPath}:`, e);
+        }
+    }
+    
+    // All paths failed
+    statusMessage.value = 'GAGAL MEMUAT MODUL KECERDASAN BUATAN';
+    modelLoadFailed.value = true;
+    console.error('All model paths exhausted.');
 };
 
 const startVideo = () => {
@@ -189,21 +246,27 @@ const stopVideo = () => {
     if (scanningInterval) clearInterval(scanningInterval);
 };
 
+// 2-frame stability match state
+let lastMatchId = null;
+let lastMatchTimestamp = 0;
+const STABILITY_WINDOW_MS = 1500;
+
 // Face scanning loop
 const startScanningLoop = () => {
     if (scanningInterval) clearInterval(scanningInterval);
     
-    // Scan every 500ms to balance accuracy and CPU load
     scanningInterval = setInterval(async () => {
         if (!isScanning.value || !videoRef.value || showSuccessOverlay.value) return;
         
         try {
-            const detection = await faceapi.detectSingleFace(videoRef.value, new faceapi.TinyFaceDetectorOptions())
+            const detection = await faceapi.detectSingleFace(
+                videoRef.value, 
+                new faceapi.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.5 })
+            )
                 .withFaceLandmarks()
                 .withFaceDescriptor();
                 
             if (detection && canvasRef.value) {
-                // Draw detection box on Kiosk screen
                 const displaySize = { width: videoRef.value.clientWidth, height: videoRef.value.clientHeight };
                 faceapi.matchDimensions(canvasRef.value, displaySize);
                 const resizedDetections = faceapi.resizeResults(detection, displaySize);
@@ -211,13 +274,11 @@ const startScanningLoop = () => {
                 const ctx = canvasRef.value.getContext('2d');
                 ctx.clearRect(0, 0, canvasRef.value.width, canvasRef.value.height);
                 
-                // Draw a customized styled box
                 const { x, y, width, height } = resizedDetections.detection.box;
-                ctx.strokeStyle = '#10b981'; // Emerald neon
+                ctx.strokeStyle = '#10b981';
                 ctx.lineWidth = 3;
                 ctx.strokeRect(x, y, width, height);
                 
-                // Scan list of employees
                 let bestMatch = null;
                 let minDistance = 1.0;
                 
@@ -227,8 +288,7 @@ const startScanningLoop = () => {
                         const descriptorArray = new Float32Array(JSON.parse(emp.face_descriptor));
                         const distance = faceapi.euclideanDistance(detection.descriptor, descriptorArray);
                         
-                        // Debug log to console to inspect match distance
-                        if (distance < 0.8) {
+                        if (distance < 0.7) {
                             console.log(`Face match try: ${emp.full_name} | Distance: ${distance.toFixed(4)}`);
                         }
                         
@@ -241,22 +301,37 @@ const startScanningLoop = () => {
                     }
                 });
                 
-                // Standard match threshold is 0.6 for face-api.js (more robust)
-                if (bestMatch && minDistance < 0.6) {
+                // Tighter threshold: 0.50 instead of 0.60
+                if (bestMatch && minDistance < 0.50) {
                     const nowTs = Date.now();
-                    const lastScan = scannedCooldown.value[bestMatch.id] || 0;
                     
-                    // Check if employee is currently in cooldown (2-minute window)
-                    if (nowTs - lastScan < COOLDOWN_MS) {
-                        cooldownNotice.value = `MOHON TUNGGU: ${bestMatch.full_name}`;
-                        setTimeout(() => {
-                            cooldownNotice.value = '';
-                        }, 2500);
-                        return;
+                    // 2-frame stability: require same person detected twice within STABILITY_WINDOW_MS
+                    if (lastMatchId === bestMatch.id && (nowTs - lastMatchTimestamp) < STABILITY_WINDOW_MS) {
+                        // Confirmed stable match!
+                        lastMatchId = null;
+                        lastMatchTimestamp = 0;
+                        
+                        const lastScan = scannedCooldown.value[bestMatch.id] || 0;
+                        if (nowTs - lastScan < COOLDOWN_MS) {
+                            cooldownNotice.value = `MOHON TUNGGU: ${bestMatch.full_name}`;
+                            setTimeout(() => { cooldownNotice.value = ''; }, 2500);
+                            return;
+                        }
+                        
+                        console.log(`MATCH CONFIRMED (2-frame): ${bestMatch.full_name} | Distance: ${minDistance.toFixed(4)}`);
+                        registerKioskClock(bestMatch.id);
+                    } else {
+                        // First frame match - store and wait for confirmation
+                        lastMatchId = bestMatch.id;
+                        lastMatchTimestamp = nowTs;
+                        statusMessage.value = `Memverifikasi wajah: ${bestMatch.full_name}...`;
                     }
-                    
-                    console.log(`MATCH SUCCESS: ${bestMatch.full_name} | Distance: ${minDistance.toFixed(4)}`);
-                    registerKioskClock(bestMatch.id);
+                } else {
+                    // No match or too far - reset stability
+                    if (Date.now() - lastMatchTimestamp > STABILITY_WINDOW_MS) {
+                        lastMatchId = null;
+                        lastMatchTimestamp = 0;
+                    }
                 }
             } else if (canvasRef.value) {
                 const ctx = canvasRef.value.getContext('2d');
@@ -269,7 +344,6 @@ const startScanningLoop = () => {
 };
 
 const registerKioskClock = async (employeeId) => {
-    // Put employee in local cooldown immediately to prevent duplicate requests
     scannedCooldown.value[employeeId] = Date.now();
     isScanning.value = false;
     
@@ -281,7 +355,6 @@ const registerKioskClock = async (employeeId) => {
         const payload = res.data;
         
         if (payload.success && payload.status !== 'ignored') {
-            // Trigger visual overlay
             successData.value = {
                 name: payload.employee.full_name,
                 nik: payload.employee.nik,
@@ -292,26 +365,50 @@ const registerKioskClock = async (employeeId) => {
             };
             
             showSuccessOverlay.value = true;
-            
-            // Audio Effects
             playChime();
             speakAnnouncement(payload.employee.full_name, payload.status);
-            
-            // Refresh stats to show immediate updates
             fetchStats();
             
-            // Close overlay after 4.5 seconds and resume scanning
             setTimeout(() => {
                 showSuccessOverlay.value = false;
                 isScanning.value = true;
             }, 4500);
+        } else if (payload.success === false) {
+            // Attendance REJECTED by backend (time restriction, non-workday, etc.)
+            warningData.value = {
+                message: payload.message || 'Absensi ditolak oleh sistem.',
+                status: payload.status || 'rejected'
+            };
+            showWarningOverlay.value = true;
+            playWarningChime();
+            speakWarning(payload.message || 'Absensi ditolak.');
+            
+            setTimeout(() => {
+                showWarningOverlay.value = false;
+                isScanning.value = true;
+            }, 6000);
         } else {
-            // If ignored because of backend duplicate check, simply resume scan
             isScanning.value = true;
         }
     } catch (e) {
         console.error('Kiosk Clock registration failed:', e);
-        isScanning.value = true;
+        // Handle 422/validation errors from backend
+        if (e.response && e.response.data && e.response.data.success === false) {
+            warningData.value = {
+                message: e.response.data.message || 'Absensi ditolak oleh sistem.',
+                status: e.response.data.status || 'rejected'
+            };
+            showWarningOverlay.value = true;
+            playWarningChime();
+            speakWarning(e.response.data.message || 'Absensi ditolak.');
+            
+            setTimeout(() => {
+                showWarningOverlay.value = false;
+                isScanning.value = true;
+            }, 6000);
+        } else {
+            isScanning.value = true;
+        }
     }
 };
 
@@ -456,6 +553,23 @@ const formatTimeString = (dateTime) => {
                             class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-amber-500/90 text-slate-950 font-black text-xs px-6 py-2.5 rounded-full border border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)] z-20 transition-all uppercase tracking-wider animate-pulse whitespace-nowrap"
                         >
                             {{ cooldownNotice }}
+                        </div>
+
+                        <!-- Retry Button when model load fails -->
+                        <div 
+                            v-if="modelLoadFailed" 
+                            class="absolute inset-0 z-30 bg-slate-950/90 flex flex-col items-center justify-center gap-4"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                            </svg>
+                            <p class="text-sm font-bold text-rose-300 text-center px-8">Gagal memuat modul kecerdasan buatan.<br>Periksa koneksi jaringan.</p>
+                            <button 
+                                @click="loadModels()" 
+                                class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider rounded-2xl transition-all shadow-lg"
+                            >
+                                Coba Lagi
+                            </button>
                         </div>
 
                         <!-- Cyber Viewfinder UI Lines -->
@@ -628,6 +742,44 @@ const formatTimeString = (dateTime) => {
                     <!-- Greeting bottom text -->
                     <p class="text-xs font-bold text-slate-400 italic mt-6">
                         {{ successData.action === 'clock_in' ? getGreetingTime() + ', selamat bekerja dan semoga hari Anda menyenangkan!' : 'Hati-hati di jalan dan selamat beristirahat!' }}
+                    </p>
+                </div>
+            </div>
+        </Transition>
+
+        <!-- WARNING/REJECTION OVERLAY -->
+        <Transition
+            enter-active-class="transition duration-300 ease-out"
+            enter-from-class="opacity-0 scale-95"
+            enter-to-class="opacity-100 scale-100"
+            leave-active-class="transition duration-200 ease-in"
+            leave-from-class="opacity-100 scale-100"
+            leave-to-class="opacity-0 scale-95"
+        >
+            <div 
+                v-if="showWarningOverlay" 
+                class="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-8 select-none"
+            >
+                <div class="max-w-xl w-full bg-slate-900 border border-rose-500/30 rounded-[3rem] p-8 text-center shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden">
+                    <div class="absolute -top-24 -left-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    <span class="absolute top-6 right-6 text-[9px] text-slate-500 font-bold uppercase tracking-widest">Auto close in 6s</span>
+
+                    <div class="mx-auto w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                    </div>
+
+                    <span class="text-xs font-black tracking-widest text-rose-400 uppercase">ABSENSI DITOLAK</span>
+                    <p class="text-lg font-bold text-white mt-4 leading-relaxed">{{ warningData.message }}</p>
+                    
+                    <div class="mt-6 bg-slate-950/50 border border-white/5 rounded-2xl p-4">
+                        <span class="text-[9px] text-slate-500 font-black uppercase tracking-wider block">Status</span>
+                        <span class="text-xs font-black uppercase tracking-widest mt-1 inline-block text-rose-400">{{ warningData.status.replace(/_/g, ' ') }}</span>
+                    </div>
+
+                    <p class="text-xs font-bold text-slate-400 italic mt-6">
+                        Silakan hubungi HRD jika Anda merasa ini adalah kesalahan.
                     </p>
                 </div>
             </div>

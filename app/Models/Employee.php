@@ -23,11 +23,15 @@ class Employee extends Model
         'user_id', 'nik', 'full_name', 'email', 'phone', 
         'address', 'department_id', 'section', 'position_id', 'work_schedule_id', 'golongan', 'tax_status',
         'joining_date', 'employment_status', 
-        'basic_salary', 'salary_type', 'hourly_rate', 'profile_picture', 'is_active'
+        'basic_salary', 'salary_type', 'hourly_rate',
+        'has_bpjstk', 'has_bpjskes', 'bpjstk_number', 'bpjskes_number',
+        'profile_picture', 'is_active'
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'has_bpjstk' => 'boolean',
+        'has_bpjskes' => 'boolean',
         'basic_salary' => 'double',
         'hourly_rate' => 'double',
     ];
