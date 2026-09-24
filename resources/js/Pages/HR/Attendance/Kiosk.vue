@@ -386,7 +386,7 @@ const startScanningLoop = () => {
 const registerKioskClock = async (employeeId) => {
     scannedCooldown.value[employeeId] = Date.now();
     isScanning.value = false;
-    userInteractedUntil = Date.now() + 20000; // Keep on camera during clock result
+    if (!isPeakHour.value) cameraManualExpiry.value = Date.now() + 20000; // Keep on camera during clock result
     
     try {
         const res = await axios.post(route('hr.attendance.kiosk-clock'), {
