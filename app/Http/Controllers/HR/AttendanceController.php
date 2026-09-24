@@ -193,12 +193,13 @@ class AttendanceController extends Controller
         $leaveCount = $attendances->whereIn('status', ['leave', 'sick'])->count();
         $absentCount = max(0, $totalActive - ($presentCount + $lateCount + $leaveCount));
 
-        // Recent check-ins / outs
+        // Recent check-ins / outs (Tampilkan aksi terbaru di urutan paling atas)
         $recentLogs = Attendance::with(['employee.department'])
             ->where('date', $date)
             ->whereIn('status', ['present', 'late'])
+            ->orderBy('updated_at', 'desc')
             ->orderByRaw('COALESCE(clock_out, clock_in) DESC')
-            ->take(10)
+            ->take(20)
             ->get();
 
         // 7-day Weekly Trend
@@ -612,6 +613,8 @@ class AttendanceController extends Controller
                 ]);
             }
         }
+
+        $attendance->load(['employee.department']);
 
         return response()->json([
             'success' => true,

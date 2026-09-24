@@ -99,8 +99,17 @@ const showSettingsModal = ref(false);
 const isSavingSettings = ref(false);
 const settingsSaveNotice = ref('');
 
+// Helper Format Tanggal Lokal (YYYY-MM-DD) Sesuai Zona Waktu Perangkat / WIB
+const getLocalDateString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 // Stats, charts and leaderboard data
-const filterDate = ref(new Date().toISOString().split('T')[0]);
+const filterDate = ref(getLocalDateString());
 const summary = ref({
     total_employees: 0,
     present: 0,
@@ -412,6 +421,20 @@ const registerKioskClock = async (employeeId) => {
                 avatar: payload.employee.profile_picture ? `/storage/${payload.employee.profile_picture}` : null,
                 action: payload.status
             };
+
+            // Langsung update atau sisipkan ke Live Absensi (recentLogs) seketika
+            if (payload.attendance) {
+                const updatedItem = {
+                    ...payload.attendance,
+                    employee: payload.employee || payload.attendance.employee
+                };
+                const existingIdx = recentLogs.value.findIndex(l => l.id === payload.attendance.id);
+                if (existingIdx !== -1) {
+                    recentLogs.value[existingIdx] = updatedItem;
+                } else {
+                    recentLogs.value.unshift(updatedItem);
+                }
+            }
             
             showSuccessOverlay.value = true;
             playChime();
@@ -464,6 +487,7 @@ const registerKioskClock = async (employeeId) => {
 
 const fetchStats = async () => {
     try {
+        filterDate.value = getLocalDateString();
         const res = await axios.get(route('hr.attendance.dashboard-data'), {
             params: { date: filterDate.value }
         });
