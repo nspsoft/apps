@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import axios from 'axios';
 import * as faceapi from 'face-api.js';
@@ -25,7 +25,15 @@ import {
     Sparkles,
     UserCheck,
     TrendingUp,
-    Volume2
+    Volume2,
+    Cpu,
+    Zap,
+    Shield,
+    Power,
+    Radio,
+    Eye,
+    EyeOff,
+    Activity
 } from 'lucide-vue-next';
 
 ChartJS.register(...registerables);
@@ -264,22 +272,22 @@ const loadModels = async () => {
     console.error('All model paths exhausted.');
 };
 
-const startVideo = () => {
+const startVideo = async () => {
     if (stream.value) return;
-    navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
-        .then(currentStream => {
-            stream.value = currentStream;
-            if (videoRef.value) {
-                videoRef.value.srcObject = currentStream;
-                statusMessage.value = 'Scanner aktif. Silakan berdiri menghadap kamera.';
-                isScanning.value = true;
-                startScanningLoop();
-            }
-        })
-        .catch(err => {
-            console.error('Camera access failed:', err);
-            statusMessage.value = 'Gagal mengakses kamera. Periksa izin perangkat.';
-        });
+    try {
+        const currentStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        stream.value = currentStream;
+        await nextTick();
+        if (videoRef.value) {
+            videoRef.value.srcObject = currentStream;
+            statusMessage.value = 'Scanner aktif. Silakan berdiri menghadap kamera.';
+            isScanning.value = true;
+            startScanningLoop();
+        }
+    } catch (err) {
+        console.error('Camera access failed:', err);
+        statusMessage.value = 'Gagal mengakses kamera. Periksa izin perangkat.';
+    }
 };
 
 const stopVideo = () => {
@@ -516,7 +524,13 @@ const fetchStats = async () => {
     }
 };
 
-// Scheduler & Slider Logic (Opsi A: Kamera di-hide di luar jam sibuk, buka via tombol)
+// Scheduler & Camera State (Kamera non-aktif di luar jam sibuk, bertema futuristik)
+const isCameraActive = computed(() => {
+    if (kioskSettings.value.schedule_mode === 'camera_only') return true;
+    if (kioskSettings.value.schedule_mode === 'leaderboard_only') return false;
+    return isPeakHour.value || cameraManualRemainingSeconds.value > 0;
+});
+
 const openCameraManual = (durationSeconds = 60) => {
     cameraManualExpiry.value = Date.now() + (durationSeconds * 1000);
     cameraManualRemainingSeconds.value = durationSeconds;
@@ -537,9 +551,8 @@ const closeCameraManual = () => {
     cameraManualExpiry.value = 0;
     cameraManualRemainingSeconds.value = 0;
     if (manualCountdownInterval) clearInterval(manualCountdownInterval);
-    if (!isPeakHour.value && kioskSettings.value.schedule_mode === 'auto') {
+    if (!isPeakHour.value && kioskSettings.value.schedule_mode !== 'camera_only') {
         stopVideo();
-        activeSlide.value = 'leaderboard';
     }
 };
 
@@ -553,15 +566,13 @@ const checkScheduleMode = () => {
 
     if (mode === 'camera_only') {
         isPeakHour.value = false;
-        activeSlide.value = 'camera';
         if (!stream.value) startVideo();
         return;
     }
 
     if (mode === 'leaderboard_only') {
         isPeakHour.value = false;
-        activeSlide.value = 'leaderboard';
-        stopVideo();
+        if (stream.value) stopVideo();
         return;
     }
 
@@ -575,17 +586,21 @@ const checkScheduleMode = () => {
     const inEveningPeak = currentHM >= eStart && currentHM <= eEnd;
 
     if (inMorningPeak || inEveningPeak) {
-        isPeakHour.value = true;
-        activeSlide.value = 'camera';
-        if (!stream.value) {
+        if (!isPeakHour.value) {
+            isPeakHour.value = true;
+            activeSlide.value = 'camera';
+            startVideo();
+        } else if (!stream.value) {
             startVideo();
         }
     } else {
-        isPeakHour.value = false;
-        // Di luar jam sibuk: kamera di-hide kecuali jika dibuka manual via tombol
-        if (Date.now() >= cameraManualExpiry.value) {
-            activeSlide.value = 'leaderboard';
-            if (stream.value) {
+        if (isPeakHour.value) {
+            isPeakHour.value = false;
+            if (cameraManualRemainingSeconds.value <= 0) {
+                stopVideo();
+            }
+        } else {
+            if (cameraManualRemainingSeconds.value <= 0 && stream.value) {
                 stopVideo();
             }
         }
@@ -600,10 +615,11 @@ const startSliderTicker = () => {
 };
 
 const switchSlide = (slide) => {
-    if (slide === 'camera') {
-        openCameraManual(60);
-    } else {
-        closeCameraManual();
+    activeSlide.value = slide;
+    if (slide === 'leaderboard') {
+        if (!isPeakHour.value && cameraManualRemainingSeconds.value > 0) {
+            closeCameraManual();
+        }
     }
 };
 
@@ -837,29 +853,49 @@ const formatTimeString = (dateTime) => {
                     </section>
 
                     <!-- ============================================== -->
-                    <!-- COLUMN 2 (CENTER): Futuristic Face Scanner (col-span-4) -->
+                    <!-- COLUMN 2 (CENTER): Futuristic Face Scanner / Standby HUD (col-span-4) -->
                     <!-- ============================================== -->
                     <section class="col-span-4 flex flex-col items-center justify-between h-full min-h-0">
-                        <!-- Centered Scanner Container (Not oversized, ergonomic for 32" Screen) -->
-                        <div class="w-full max-w-[420px] flex-1 flex flex-col bg-slate-900/50 border border-cyan-500/20 rounded-[2.5rem] relative overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.15)] backdrop-blur-xl">
+                        <!-- STATE A: LIVE CAMERA SCANNER (Aktif Saat Jam Sibuk atau Dibuka Manual) -->
+                        <div 
+                            v-if="isCameraActive" 
+                            class="w-full max-w-[420px] flex-1 flex flex-col bg-slate-900/50 border border-cyan-500/30 rounded-[2.5rem] relative overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] backdrop-blur-xl"
+                        >
                             <!-- Top HUD Bar inside Camera Box -->
-                            <div class="p-4 bg-slate-950/80 border-b border-cyan-500/20 backdrop-blur flex items-center justify-between z-20">
+                            <div class="p-4 bg-slate-950/80 border-b border-cyan-500/20 backdrop-blur flex items-center justify-between z-20 shrink-0">
                                 <div class="flex items-center gap-2.5">
                                     <span 
                                         class="w-2.5 h-2.5 rounded-full" 
                                         :class="isScanning ? 'bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse' : 'bg-amber-400 animate-pulse'"
                                     ></span>
-                                    <span class="text-[11px] font-black uppercase tracking-wider text-cyan-200 truncate max-w-[220px]">
+                                    <span class="text-[11px] font-black uppercase tracking-wider text-cyan-200 truncate max-w-[200px]">
                                         {{ statusMessage }}
                                     </span>
                                 </div>
-                                <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                                    AI LIVE
-                                </span>
+                                
+                                <div class="flex items-center gap-2">
+                                    <span 
+                                        v-if="isPeakHour" 
+                                        class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                                        JAM SIBUK
+                                    </span>
+                                    <span 
+                                        v-else-if="cameraManualRemainingSeconds > 0"
+                                        class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5"
+                                    >
+                                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                                        {{ cameraManualRemainingSeconds }}s
+                                    </span>
+                                    <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                                        AI LIVE
+                                    </span>
+                                </div>
                             </div>
 
                             <!-- Video Stream & Canvas Viewfinder -->
-                            <div class="relative flex-1 w-full bg-black overflow-hidden flex items-center justify-center">
+                            <div class="relative flex-1 w-full bg-black overflow-hidden flex items-center justify-center min-h-0">
                                 <video 
                                     ref="videoRef"
                                     autoplay
@@ -906,7 +942,7 @@ const formatTimeString = (dateTime) => {
                                     <p class="text-xs font-bold text-rose-300">Gagal memuat modul pengenal wajah.<br>Periksa koneksi jaringan.</p>
                                     <button 
                                         @click="loadModels()" 
-                                        class="px-5 py-2 bg-cyan-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition hover:bg-cyan-400 shadow-lg"
+                                        class="px-5 py-2 bg-cyan-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition hover:bg-cyan-400 shadow-lg cursor-pointer"
                                     >
                                         Coba Lagi
                                     </button>
@@ -1002,9 +1038,113 @@ const formatTimeString = (dateTime) => {
                             </div>
 
                             <!-- Bottom Instruction Bar -->
-                            <div class="p-3 bg-slate-950/80 border-t border-cyan-500/20 text-center">
+                            <div class="p-3 bg-slate-950/80 border-t border-cyan-500/20 text-center shrink-0">
                                 <p class="text-[11px] text-slate-400 font-semibold">
                                     Berdirilah menghadap lensa kamera dengan pencahayaan cukup
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- STATE B: FUTURISTIC SCI-FI STANDBY HUD (Ketika Di Luar Jam Sibuk) -->
+                        <div 
+                            v-else 
+                            class="w-full max-w-[420px] flex-1 flex flex-col bg-slate-900/60 border border-cyan-500/30 rounded-[2.5rem] relative overflow-hidden shadow-[0_0_60px_rgba(6,182,212,0.18)] backdrop-blur-xl justify-between"
+                        >
+                            <!-- Top Standby Telemetry Bar -->
+                            <div class="p-4 bg-slate-950/80 border-b border-cyan-500/20 backdrop-blur flex items-center justify-between z-20 shrink-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse"></span>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-cyan-200">
+                                        STANDBY PROTOCOL // OPTIC OFF
+                                    </span>
+                                </div>
+                                <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                                    HEMAT ENERGI
+                                </span>
+                            </div>
+
+                            <!-- Center Holographic AI Core & Controls -->
+                            <div class="relative flex-1 w-full flex flex-col items-center justify-center p-5 text-center overflow-hidden min-h-0">
+                                <!-- Ambient Holographic Backdrop -->
+                                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(6,182,212,0.12),transparent_70%)] pointer-events-none"></div>
+                                <div class="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#22d3ee_1px,transparent_1px)] [background-size:18px_18px]"></div>
+
+                                <!-- 4 Cyber HUD Frame Corner Brackets -->
+                                <div class="absolute top-4 left-4 w-5 h-5 border-t-2 border-l-2 border-cyan-400/50 rounded-tl-lg pointer-events-none"></div>
+                                <div class="absolute top-4 right-4 w-5 h-5 border-t-2 border-r-2 border-cyan-400/50 rounded-tr-lg pointer-events-none"></div>
+                                <div class="absolute bottom-4 left-4 w-5 h-5 border-b-2 border-l-2 border-cyan-400/50 rounded-bl-lg pointer-events-none"></div>
+                                <div class="absolute bottom-4 right-4 w-5 h-5 border-b-2 border-r-2 border-cyan-400/50 rounded-br-lg pointer-events-none"></div>
+
+                                <!-- Concentric Holographic Rotating Radar Rings -->
+                                <div class="relative flex items-center justify-center my-1 shrink-0">
+                                    <!-- Outer Dashed Cyan Tech Ring (Slow CW rotation) -->
+                                    <div class="w-44 h-44 rounded-full border border-dashed border-cyan-400/30 animate-[spin_25s_linear_infinite] flex items-center justify-center relative">
+                                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400/70"></div>
+                                        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400/70"></div>
+                                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400/70"></div>
+                                        <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400/70"></div>
+                                    </div>
+
+                                    <!-- Middle Dual-Arc Tech Ring (Fast CCW rotation) -->
+                                    <div class="absolute w-34 h-34 rounded-full border border-indigo-400/40 border-t-cyan-400 border-b-teal-400 animate-[spin_12s_linear_infinite_reverse] flex items-center justify-center"></div>
+
+                                    <!-- Inner Holographic Quantum Core -->
+                                    <div class="absolute w-24 h-24 rounded-full bg-slate-950/90 border border-cyan-400/60 shadow-[0_0_35px_rgba(6,182,212,0.4)] flex flex-col items-center justify-center backdrop-blur-md">
+                                        <Cpu class="w-8 h-8 text-cyan-400 animate-pulse drop-shadow-[0_0_12px_#22d3ee]" />
+                                        <span class="text-[8px] font-mono font-black text-cyan-300 tracking-widest mt-1">JICOS AI</span>
+                                        <span class="text-[7px] font-mono text-emerald-400 font-bold tracking-wider">STANDBY</span>
+                                    </div>
+                                </div>
+
+                                <!-- Status Telemetry & Heading -->
+                                <div class="mt-3 shrink-0">
+                                    <h3 class="text-xs font-black text-white tracking-wider uppercase flex items-center justify-center gap-1.5">
+                                        <EyeOff class="w-3.5 h-3.5 text-cyan-400" />
+                                        <span>PEMINDAI OPTIK NON-AKTIF</span>
+                                    </h3>
+                                    <p class="text-[10px] text-slate-400 font-semibold max-w-[280px] mt-0.5 leading-tight mx-auto">
+                                        Kamera otomatis mati di luar jam sibuk untuk efisiensi hardware & privasi lobi.
+                                    </p>
+                                </div>
+
+                                <!-- Peak Schedule Matrix Card -->
+                                <div class="mt-3 w-full max-w-[320px] p-2.5 rounded-xl bg-slate-950/70 border border-cyan-500/20 backdrop-blur flex flex-col gap-1.5 shadow-inner shrink-0 text-left">
+                                    <div class="flex items-center justify-between text-[8px] font-mono font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-white/5">
+                                        <span class="flex items-center gap-1 text-cyan-300 font-black">
+                                            <Radio class="w-2.5 h-2.5 text-cyan-400 animate-pulse" />
+                                            JADWAL OTOMATIS JAM SIBUK
+                                        </span>
+                                        <span class="text-slate-500 font-bold">WIB</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                                        <div class="bg-cyan-950/30 border border-cyan-500/10 rounded-lg p-1.5">
+                                            <span class="text-[8px] text-cyan-400 font-black uppercase block">PAGI (MASUK)</span>
+                                            <span class="text-white font-bold">{{ kioskSettings.morning_in_start || '07:00' }} - {{ kioskSettings.morning_in_end || '08:30' }}</span>
+                                        </div>
+                                        <div class="bg-indigo-950/30 border border-indigo-500/10 rounded-lg p-1.5">
+                                            <span class="text-[8px] text-indigo-400 font-black uppercase block">SORE (PULANG)</span>
+                                            <span class="text-white font-bold">{{ kioskSettings.evening_out_start || '16:30' }} - {{ kioskSettings.evening_out_end || '20:00' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Futuristic Neon Glow Action Button -->
+                                <button 
+                                    @click="openCameraManual(60)"
+                                    class="mt-3.5 w-full max-w-[320px] py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_35px_rgba(6,182,212,0.45)] hover:shadow-[0_0_50px_rgba(6,182,212,0.7)] flex items-center justify-center gap-2 cursor-pointer border border-cyan-200/50 group shrink-0"
+                                >
+                                    <Zap class="w-4 h-4 text-slate-950 fill-slate-950 group-hover:scale-110 transition" />
+                                    <span>⚡ AKTIFKAN PEMINDAI WAJAH</span>
+                                </button>
+                                <p class="text-[9px] text-cyan-300/70 font-bold mt-1 tracking-wide shrink-0">
+                                    Sentuh tombol untuk menyalakan kamera selama 60 detik
+                                </p>
+                            </div>
+
+                            <!-- Bottom Telemetry Bar -->
+                            <div class="p-2.5 bg-slate-950/80 border-t border-cyan-500/20 text-center shrink-0">
+                                <p class="text-[9px] font-mono text-slate-500 font-semibold tracking-wider uppercase">
+                                    JICOS KIOSK PRO DISPLAY 32" &bull; SEC PROTOCOL ACTIVE
                                 </p>
                             </div>
                         </div>
@@ -1017,7 +1157,7 @@ const formatTimeString = (dateTime) => {
                             </div>
 
                             <button 
-                                v-if="!isPeakHour && kioskSettings.schedule_mode === 'auto'"
+                                v-if="isCameraActive && !isPeakHour && kioskSettings.schedule_mode === 'auto'"
                                 @click="closeCameraManual()"
                                 class="px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg border border-white/10 text-[10px] font-bold transition flex items-center gap-1.5 cursor-pointer"
                             >
@@ -1137,25 +1277,25 @@ const formatTimeString = (dateTime) => {
                     >
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 shadow">
-                                <Camera class="w-5 h-5 animate-pulse" />
+                                <Cpu class="w-5 h-5 animate-pulse text-cyan-400" />
                             </div>
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Mode Standby &bull; Di Luar Jam Sibuk</h3>
+                                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Mode Standby &bull; Protokol Sensor Non-Aktif</h3>
                                 </div>
                                 <p class="text-[11px] text-slate-300 font-medium mt-0.5">
-                                    Kamera absensi di-hide/standby. Tekan tombol di samping jika Anda ingin absen masuk atau pulang sekarang.
+                                    Kamera absensi di-nonaktifkan di luar jam sibuk. Tekan tombol untuk mengaktifkan pemindai wajah.
                                 </p>
                             </div>
                         </div>
 
                         <button 
                             @click="openCameraManual(60)"
-                            class="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition active:scale-95 shadow-[0_0_20px_rgba(6,182,212,0.5)] flex items-center gap-2 cursor-pointer"
+                            class="px-5 py-2.5 bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition active:scale-95 shadow-[0_0_25px_rgba(6,182,212,0.5)] flex items-center gap-2 cursor-pointer border border-cyan-200/40"
                         >
-                            <Camera class="w-4 h-4" />
-                            <span>📷 Buka Kamera Absensi</span>
+                            <Zap class="w-4 h-4 fill-slate-950" />
+                            <span>⚡ Aktifkan Pemindai Wajah</span>
                         </button>
                     </div>
 
