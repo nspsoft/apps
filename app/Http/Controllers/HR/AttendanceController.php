@@ -193,11 +193,11 @@ class AttendanceController extends Controller
         $leaveCount = $attendances->whereIn('status', ['leave', 'sick'])->count();
         $absentCount = max(0, $totalActive - ($presentCount + $lateCount + $leaveCount));
 
-        // Recent check-ins
+        // Recent check-ins / outs
         $recentLogs = Attendance::with(['employee.department'])
             ->where('date', $date)
             ->whereIn('status', ['present', 'late'])
-            ->orderBy('clock_in', 'desc')
+            ->orderByRaw('COALESCE(clock_out, clock_in) DESC')
             ->take(10)
             ->get();
 
@@ -246,6 +246,85 @@ class AttendanceController extends Controller
             $deptCounts[] = 0;
         }
 
+        // --- Monthly Leaderboard & Discipline Analytics ---
+        $startOfMonth = Carbon::parse($date)->startOfMonth()->toDateString();
+        $endOfMonth = Carbon::parse($date)->endOfMonth()->toDateString();
+
+        // 1. Top Disciplined (Highest on-time check-ins this month)
+        $topDisciplined = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])
+            ->where('status', 'present')
+            ->select('employee_id', \DB::raw('COUNT(*) as on_time_count'))
+            ->groupBy('employee_id')
+            ->orderByDesc('on_time_count')
+            ->take(6)
+            ->with(['employee.department'])
+            ->get()
+            ->map(function ($att, $idx) use ($startOfMonth, $endOfMonth) {
+                $totalAtt = Attendance::where('employee_id', $att->employee_id)
+                    ->whereBetween('date', [$startOfMonth, $endOfMonth])
+                    ->count();
+                $punctualityRate = $totalAtt > 0 ? round(($att->on_time_count / $totalAtt) * 100, 1) : 100;
+                return [
+                    'rank' => $idx + 1,
+                    'employee' => $att->employee,
+                    'on_time_count' => (int) $att->on_time_count,
+                    'total_attendance' => (int) $totalAtt,
+                    'punctuality_rate' => $punctualityRate,
+                    'streak_days' => min((int) $att->on_time_count, 30),
+                ];
+            });
+
+        // 2. Top Late (Highest late count and accumulated late minutes this month)
+        $topLate = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])
+            ->where('status', 'late')
+            ->select('employee_id', \DB::raw('COUNT(*) as late_count'), \DB::raw('SUM(late_minutes) as total_late_minutes'))
+            ->groupBy('employee_id')
+            ->orderByDesc('late_count')
+            ->orderByDesc('total_late_minutes')
+            ->take(6)
+            ->with(['employee.department'])
+            ->get()
+            ->map(function ($att, $idx) {
+                return [
+                    'rank' => $idx + 1,
+                    'employee' => $att->employee,
+                    'late_count' => (int) $att->late_count,
+                    'total_late_minutes' => (int) $att->total_late_minutes,
+                ];
+            });
+
+        // 3. Department punctuality rankings
+        $deptRankings = [];
+        foreach ($departments as $dept) {
+            $totalDeptAtt = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])
+                ->whereHas('employee', fn($q) => $q->where('department_id', $dept->id))
+                ->count();
+            if ($totalDeptAtt > 0) {
+                $onTimeDeptAtt = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])
+                    ->where('status', 'present')
+                    ->whereHas('employee', fn($q) => $q->where('department_id', $dept->id))
+                    ->count();
+                $punctuality = round(($onTimeDeptAtt / $totalDeptAtt) * 100, 1);
+                $deptRankings[] = [
+                    'name' => $dept->name,
+                    'total' => $totalDeptAtt,
+                    'on_time' => $onTimeDeptAtt,
+                    'punctuality' => $punctuality,
+                ];
+            }
+        }
+        usort($deptRankings, fn($a, $b) => $b['punctuality'] <=> $a['punctuality']);
+
+        // Kiosk schedule settings
+        $kioskSettings = [
+            'morning_in_start' => PayrollSetting::getByKey('kiosk_morning_in_start', '07:00'),
+            'morning_in_end' => PayrollSetting::getByKey('kiosk_morning_in_end', '08:30'),
+            'evening_out_start' => PayrollSetting::getByKey('kiosk_evening_out_start', '16:30'),
+            'evening_out_end' => PayrollSetting::getByKey('kiosk_evening_out_end', '20:00'),
+            'slider_interval' => (int) PayrollSetting::getByKey('kiosk_slider_interval_seconds', 20),
+            'schedule_mode' => PayrollSetting::getByKey('kiosk_schedule_mode', 'auto'),
+        ];
+
         return response()->json([
             'date' => $date,
             'summary' => [
@@ -267,7 +346,47 @@ class AttendanceController extends Controller
                     'labels' => $deptLabels,
                     'counts' => $deptCounts
                 ]
-            ]
+            ],
+            'leaderboard' => [
+                'top_disciplined' => $topDisciplined,
+                'top_late' => $topLate,
+                'dept_rankings' => $deptRankings,
+            ],
+            'kiosk_settings' => $kioskSettings,
+        ]);
+    }
+
+    public function updateKioskSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'morning_in_start' => 'nullable|string',
+            'morning_in_end' => 'nullable|string',
+            'evening_out_start' => 'nullable|string',
+            'evening_out_end' => 'nullable|string',
+            'slider_interval' => 'nullable|integer|min:5|max:120',
+            'schedule_mode' => 'nullable|string|in:auto,camera_only,leaderboard_only',
+        ]);
+
+        foreach ($validated as $key => $val) {
+            if ($val !== null) {
+                $dbKey = 'kiosk_' . $key;
+                if ($key === 'slider_interval') $dbKey = 'kiosk_slider_interval_seconds';
+                PayrollSetting::updateOrCreate(
+                    ['key' => $dbKey],
+                    [
+                        'category' => 'kiosk',
+                        'label' => ucwords(str_replace('_', ' ', $key)),
+                        'value' => (string) $val,
+                        'type' => is_numeric($val) ? 'integer' : 'string',
+                        'is_active' => true,
+                    ]
+                );
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengaturan jam tayang kiosk berhasil disimpan.'
         ]);
     }
 

@@ -344,14 +344,14 @@ const formatTimeString = (dateTime) => {
                     <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-white/5">
                         <div class="flex items-center gap-2">
                             <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse"></span>
-                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400">Live Clock-In Feed (Log Hari Ini)</h3>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400">Live Attendance Feed (Masuk & Keluar Hari Ini)</h3>
                         </div>
                         <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Diperbarui otomatis setiap 15 detik</span>
                     </div>
 
                     <div v-if="recentLogs.length === 0" class="p-12 text-center text-slate-500 space-y-3">
                         <ClockIcon class="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
-                        <p class="text-xs font-semibold">Belum ada aktivitas clock-in tercatat untuk tanggal terpilih.</p>
+                        <p class="text-xs font-semibold">Belum ada aktivitas absensi tercatat untuk tanggal terpilih.</p>
                     </div>
 
                     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -373,14 +373,34 @@ const formatTimeString = (dateTime) => {
                                 </div>
                             </div>
 
-                            <div class="text-right space-y-1">
-                                <span class="font-mono text-xs font-black text-indigo-600 dark:text-indigo-400 block">{{ formatTimeString(log.clock_in) }}</span>
-                                <span 
-                                    class="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider inline-block"
-                                    :class="log.status === 'present' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-455 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-455 border border-amber-500/20'"
-                                >
-                                    {{ log.status === 'present' ? 'Tepat Waktu' : 'Terlambat' }}
-                                </span>
+                            <div class="text-right shrink-0">
+                                <div class="flex items-center justify-end gap-2.5">
+                                    <div class="text-right">
+                                        <span class="text-[8px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-wider block leading-none mb-1">Masuk</span>
+                                        <span class="font-mono text-xs font-black text-slate-900 dark:text-white block leading-none">{{ formatTimeString(log.clock_in) }}</span>
+                                    </div>
+                                    <div class="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
+                                    <div class="text-right">
+                                        <span class="text-[8px] uppercase font-black tracking-wider block leading-none mb-1" :class="log.clock_out ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'">Keluar</span>
+                                        <span class="font-mono text-xs font-black block leading-none" :class="log.clock_out ? 'text-cyan-600 dark:text-cyan-300' : 'text-slate-400 dark:text-slate-600'">
+                                            {{ log.clock_out ? formatTimeString(log.clock_out) : '--:--' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-end gap-1.5 mt-1.5">
+                                    <span 
+                                        class="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase inline-block"
+                                        :class="log.status === 'present' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-455 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-455 border border-amber-500/20'"
+                                    >
+                                        {{ log.status === 'present' ? 'Tepat' : 'Lambat' }}
+                                    </span>
+                                    <span 
+                                        v-if="log.clock_out"
+                                        class="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase inline-block bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20"
+                                    >
+                                        Pulang
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>

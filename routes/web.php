@@ -610,6 +610,7 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::get('/attendance/dashboard-data', [AttendanceController::class, 'getDashboardData'])->name('attendance.dashboard-data');
     Route::get('/attendance/kiosk', [AttendanceController::class, 'kiosk'])->name('attendance.kiosk');
     Route::post('/attendance/kiosk-clock', [AttendanceController::class, 'kioskClock'])->name('attendance.kiosk-clock');
+    Route::post('/attendance/kiosk-settings', [AttendanceController::class, 'updateKioskSettings'])->name('attendance.kiosk-settings');
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance-template', [AttendanceController::class, 'template'])->name('attendance.template');
     Route::post('/attendance-import', [AttendanceController::class, 'import'])->name('attendance.import');
