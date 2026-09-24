@@ -72,8 +72,8 @@ const currentTimeStr = ref('');
 const currentDateStr = ref('');
 const updateClock = () => {
     const now = new Date();
-    currentTimeStr.value = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
-    currentDateStr.value = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    currentTimeStr.value = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':') + ' WIB';
+    currentDateStr.value = now.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 // Slider and Scheduler State
@@ -99,13 +99,14 @@ const showSettingsModal = ref(false);
 const isSavingSettings = ref(false);
 const settingsSaveNotice = ref('');
 
-// Helper Format Tanggal Lokal (YYYY-MM-DD) Sesuai Zona Waktu Perangkat / WIB
+// Helper Format Tanggal Lokal (YYYY-MM-DD) Sesuai Zona Waktu Indonesia Barat (Asia/Jakarta / WIB, UTC+7)
 const getLocalDateString = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
 };
 
 // Stats, charts and leaderboard data
@@ -417,7 +418,7 @@ const registerKioskClock = async (employeeId) => {
                 name: payload.employee.full_name,
                 nik: payload.employee.nik,
                 department: payload.employee.department?.name || 'Umum',
-                time: new Date(payload.attendance.clock_in || payload.attendance.clock_out).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+                time: new Date(payload.attendance.clock_in || payload.attendance.clock_out).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') + ' WIB',
                 avatar: payload.employee.profile_picture ? `/storage/${payload.employee.profile_picture}` : null,
                 action: payload.status
             };
@@ -581,10 +582,13 @@ const closeCameraManual = () => {
 };
 
 const checkScheduleMode = () => {
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const currentHM = `${hours}:${minutes}`;
+    // Format jam:menit (HH:mm) sesuai zona waktu WIB / Asia/Jakarta (UTC+7)
+    const currentHM = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    }).format(new Date());
 
     const mode = kioskSettings.value.schedule_mode || 'auto';
 
@@ -689,7 +693,7 @@ onUnmounted(() => {
 
 const formatTimeString = (dateTime) => {
     if (!dateTime) return '--:--';
-    return new Date(dateTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+    return new Date(dateTime).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') + ' WIB';
 };
 </script>
 

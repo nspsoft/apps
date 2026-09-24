@@ -184,7 +184,7 @@ class AttendanceController extends Controller
 
     public function getDashboardData(Request $request)
     {
-        $date = $request->date ?: Carbon::today()->toDateString();
+        $date = $request->date ?: Carbon::today('Asia/Jakarta')->toDateString();
         $totalActive = Employee::where('is_active', true)->count();
         
         $attendances = Attendance::where('date', $date)->get();
@@ -409,14 +409,16 @@ class AttendanceController extends Controller
         ]);
 
         $employee = Employee::with('department')->findOrFail($request->employee_id);
-        $date = Carbon::today()->toDateString();
+        $now = Carbon::now('Asia/Jakarta');
+        $date = Carbon::today('Asia/Jakarta')->toDateString();
+        $timeStr = $now->format('H:i:s');
         
         // Prevent double scan / duplicate check-in in the database layer (within last 2 minutes)
         $recent = Attendance::where('employee_id', $employee->id)
             ->where('date', $date)
-            ->where(function($q) {
-                $q->where('clock_in', '>=', Carbon::now()->subMinutes(2))
-                  ->orWhere('clock_out', '>=', Carbon::now()->subMinutes(2));
+            ->where(function($q) use ($now) {
+                $q->where('clock_in', '>=', $now->copy()->subMinutes(2))
+                  ->orWhere('clock_out', '>=', $now->copy()->subMinutes(2));
             })->first();
 
         if ($recent) {
@@ -429,9 +431,6 @@ class AttendanceController extends Controller
             ]);
         }
 
-        $now = Carbon::now();
-        $timeStr = $now->format('H:i:s');
-        
         // Check if there is already an attendance today
         $attendance = Attendance::where('employee_id', $employee->id)
             ->where('date', $date)
