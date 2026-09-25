@@ -443,81 +443,107 @@ class AttendanceController extends Controller
         // Fetch employee's schedule for today
         $scheduleDetail = $employee->getScheduleForDate($date);
 
-        if ($useRestriction && $scheduleDetail) {
-            if (!$scheduleDetail->is_workday) {
-                $allowHolidayWithoutSpl = (bool) PayrollSetting::getByKey('kiosk_allow_holiday_without_spl', 0);
-                if (!$allowHolidayWithoutSpl) {
-                    $hasOvertime = OvertimeRequest::where('employee_id', $employee->id)
-                        ->where('overtime_date', $date)
-                        ->where('status', 'approved')
-                        ->exists();
+        // Standard shift schedule (with fallback to kiosk settings)
+        $kioskMorningStart = PayrollSetting::getByKey('kiosk_morning_in_start', '07:00');
+        $kioskEveningStart = PayrollSetting::getByKey('kiosk_evening_out_start', '16:30');
 
-                    if (!$hasOvertime) {
-                        return response()->json([
-                            'success' => false,
-                            'status' => 'rejected_schedule',
-                            'message' => 'Maaf, hari ini bukan jadwal kerja Anda dan tidak ada SPL (Surat Perintah Lembur) yang disetujui.',
-                            'employee' => $employee
-                        ]);
+        $standardStartTime = ($scheduleDetail && $scheduleDetail->is_workday && $scheduleDetail->start_time)
+            ? Carbon::parse($date . ' ' . $scheduleDetail->start_time, 'Asia/Jakarta')
+            : Carbon::parse($date . ' ' . $kioskMorningStart, 'Asia/Jakarta');
+
+        $standardEndTime = ($scheduleDetail && $scheduleDetail->is_workday && $scheduleDetail->end_time)
+            ? Carbon::parse($date . ' ' . $scheduleDetail->end_time, 'Asia/Jakarta')
+            : Carbon::parse($date . ' ' . $kioskEveningStart, 'Asia/Jakarta');
+
+        if ($standardEndTime->lessThan($standardStartTime)) {
+            $standardEndTime->addDay();
+        }
+
+        if ($isClockIn) {
+            // Validasi Absen Masuk
+            if ($useRestriction && $scheduleDetail) {
+                if (!$scheduleDetail->is_workday) {
+                    $allowHolidayWithoutSpl = (bool) PayrollSetting::getByKey('kiosk_allow_holiday_without_spl', 0);
+                    if (!$allowHolidayWithoutSpl) {
+                        $hasOvertime = OvertimeRequest::where('employee_id', $employee->id)
+                            ->where('overtime_date', $date)
+                            ->where('status', 'approved')
+                            ->exists();
+
+                        if (!$hasOvertime) {
+                            return response()->json([
+                                'success' => false,
+                                'status' => 'rejected_schedule',
+                                'message' => 'Maaf, hari ini bukan jadwal kerja Anda dan tidak ada SPL (Surat Perintah Lembur) yang disetujui.',
+                                'employee' => $employee
+                            ]);
+                        }
                     }
+                }
+
+                $earliestInMin = (int) PayrollSetting::getByKey('kiosk_earliest_in_minutes', 120);
+                $latestInMin = (int) PayrollSetting::getByKey('kiosk_latest_in_minutes', 240);
+
+                $earliestIn = $standardStartTime->copy()->subMinutes($earliestInMin);
+                $latestIn = $standardStartTime->copy()->addMinutes($latestInMin);
+
+                if ($now->lessThan($earliestIn)) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'too_early_in',
+                        'message' => 'Terlalu awal untuk absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', absen masuk dibuka mulai pukul ' . $earliestIn->format('H:i') . ' WIB.',
+                        'employee' => $employee
+                    ]);
+                }
+
+                if ($now->greaterThan($latestIn)) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 'too_late_in',
+                        'message' => 'Sudah melewati batas waktu absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', batas akhir absen pukul ' . $latestIn->format('H:i') . ' WIB.',
+                        'employee' => $employee
+                    ]);
                 }
             }
+        } else {
+            // Karyawan SUDAH absen masuk hari ini -> Validasi Ketat Absen Pulang (Clock Out)
+            if (!empty($attendance->clock_out)) {
+                return response()->json([
+                    'success' => true,
+                    'status' => 'ignored',
+                    'message' => 'Anda sudah melakukan absen masuk (' . Carbon::parse($attendance->clock_in, 'Asia/Jakarta')->format('H:i') . ') dan absen pulang (' . Carbon::parse($attendance->clock_out, 'Asia/Jakarta')->format('H:i') . ') hari ini.',
+                    'employee' => $employee,
+                    'attendance' => $attendance
+                ]);
+            }
 
-            if ($scheduleDetail->is_workday && $scheduleDetail->start_time && $scheduleDetail->end_time) {
-                $standardStartTime = Carbon::parse($date . ' ' . $scheduleDetail->start_time);
-                $standardEndTime = Carbon::parse($date . ' ' . $scheduleDetail->end_time);
+            // 1. Proteksi Minimal Durasi Kerja (Wajib minimal 4 jam atau tidak boleh langsung pulang di pagi hari)
+            $clockInTime = Carbon::parse($attendance->clock_in, 'Asia/Jakarta');
+            $workedMinutes = $clockInTime->diffInMinutes($now);
+            $minWorkHours = (int) PayrollSetting::getByKey('kiosk_min_work_hours', 4);
+            $minWorkMinutes = $minWorkHours * 60;
 
-                if ($isClockIn) {
-                    $earliestInMin = (int) PayrollSetting::getByKey('kiosk_earliest_in_minutes', 120);
-                    $latestInMin = (int) PayrollSetting::getByKey('kiosk_latest_in_minutes', 240);
+            if ($workedMinutes < $minWorkMinutes) {
+                $hoursWorked = round($workedMinutes / 60, 1);
+                return response()->json([
+                    'success' => false,
+                    'status' => 'too_early_out',
+                    'message' => "Minimal jam kerja belum terpenuhi. Anda baru absen masuk pukul {$clockInTime->format('H:i')} WIB ({$hoursWorked} jam yang lalu). Minimal durasi kerja adalah {$minWorkHours} jam.",
+                    'employee' => $employee
+                ]);
+            }
 
-                    $earliestIn = $standardStartTime->copy()->subMinutes($earliestInMin);
-                    $latestIn = $standardStartTime->copy()->addMinutes($latestInMin);
+            // 2. Proteksi Range Jam Pulang (Hanya boleh absen pulang mendekati jam pulang atau di range jam sibuk pulang)
+            $earliestOutMin = (int) PayrollSetting::getByKey('kiosk_earliest_out_minutes', 60);
+            $earliestOut = $standardEndTime->copy()->subMinutes($earliestOutMin);
 
-                    if ($now->lessThan($earliestIn)) {
-                        return response()->json([
-                            'success' => false,
-                            'status' => 'too_early_in',
-                            'message' => 'Terlalu awal untuk absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', absen masuk dibuka mulai pukul ' . $earliestIn->format('H:i') . '.',
-                            'employee' => $employee
-                        ]);
-                    }
-
-                    if ($now->greaterThan($latestIn)) {
-                        return response()->json([
-                            'success' => false,
-                            'status' => 'too_late_in',
-                            'message' => 'Sudah melewati batas waktu absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', batas akhir absen pukul ' . $latestIn->format('H:i') . '.',
-                            'employee' => $employee
-                        ]);
-                    }
-                } else {
-                    if (empty($attendance->clock_out)) {
-                        $earliestOutMin = (int) PayrollSetting::getByKey('kiosk_earliest_out_minutes', 60);
-                        $minWorkHours = (int) PayrollSetting::getByKey('kiosk_min_work_hours', 4);
-
-                        $earliestOut = $standardEndTime->copy()->subMinutes($earliestOutMin);
-
-                        if ($now->lessThan($earliestOut)) {
-                            return response()->json([
-                                'success' => false,
-                                'status' => 'too_early_out',
-                                'message' => 'Belum waktunya pulang. Jam pulang Anda: ' . $standardEndTime->format('H:i') . ', absen pulang dibuka mulai pukul ' . $earliestOut->format('H:i') . '.',
-                                'employee' => $employee
-                            ]);
-                        }
-
-                        $workedHours = $now->diffInHours(Carbon::parse($attendance->clock_in));
-                        if ($workedHours < $minWorkHours) {
-                            return response()->json([
-                                'success' => false,
-                                'status' => 'too_early_out',
-                                'message' => "Minimal jam kerja belum terpenuhi. Anda baru bekerja selama " . number_format($workedHours, 1) . " jam (Minimal: {$minWorkHours} jam).",
-                                'employee' => $employee
-                            ]);
-                        }
-                    }
-                }
+            if ($now->lessThan($earliestOut)) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'too_early_out',
+                    'message' => "Belum waktunya absen pulang. Jam pulang Anda: {$standardEndTime->format('H:i')} WIB. Absen pulang dibuka mulai pukul {$earliestOut->format('H:i')} WIB.",
+                    'employee' => $employee
+                ]);
             }
         }
 
