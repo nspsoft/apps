@@ -20,7 +20,10 @@ import {
     ArrowDownTrayIcon,
     ArrowUpTrayIcon,
     DocumentArrowDownIcon,
-    TrashIcon
+    TrashIcon,
+    ListBulletIcon,
+    Squares2X2Icon,
+    PencilSquareIcon,
 } from '@heroicons/vue/24/outline';
 import debounce from 'lodash/debounce';
 import { formatNumber, formatCurrency } from '@/helpers';
@@ -38,6 +41,12 @@ const props = defineProps({
 const search = ref(props.filters.search);
 const department_id = ref(props.filters.department_id);
 const status = ref(props.filters.status);
+const viewMode = ref(localStorage.getItem('hr_employee_view_mode') || 'list');
+
+const setViewMode = (mode) => {
+    viewMode.value = mode;
+    localStorage.setItem('hr_employee_view_mode', mode);
+};
 
 watch([search, department_id, status], debounce(() => {
     router.get(route('hr.employees.index'), { 
@@ -231,42 +240,249 @@ const deleteFace = (employee) => {
                 </div>
             </div>
 
-            <!-- Search & Filters -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-white dark:bg-slate-950/50 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg">
-                <div class="md:col-span-2 relative">
-                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <MagnifyingGlassIcon class="h-5 w-5 text-slate-500" />
+            <!-- Search & Filters + View Switcher -->
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-8 bg-white dark:bg-slate-950/50 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 flex-1">
+                    <div class="md:col-span-2 relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <MagnifyingGlassIcon class="h-5 w-5 text-slate-500" />
+                        </div>
+                        <input 
+                            v-model="search"
+                            type="text"
+                            placeholder="Search by Name, NIK, or Email..."
+                            class="block w-full rounded-2xl border-0 bg-white dark:bg-slate-950 py-3.5 pl-11 pr-4 text-slate-900 dark:text-white placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"
+                        />
                     </div>
-                    <input 
-                        v-model="search"
-                        type="text"
-                        placeholder="Search by Name, NIK, or Email..."
-                        class="block w-full rounded-2xl border-0 bg-white dark:bg-slate-950 py-3.5 pl-11 pr-4 text-slate-900 dark:text-white placeholder:text-slate-600 focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                    />
-                </div>
-                
-                <select 
-                    v-model="department_id"
-                    class="block w-full rounded-2xl border-0 bg-white dark:bg-slate-950 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                >
-                    <option value="">All Departments</option>
-                    <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
-                </select>
+                    
+                    <select 
+                        v-model="department_id"
+                        class="block w-full rounded-2xl border-0 bg-white dark:bg-slate-950 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"
+                    >
+                        <option value="">All Departments</option>
+                        <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
+                    </select>
 
-                <select 
-                    v-model="status"
-                    class="block w-full rounded-2xl border-0 bg-white dark:bg-slate-950 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="permanent">Permanent</option>
-                    <option value="contract">Contract</option>
-                    <option value="probation">Probation</option>
-                    <option value="internship">Internship</option>
-                </select>
+                    <select 
+                        v-model="status"
+                        class="block w-full rounded-2xl border-0 bg-white dark:bg-slate-950 py-3.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"
+                    >
+                        <option value="">All Statuses</option>
+                        <option value="permanent">Permanent</option>
+                        <option value="contract">Contract</option>
+                        <option value="probation">Probation</option>
+                        <option value="internship">Internship</option>
+                    </select>
+                </div>
+
+                <!-- View Switcher (List vs Grid) -->
+                <div class="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 self-end lg:self-auto shrink-0 shadow-inner">
+                    <button
+                        type="button"
+                        @click="setViewMode('list')"
+                        :class="viewMode === 'list'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold'
+                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs transition-all"
+                        title="Tampilan List (Tabel)"
+                    >
+                        <ListBulletIcon class="h-4 w-4" />
+                        <span>List</span>
+                    </button>
+                    <button
+                        type="button"
+                        @click="setViewMode('grid')"
+                        :class="viewMode === 'grid'
+                            ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm font-bold'
+                            : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs transition-all"
+                        title="Tampilan Grid (Kartu)"
+                    >
+                        <Squares2X2Icon class="h-4 w-4" />
+                        <span>Grid</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Employee Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Employee List / Table View (Default) -->
+            <div v-if="viewMode === 'list'" class="mb-8 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50 shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                <th class="py-4 px-5">Karyawan</th>
+                                <th class="py-4 px-5">Departemen & Bagian</th>
+                                <th class="py-4 px-5">Jabatan & Shift</th>
+                                <th class="py-4 px-5">Status & BPJS</th>
+                                <th class="py-4 px-5">Kompensasi / Gaji</th>
+                                <th class="py-4 px-5 text-center">Face ID</th>
+                                <th class="py-4 px-5 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+                            <tr
+                                v-for="employee in employees.data"
+                                :key="employee.id"
+                                class="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition-colors group"
+                            >
+                                <!-- Employee Info -->
+                                <td class="py-3.5 px-5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-xs">
+                                            <img
+                                                v-if="employee.profile_picture"
+                                                :src="`/storage/${employee.profile_picture}`"
+                                                alt="Avatar"
+                                                class="w-full h-full object-cover"
+                                            />
+                                            <span v-else class="font-bold text-xs text-indigo-600 dark:text-indigo-400 uppercase">
+                                                {{ employee.full_name ? employee.full_name.charAt(0) : 'E' }}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <button
+                                                @click="openModal(employee)"
+                                                type="button"
+                                                class="font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 text-left transition-colors flex items-center gap-1.5"
+                                            >
+                                                <span>{{ employee.full_name }}</span>
+                                                <span v-if="employee.face_descriptor" class="inline-flex items-center p-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" title="Wajah Terdaftar">
+                                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </span>
+                                            </button>
+                                            <div class="text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400">
+                                                NIK: {{ employee.nik }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Department & Section -->
+                                <td class="py-3.5 px-5">
+                                    <div class="font-medium text-slate-800 dark:text-slate-200">
+                                        {{ employee.department?.name || '-' }}
+                                    </div>
+                                    <div v-if="employee.section" class="text-[11px] text-slate-500 dark:text-slate-400">
+                                        {{ employee.section }}
+                                    </div>
+                                </td>
+
+                                <!-- Position, Golongan & Shift -->
+                                <td class="py-3.5 px-5">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="font-medium text-slate-800 dark:text-slate-200">
+                                            {{ employee.position?.name || '-' }}
+                                        </span>
+                                        <span v-if="employee.golongan" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                            Gol. {{ employee.golongan }}
+                                        </span>
+                                    </div>
+                                    <div class="mt-1">
+                                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                            {{ employee.work_schedule?.name || 'Office Regular' }}
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Status & BPJS -->
+                                <td class="py-3.5 px-5">
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border" :class="getStatusBadge(employee.employment_status)">
+                                            {{ employee.employment_status }}
+                                        </span>
+                                        <span v-if="employee.has_bpjstk" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20" title="BPJS Ketenagakerjaan Aktif">
+                                            TK
+                                        </span>
+                                        <span v-if="employee.has_bpjskes" class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" title="BPJS Kesehatan Aktif">
+                                            KES
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Salary / Rate -->
+                                <td class="py-3.5 px-5 tabular-nums">
+                                    <span v-if="employee.salary_type === 'hourly'" class="text-emerald-500 font-bold">
+                                        Rp {{ formatNumber(employee.hourly_rate) }} / jam
+                                    </span>
+                                    <span v-else class="text-slate-700 dark:text-slate-300 font-medium">
+                                        Rp {{ formatNumber(employee.basic_salary) }}
+                                    </span>
+                                </td>
+
+                                <!-- Face ID Status -->
+                                <td class="py-3.5 px-5 text-center">
+                                    <span
+                                        v-if="employee.face_descriptor"
+                                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    >
+                                        <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Terdaftar
+                                    </span>
+                                    <span
+                                        v-else
+                                        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20"
+                                    >
+                                        <span class="size-1.5 rounded-full bg-slate-400"></span>
+                                        Belum Ada
+                                    </span>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-3.5 px-5 text-right">
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        <!-- Register / Update Face -->
+                                        <Link
+                                            :href="route('hr.employees.face.show', employee.id)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                            :class="employee.face_descriptor
+                                                ? 'text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10'
+                                                : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10'"
+                                            :title="employee.face_descriptor ? 'Update Face ID' : 'Register Face ID'"
+                                        >
+                                            <IdentificationIcon class="h-4 w-4" />
+                                            <span>{{ employee.face_descriptor ? 'Update Face' : 'Register' }}</span>
+                                        </Link>
+
+                                        <!-- Edit Profile -->
+                                        <button
+                                            @click="openModal(employee)"
+                                            type="button"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                        >
+                                            <PencilSquareIcon class="h-4 w-4" />
+                                            <span>Edit</span>
+                                        </button>
+
+                                        <!-- Delete Face if exists -->
+                                        <button
+                                            v-if="employee.face_descriptor"
+                                            @click="deleteFace(employee)"
+                                            type="button"
+                                            class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            title="Hapus Wajah"
+                                        >
+                                            <TrashIcon class="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr v-if="!employees.data.length">
+                                <td colspan="7" class="py-16 text-center text-slate-500">
+                                    <UserIcon class="h-12 w-12 text-slate-400 mx-auto mb-3 opacity-60" />
+                                    <p class="font-bold text-sm">Tidak ada data karyawan ditemukan</p>
+                                    <p class="text-xs text-slate-400 mt-1">Coba sesuaikan filter pencarian Anda.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Employee Grid (Kartu) -->
+            <div v-if="viewMode === 'grid'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div 
                     v-for="employee in employees.data" 
                     :key="employee.id"
