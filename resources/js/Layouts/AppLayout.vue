@@ -84,6 +84,7 @@ import {
     CalendarIcon,
     CalendarDaysIcon as CalendarAltIcon,
     VideoCameraIcon,
+    ViewfinderCircleIcon,
     LifebuoyIcon,
 } from '@heroicons/vue/24/outline';
 import TechnoHeaderBg from '@/Components/TechnoHeaderBg.vue';
@@ -497,6 +498,7 @@ const navigation = [
             { name: 'Attendance', href: '/hr/attendance', icon: ClockIcon, permission: 'hr_payroll.attendance.view' },
             { name: 'Attendance Dashboard', href: '/hr/attendance/dashboard', icon: ChartBarIcon, permission: 'hr_payroll.attendance.view' },
             { name: 'Attendance Kiosk', href: '/hr/attendance/kiosk', icon: VideoCameraIcon, permission: 'hr_payroll.attendance.view' },
+            { name: 'Pendaftaran Face ID', href: '/hr/face-registration', icon: ViewfinderCircleIcon, permission: 'hr_payroll.employee_directory.view' },
             { name: 'Leave Management', href: '/hr/leaves', icon: CalendarAltIcon, permission: 'hr_payroll.leave_management.view' },
             { name: 'Overtime Requests', href: '/hr/overtime', icon: ClockIcon, permission: 'hr_payroll.overtime.view' },
             { name: 'HR Reimbursements', href: '/hr/reimbursements', icon: BanknotesIcon, permission: 'hr_payroll.reimbursements.view' },

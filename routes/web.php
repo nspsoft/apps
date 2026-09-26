@@ -603,6 +603,7 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::resource('employees', EmployeeController::class);
     
     // Employee Face Registration
+    Route::get('/face-registration', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'index'])->name('face-registration.index');
     Route::get('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'show'])->name('employees.face.show');
     Route::post('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'store'])->name('employees.face.store');
     Route::delete('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'destroy'])->name('employees.face.destroy');
