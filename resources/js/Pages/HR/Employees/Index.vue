@@ -306,17 +306,17 @@ const deleteFace = (employee) => {
 
             <!-- Employee List / Table View (Default) -->
             <div v-if="viewMode === 'list'" class="mb-8 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/50 shadow-lg overflow-hidden">
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                                <th class="py-4 px-5">Karyawan</th>
-                                <th class="py-4 px-5">Departemen & Bagian</th>
-                                <th class="py-4 px-5">Jabatan & Shift</th>
-                                <th class="py-4 px-5">Status & BPJS</th>
-                                <th class="py-4 px-5">Kompensasi / Gaji</th>
-                                <th class="py-4 px-5 text-center">Face ID</th>
-                                <th class="py-4 px-5 text-right">Aksi</th>
+                            <tr class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Karyawan</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Departemen & Bagian</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Jabatan & Shift</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Status & BPJS</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Kompensasi / Gaji</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5 text-center">Face ID</th>
+                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
@@ -978,18 +978,23 @@ const deleteFace = (employee) => {
 </template>
 
 <style scoped>
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+}
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
 }
 .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #1e293b;
-    border-radius: 10px;
+    background: #334155;
+    border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #334155;
+    background: #475569;
 }
 </style>
 
