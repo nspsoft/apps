@@ -41,6 +41,7 @@ const form = useForm({
     company_logo_text: props.print_settings?.company_logo_text || 'jidoka',
     company_full_name: props.print_settings?.company_full_name || 'PT. JIDOKA RESULT INDONESIA',
     company_address: props.print_settings?.company_address || '',
+    po_delivery_address: props.print_settings?.po_delivery_address || '',
     print_logo_file: null,
     helpdesk_wa_number: props.helpdesk_settings?.helpdesk_wa_number || '',
     helpdesk_email_address: props.helpdesk_settings?.helpdesk_email_address || '',
@@ -262,6 +263,12 @@ const submit = () => {
                             <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Company Address & Contact Block</label>
                             <textarea v-model="form.company_address" rows="5" class="form-input" placeholder="Kawasan Industri JABABEKA I..."></textarea>
                             <p class="text-[10px] text-slate-400 mt-1 ml-1">This text will be printed exactly as typed (preserves line breaks) on the right side of the logo.</p>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">PO Delivery Address (Please Deliver To)</label>
+                            <textarea v-model="form.po_delivery_address" rows="4" class="form-input" placeholder="Jl. Pinang Blok F16 - Nomor 18C Delta Silicon 3..."></textarea>
+                            <p class="text-[10px] text-slate-400 mt-1 ml-1">Alamat pengiriman yang akan tercetak pada kotak "PLEASE DELIVER TO :" di dokumen cetak Purchase Order (mempertahankan baris baru).</p>
                         </div>
                     </div>
 

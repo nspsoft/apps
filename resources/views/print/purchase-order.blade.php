@@ -336,9 +336,7 @@ e_mail : purchasing@jidoka.co.id'))) !!}
                     <div class="font-bold">PLEASE DELIVER TO :</div>
                     <div style="margin-top: 5px; font-weight: bold;">{{ \App\Models\AppSetting::get('company_full_name', 'PT. JIDOKA RESULT INDONESIA') }}</div>
                     <div style="font-size: 8pt;">
-                        Jl. Pinang Blok F16 - Nomor 18C Delta Silicon 3<br>
-                        Kawasan Industri Lippo - Cikarang, Desa Cicau, Cikarang Pusat<br>
-                        Kabupaten Bekasi, Jawa Barat
+                        {!! nl2br(e(\App\Models\AppSetting::get('po_delivery_address', "Jl. Pinang Blok F16 - Nomor 18C Delta Silicon 3\nKawasan Industri Lippo - Cikarang, Desa Cicau, Cikarang Pusat\nKabupaten Bekasi, Jawa Barat"))) !!}
                     </div>
                 </td>
                 <td class="box-cell" style="border-right: none;">

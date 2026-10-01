@@ -22,6 +22,7 @@ class CompanyController extends Controller
                 'company_logo_text' => AppSetting::get('company_logo_text', 'jidoka'),
                 'company_full_name' => AppSetting::get('company_full_name', 'PT. JIDOKA RESULT INDONESIA'),
                 'company_address' => AppSetting::get('company_address', "Kawasan Industri JABABEKA I\nJl. Jababeka II Blok C No. 19 L, Pasir gombong, Cikarang Utara\nBekasi 17530 Jawa Barat. Telp : 021 8938 3915\ne_mail : jidoka.pt@yahoo.com"),
+                'po_delivery_address' => AppSetting::get('po_delivery_address', "Jl. Pinang Blok F16 - Nomor 18C Delta Silicon 3\nKawasan Industri Lippo - Cikarang, Desa Cicau, Cikarang Pusat\nKabupaten Bekasi, Jawa Barat"),
             ],
             'helpdesk_settings' => [
                 'helpdesk_wa_number' => AppSetting::get('helpdesk_wa_number', ''),
@@ -51,6 +52,7 @@ class CompanyController extends Controller
             'company_logo_text' => 'nullable|string',
             'company_full_name' => 'nullable|string',
             'company_address' => 'nullable|string',
+            'po_delivery_address' => 'nullable|string',
             'print_logo_file' => 'nullable|image|max:2048',
             'helpdesk_wa_number' => 'nullable|string',
             'helpdesk_email_address' => 'nullable|email',
@@ -87,6 +89,9 @@ class CompanyController extends Controller
         }
         if ($request->has('company_address')) {
             AppSetting::set('company_address', $request->company_address, 'company_profile', 'Company Address (Print Header)');
+        }
+        if ($request->has('po_delivery_address')) {
+            AppSetting::set('po_delivery_address', $request->po_delivery_address, 'company_profile', 'PO Delivery Address (Please Deliver To)');
         }
         if ($request->has('helpdesk_wa_number')) {
             AppSetting::set('helpdesk_wa_number', $request->helpdesk_wa_number, 'helpdesk', 'Helpdesk WhatsApp Number');
