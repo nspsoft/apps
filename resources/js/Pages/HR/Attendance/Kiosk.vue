@@ -33,7 +33,17 @@ import {
     Radio,
     Eye,
     EyeOff,
-    Activity
+    Activity,
+    Megaphone,
+    ShieldCheck,
+    HardHat,
+    FileText,
+    Pin,
+    Info,
+    PhoneCall,
+    Plus,
+    Trash2,
+    Edit3
 } from 'lucide-vue-next';
 
 ChartJS.register(...registerables);
@@ -92,12 +102,81 @@ const kioskSettings = ref({
     evening_out_start: '16:30',
     evening_out_end: '20:00',
     slider_interval: 20,
-    schedule_mode: 'auto' // 'auto' | 'camera_only' | 'leaderboard_only'
+    schedule_mode: 'auto' // 'auto' | 'camera_only' | 'leaderboard_only' | 'announcements_only'
 });
 
 const showSettingsModal = ref(false);
 const isSavingSettings = ref(false);
 const settingsSaveNotice = ref('');
+
+// Tab Navigasi Pengaturan: 'schedule' | 'announcements' | 'k3'
+const activeSettingsTab = ref('schedule');
+
+// State Form K3 & Running Text
+const k3Form = ref({
+    zero_accident_since: '2026-05-15',
+    safety_hotline: 'Ext. 119 / 0812-9988-7711',
+    safety_officer: 'Tim K3 & HSE PT. Jidoka',
+    running_text: ''
+});
+
+// State Form Kelola Pengumuman
+const isEditingAnnouncement = ref(false);
+const announcementForm = ref({
+    id: null,
+    title: '',
+    category: 'K3 & HSE',
+    badge_color: 'emerald',
+    issuer: 'Panitia K3 & Lingkungan',
+    date: '',
+    is_pinned: false,
+    content: ''
+});
+
+const openNewAnnouncementForm = () => {
+    const todayStr = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
+    announcementForm.value = {
+        id: Date.now(),
+        title: '',
+        category: 'K3 & HSE',
+        badge_color: 'emerald',
+        issuer: 'Tim K3 & HSE',
+        date: todayStr,
+        is_pinned: false,
+        content: ''
+    };
+    isEditingAnnouncement.value = true;
+};
+
+const openEditAnnouncementForm = (item) => {
+    announcementForm.value = { ...item };
+    isEditingAnnouncement.value = true;
+};
+
+const cancelAnnouncementForm = () => {
+    isEditingAnnouncement.value = false;
+};
+
+const saveAnnouncementItem = () => {
+    if (!announcementForm.value.title.trim()) return;
+    
+    if (announcementForm.value.category === 'K3 & HSE') announcementForm.value.badge_color = 'emerald';
+    else if (announcementForm.value.category === 'SOP WAJIB') announcementForm.value.badge_color = 'rose';
+    else if (announcementForm.value.category === 'INFORMASI HR') announcementForm.value.badge_color = 'cyan';
+    else if (announcementForm.value.category === 'AGENDA') announcementForm.value.badge_color = 'indigo';
+
+    const idx = announcements.value.findIndex(a => a.id === announcementForm.value.id);
+    if (idx !== -1) {
+        announcements.value[idx] = { ...announcementForm.value };
+    } else {
+        announcements.value.unshift({ ...announcementForm.value });
+    }
+    isEditingAnnouncement.value = false;
+};
+
+const deleteAnnouncementItem = (id) => {
+    announcements.value = announcements.value.filter(a => a.id !== id);
+};
 
 // Helper Format Tanggal Lokal (YYYY-MM-DD) Sesuai Zona Waktu Indonesia Barat (Asia/Jakarta / WIB, UTC+7)
 const getLocalDateString = () => {
@@ -125,6 +204,23 @@ const leaderboardData = ref({
     top_disciplined: [],
     top_late: [],
     dept_rankings: []
+});
+
+const k3Stats = ref({
+    zero_accident_days: 140,
+    zero_accident_since: '15 Mei 2026',
+    safety_hotline: 'Ext. 119 / 0812-9988-7711',
+    safety_officer: 'Tim K3 & HSE PT. Jidoka',
+    total_safe_hours: '15.680',
+});
+const announcements = ref([]);
+const runningText = ref('⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI');
+const activeK3Tab = ref('5r'); // '5r' | 'apd'
+const selectedAnnouncementCategory = ref('all');
+
+const filteredAnnouncements = computed(() => {
+    if (selectedAnnouncementCategory.value === 'all') return announcements.value;
+    return announcements.value.filter(a => a.category === selectedAnnouncementCategory.value);
 });
 
 let statsInterval = null;
@@ -503,6 +599,24 @@ const fetchStats = async () => {
         if (data.kiosk_settings) {
             kioskSettings.value = { ...kioskSettings.value, ...data.kiosk_settings };
         }
+
+        if (data.k3_stats) {
+            k3Stats.value = data.k3_stats;
+            k3Form.value.safety_hotline = data.k3_stats.safety_hotline || k3Form.value.safety_hotline;
+            k3Form.value.safety_officer = data.k3_stats.safety_officer || k3Form.value.safety_officer;
+            if (data.k3_stats.zero_accident_since_raw) {
+                k3Form.value.zero_accident_since = data.k3_stats.zero_accident_since_raw;
+            }
+        }
+
+        if (data.announcements) {
+            announcements.value = data.announcements;
+        }
+
+        if (data.running_text) {
+            runningText.value = data.running_text;
+            k3Form.value.running_text = data.running_text;
+        }
         
         lineChartData.value = {
             labels: data.charts.weekly.labels,
@@ -601,6 +715,14 @@ const checkScheduleMode = () => {
     if (mode === 'leaderboard_only') {
         isPeakHour.value = false;
         if (stream.value) stopVideo();
+        activeSlide.value = 'leaderboard';
+        return;
+    }
+
+    if (mode === 'announcements_only') {
+        isPeakHour.value = false;
+        if (stream.value) stopVideo();
+        activeSlide.value = 'announcements';
         return;
     }
 
@@ -631,6 +753,22 @@ const checkScheduleMode = () => {
             if (cameraManualRemainingSeconds.value <= 0 && stream.value) {
                 stopVideo();
             }
+
+            // Standby rotation between leaderboard and announcements
+            if (mode === 'auto' && cameraManualRemainingSeconds.value <= 0) {
+                sliderCountdown++;
+                const interval = kioskSettings.value.slider_interval || 20;
+                sliderProgress.value = Math.min(100, (sliderCountdown / interval) * 100);
+                if (sliderCountdown >= interval) {
+                    sliderCountdown = 0;
+                    sliderProgress.value = 0;
+                    if (activeSlide.value === 'leaderboard') {
+                        activeSlide.value = 'announcements';
+                    } else if (activeSlide.value === 'announcements') {
+                        activeSlide.value = 'leaderboard';
+                    }
+                }
+            }
         }
     }
 };
@@ -644,7 +782,9 @@ const startSliderTicker = () => {
 
 const switchSlide = (slide) => {
     activeSlide.value = slide;
-    if (slide === 'leaderboard') {
+    sliderCountdown = 0;
+    sliderProgress.value = 0;
+    if (slide === 'leaderboard' || slide === 'announcements') {
         if (!isPeakHour.value && cameraManualRemainingSeconds.value > 0) {
             closeCameraManual();
         }
@@ -654,7 +794,15 @@ const switchSlide = (slide) => {
 const saveSettings = async () => {
     isSavingSettings.value = true;
     try {
-        const res = await axios.post(route('hr.attendance.kiosk-settings'), kioskSettings.value);
+        const payload = {
+            ...kioskSettings.value,
+            announcements: announcements.value,
+            running_text: k3Form.value.running_text || runningText.value,
+            safety_hotline: k3Form.value.safety_hotline,
+            safety_officer: k3Form.value.safety_officer,
+            zero_accident_since: k3Form.value.zero_accident_since
+        };
+        const res = await axios.post(route('hr.attendance.kiosk-settings'), payload);
         if (res.data.success) {
             settingsSaveNotice.value = 'Pengaturan berhasil diperbarui!';
             setTimeout(() => {
@@ -735,7 +883,7 @@ const formatTimeString = (dateTime) => {
                     <!-- Slide Switcher Buttons -->
                     <button 
                         @click="switchSlide('camera')"
-                        class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 relative z-10"
+                        class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 relative z-10 cursor-pointer"
                         :class="activeSlide === 'camera' ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]' : 'text-slate-400 hover:text-white hover:bg-white/5'"
                     >
                         <Camera class="w-4 h-4" />
@@ -744,11 +892,20 @@ const formatTimeString = (dateTime) => {
 
                     <button 
                         @click="switchSlide('leaderboard')"
-                        class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 relative z-10"
+                        class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 relative z-10 cursor-pointer"
                         :class="activeSlide === 'leaderboard' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'text-slate-400 hover:text-white hover:bg-white/5'"
                     >
                         <Trophy class="w-4 h-4" />
                         <span>🏆 Leaderboard & Evaluasi</span>
+                    </button>
+
+                    <button 
+                        @click="switchSlide('announcements')"
+                        class="px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 relative z-10 cursor-pointer"
+                        :class="activeSlide === 'announcements' ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'text-slate-400 hover:text-white hover:bg-white/5'"
+                    >
+                        <Megaphone class="w-4 h-4" />
+                        <span>📢 Pengumuman & K3</span>
                     </button>
                 </div>
 
@@ -1339,7 +1496,7 @@ const formatTimeString = (dateTime) => {
                                 <div class="flex items-center gap-2">
                                     <Trophy class="w-5 h-5 text-amber-400" />
                                     <h2 class="text-sm font-black uppercase tracking-wider text-amber-300">
-                                        HALL OF FAME &bull; KARYAWAN TERDISIPLIN
+                                        KARYAWAN TELADAN
                                     </h2>
                                 </div>
                                 <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Apresiasi Kehadiran Tepat Waktu & Konsistensi Bulan Ini</p>
@@ -1434,7 +1591,7 @@ const formatTimeString = (dateTime) => {
                                     <div class="flex items-center gap-2">
                                         <AlertTriangle class="w-5 h-5 text-rose-400" />
                                         <h3 class="text-sm font-black uppercase tracking-wider text-rose-300">
-                                            EVALUASI AKUNTABILITAS &bull; TERLAMBAT TERBANYAK
+                                            KARYAWAN TIDAK DISIPLIN
                                         </h3>
                                     </div>
                                     <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Pemantauan Kedisiplinan untuk Peningkatan Kinerja Bersama</p>
@@ -1514,6 +1671,365 @@ const formatTimeString = (dateTime) => {
                 </div>
             </div>
         </Transition>
+
+            <!-- ======================================================== -->
+            <!-- SLIDE 3: PAPAN PENGUMUMAN RESMI & BUDAYA K3 / SAFETY -->
+            <!-- ======================================================== -->
+            <Transition
+                enter-active-class="transition duration-400 ease-out"
+                enter-from-class="opacity-0 translate-x-8"
+                enter-to-class="opacity-100 translate-x-0"
+                leave-active-class="transition duration-300 ease-in"
+                leave-from-class="opacity-100 translate-x-0"
+                leave-to-class="opacity-0 -translate-x-8"
+            >
+                <div 
+                    v-if="activeSlide === 'announcements'" 
+                    class="w-full h-full flex flex-col gap-3 min-h-0 overflow-hidden"
+                >
+                    <!-- Outside Peak Hour Camera CTA Banner -->
+                    <div 
+                        v-if="!isPeakHour" 
+                        class="bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-teal-950/80 border border-emerald-500/30 rounded-2xl px-6 py-2.5 shadow-[0_0_30px_rgba(16,185,129,0.15)] backdrop-blur flex items-center justify-between shrink-0"
+                    >
+                        <div class="flex items-center gap-4">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 shadow">
+                                <ShieldCheck class="w-5 h-5 animate-pulse text-emerald-400" />
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Pusat Informasi & Budaya K3 &bull; Keselamatan Kerja Utama</h3>
+                                </div>
+                                <p class="text-[11px] text-slate-300 font-medium mt-0.5">
+                                    Papan digital resmi manajemen pabrik, protokol K3/5R industri, dan pengumuman karyawan.
+                                </p>
+                            </div>
+                        </div>
+
+                        <button 
+                            @click="openCameraManual(60)"
+                            class="px-5 py-2 bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition active:scale-95 shadow-[0_0_25px_rgba(6,182,212,0.5)] flex items-center gap-2 cursor-pointer border border-cyan-200/40"
+                        >
+                            <Zap class="w-4 h-4 fill-slate-950" />
+                            <span>⚡ Aktifkan Pemindai Wajah</span>
+                        </button>
+                    </div>
+
+                    <!-- 2 Columns Grid: K3 Safety (col-span-5) & Official Announcements (col-span-7) -->
+                    <div class="flex-1 grid grid-cols-12 gap-5 min-h-0 overflow-hidden">
+                        <!-- ============================================== -->
+                        <!-- LEFT COLUMN: Zero Accident Hologram & 5R / APD (col-span-5) -->
+                        <!-- ============================================== -->
+                        <section class="col-span-5 flex flex-col gap-3.5 h-full min-h-0 overflow-hidden">
+                            <!-- Card 1: Zero Accident Hologram Meter -->
+                            <div class="bg-gradient-to-b from-emerald-950/40 via-slate-900/60 to-slate-950/80 border border-emerald-500/30 rounded-3xl p-5 backdrop-blur-md flex flex-col shadow-[0_0_40px_rgba(16,185,129,0.12)] shrink-0 relative overflow-hidden">
+                                <!-- Background Ambient Light -->
+                                <div class="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                                <div class="flex items-center justify-between pb-2.5 border-b border-white/10 shrink-0">
+                                    <div class="flex items-center gap-2">
+                                        <ShieldCheck class="w-5 h-5 text-emerald-400" />
+                                        <h2 class="text-xs font-black uppercase tracking-wider text-emerald-300">
+                                            K3 &bull; ZERO ACCIDENT METER
+                                        </h2>
+                                    </div>
+                                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                        RECORD AKTIF
+                                    </span>
+                                </div>
+
+                                <!-- Big Counter Display -->
+                                <div class="mt-3 flex items-center justify-between gap-4">
+                                    <div>
+                                        <span class="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest block">Hari Tanpa Kecelakaan Kerja</span>
+                                        <div class="flex items-baseline gap-2 mt-0.5">
+                                            <span class="text-5xl font-black font-mono text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]">
+                                                {{ k3Stats.zero_accident_days }}
+                                            </span>
+                                            <span class="text-sm font-black text-white uppercase tracking-wider">HARI</span>
+                                        </div>
+                                        <p class="text-[9px] text-slate-400 mt-1">
+                                            Konsistensi kerja aman sejak <span class="text-emerald-300 font-bold font-mono">{{ k3Stats.zero_accident_since }}</span>
+                                        </p>
+                                    </div>
+
+                                    <!-- Safe Man-Hours Box -->
+                                    <div class="p-3 rounded-2xl bg-slate-950/80 border border-emerald-500/20 text-right">
+                                        <span class="text-[8px] font-mono font-bold text-slate-500 uppercase tracking-wider block">Jam Kerja Selamat</span>
+                                        <span class="text-base font-black font-mono text-white block mt-0.5">{{ k3Stats.total_safe_hours }}</span>
+                                        <span class="text-[8px] text-emerald-400 font-bold tracking-tight block">Man-Hours</span>
+                                    </div>
+                                </div>
+
+                                <!-- Hotline & PIC Footer -->
+                                <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-[9px] font-mono">
+                                    <span class="text-slate-400 flex items-center gap-1">
+                                        <PhoneCall class="w-3 h-3 text-cyan-400" />
+                                        Hotline K3: <strong class="text-cyan-300">{{ k3Stats.safety_hotline }}</strong>
+                                    </span>
+                                    <span class="text-slate-400">
+                                        Koordinator: <strong class="text-white">{{ k3Stats.safety_officer }}</strong>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: Tabbed 5R & Checklist APD Wajib -->
+                            <div class="flex-1 bg-slate-900/40 border border-white/5 rounded-3xl p-4 backdrop-blur-md flex flex-col min-h-0 shadow-xl">
+                                <!-- Tab Switcher 5R vs APD -->
+                                <div class="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
+                                    <div class="flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-white/10">
+                                        <button 
+                                            @click="activeK3Tab = '5r'"
+                                            class="px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer"
+                                            :class="activeK3Tab === '5r' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
+                                        >
+                                            <Award class="w-3 h-3" />
+                                            <span>Budaya 5R Pabrik</span>
+                                        </button>
+                                        <button 
+                                            @click="activeK3Tab = 'apd'"
+                                            class="px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer"
+                                            :class="activeK3Tab === 'apd' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
+                                        >
+                                            <HardHat class="w-3 h-3" />
+                                            <span>APD Standar K3</span>
+                                        </button>
+                                    </div>
+                                    <span class="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-wider">
+                                        STANDAR OHSAS / ISO
+                                    </span>
+                                </div>
+
+                                <!-- 5R Content -->
+                                <div v-if="activeK3Tab === '5r'" class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 mt-2.5 min-h-0 scrollbar-thin scrollbar-thumb-white/10">
+                                    <div class="p-2.5 rounded-2xl bg-cyan-500/[0.04] border border-cyan-500/20 flex items-start gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 font-mono font-black text-xs flex items-center justify-center shrink-0">1R</div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="text-xs font-black text-cyan-200">RINGKAS (Seiri)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Pemilahan</span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Singkirkan barang yang tidak diperlukan dari area kerja & meja operasional.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-2.5 rounded-2xl bg-teal-500/[0.04] border border-teal-500/20 flex items-start gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 font-mono font-black text-xs flex items-center justify-center shrink-0">2R</div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="text-xs font-black text-teal-200">RAPI (Seiton)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Penataan</span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Tata dan beri label barang agar mudah diakses serta segera dikembalikan.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-2.5 rounded-2xl bg-emerald-500/[0.04] border border-emerald-500/20 flex items-start gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono font-black text-xs flex items-center justify-center shrink-0">3R</div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="text-xs font-black text-emerald-200">RESIK (Seiso)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Pembersihan</span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Bersihkan peralatan, lantai, mesin kerja secara berkala tanpa menunggu kotor.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-2.5 rounded-2xl bg-indigo-500/[0.04] border border-indigo-500/20 flex items-start gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-300 font-mono font-black text-xs flex items-center justify-center shrink-0">4R</div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="text-xs font-black text-indigo-200">RAWAT (Seiketsu)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Pemeliharaan</span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Pertahankan standar Ringkas, Rapi, dan Resik menjadi norma harian tim.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-2.5 rounded-2xl bg-amber-500/[0.04] border border-amber-500/20 flex items-start gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 font-mono font-black text-xs flex items-center justify-center shrink-0">5R</div>
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="text-xs font-black text-amber-200">RAJIN (Shitsuke)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Pembiasaan</span>
+                                            </div>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Disiplin mematuhi SOP keselamatan dan tata tertib kerja tanpa harus diawasi.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- APD Content -->
+                                <div v-else class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 mt-2.5 min-h-0 scrollbar-thin scrollbar-thumb-white/10">
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
+                                            <div class="flex items-center gap-2 text-amber-400">
+                                                <HardHat class="w-4 h-4" />
+                                                <span class="text-xs font-black text-white">Safety Helmet</span>
+                                            </div>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Wajib di area fabrikasi, permesinan overhead & crane.</p>
+                                        </div>
+                                        <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
+                                            <div class="flex items-center gap-2 text-cyan-400">
+                                                <ShieldCheck class="w-4 h-4" />
+                                                <span class="text-xs font-black text-white">Safety Shoes</span>
+                                            </div>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Sol anti-slip & steel toe pelindung benturan berat.</p>
+                                        </div>
+                                        <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
+                                            <div class="flex items-center gap-2 text-emerald-400">
+                                                <Eye class="w-4 h-4" />
+                                                <span class="text-xs font-black text-white">Kacamata Safety</span>
+                                            </div>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Perlindungan serpihan gerinda, las & cairan kimia.</p>
+                                        </div>
+                                        <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
+                                            <div class="flex items-center gap-2 text-rose-400">
+                                                <Activity class="w-4 h-4" />
+                                                <span class="text-xs font-black text-white">Rompi Reflektif</span>
+                                            </div>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Tingkatkan visibilitas operator & forklift di lorong.</p>
+                                        </div>
+                                    </div>
+                                    <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
+                                        <p class="text-[9px] text-amber-300 font-bold uppercase tracking-wider">
+                                            "Keselamatan Anda Adalah Kebahagiaan Keluarga di Rumah"
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- ============================================== -->
+                        <!-- RIGHT COLUMN: Official Notice Board Pins (col-span-7) -->
+                        <!-- ============================================== -->
+                        <section class="col-span-7 bg-slate-900/40 border border-white/5 rounded-3xl p-5 backdrop-blur-md flex flex-col h-full min-h-0 shadow-2xl">
+                            <!-- Notice Board Header -->
+                            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3 shrink-0">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <Megaphone class="w-5 h-5 text-cyan-400" />
+                                        <h2 class="text-sm font-black uppercase tracking-wider text-slate-100">
+                                            PAPAN PENGUMUMAN RESMI PERUSAHAAN
+                                        </h2>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Informasi Manajemen, SOP Kerja & Agenda Perusahaan</p>
+                                </div>
+                                <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                                    <span class="text-[9px] font-black uppercase tracking-wider text-cyan-300">Live Notice</span>
+                                </div>
+                            </div>
+
+                            <!-- Category Filter Chips -->
+                            <div class="flex items-center gap-2 pb-2 shrink-0 overflow-x-auto">
+                                <button 
+                                    @click="selectedAnnouncementCategory = 'all'"
+                                    class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
+                                    :class="selectedAnnouncementCategory === 'all' ? 'bg-white/15 text-white border border-white/20' : 'text-slate-400 hover:text-white bg-white/5'"
+                                >
+                                    Semua ({{ announcements.length }})
+                                </button>
+                                <button 
+                                    @click="selectedAnnouncementCategory = 'K3 & HSE'"
+                                    class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
+                                    :class="selectedAnnouncementCategory === 'K3 & HSE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
+                                >
+                                    K3 & HSE
+                                </button>
+                                <button 
+                                    @click="selectedAnnouncementCategory = 'SOP WAJIB'"
+                                    class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
+                                    :class="selectedAnnouncementCategory === 'SOP WAJIB' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
+                                >
+                                    SOP Wajib
+                                </button>
+                                <button 
+                                    @click="selectedAnnouncementCategory = 'INFORMASI HR'"
+                                    class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
+                                    :class="selectedAnnouncementCategory === 'INFORMASI HR' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
+                                >
+                                    Info HR
+                                </button>
+                                <button 
+                                    @click="selectedAnnouncementCategory = 'AGENDA'"
+                                    class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
+                                    :class="selectedAnnouncementCategory === 'AGENDA' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
+                                >
+                                    Agenda
+                                </button>
+                            </div>
+
+                            <!-- Scrollable Announcement List -->
+                            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-3 min-h-0 scrollbar-thin scrollbar-thumb-white/10">
+                                <div 
+                                    v-for="ann in filteredAnnouncements" 
+                                    :key="ann.id"
+                                    class="p-4 rounded-2xl border transition-all relative overflow-hidden group"
+                                    :class="[
+                                        ann.category === 'K3 & HSE' ? 'bg-gradient-to-r from-emerald-950/30 to-slate-900/60 border-emerald-500/30 hover:border-emerald-500/50' :
+                                        ann.category === 'SOP WAJIB' ? 'bg-gradient-to-r from-rose-950/30 to-slate-900/60 border-rose-500/30 hover:border-rose-500/50' :
+                                        ann.category === 'INFORMASI HR' ? 'bg-gradient-to-r from-cyan-950/30 to-slate-900/60 border-cyan-500/30 hover:border-cyan-500/50' :
+                                        'bg-gradient-to-r from-indigo-950/30 to-slate-900/60 border-indigo-500/30 hover:border-indigo-500/50'
+                                    ]"
+                                >
+                                    <div class="flex items-start justify-between gap-3 mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <!-- Category Badge -->
+                                            <span 
+                                                class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider"
+                                                :class="[
+                                                    ann.category === 'K3 & HSE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                                                    ann.category === 'SOP WAJIB' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                                                    ann.category === 'INFORMASI HR' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
+                                                    'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                                                ]"
+                                            >
+                                                {{ ann.category }}
+                                            </span>
+                                            <span v-if="ann.is_pinned" class="flex items-center gap-1 text-[8px] font-bold text-amber-400">
+                                                <Pin class="w-2.5 h-2.5 fill-amber-400 rotate-45" />
+                                                PINNED
+                                            </span>
+                                        </div>
+
+                                        <!-- Date & Issuer -->
+                                        <div class="text-right text-[9px] font-mono text-slate-400">
+                                            <span>{{ ann.date }}</span>
+                                            <span class="mx-1">&bull;</span>
+                                            <span class="text-slate-300 font-bold">{{ ann.issuer }}</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Announcement Title -->
+                                    <h3 class="text-sm font-black text-white group-hover:text-cyan-200 transition">
+                                        {{ ann.title }}
+                                    </h3>
+
+                                    <!-- Content -->
+                                    <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">
+                                        {{ ann.content }}
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Bottom Futuristic Marquee Running Text -->
+                    <div class="shrink-0 h-9 rounded-xl bg-slate-950/90 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)] flex items-center overflow-hidden px-3 gap-3">
+                        <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-[9px] font-black text-cyan-300 uppercase tracking-widest shrink-0">
+                            <Megaphone class="w-3 h-3 text-cyan-400 animate-pulse" />
+                            <span>INFO K3 & LOBI</span>
+                        </div>
+                        <div class="flex-1 overflow-hidden whitespace-nowrap relative">
+                            <div class="inline-block animate-marquee text-xs font-mono font-bold text-slate-200 tracking-wider">
+                                {{ runningText || '⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
         </main>
 
         <!-- ============================================== -->
@@ -1532,16 +2048,16 @@ const formatTimeString = (dateTime) => {
                 class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4"
                 @click.self="showSettingsModal = false"
             >
-                <div class="w-full max-w-lg bg-slate-900 border border-cyan-500/30 rounded-3xl p-6 shadow-[0_0_50px_rgba(6,182,212,0.2)] flex flex-col gap-5 select-none">
+                <div class="w-full max-w-2xl bg-slate-900 border border-cyan-500/30 rounded-3xl p-6 shadow-[0_0_50px_rgba(6,182,212,0.2)] flex flex-col gap-5 select-none max-h-[90vh] overflow-hidden">
                     <!-- Modal Header -->
-                    <div class="flex items-center justify-between pb-4 border-b border-white/10">
+                    <div class="flex items-center justify-between pb-3 border-b border-white/10">
                         <div class="flex items-center gap-2.5">
                             <div class="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
                                 <Settings class="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 class="text-sm font-black uppercase tracking-wider text-white">Pengaturan Jam Tayang Kiosk</h3>
-                                <p class="text-[10px] text-slate-400 font-semibold">Atur jadwal rotasi otomatis layar absensi 32&quot;</p>
+                                <h3 class="text-sm font-black uppercase tracking-wider text-white">Pengaturan Kiosk & Konten</h3>
+                                <p class="text-[10px] text-slate-400 font-semibold">Kelola jadwal rotasi, siaran pengumuman, dan data metrik K3</p>
                             </div>
                         </div>
                         <button 
@@ -1552,110 +2068,383 @@ const formatTimeString = (dateTime) => {
                         </button>
                     </div>
 
-                    <!-- Modal Body / Form -->
-                    <div class="flex flex-col gap-4 text-xs">
-                        <!-- Mode Operasional -->
-                        <div class="flex flex-col gap-1.5">
-                            <label class="font-bold text-slate-300">Mode Operasional Tayang</label>
-                            <select 
-                                v-model="kioskSettings.schedule_mode"
-                                class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
-                            >
-                                <option value="auto">Otomatis (Ikuti Jam Sibuk & Rotasi Slider)</option>
-                                <option value="camera_only">Selalu Scanner Kamera</option>
-                                <option value="leaderboard_only">Selalu Leaderboard Disiplin</option>
-                            </select>
+                    <!-- Navigation Tabs -->
+                    <div class="flex items-center gap-1.5 p-1 bg-slate-950/70 border border-white/10 rounded-2xl shrink-0">
+                        <button 
+                            type="button"
+                            @click="activeSettingsTab = 'schedule'; cancelAnnouncementForm()"
+                            :class="activeSettingsTab === 'schedule' ? 'bg-cyan-500 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'"
+                            class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+                        >
+                            <Clock class="w-3.5 h-3.5" />
+                            <span>Jam Tayang</span>
+                        </button>
+                        <button 
+                            type="button"
+                            @click="activeSettingsTab = 'announcements'"
+                            :class="activeSettingsTab === 'announcements' ? 'bg-cyan-500 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'"
+                            class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+                        >
+                            <Megaphone class="w-3.5 h-3.5" />
+                            <span>Kelola Pengumuman ({{ announcements.length }})</span>
+                        </button>
+                        <button 
+                            type="button"
+                            @click="activeSettingsTab = 'k3'; cancelAnnouncementForm()"
+                            :class="activeSettingsTab === 'k3' ? 'bg-cyan-500 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'"
+                            class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+                        >
+                            <ShieldCheck class="w-3.5 h-3.5" />
+                            <span>K3 & Ticker</span>
+                        </button>
+                    </div>
+
+                    <!-- Modal Body Container (Scrollable) -->
+                    <div class="overflow-y-auto pr-1 flex flex-col gap-4 text-xs max-h-[calc(90vh-220px)] custom-scrollbar">
+                        <!-- TAB 1: JAM TAYANG -->
+                        <div v-if="activeSettingsTab === 'schedule'" class="flex flex-col gap-4">
+                            <!-- Mode Operasional -->
+                            <div class="flex flex-col gap-1.5">
+                                <label class="font-bold text-slate-300">Mode Operasional Tayang Layar 32"</label>
+                                <select 
+                                    v-model="kioskSettings.schedule_mode"
+                                    class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
+                                >
+                                    <option value="auto">Otomatis (Ikuti Jam Sibuk & Rotasi Slider Standby)</option>
+                                    <option value="camera_only">Selalu Scanner Kamera Wajah</option>
+                                    <option value="leaderboard_only">Selalu Leaderboard Disiplin</option>
+                                    <option value="announcements_only">Selalu Papan Pengumuman & K3</option>
+                                </select>
+                            </div>
+
+                            <!-- Jam Sibuk Masuk Pagi -->
+                            <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
+                                <span class="font-black text-cyan-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
+                                    <Clock class="w-3.5 h-3.5" />
+                                    Jam Sibuk Masuk (Prioritas Kamera Pagi)
+                                </span>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[10px] text-slate-400 block mb-1">Mulai</label>
+                                        <input 
+                                            type="time" 
+                                            v-model="kioskSettings.morning_in_start"
+                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-400 block mb-1">Selesai</label>
+                                        <input 
+                                            type="time" 
+                                            v-model="kioskSettings.morning_in_end"
+                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Jam Sibuk Pulang Sore -->
+                            <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
+                                <span class="font-black text-indigo-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
+                                    <Clock class="w-3.5 h-3.5" />
+                                    Jam Sibuk Pulang (Prioritas Kamera Sore)
+                                </span>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="text-[10px] text-slate-400 block mb-1">Mulai</label>
+                                        <input 
+                                            type="time" 
+                                            v-model="kioskSettings.evening_out_start"
+                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-400 block mb-1">Selesai</label>
+                                        <input 
+                                            type="time" 
+                                            v-model="kioskSettings.evening_out_end"
+                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Interval Rotasi Slider -->
+                            <div class="flex flex-col gap-1.5">
+                                <label class="font-bold text-slate-300">Durasi Pergantian Halaman Slider (Detik)</label>
+                                <select 
+                                    v-model="kioskSettings.slider_interval"
+                                    class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
+                                >
+                                    <option :value="10">10 Detik</option>
+                                    <option :value="15">15 Detik</option>
+                                    <option :value="20">20 Detik (Direkomendasikan)</option>
+                                    <option :value="30">30 Detik</option>
+                                    <option :value="45">45 Detik</option>
+                                    <option :value="60">60 Detik (1 Menit)</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <!-- Jam Sibuk Masuk Pagi -->
-                        <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
-                            <span class="font-black text-cyan-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
-                                <Clock class="w-3.5 h-3.5" />
-                                Jam Sibuk Masuk (Prioritas Kamera Pagi)
-                            </span>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-[10px] text-slate-400 block mb-1">Mulai</label>
+                        <!-- TAB 2: KELOLA PENGUMUMAN -->
+                        <div v-else-if="activeSettingsTab === 'announcements'" class="flex flex-col gap-3">
+                            <!-- Header List / Action Button -->
+                            <div v-if="!isEditingAnnouncement" class="flex items-center justify-between pb-1">
+                                <span class="text-[11px] font-bold text-slate-400">Daftar Pengumuman Aktif di Layar</span>
+                                <button 
+                                    type="button"
+                                    @click="openNewAnnouncementForm"
+                                    class="px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold text-[11px] hover:bg-cyan-500 hover:text-slate-950 transition flex items-center gap-1.5"
+                                >
+                                    <Plus class="w-3.5 h-3.5" />
+                                    <span>Tambah Pengumuman</span>
+                                </button>
+                            </div>
+
+                            <!-- List Pengumuman -->
+                            <div v-if="!isEditingAnnouncement" class="flex flex-col gap-2.5">
+                                <div 
+                                    v-for="item in announcements" 
+                                    :key="item.id"
+                                    class="p-3 bg-white/[0.03] border border-white/10 rounded-2xl flex items-start justify-between gap-3 hover:border-cyan-500/30 transition group"
+                                >
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                            <span 
+                                                class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider"
+                                                :class="{
+                                                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30': item.category === 'K3 & HSE',
+                                                    'bg-rose-500/20 text-rose-300 border border-rose-500/30': item.category === 'SOP WAJIB',
+                                                    'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30': item.category === 'INFORMASI HR',
+                                                    'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30': item.category === 'AGENDA',
+                                                }"
+                                            >
+                                                {{ item.category }}
+                                            </span>
+                                            <span v-if="item.is_pinned" class="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/30 flex items-center gap-1">
+                                                <Pin class="w-2.5 h-2.5" /> Pinned
+                                            </span>
+                                            <span class="text-[10px] text-slate-500 font-mono">{{ item.date }}</span>
+                                        </div>
+                                        <h4 class="font-bold text-white text-xs truncate mb-1">{{ item.title }}</h4>
+                                        <p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{{ item.content }}</p>
+                                        <div class="text-[10px] text-slate-500 font-medium mt-1">Oleh: {{ item.issuer }}</div>
+                                    </div>
+                                    <div class="flex items-center gap-1 shrink-0 pt-1">
+                                        <button 
+                                            type="button"
+                                            @click="openEditAnnouncementForm(item)"
+                                            class="p-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-transparent hover:border-cyan-500/30 transition"
+                                            title="Edit Pengumuman"
+                                        >
+                                            <Edit3 class="w-3.5 h-3.5" />
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            @click="deleteAnnouncementItem(item.id)"
+                                            class="p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-transparent hover:border-rose-500/30 transition"
+                                            title="Hapus Pengumuman"
+                                        >
+                                            <Trash2 class="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div v-if="announcements.length === 0" class="text-center py-8 text-slate-500 text-xs">
+                                    Belum ada pengumuman. Klik "+ Tambah Pengumuman" di atas.
+                                </div>
+                            </div>
+
+                            <!-- Sub Form: Tambah / Edit Pengumuman -->
+                            <div v-else class="p-4 bg-slate-950/80 border border-cyan-500/40 rounded-2xl flex flex-col gap-3">
+                                <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                                    <span class="font-black text-cyan-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                        <Edit3 class="w-3.5 h-3.5" />
+                                        {{ announcementForm.id ? 'Edit Pengumuman' : 'Tambah Pengumuman Baru' }}
+                                    </span>
+                                    <button 
+                                        type="button" 
+                                        @click="cancelAnnouncementForm"
+                                        class="text-slate-400 hover:text-white text-[11px] font-bold"
+                                    >
+                                        Kembali ke List
+                                    </button>
+                                </div>
+
+                                <!-- Judul -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-slate-400 font-bold">Judul Pengumuman</label>
                                     <input 
-                                        type="time" 
-                                        v-model="kioskSettings.morning_in_start"
-                                        class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
+                                        type="text" 
+                                        v-model="announcementForm.title"
+                                        placeholder="Contoh: Audit Keselamatan Kerja & Pelaksanaan 5R"
+                                        class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
                                     />
                                 </div>
-                                <div>
-                                    <label class="text-[10px] text-slate-400 block mb-1">Selesai</label>
-                                    <input 
-                                        type="time" 
-                                        v-model="kioskSettings.morning_in_end"
-                                        class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
-                                    />
+
+                                <!-- Kategori & Penerbit -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="flex flex-col gap-1">
+                                        <label class="text-[10px] text-slate-400 font-bold">Kategori</label>
+                                        <select 
+                                            v-model="announcementForm.category"
+                                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                                        >
+                                            <option value="K3 & HSE">K3 & HSE</option>
+                                            <option value="SOP WAJIB">SOP WAJIB</option>
+                                            <option value="INFORMASI HR">INFORMASI HR</option>
+                                            <option value="AGENDA">AGENDA</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <label class="text-[10px] text-slate-400 font-bold">Penerbit / Bagian</label>
+                                        <input 
+                                            type="text" 
+                                            v-model="announcementForm.issuer"
+                                            placeholder="Contoh: Panitia K3 / HR Dept"
+                                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <!-- Tanggal & Pinned -->
+                                <div class="grid grid-cols-2 gap-3 items-center">
+                                    <div class="flex flex-col gap-1">
+                                        <label class="text-[10px] text-slate-400 font-bold">Tanggal Terbit</label>
+                                        <input 
+                                            type="text" 
+                                            v-model="announcementForm.date"
+                                            placeholder="Contoh: 02 Okt 2026"
+                                            class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div class="flex items-center gap-2 pt-4">
+                                        <input 
+                                            type="checkbox" 
+                                            id="chk_pinned" 
+                                            v-model="announcementForm.is_pinned"
+                                            class="w-4 h-4 rounded border-white/20 bg-slate-900 text-cyan-500 focus:ring-cyan-400"
+                                        />
+                                        <label for="chk_pinned" class="text-xs text-white font-bold cursor-pointer select-none">
+                                            Sematkan di Paling Atas (Pinned)
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Isi Pengumuman -->
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[10px] text-slate-400 font-bold">Isi Pesan Pengumuman</label>
+                                    <textarea 
+                                        v-model="announcementForm.content"
+                                        rows="3"
+                                        placeholder="Tuliskan detail pengumuman yang jelas dan mudah dipahami karyawan..."
+                                        class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white text-xs focus:border-cyan-400 focus:outline-none leading-relaxed"
+                                    ></textarea>
+                                </div>
+
+                                <div class="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+                                    <button 
+                                        type="button"
+                                        @click="cancelAnnouncementForm"
+                                        class="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs transition"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        @click="saveAnnouncementItem"
+                                        class="px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition"
+                                    >
+                                        Terapkan ke Daftar
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Jam Sibuk Pulang Sore -->
-                        <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
-                            <span class="font-black text-indigo-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
-                                <Clock class="w-3.5 h-3.5" />
-                                Jam Sibuk Pulang (Prioritas Kamera Sore)
-                            </span>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-[10px] text-slate-400 block mb-1">Mulai</label>
+                        <!-- TAB 3: K3 & TICKER -->
+                        <div v-else-if="activeSettingsTab === 'k3'" class="flex flex-col gap-4">
+                            <!-- Zero Accident Base Date -->
+                            <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
+                                <span class="font-black text-emerald-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
+                                    <ShieldCheck class="w-3.5 h-3.5" />
+                                    Tanggal Awal Perhitungan Zero Accident
+                                </span>
+                                <div class="flex flex-col gap-1">
                                     <input 
-                                        type="time" 
-                                        v-model="kioskSettings.evening_out_start"
-                                        class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
+                                        type="date" 
+                                        v-model="k3Form.zero_accident_since"
+                                        class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2 text-white font-mono focus:border-cyan-400 focus:outline-none"
+                                    />
+                                    <p class="text-[10px] text-slate-500 font-medium">
+                                        * Sistem akan otomatis menghitung jumlah hari nihil kecelakaan kerja (Zero Accident) dan total jam kerja aman (Safe Man-Hours) pabrik sejak tanggal ini.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Hotline K3 & Koordinator -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="font-bold text-slate-300">Hotline Darurat K3 / HSE</label>
+                                    <input 
+                                        type="text" 
+                                        v-model="k3Form.safety_hotline"
+                                        placeholder="Ext. 119 / 0812-9988-7711"
+                                        class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
                                     />
                                 </div>
-                                <div>
-                                    <label class="text-[10px] text-slate-400 block mb-1">Selesai</label>
+                                <div class="flex flex-col gap-1.5">
+                                    <label class="font-bold text-slate-300">Penanggung Jawab / Tim K3</label>
                                     <input 
-                                        type="time" 
-                                        v-model="kioskSettings.evening_out_end"
-                                        class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
+                                        type="text" 
+                                        v-model="k3Form.safety_officer"
+                                        placeholder="Tim K3 & HSE PT. Jidoka"
+                                        class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
                                     />
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Interval Rotasi Slider -->
-                        <div class="flex flex-col gap-1.5">
-                            <label class="font-bold text-slate-300">Durasi Interval Slider (Detik)</label>
-                            <select 
-                                v-model="kioskSettings.slider_interval"
-                                class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
-                            >
-                                <option :value="10">10 Detik</option>
-                                <option :value="15">15 Detik</option>
-                                <option :value="20">20 Detik (Disarankan)</option>
-                                <option :value="30">30 Detik</option>
-                                <option :value="60">60 Detik (1 Menit)</option>
-                            </select>
+                            <!-- Teks Berjalan / Marquee Ticker -->
+                            <div class="flex flex-col gap-1.5">
+                                <label class="font-bold text-slate-300">Teks Berjalan Layar Kiosk (Running Marquee Ticker)</label>
+                                <textarea 
+                                    v-model="k3Form.running_text"
+                                    rows="3"
+                                    placeholder="Tuliskan slogan K3, motivasi kerja, atau maklumat penting yang terus berjalan di bagian bawah layar..."
+                                    class="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-white text-xs focus:border-cyan-400 focus:outline-none leading-relaxed"
+                                ></textarea>
+                                <p class="text-[10px] text-slate-500 font-medium">
+                                    * Teks ini akan berjalan tanpa henti di seluruh layar (Leaderboard dan Papan Pengumuman).
+                                </p>
+                            </div>
                         </div>
 
                         <!-- Feedback Message -->
-                        <div v-if="settingsSaveNotice" class="text-xs font-bold text-emerald-400 text-center animate-pulse">
+                        <div v-if="settingsSaveNotice" class="text-xs font-bold text-emerald-400 text-center animate-pulse pt-2">
                             {{ settingsSaveNotice }}
                         </div>
                     </div>
 
                     <!-- Modal Actions -->
-                    <div class="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
-                        <button 
-                            @click="showSettingsModal = false"
-                            class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition text-xs"
-                        >
-                            Batal
-                        </button>
-                        <button 
-                            @click="saveSettings"
-                            :disabled="isSavingSettings"
-                            class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-black flex items-center gap-2 hover:opacity-95 transition text-xs shadow-lg disabled:opacity-50"
-                        >
-                            <Save class="w-4 h-4" />
-                            <span>{{ isSavingSettings ? 'Menyimpan...' : 'Simpan Pengaturan' }}</span>
-                        </button>
+                    <div class="pt-3 border-t border-white/10 flex items-center justify-between shrink-0">
+                        <span class="text-[10px] text-slate-500 font-medium hidden sm:inline">
+                            Perubahan akan langsung aktif di layar monitor absensi 32"
+                        </span>
+                        <div class="flex items-center gap-3 ml-auto">
+                            <button 
+                                @click="showSettingsModal = false"
+                                class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition text-xs"
+                            >
+                                Tutup
+                            </button>
+                            <button 
+                                @click="saveSettings"
+                                :disabled="isSavingSettings"
+                                class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-black flex items-center gap-2 hover:opacity-95 transition text-xs shadow-lg disabled:opacity-50"
+                            >
+                                <Save class="w-4 h-4" />
+                                <span>{{ isSavingSettings ? 'Menyimpan...' : 'Simpan Semua Perubahan' }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1676,5 +2465,22 @@ const formatTimeString = (dateTime) => {
 }
 .animate-laser {
     animation: laser-sweep 2.8s ease-in-out infinite;
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+.animate-marquee {
+    display: inline-block;
+    white-space: nowrap;
+    animation: marquee 35s linear infinite;
+}
+.animate-marquee:hover {
+    animation-play-state: paused;
 }
 </style>

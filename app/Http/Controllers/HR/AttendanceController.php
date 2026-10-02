@@ -316,6 +316,71 @@ class AttendanceController extends Controller
         }
         usort($deptRankings, fn($a, $b) => $b['punctuality'] <=> $a['punctuality']);
 
+        // K3 Safety & Zero Accident Metrics
+        $zeroAccidentBaseDate = PayrollSetting::getByKey('kiosk_k3_zero_accident_since', '2026-05-15');
+        $zeroAccidentDays = max(1, (int) Carbon::parse($zeroAccidentBaseDate)->diffInDays(Carbon::today('Asia/Jakarta')));
+
+        $k3Stats = [
+            'zero_accident_days' => $zeroAccidentDays,
+            'zero_accident_since' => Carbon::parse($zeroAccidentBaseDate)->locale('id')->isoFormat('D MMMM Y'),
+            'zero_accident_since_raw' => $zeroAccidentBaseDate,
+            'safety_hotline' => PayrollSetting::getByKey('kiosk_safety_hotline', 'Ext. 119 / 0812-9988-7711'),
+            'safety_officer' => PayrollSetting::getByKey('kiosk_safety_officer', 'Tim K3 & HSE PT. Jidoka'),
+            'total_safe_hours' => number_format($zeroAccidentDays * 8 * max(1, $totalActive), 0, ',', '.'),
+        ];
+
+        // Official Announcements (Default resmi pabrik & industri)
+        $defaultAnnouncements = [
+            [
+                'id' => 1,
+                'title' => 'Audit Keselamatan Kerja & Pelaksanaan 5R Pabrik',
+                'category' => 'K3 & HSE',
+                'badge_color' => 'emerald',
+                'issuer' => 'Panitia K3 & Lingkungan',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(2)->format('d M Y'),
+                'is_pinned' => true,
+                'content' => 'Seluruh area kerja, lini produksi, dan gudang wajib mematuhi protokol 5R (Ringkas, Rapi, Resik, Rawat, Rajin). Pemeriksaan kebersihan dan kepatuhan APD dilakukan setiap awal shift.',
+            ],
+            [
+                'id' => 2,
+                'title' => 'Ketentuan Wajib Pemakaian APD di Area Workshop & Produksi',
+                'category' => 'SOP WAJIB',
+                'badge_color' => 'rose',
+                'issuer' => 'HSE Department',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(5)->format('d M Y'),
+                'is_pinned' => true,
+                'content' => 'Setiap personil dan tamu yang memasuki area bengkel, permesinan, dan fabrikasi WAJIB mengenakan Safety Helmet, Safety Shoes dengan steel toe, Rompi High-Visibility, dan Kacamata Pelindung.',
+            ],
+            [
+                'id' => 3,
+                'title' => 'Portal Layanan Mandiri HR & Pengajuan Cuti Online JICOS ERP',
+                'category' => 'INFORMASI HR',
+                'badge_color' => 'cyan',
+                'issuer' => 'Human Resources & GA',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(8)->format('d M Y'),
+                'is_pinned' => false,
+                'content' => 'Pengajuan cuti tahunan, surat sakit, dan izin dinas kini diproses 100% mandiri melalui portal ERP karyawan. Pastikan form disubmit minimal H-3 sebelum pelaksanaan cuti.',
+            ],
+            [
+                'id' => 4,
+                'title' => 'Jadwal Kalibrasi Alat Ukur & Maintenance Mesin Presisi',
+                'category' => 'AGENDA',
+                'badge_color' => 'indigo',
+                'issuer' => 'Engineering & Maintenance',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(12)->format('d M Y'),
+                'is_pinned' => false,
+                'content' => 'Akan dilaksanakan jadwal pemeliharaan berkala dan kalibrasi sensor permesinan pada hari Sabtu pekan ke-2. Mohon koordinasi dengan supervisor lini terkait jadwal downtime operasional.',
+            ],
+        ];
+
+        $storedAnnouncementsJson = PayrollSetting::getByKey('kiosk_announcements_json', null);
+        $announcements = $storedAnnouncementsJson ? json_decode($storedAnnouncementsJson, true) : $defaultAnnouncements;
+
+        $runningText = PayrollSetting::getByKey(
+            'kiosk_running_text',
+            '⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI'
+        );
+
         // Kiosk schedule settings
         $kioskSettings = [
             'morning_in_start' => PayrollSetting::getByKey('kiosk_morning_in_start', '07:00'),
@@ -324,6 +389,8 @@ class AttendanceController extends Controller
             'evening_out_end' => PayrollSetting::getByKey('kiosk_evening_out_end', '20:00'),
             'slider_interval' => (int) PayrollSetting::getByKey('kiosk_slider_interval_seconds', 20),
             'schedule_mode' => PayrollSetting::getByKey('kiosk_schedule_mode', 'auto'),
+            'running_text' => $runningText,
+            'zero_accident_since' => $zeroAccidentBaseDate,
         ];
 
         return response()->json([
@@ -353,6 +420,9 @@ class AttendanceController extends Controller
                 'top_late' => $topLate,
                 'dept_rankings' => $deptRankings,
             ],
+            'k3_stats' => $k3Stats,
+            'announcements' => $announcements,
+            'running_text' => $runningText,
             'kiosk_settings' => $kioskSettings,
         ]);
     }
@@ -365,13 +435,32 @@ class AttendanceController extends Controller
             'evening_out_start' => 'nullable|string',
             'evening_out_end' => 'nullable|string',
             'slider_interval' => 'nullable|integer|min:5|max:120',
-            'schedule_mode' => 'nullable|string|in:auto,camera_only,leaderboard_only',
+            'schedule_mode' => 'nullable|string|in:auto,camera_only,leaderboard_only,announcements_only',
+            'running_text' => 'nullable|string',
+            'zero_accident_since' => 'nullable|string',
+            'safety_hotline' => 'nullable|string',
+            'safety_officer' => 'nullable|string',
+            'announcements' => 'nullable|array',
         ]);
 
+        if ($request->has('announcements')) {
+            PayrollSetting::updateOrCreate(
+                ['key' => 'kiosk_announcements_json'],
+                [
+                    'category' => 'kiosk',
+                    'label' => 'Kiosk Announcements JSON',
+                    'value' => json_encode($request->announcements),
+                    'type' => 'json',
+                    'is_active' => true,
+                ]
+            );
+        }
+
         foreach ($validated as $key => $val) {
-            if ($val !== null) {
+            if ($val !== null && $key !== 'announcements') {
                 $dbKey = 'kiosk_' . $key;
                 if ($key === 'slider_interval') $dbKey = 'kiosk_slider_interval_seconds';
+                if ($key === 'zero_accident_since') $dbKey = 'kiosk_k3_zero_accident_since';
                 PayrollSetting::updateOrCreate(
                     ['key' => $dbKey],
                     [
@@ -387,7 +476,7 @@ class AttendanceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Pengaturan jam tayang kiosk berhasil disimpan.'
+            'message' => 'Pengaturan Kiosk, Pengumuman & K3 berhasil disimpan.'
         ]);
     }
 
