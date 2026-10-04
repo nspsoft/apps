@@ -575,7 +575,7 @@ const navigation = [
         ]
     },
     {
-        name: 'Surveillance (CCTV)',
+        name: 'Live Streaming',
         href: '#',
         icon: VideoCameraIcon,
         current: false,

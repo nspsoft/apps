@@ -63,7 +63,7 @@ class RoleController extends Controller
             'general_affair' => 'General Affair',
             'meeting_command' => 'Meeting Command',
             'automated_bell' => 'Automated Bell',
-            'cctv' => 'CCTV Surveillance',
+            'cctv' => 'Live Streaming',
             'project_matrix' => 'Project Matrix',
             'settings' => 'Settings'
         ];
