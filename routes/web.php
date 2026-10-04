@@ -910,6 +910,15 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::get('/bell-terminal', [App\Http\Controllers\Settings\BellScheduleController::class, 'terminal'])->name('bell-schedules.terminal');
 });
 
+// Facilities & CCTV Surveillance Module
+Route::middleware(['auth'])->prefix('facilities')->name('facilities.')->group(function () {
+    Route::get('/cctv', [App\Http\Controllers\Facilities\CctvController::class, 'index'])->name('cctv.index');
+    Route::get('/cctv/settings', [App\Http\Controllers\Facilities\CctvController::class, 'settings'])->name('cctv.settings');
+    Route::put('/cctv/devices/{device}', [App\Http\Controllers\Facilities\CctvController::class, 'updateDevice'])->name('cctv.devices.update');
+    Route::put('/cctv/channels/{channel}', [App\Http\Controllers\Facilities\CctvController::class, 'updateChannel'])->name('cctv.channels.update');
+    Route::get('/cctv/channels/{channel}/snapshot', [App\Http\Controllers\Facilities\CctvController::class, 'snapshot'])->name('cctv.channels.snapshot');
+});
+
 // Helpdesk & Support Module
 Route::prefix('helpdesk')->name('helpdesk.')->middleware(['auth'])->group(function () {
     Route::get('/', [App\Http\Controllers\Helpdesk\HelpdeskController::class, 'index'])->name('index');

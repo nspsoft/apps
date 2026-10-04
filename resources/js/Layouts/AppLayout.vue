@@ -574,6 +574,17 @@ const navigation = [
             { name: 'Schedule Settings', href: '/settings/bell-schedules', icon: ClockIcon, permission: 'automated_bell.schedule_settings.view' }
         ]
     },
+    {
+        name: 'Surveillance (CCTV)',
+        href: '#',
+        icon: VideoCameraIcon,
+        current: false,
+        permission: 'cctv.view',
+        children: [
+            { name: 'Video Wall (Kiosk)', href: '/facilities/cctv', icon: ComputerDesktopIcon, permission: 'cctv.view', target: '_blank' },
+            { name: 'CCTV Settings', href: '/facilities/cctv/settings', icon: Cog6ToothIcon, permission: 'cctv.manage' }
+        ]
+    },
     { 
         name: 'Helpdesk Support', 
         href: '/helpdesk', 
