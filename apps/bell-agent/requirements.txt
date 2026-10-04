@@ -1,0 +1,8 @@
+sounddevice>=0.5.0
+soundfile>=0.14.0
+pystray>=0.19.5
+Pillow>=10.0.0
+requests>=2.31.0
+customtkinter>=5.2.0
+pyttsx3>=2.90
+numpy>=1.24.0

@@ -1,0 +1,10 @@
+{
+  "server_url": "http://erp.test",
+  "api_endpoint": "/api/v1/bell-agent",
+  "audio_device_id": null,
+  "audio_device_name": "Default",
+  "sync_interval_seconds": 180,
+  "minimize_to_tray_on_close": true,
+  "start_with_windows": false,
+  "volume_boost": 100
+}

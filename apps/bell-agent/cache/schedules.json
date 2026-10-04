@@ -1,0 +1,210 @@
+{
+  "success": true,
+  "server_time": "2026-10-04 16:06:04",
+  "current_day": "Sunday",
+  "checksum": "e6184d8c2c00993162310976780d295e",
+  "data": [
+    {
+      "id": 11,
+      "name": "Music Senam",
+      "time": "06:56:00",
+      "days": [
+        "Saturday"
+      ],
+      "sound_type": "custom",
+      "sound_url": "http://erp.test/storage/bells/1786665170_apalonbeats-gym-workout-566597.mp3",
+      "sound_filename": "1786665170_apalonbeats-gym-workout-566597.mp3",
+      "tts_text": null,
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-14T06:52:50+07:00"
+    },
+    {
+      "id": 7,
+      "name": "Mulai Kerja Sabtu",
+      "time": "07:00:00",
+      "days": [
+        "Saturday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Diinformasikan kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu kerja telah dimulai.\n-Dimohon untuk memulai aktivitas kerja dengan semangat dan sesuai standar keselamatan kerja.",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-19T20:00:21+07:00"
+    },
+    {
+      "id": 1,
+      "name": "Persiapan Masuk",
+      "time": "07:50:00",
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Diinformasikan kepada seluruh karyawan yang berada di area PT Jidoka Risalt Indonesia,\n-sebentar lagi akan dilaksanakan senam pagi.\n-Dimohon kepada seluruh karyawan untuk segera bersiap dan menuju area senam.",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-19T20:02:21+07:00"
+    },
+    {
+      "id": 2,
+      "name": "Mulai Kerja",
+      "time": "08:00:00",
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Diinformasikan kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu kerja telah dimulai.\n-Dimohon untuk memulai aktivitas kerja dengan semangat dan sesuai standar keselamatan kerja.",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-19T20:00:44+07:00"
+    },
+    {
+      "id": 6,
+      "name": "Senam",
+      "time": "10:17:00",
+      "days": [
+        "Saturday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Diinformasikan kepada seluruh karyawan yang berada di area PT Jidoka Risalt Indonesia,\n-sebentar lagi akan dilaksanakan senam pagi.\n-Dimohon kepada seluruh karyawan untuk segera bersiap dan menuju area senam.",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-15T10:15:56+07:00"
+    },
+    {
+      "id": 3,
+      "name": "Mulai Istirahat",
+      "time": "12:00:00",
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu istirahat telah tiba.\n-Dimohon untuk menghentikan aktivitas kerja,\n-serta mematikan mesin dan peralatan yang tidak digunakan seperti lampu & kipas angin",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-19T20:01:01+07:00"
+    },
+    {
+      "id": 4,
+      "name": "Selesai Istirahat",
+      "time": "13:00:00",
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Diinformasikan kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu istirahat akan segera berakhir.\n-Dimohon untuk bersiap kembali ke area kerja masing-masing\n-dan mempersiapkan aktivitas kerja dengan aman dan tertib.",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-19T20:01:26+07:00"
+    },
+    {
+      "id": 9,
+      "name": "Sholat Ashar",
+      "time": "15:00:00",
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Diinformasikan kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu istirahat untuk pelaksanaan ibadah Sholat Ashar telah tiba.\n-Dimohon untuk menghentikan sementara aktivitas kerja dengan aman.",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-19T20:01:36+07:00"
+    },
+    {
+      "id": 10,
+      "name": "Selesai Shalat Ashar",
+      "time": "15:30:00",
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Diinformasikan kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu istirahat telah selesai.\n-Dimohon untuk kembali ke area kerja masing-masing\n-dan melanjutkan aktivitas kerja dengan aman dan tertib",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-19T20:01:55+07:00"
+    },
+    {
+      "id": 5,
+      "name": "Selesai Kerja",
+      "time": "16:00:00",
+      "days": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu kerja hari ini telah selesai.\n-Dimohon untuk memastikan seluruh mesin dan peralatan kerja dalam kondisi aman,\n-serta menjaga kebersihan area kerja sebelum meninggalkan area pabrik & jangan lupa melakukan absensi\n-Untuk anda yang melanjutkan pekerjaan agar tetap fokus dan safety selalu\n-Terima kasih atas kerja keras dan kontribusi anda hari ini, hati hati di jalan keluarga anda menunggu di rumah",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-15T10:24:10+07:00"
+    },
+    {
+      "id": 8,
+      "name": "Selesai Kerja Sabtu",
+      "time": "16:52:00",
+      "days": [
+        "Saturday"
+      ],
+      "sound_type": "tts",
+      "sound_url": null,
+      "sound_filename": null,
+      "tts_text": "O-shirase itashimas\n-Kepada seluruh karyawan PT Jidoka Risalt Indonesia,\n-waktu kerja hari ini telah selesai.\n-Dimohon untuk memastikan seluruh mesin dan peralatan kerja dalam kondisi aman,\n-serta menjaga kebersihan area kerja sebelum meninggalkan area pabrik & jangan lupa absensi\n-Untuk anda yang melanjutkan pekerjaan agar tetap fokus dan safety selalu\n-Terima kasih atas kerja keras dan kontribusi anda hari ini, hati hati di jalan keluarga menunggu di rumah",
+      "tts_language": "id-ID",
+      "volume": 100,
+      "is_active": true,
+      "updated_at": "2026-08-29T16:51:08+07:00"
+    }
+  ]
+}

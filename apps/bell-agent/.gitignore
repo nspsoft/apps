@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+cache/sounds/*
+!cache/sounds/.gitkeep
