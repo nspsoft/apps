@@ -57,6 +57,9 @@ class RoleSeeder extends Seeder
             'Meeting Command' => [
                 'Dashboard List', 'New Meeting'
             ],
+            'Automated Bell' => [
+                'Bell Terminal', 'Schedule Settings'
+            ],
             'Project Matrix' => [
                 'Projects'
             ],
@@ -120,7 +123,9 @@ class RoleSeeder extends Seeder
             $permissions = [];
 
             if ($roleName === 'IT Administrator') {
-                $permissions = Permission::where('name', 'like', 'settings.%')->get();
+                $permissions = Permission::where('name', 'like', 'settings.%')
+                    ->orWhere('name', 'like', 'automated_bell.%')
+                    ->get();
             } 
             elseif ($roleName === 'Director') {
                 $permissions = Permission::where('name', 'like', '%.view')->get();
@@ -158,6 +163,7 @@ class RoleSeeder extends Seeder
             elseif ($roleName === 'HR & Payroll') {
                 $permissions = Permission::where('name', 'like', 'hr_payroll.%')
                     ->orWhere('name', 'like', 'general_affair.%')
+                    ->orWhere('name', 'like', 'automated_bell.%')
                     ->get();
             }
             elseif ($roleName === 'Production Operator') {

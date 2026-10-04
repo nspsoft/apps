@@ -180,6 +180,11 @@ const hasPermission = (permission) => {
     if (permission === 'hr_payroll.work_schedules.view') {
         return auth.permissions?.includes('hr_payroll.work_schedules.view') || auth.permissions?.includes('hr_payroll.attendance.view');
     }
+    if (permission === 'automated_bell.view') {
+        return auth.permissions?.includes('automated_bell.view') ||
+               auth.permissions?.includes('automated_bell.schedule_settings.view') ||
+               auth.permissions?.includes('automated_bell.bell_terminal.view');
+    }
     return auth.permissions?.includes(permission);
 };
 
@@ -563,10 +568,10 @@ const navigation = [
         href: '#',
         icon: BellIcon,
         current: false,
-        permission: 'settings.view',
+        permission: 'automated_bell.view',
         children: [
-            { name: 'Bell Terminal (Kiosk)', href: '/settings/bell-terminal', icon: ComputerDesktopIcon, target: '_blank' },
-            { name: 'Schedule Settings', href: '/settings/bell-schedules', icon: ClockIcon }
+            { name: 'Bell Terminal (Kiosk)', href: '/settings/bell-terminal', icon: ComputerDesktopIcon, permission: 'automated_bell.bell_terminal.view', target: '_blank' },
+            { name: 'Schedule Settings', href: '/settings/bell-schedules', icon: ClockIcon, permission: 'automated_bell.schedule_settings.view' }
         ]
     },
     { 

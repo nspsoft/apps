@@ -15,6 +15,11 @@ class BellScheduleController extends Controller
      */
     public function index()
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('automated_bell.schedule_settings.view') && !$user->can('automated_bell.view'))) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk melihat jadwal bel.');
+        }
+
         $schedules = BellSchedule::orderBy('time', 'asc')->get();
         return Inertia::render('Settings/BellSchedules', [
             'schedules' => $schedules
@@ -26,6 +31,11 @@ class BellScheduleController extends Controller
      */
     public function store(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('automated_bell.schedule_settings.create') && !$user->can('automated_bell.create'))) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk menambahkan jadwal bel.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'time' => 'required',
@@ -60,6 +70,11 @@ class BellScheduleController extends Controller
      */
     public function update(Request $request, BellSchedule $schedule)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('automated_bell.schedule_settings.edit') && !$user->can('automated_bell.edit'))) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk mengubah jadwal bel.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'time' => 'required',
@@ -108,6 +123,11 @@ class BellScheduleController extends Controller
      */
     public function destroy(BellSchedule $schedule)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('automated_bell.schedule_settings.delete') && !$user->can('automated_bell.delete'))) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk menghapus jadwal bel.');
+        }
+
         if ($schedule->sound_file) {
             $oldPath = str_replace('/storage/', '', $schedule->sound_file);
             Storage::disk('public')->delete($oldPath);
@@ -123,6 +143,11 @@ class BellScheduleController extends Controller
      */
     public function terminal()
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('automated_bell.bell_terminal.view') && !$user->can('automated_bell.view'))) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk mengakses terminal bel.');
+        }
+
         $schedules = BellSchedule::where('is_active', true)->orderBy('time', 'asc')->get();
         return Inertia::render('Settings/BellTerminal', [
             'schedules' => $schedules

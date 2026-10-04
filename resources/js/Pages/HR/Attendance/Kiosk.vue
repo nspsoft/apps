@@ -869,7 +869,7 @@ const formatTimeString = (dateTime) => {
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] animate-pulse"></span>
                         <h1 class="text-base font-black tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400">
-                            USICS SMART ATTENDANCE KIOSK
+                            JICOS ATTENDANCE KIOSK
                         </h1>
                         <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-bold uppercase">32&quot; PRO DISPLAY</span>
                     </div>

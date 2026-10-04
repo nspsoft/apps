@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     PlusIcon,
@@ -17,6 +17,15 @@ import {
 const props = defineProps({
     schedules: Array
 });
+
+const page = usePage();
+const hasPermission = (permission) => {
+    if (!permission) return true;
+    const auth = page.props.auth;
+    if (!auth) return false;
+    if (auth.roles?.includes('Super Admin')) return true;
+    return auth.permissions?.includes(permission);
+};
 
 const isModalOpen = ref(false);
 const editingSchedule = ref(null);
@@ -240,6 +249,7 @@ const stopTest = () => {
                 <div class="flex flex-wrap items-center gap-3">
                     <!-- Direct link to Bell Terminal Dashboard -->
                     <a 
+                        v-if="hasPermission('automated_bell.bell_terminal.view')"
                         :href="route('settings.bell-schedules.terminal')" 
                         target="_blank"
                         class="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-500/20 text-xs font-black uppercase tracking-widest transition-all hover:scale-105"
@@ -249,6 +259,7 @@ const stopTest = () => {
                     </a>
 
                     <button 
+                        v-if="hasPermission('automated_bell.schedule_settings.create')"
                         @click="openCreateModal"
                         class="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl shadow-xl shadow-emerald-500/20 text-xs font-black uppercase tracking-widest transition-all hover:scale-105"
                     >
@@ -335,6 +346,7 @@ const stopTest = () => {
                                         </button>
                                         
                                         <button 
+                                            v-if="hasPermission('automated_bell.schedule_settings.edit')"
                                             @click="openEditModal(schedule)"
                                             class="p-2 hover:bg-amber-500/10 text-amber-500 rounded-lg transition-all"
                                             title="Edit Jadwal"
@@ -343,6 +355,7 @@ const stopTest = () => {
                                         </button>
                                         
                                         <button 
+                                            v-if="hasPermission('automated_bell.schedule_settings.delete')"
                                             @click="deleteSchedule(schedule.id)"
                                             class="p-2 hover:bg-rose-500/10 text-rose-500 rounded-lg transition-all"
                                             title="Hapus"
