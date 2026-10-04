@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     VideoCameraIcon,
@@ -10,13 +10,26 @@ import {
     ShieldCheckIcon,
     PlusIcon,
     PencilSquareIcon,
-    EyeIcon
+    EyeIcon,
+    ArrowPathIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     device: Object,
     channels: Array,
 });
+
+const isReinitializing = ref(false);
+const reinitializeDefaults = () => {
+    if (!confirm('Inisialisasi ulang 6 titik kamera default PT Jidoka?')) return;
+    isReinitializing.value = true;
+    router.post(route('facilities.cctv.reset-defaults'), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            isReinitializing.value = false;
+        }
+    });
+};
 
 // NVR Device Form
 const deviceForm = useForm({
@@ -223,6 +236,16 @@ const submitChannel = () => {
                             Atur penamaan channel dan zona pengawasan pabrik
                         </p>
                     </div>
+
+                    <button 
+                        @click="reinitializeDefaults"
+                        :disabled="isReinitializing"
+                        class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 border border-slate-300 dark:border-slate-700 shadow-sm"
+                        title="Buat ulang 6 channel default jika kosong atau ingin di-reset"
+                    >
+                        <ArrowPathIcon class="w-3.5 h-3.5" :class="isReinitializing ? 'animate-spin text-cyan-500' : ''" />
+                        <span>Inisialisasi 6 Titik Bawaan</span>
+                    </button>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -265,6 +288,20 @@ const submitChannel = () => {
                                         title="Edit Channel"
                                     >
                                         <PencilSquareIcon class="w-4 h-4" />
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="!channels || channels.length === 0">
+                                <td colspan="6" class="text-center py-10 text-slate-400">
+                                    <p class="text-sm font-semibold mb-2 text-slate-600 dark:text-slate-300">Belum ada titik kamera terdaftar di database.</p>
+                                    <p class="text-xs mb-4 text-slate-400">Klik tombol di bawah untuk membuat 6 titik kamera standar PT Jidoka otomatis.</p>
+                                    <button 
+                                        @click="reinitializeDefaults" 
+                                        :disabled="isReinitializing"
+                                        class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition inline-flex items-center gap-1.5 shadow-sm"
+                                    >
+                                        <ArrowPathIcon class="w-4 h-4" :class="isReinitializing ? 'animate-spin' : ''" />
+                                        <span>+ Inisialisasi 6 Kamera Default</span>
                                     </button>
                                 </td>
                             </tr>

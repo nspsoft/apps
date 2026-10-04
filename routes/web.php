@@ -916,6 +916,7 @@ Route::middleware(['auth'])->prefix('facilities')->name('facilities.')->group(fu
     Route::get('/cctv/settings', [App\Http\Controllers\Facilities\CctvController::class, 'settings'])->name('cctv.settings');
     Route::put('/cctv/devices/{device}', [App\Http\Controllers\Facilities\CctvController::class, 'updateDevice'])->name('cctv.devices.update');
     Route::put('/cctv/channels/{channel}', [App\Http\Controllers\Facilities\CctvController::class, 'updateChannel'])->name('cctv.channels.update');
+    Route::post('/cctv/reset-defaults', [App\Http\Controllers\Facilities\CctvController::class, 'resetDefaults'])->name('cctv.reset-defaults');
     Route::get('/cctv/channels/{channel}/snapshot', [App\Http\Controllers\Facilities\CctvController::class, 'snapshot'])->name('cctv.channels.snapshot');
 });
 

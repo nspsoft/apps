@@ -14,6 +14,98 @@ use Illuminate\Support\Facades\Http;
 class CctvController extends Controller
 {
     /**
+     * Ensure default NVR device and 6 default camera channels exist in database.
+     */
+    private function ensureDeviceAndChannels(bool $force = false): CctvDevice
+    {
+        $device = CctvDevice::firstOrCreate(
+            ['name' => 'NVR Hikvision Utama'],
+            [
+                'brand' => 'Hikvision',
+                'ip_address' => '192.168.1.100',
+                'rtsp_port' => 554,
+                'http_port' => 80,
+                'username' => 'admin',
+                'password' => '',
+                'is_active' => true,
+            ]
+        );
+
+        $defaultChannels = [
+            [
+                'channel_number' => 1,
+                'name' => 'Main Gate & Pos Satpam',
+                'zone' => 'security',
+                'location_description' => 'Pintu Gerbang Utama & Pos Keamanan Depan',
+                'stream_url' => null,
+                'is_active' => true,
+                'sort_order' => 1,
+            ],
+            [
+                'channel_number' => 2,
+                'name' => 'Workshop & Production Floor',
+                'zone' => 'production',
+                'location_description' => 'Lantai Produksi Mesin CNC & Workshop Pabrik',
+                'stream_url' => null,
+                'is_active' => true,
+                'sort_order' => 2,
+            ],
+            [
+                'channel_number' => 3,
+                'name' => 'Warehouse Material Storage',
+                'zone' => 'warehouse',
+                'location_description' => 'Gudang Bahan Baku & High Racks Logistik',
+                'stream_url' => null,
+                'is_active' => true,
+                'sort_order' => 3,
+            ],
+            [
+                'channel_number' => 4,
+                'name' => 'Loading Dock & Logistics',
+                'zone' => 'logistics',
+                'location_description' => 'Area Bongkar Muat Barang & Dermaga Logistik Truk',
+                'stream_url' => null,
+                'is_active' => true,
+                'sort_order' => 4,
+            ],
+            [
+                'channel_number' => 5,
+                'name' => 'Control Room & Electrical Panel',
+                'zone' => 'facility',
+                'location_description' => 'Ruang Kontrol & Panel Distribusi Listrik',
+                'stream_url' => null,
+                'is_active' => true,
+                'sort_order' => 5,
+            ],
+            [
+                'channel_number' => 6,
+                'name' => 'Office Entrance Lobby',
+                'zone' => 'office',
+                'location_description' => 'Lobby Utama & Resepsionis Gedung Kantor',
+                'stream_url' => null,
+                'is_active' => true,
+                'sort_order' => 6,
+            ],
+        ];
+
+        $currentCount = CctvChannel::where('device_id', $device->id)->count();
+
+        if ($force || $currentCount === 0) {
+            foreach ($defaultChannels as $chData) {
+                CctvChannel::updateOrCreate(
+                    [
+                        'device_id' => $device->id,
+                        'channel_number' => $chData['channel_number']
+                    ],
+                    $chData
+                );
+            }
+        }
+
+        return $device;
+    }
+
+    /**
      * Display the CCTV Video Wall Surveillance Kiosk
      */
     public function index(Request $request)
@@ -23,8 +115,9 @@ class CctvController extends Controller
             abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk melihat pengawasan CCTV.');
         }
 
-        $device = CctvDevice::where('is_active', true)->first();
+        $device = $this->ensureDeviceAndChannels();
         $channels = CctvChannel::with('device')
+            ->where('device_id', $device->id)
             ->where('is_active', true)
             ->orderBy('sort_order', 'asc')
             ->get();
@@ -55,19 +148,7 @@ class CctvController extends Controller
             abort(403, 'Akses ditolak: Anda tidak memiliki izin untuk mengatur perangkat CCTV.');
         }
 
-        $device = CctvDevice::firstOrCreate(
-            ['name' => 'NVR Hikvision Utama'],
-            [
-                'brand' => 'Hikvision',
-                'ip_address' => '192.168.1.100',
-                'rtsp_port' => 554,
-                'http_port' => 80,
-                'username' => 'admin',
-                'password' => '',
-                'is_active' => true,
-            ]
-        );
-
+        $device = $this->ensureDeviceAndChannels();
         $channels = CctvChannel::where('device_id', $device->id)
             ->orderBy('sort_order', 'asc')
             ->get();
@@ -76,6 +157,21 @@ class CctvController extends Controller
             'device' => $device,
             'channels' => $channels,
         ]);
+    }
+
+    /**
+     * Re-initialize / Reset Default 6 Camera Channels
+     */
+    public function resetDefaults(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('cctv.manage'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $this->ensureDeviceAndChannels(true);
+
+        return redirect()->back()->with('success', '6 Titik kamera default berhasil diinisialisasi ulang.');
     }
 
     /**

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import {
     VideoCameraIcon,
     VideoCameraSlashIcon,
@@ -75,8 +75,20 @@ const isChannelLive = (channel) => {
 };
 
 const liveChannelsCount = computed(() => {
-    return props.channels.filter(c => isChannelLive(c)).length;
+    return (props.channels || []).filter(c => isChannelLive(c)).length;
 });
+
+// Self-healing / Provision default channels
+const isInitializing = ref(false);
+const initDefaultChannels = () => {
+    isInitializing.value = true;
+    router.post(route('facilities.cctv.reset-defaults'), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            isInitializing.value = false;
+        }
+    });
+};
 
 // Update Clock
 const updateClock = () => {
@@ -568,6 +580,31 @@ onUnmounted(() => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- EMPTY STATE IF 0 CHANNELS -->
+            <div 
+                v-else-if="!channels || channels.length === 0" 
+                class="w-full h-full flex flex-col items-center justify-center p-8 text-center select-none"
+            >
+                <div class="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4 shadow-lg">
+                    <VideoCameraSlashIcon class="w-8 h-8" />
+                </div>
+                <h2 class="text-lg font-black font-mono uppercase text-white mb-1 tracking-wider">
+                    Belum Ada Titik Kamera CCTV Terdaftar
+                </h2>
+                <p class="text-xs text-slate-400 font-mono max-w-md mb-5 leading-relaxed">
+                    Sistem belum mendeteksi konfigurasi kamera di database server. Klik tombol di bawah untuk membuat 6 titik kamera standar PT Jidoka.
+                </p>
+                <button 
+                    v-if="canManage"
+                    @click="initDefaultChannels"
+                    :disabled="isInitializing"
+                    class="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-mono text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-teal-700/30"
+                >
+                    <ArrowPathIcon class="w-4 h-4" :class="isInitializing ? 'animate-spin' : ''" />
+                    <span>Inisialisasi 6 Titik Kamera Default</span>
+                </button>
             </div>
 
             <!-- EXACT 3x2 GRID: 6 CAMERAS -->
