@@ -129,7 +129,7 @@ const fetchData = async (silent = false) => {
             labels: data.charts.weekly.labels,
             datasets: [
                 {
-                    label: 'Tepat Waktu',
+                    label: 'On-Time',
                     data: data.charts.weekly.present,
                     borderColor: 'rgb(16, 185, 129)',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
@@ -137,7 +137,7 @@ const fetchData = async (silent = false) => {
                     fill: true
                 },
                 {
-                    label: 'Terlambat',
+                    label: 'Late',
                     data: data.charts.weekly.late,
                     borderColor: 'rgb(245, 158, 11)',
                     backgroundColor: 'rgba(245, 158, 11, 0.1)',
@@ -145,7 +145,7 @@ const fetchData = async (silent = false) => {
                     fill: true
                 },
                 {
-                    label: 'Mangkir',
+                    label: 'Absent',
                     data: data.charts.weekly.absent,
                     borderColor: 'rgb(239, 68, 68)',
                     backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -217,7 +217,7 @@ const formatTimeString = (dateTime) => {
     <Head title="Smart Attendance Dashboard" />
 
     <AppLayout title="HR: Attendance Dashboard">
-        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-8 pb-24 text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-950/40 p-6 rounded-3xl border border-slate-200 dark:border-white/5 relative overflow-hidden shadow-xl shadow-slate-100 dark:shadow-none">
+        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6 pb-24 text-slate-800 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-950/40 p-6 rounded-3xl border border-slate-200 dark:border-white/5 relative overflow-hidden shadow-sm">
             <!-- Background lights -->
             <div class="absolute top-0 left-1/4 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none"></div>
             <div class="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -227,7 +227,7 @@ const formatTimeString = (dateTime) => {
                 <div class="flex items-center gap-4">
                     <Link 
                         :href="route('hr.attendance.index')"
-                        class="p-3 rounded-2xl bg-slate-150 dark:bg-white/5 border border-slate-250 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all hover:scale-105"
+                        class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm"
                     >
                         <ArrowLeftIcon class="h-5 w-5" />
                     </Link>
@@ -239,7 +239,7 @@ const formatTimeString = (dateTime) => {
 
                 <!-- Filters & Controls -->
                 <div class="flex flex-wrap items-center gap-3">
-                    <div class="relative flex items-center bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-2 text-sm text-slate-700 dark:text-slate-350">
+                    <div class="relative flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2 text-sm text-slate-700 dark:text-slate-300 shadow-sm">
                         <CalendarIcon class="w-4 h-4 text-indigo-500 dark:text-indigo-400 mr-2" />
                         <input 
                             v-model="filterDate" 
@@ -251,17 +251,16 @@ const formatTimeString = (dateTime) => {
                     <button 
                         @click="fetchData(true)" 
                         :disabled="isRefreshing"
-                        class="p-3 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
-                        title="Perbarui Data"
+                        class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                        title="Refresh Data"
                     >
                         <RefreshCwIcon class="w-4 h-4" :class="{ 'animate-spin': isRefreshing }" />
                     </button>
 
                     <Link 
                         :href="route('hr.attendance.index')"
-                        class="flex items-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-650 to-violet-600 hover:from-indigo-550 hover:to-violet-500 text-white rounded-2xl shadow-xl shadow-indigo-500/20 text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105"
+                        class="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-md shadow-indigo-600/20 text-xs font-bold uppercase tracking-wider transition-all"
                     >
-                        <List class="w-4 h-4" />
                         Attendance Logs
                     </Link>
                 </div>
@@ -269,70 +268,79 @@ const formatTimeString = (dateTime) => {
 
             <!-- Loading overlay -->
             <div v-if="isLoading" class="p-24 text-center space-y-4">
-                <div class="mx-auto w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Menganalisis Data Absensi...</p>
+                <div class="mx-auto w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Analyzing Attendance Data...</p>
             </div>
 
-            <div v-else class="space-y-8 z-10 relative">
+            <div v-else class="space-y-6 z-10 relative">
                 <!-- 4 Statistics Cards -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
                     <!-- Total Checked-In -->
-                    <div class="bg-white dark:bg-gradient-to-br dark:from-emerald-500/5 dark:to-teal-500/5 border border-emerald-500/20 dark:border-emerald-500/10 hover:border-emerald-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-emerald-500/5 dark:shadow-none">
-                        <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-emerald-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
+                    <div class="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/40 dark:hover:border-emerald-500/40 rounded-2xl p-5 transition-all duration-200 relative overflow-hidden group shadow-sm">
+                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-full blur-xl group-hover:scale-125 transition-transform pointer-events-none"></div>
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Hadir Tepat Waktu</span>
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                            <span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">On-Time Present</span>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                         </div>
-                        <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.present }}</span>
-                            <span class="text-xs text-slate-500 dark:text-slate-400">/ {{ summary.total_employees }} karyawan</span>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-white tracking-tight">{{ summary.present }}</span>
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">/ {{ summary.total_employees }} employees</span>
                         </div>
                     </div>
 
                     <!-- Total Late -->
-                    <div class="bg-white dark:bg-gradient-to-br dark:from-amber-500/5 dark:to-orange-500/5 border border-amber-500/20 dark:border-amber-500/10 hover:border-amber-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-amber-500/5 dark:shadow-none">
-                        <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-amber-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
-                        <span class="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest block">Terlambat Masuk</span>
-                        <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.late }}</span>
-                            <span class="text-xs text-slate-500 dark:text-slate-400">tercatat hari ini</span>
+                    <div class="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-amber-500/40 dark:hover:border-amber-500/40 rounded-2xl p-5 transition-all duration-200 relative overflow-hidden group shadow-sm">
+                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-amber-500/10 dark:bg-amber-500/15 rounded-full blur-xl group-hover:scale-125 transition-transform pointer-events-none"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Late Arrivals</span>
+                            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-white tracking-tight">{{ summary.late }}</span>
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">recorded today</span>
                         </div>
                     </div>
 
                     <!-- Sick / Leave -->
-                    <div class="bg-white dark:bg-gradient-to-br dark:from-indigo-500/5 dark:to-purple-500/5 border border-indigo-500/20 dark:border-indigo-500/10 hover:border-indigo-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-indigo-500/5 dark:shadow-none">
-                        <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-indigo-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
-                        <span class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block">Izin & Sakit</span>
-                        <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.leave }}</span>
-                            <span class="text-xs text-slate-500 dark:text-slate-400">tidak masuk</span>
+                    <div class="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 rounded-2xl p-5 transition-all duration-200 relative overflow-hidden group shadow-sm">
+                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-indigo-500/10 dark:bg-indigo-500/15 rounded-full blur-xl group-hover:scale-125 transition-transform pointer-events-none"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Leave & Sick</span>
+                            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-white tracking-tight">{{ summary.leave }}</span>
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">on approved leave</span>
                         </div>
                     </div>
 
                     <!-- Mangkir / Absent -->
-                    <div class="bg-white dark:bg-gradient-to-br dark:from-rose-500/5 dark:to-red-500/5 border border-rose-500/20 dark:border-rose-500/10 hover:border-rose-500/35 rounded-3xl p-6 transition-all duration-300 relative overflow-hidden group shadow-lg shadow-rose-500/5 dark:shadow-none">
-                        <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-rose-500/5 rounded-full group-hover:scale-110 transition-transform"></div>
-                        <span class="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest block">Belum Absen / Absent</span>
-                        <div class="mt-4 flex items-baseline gap-2">
-                            <span class="text-4xl font-black font-mono text-slate-950 dark:text-white">{{ summary.absent }}</span>
-                            <span class="text-xs text-slate-500 dark:text-slate-400">belum ada status</span>
+                    <div class="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-rose-500/40 dark:hover:border-rose-500/40 rounded-2xl p-5 transition-all duration-200 relative overflow-hidden group shadow-sm">
+                        <div class="absolute -right-6 -bottom-6 w-20 h-20 bg-rose-500/10 dark:bg-rose-500/15 rounded-full blur-xl group-hover:scale-125 transition-transform pointer-events-none"></div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Absent / Unrecorded</span>
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                        </div>
+                        <div class="mt-3 flex items-baseline gap-2">
+                            <span class="text-3xl sm:text-4xl font-black font-mono text-slate-900 dark:text-white tracking-tight">{{ summary.absent }}</span>
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">no clock-in yet</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Charts row -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <!-- Weekly line chart -->
-                    <div class="lg:col-span-8 bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm">
-                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 mb-6">Tren Kehadiran & Ketepatan Waktu (7 Hari)</h3>
+                    <div class="lg:col-span-8 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-6">Attendance & Punctuality Trends (7 Days)</h3>
                         <div class="h-[280px] w-full relative">
                             <Line v-if="lineChartData" :data="lineChartData" :options="lineChartOptions" />
                         </div>
                     </div>
 
                     <!-- Department pie chart -->
-                    <div class="lg:col-span-4 bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm flex flex-col">
-                        <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400 mb-6">Penyebaran Hadir Per Departemen</h3>
+                    <div class="lg:col-span-4 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col">
+                        <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-6">Attendance Distribution by Department</h3>
                         <div class="h-[240px] w-full relative flex-1">
                             <Doughnut v-if="doughnutChartData" :data="doughnutChartData" :options="doughnutChartOptions" />
                         </div>
@@ -340,29 +348,29 @@ const formatTimeString = (dateTime) => {
                 </div>
 
                 <!-- Recent Check-In List (Live feed) -->
-                <div class="bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/5 rounded-3xl p-6 md:p-8 shadow-sm">
-                    <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-white/5">
+                <div class="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-5 pb-3 border-b border-slate-200 dark:border-slate-800">
                         <div class="flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse"></span>
-                            <h3 class="text-xs font-black uppercase tracking-widest text-slate-550 dark:text-slate-400">Live Attendance Feed (Masuk & Keluar Hari Ini)</h3>
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                            <h3 class="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Live Attendance Feed (Today's Clock In & Out)</h3>
                         </div>
-                        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Diperbarui otomatis setiap 15 detik</span>
+                        <span class="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono">Auto-refreshed every 15 seconds</span>
                     </div>
 
                     <div v-if="recentLogs.length === 0" class="p-12 text-center text-slate-500 space-y-3">
                         <ClockIcon class="w-8 h-8 text-slate-400 dark:text-slate-600 mx-auto" />
-                        <p class="text-xs font-semibold">Belum ada aktivitas absensi tercatat untuk tanggal terpilih.</p>
+                        <p class="text-xs font-semibold">No attendance activity recorded for the selected date.</p>
                     </div>
 
-                    <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                         <div 
                             v-for="log in recentLogs" 
                             :key="log.id"
-                            class="p-4 bg-white dark:bg-white/2 hover:bg-slate-100 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 rounded-2xl flex items-center justify-between transition-all duration-300 shadow-sm"
+                            class="p-3.5 bg-slate-50/70 dark:bg-slate-950/40 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800/80 rounded-xl flex items-center justify-between transition-all duration-200"
                         >
                             <div class="flex items-center gap-3">
                                 <!-- Profile picture / initial avatar placeholder -->
-                                <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-600/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-sm shrink-0">
+                                <div class="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-600/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-xs shrink-0">
                                     {{ log.employee?.full_name ? log.employee.full_name.charAt(0).toUpperCase() : 'E' }}
                                 </div>
                                 <div class="space-y-0.5">
@@ -376,12 +384,12 @@ const formatTimeString = (dateTime) => {
                             <div class="text-right shrink-0">
                                 <div class="flex items-center justify-end gap-2.5">
                                     <div class="text-right">
-                                        <span class="text-[8px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-wider block leading-none mb-1">Masuk</span>
+                                        <span class="text-[8px] text-emerald-600 dark:text-emerald-400 uppercase font-black tracking-wider block leading-none mb-1">In</span>
                                         <span class="font-mono text-xs font-black text-slate-900 dark:text-white block leading-none">{{ formatTimeString(log.clock_in) }}</span>
                                     </div>
-                                    <div class="h-6 w-px bg-slate-200 dark:bg-white/10"></div>
+                                    <div class="h-5 w-px bg-slate-200 dark:bg-slate-800"></div>
                                     <div class="text-right">
-                                        <span class="text-[8px] uppercase font-black tracking-wider block leading-none mb-1" :class="log.clock_out ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'">Keluar</span>
+                                        <span class="text-[8px] uppercase font-black tracking-wider block leading-none mb-1" :class="log.clock_out ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'">Out</span>
                                         <span class="font-mono text-xs font-black block leading-none" :class="log.clock_out ? 'text-cyan-600 dark:text-cyan-300' : 'text-slate-400 dark:text-slate-600'">
                                             {{ log.clock_out ? formatTimeString(log.clock_out) : '--:--' }}
                                         </span>
@@ -389,16 +397,16 @@ const formatTimeString = (dateTime) => {
                                 </div>
                                 <div class="flex items-center justify-end gap-1.5 mt-1.5">
                                     <span 
-                                        class="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase inline-block"
-                                        :class="log.status === 'present' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-455 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-455 border border-amber-500/20'"
+                                        class="px-2 py-0.5 rounded-md text-[8px] font-bold uppercase inline-block"
+                                        :class="log.status === 'present' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'"
                                     >
-                                        {{ log.status === 'present' ? 'Tepat' : 'Lambat' }}
+                                        {{ log.status === 'present' ? 'On-Time' : 'Late' }}
                                     </span>
                                     <span 
                                         v-if="log.clock_out"
-                                        class="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase inline-block bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20"
+                                        class="px-2 py-0.5 rounded-md text-[8px] font-bold uppercase inline-block bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20"
                                     >
-                                        Pulang
+                                        Clocked Out
                                     </span>
                                 </div>
                             </div>

@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use App\Models\HR\AttendanceRequest;
 use App\Models\HR\OvertimeRequest;
 use App\Models\PayrollSetting;
@@ -55,6 +56,10 @@ class AttendanceController extends Controller
             'attendances' => $query->paginate(15)->withQueryString(),
             'attendanceRequests' => $requestsQuery->paginate(10, ['*'], 'requests_page')->withQueryString(),
             'departments' => Department::all(),
+            'employees' => Employee::where('is_active', true)
+                ->with('department:id,name')
+                ->orderBy('full_name')
+                ->get(['id', 'nik', 'full_name', 'department_id']),
             'filters' => $request->only(['search', 'date', 'status']),
         ]);
     }
@@ -184,6 +189,7 @@ class AttendanceController extends Controller
 
     public function getDashboardData(Request $request)
     {
+        $lang = $request->query('lang', 'en');
         $date = $request->date ?: Carbon::today('Asia/Jakarta')->toDateString();
         $totalActive = Employee::where('is_active', true)->count();
         
@@ -210,7 +216,7 @@ class AttendanceController extends Controller
 
         for ($i = 6; $i >= 0; $i--) {
             $dayDate = Carbon::parse($date)->subDays($i)->toDateString();
-            $dayLabel = Carbon::parse($dayDate)->locale('id')->isoFormat('dddd');
+            $dayLabel = Carbon::parse($dayDate)->locale($lang)->isoFormat('dddd');
             
             $dayAttendances = Attendance::where('date', $dayDate)->get();
             $pres = $dayAttendances->where('status', 'present')->count();
@@ -243,7 +249,7 @@ class AttendanceController extends Controller
         }
 
         if (empty($deptLabels)) {
-            $deptLabels[] = 'Belum Ada';
+            $deptLabels[] = $lang === 'en' ? 'None' : 'Belum Ada';
             $deptCounts[] = 0;
         }
 
@@ -251,9 +257,17 @@ class AttendanceController extends Controller
         $startOfMonth = Carbon::parse($date)->startOfMonth()->toDateString();
         $endOfMonth = Carbon::parse($date)->endOfMonth()->toDateString();
 
-        // 1. Top Disciplined (Highest on-time check-ins this month)
+        // 1. Employees with disciplinary violations this month (late or absent)
+        // STRICT RULE: Anyone who has arrived late or was absent/mangkir is DISQUALIFIED from Top Disciplined (Clean Sheet requirement)
+        $disqualifiedEmployeeIds = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])
+            ->whereIn('status', ['late', 'absent'])
+            ->distinct()
+            ->pluck('employee_id');
+
+        // 1. Top Disciplined (Clean Sheet: 100% on-time, 0 late, 0 absent)
         $topDisciplined = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])
             ->where('status', 'present')
+            ->whereNotIn('employee_id', $disqualifiedEmployeeIds)
             ->select('employee_id', \DB::raw('COUNT(*) as on_time_count'))
             ->groupBy('employee_id')
             ->orderByDesc('on_time_count')
@@ -264,13 +278,12 @@ class AttendanceController extends Controller
                 $totalAtt = Attendance::where('employee_id', $att->employee_id)
                     ->whereBetween('date', [$startOfMonth, $endOfMonth])
                     ->count();
-                $punctualityRate = $totalAtt > 0 ? round(($att->on_time_count / $totalAtt) * 100, 1) : 100;
                 return [
                     'rank' => $idx + 1,
                     'employee' => $att->employee,
                     'on_time_count' => (int) $att->on_time_count,
                     'total_attendance' => (int) $totalAtt,
-                    'punctuality_rate' => $punctualityRate,
+                    'punctuality_rate' => 100.0,
                     'streak_days' => min((int) $att->on_time_count, 30),
                 ];
             });
@@ -294,7 +307,75 @@ class AttendanceController extends Controller
                 ];
             });
 
-        // 3. Department punctuality rankings
+        // 3. Top Absent / Lowest Attendance (Monitoring Karyawan Paling Jarang Masuk & Mangkir)
+        $period = CarbonPeriod::create($startOfMonth, $date);
+        $workingDays = 0;
+        foreach ($period as $dt) {
+            if (!$dt->isWeekend()) {
+                $workingDays++;
+            }
+        }
+        $workingDays = max(1, $workingDays);
+
+        $activeEmployees = Employee::where('is_active', true)
+            ->where(function($q) use ($date) {
+                $q->whereNull('joining_date')->orWhere('joining_date', '<=', $date);
+            })
+            ->with('department')
+            ->get();
+
+        $monthAttendances = Attendance::whereBetween('date', [$startOfMonth, $date])
+            ->get()
+            ->groupBy('employee_id');
+
+        $absentList = collect();
+
+        foreach ($activeEmployees as $emp) {
+            $empLogs = $monthAttendances->get($emp->id, collect());
+            $presentCount = $empLogs->where('status', 'present')->count();
+            $lateCount = $empLogs->where('status', 'late')->count();
+            $leaveCount = $empLogs->whereIn('status', ['leave', 'sick'])->count();
+            $explicitAbsent = $empLogs->where('status', 'absent')->count();
+
+            $attendedDays = $presentCount + $lateCount;
+            $unattendedDays = max(0, $workingDays - ($attendedDays + $leaveCount)) + $explicitAbsent;
+            $attendanceRate = round(($attendedDays / $workingDays) * 100, 1);
+
+            if ($unattendedDays > 0) {
+                $absentList->push([
+                    'employee' => $emp,
+                    'unattended_days' => $unattendedDays,
+                    'attended_days' => $attendedDays,
+                    'working_days' => $workingDays,
+                    'attendance_rate' => $attendanceRate,
+                    'explicit_absent' => $explicitAbsent,
+                    'leave_days' => $leaveCount,
+                ]);
+            }
+        }
+
+        $topAbsent = $absentList->sort(function($a, $b) {
+            if ($b['explicit_absent'] !== $a['explicit_absent']) {
+                return $b['explicit_absent'] <=> $a['explicit_absent'];
+            }
+            if ($b['unattended_days'] !== $a['unattended_days']) {
+                return $b['unattended_days'] <=> $a['unattended_days'];
+            }
+            return $a['attendance_rate'] <=> $b['attendance_rate'];
+        })->take(6)->values()->map(function($item, $idx) {
+            return [
+                'rank' => $idx + 1,
+                'employee' => $item['employee'],
+                'absent_days' => (int) $item['unattended_days'],
+                'attended_days' => (int) $item['attended_days'],
+                'working_days' => (int) $item['working_days'],
+                'attendance_rate' => (float) $item['attendance_rate'],
+                'explicit_absent' => (int) $item['explicit_absent'],
+                'leave_days' => (int) $item['leave_days'],
+            ];
+        });
+
+        // 4. Department punctuality rankings
         $deptRankings = [];
         foreach ($departments as $dept) {
             $totalDeptAtt = Attendance::whereBetween('date', [$startOfMonth, $endOfMonth])
@@ -322,15 +403,56 @@ class AttendanceController extends Controller
 
         $k3Stats = [
             'zero_accident_days' => $zeroAccidentDays,
-            'zero_accident_since' => Carbon::parse($zeroAccidentBaseDate)->locale('id')->isoFormat('D MMMM Y'),
+            'zero_accident_since' => Carbon::parse($zeroAccidentBaseDate)->locale($lang)->isoFormat('D MMMM Y'),
             'zero_accident_since_raw' => $zeroAccidentBaseDate,
             'safety_hotline' => PayrollSetting::getByKey('kiosk_safety_hotline', 'Ext. 119 / 0812-9988-7711'),
-            'safety_officer' => PayrollSetting::getByKey('kiosk_safety_officer', 'Tim K3 & HSE PT. Jidoka'),
-            'total_safe_hours' => number_format($zeroAccidentDays * 8 * max(1, $totalActive), 0, ',', '.'),
+            'safety_officer' => PayrollSetting::getByKey('kiosk_safety_officer', $lang === 'en' ? 'HSE & Safety Team PT. Jidoka' : 'Tim K3 & HSE PT. Jidoka'),
+            'total_safe_hours' => number_format($zeroAccidentDays * 8 * max(1, $totalActive), 0, '.', $lang === 'id' ? '.' : ','),
         ];
 
         // Official Announcements (Default resmi pabrik & industri)
-        $defaultAnnouncements = [
+        $defaultAnnouncements = $lang === 'en' ? [
+            [
+                'id' => 1,
+                'title' => 'Workplace Safety Audit & Factory 5S Implementation',
+                'category' => 'HSE & Safety',
+                'badge_color' => 'emerald',
+                'issuer' => 'HSE & Environmental Committee',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(2)->format('d M Y'),
+                'is_pinned' => true,
+                'content' => 'All workstations, production lines, and warehouses are required to comply with the 5S protocol (Sort, Set In Order, Shine, Standardize, Sustain). Cleanliness audits and PPE compliance inspections are conducted at the start of each shift.',
+            ],
+            [
+                'id' => 2,
+                'title' => 'Mandatory PPE Guidelines in Workshop & Production Zones',
+                'category' => 'MANDATORY SOP',
+                'badge_color' => 'rose',
+                'issuer' => 'HSE Department',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(5)->format('d M Y'),
+                'is_pinned' => true,
+                'content' => 'All personnel and visitors entering workshop, machining, and fabrication areas MUST wear a Safety Helmet, Steel-Toe Safety Shoes, High-Visibility Vest, and Protective Safety Glasses.',
+            ],
+            [
+                'id' => 3,
+                'title' => 'HR Self-Service Portal & Online Leave Requests on JICOS ERP',
+                'category' => 'HR NOTICE',
+                'badge_color' => 'cyan',
+                'issuer' => 'Human Resources & GA',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(8)->format('d M Y'),
+                'is_pinned' => false,
+                'content' => 'Annual leave, medical sick leave, and official travel requests are now processed 100% digitally through the employee ERP portal. Please submit forms at least 3 days in advance.',
+            ],
+            [
+                'id' => 4,
+                'title' => 'Precision Tool Calibration & Preventive Machinery Maintenance',
+                'category' => 'AGENDA',
+                'badge_color' => 'indigo',
+                'issuer' => 'Engineering & Maintenance',
+                'date' => Carbon::today('Asia/Jakarta')->subDays(12)->format('d M Y'),
+                'is_pinned' => false,
+                'content' => 'Scheduled preventive maintenance and sensor calibration will take place on the second Saturday of the month. Please coordinate with line supervisors regarding operational downtime.',
+            ],
+        ] : [
             [
                 'id' => 1,
                 'title' => 'Audit Keselamatan Kerja & Pelaksanaan 5R Pabrik',
@@ -378,7 +500,9 @@ class AttendanceController extends Controller
 
         $runningText = PayrollSetting::getByKey(
             'kiosk_running_text',
-            '⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI'
+            $lang === 'en'
+                ? '⚠️ PRIORITIZE OCCUPATIONAL HEALTH & SAFETY (HSE) • ZERO ACCIDENT IS OUR TARGET • PRACTICE 5S: SORT, SET IN ORDER, SHINE, STANDARDIZE, SUSTAIN • WORK WITH FOCUS, DISCIPLINE, AND HIGH INTEGRITY'
+                : '⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI'
         );
 
         // Kiosk schedule settings
@@ -418,6 +542,7 @@ class AttendanceController extends Controller
             'leaderboard' => [
                 'top_disciplined' => $topDisciplined,
                 'top_late' => $topLate,
+                'top_absent' => $topAbsent,
                 'dept_rankings' => $deptRankings,
             ],
             'k3_stats' => $k3Stats,
@@ -514,7 +639,7 @@ class AttendanceController extends Controller
             return response()->json([
                 'success' => true,
                 'status' => 'ignored',
-                'message' => 'Absensi sudah tercatat baru-baru ini.',
+                'message' => 'Attendance already recorded recently.',
                 'employee' => $employee,
                 'attendance' => $recent
             ]);
@@ -562,7 +687,7 @@ class AttendanceController extends Controller
                         return response()->json([
                             'success' => false,
                             'status' => 'rejected_schedule',
-                            'message' => 'Maaf, hari ini bukan jadwal kerja Anda dan tidak ada SPL (Surat Perintah Lembur) yang disetujui.',
+                            'message' => 'Sorry, today is not your scheduled workday and no approved Overtime Request (SPL) was found.',
                             'employee' => $employee
                         ]);
                     }
@@ -579,7 +704,7 @@ class AttendanceController extends Controller
                 return response()->json([
                     'success' => false,
                     'status' => 'too_early_in',
-                    'message' => 'Terlalu awal untuk absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', absen masuk dibuka mulai pukul ' . $earliestIn->format('H:i') . ' WIB.',
+                    'message' => 'Too early to clock in. Your scheduled shift starts at ' . $standardStartTime->format('H:i') . ', check-in opens at ' . $earliestIn->format('H:i') . ' WIB.',
                     'employee' => $employee
                 ]);
             }
@@ -588,7 +713,7 @@ class AttendanceController extends Controller
                 return response()->json([
                     'success' => false,
                     'status' => 'too_late_in',
-                    'message' => 'Sudah melewati batas waktu absen masuk. Jam masuk Anda: ' . $standardStartTime->format('H:i') . ', batas akhir absen pukul ' . $latestIn->format('H:i') . ' WIB.',
+                    'message' => 'Clock-in deadline exceeded. Your scheduled shift started at ' . $standardStartTime->format('H:i') . ', cutoff was at ' . $latestIn->format('H:i') . ' WIB.',
                     'employee' => $employee
                 ]);
             }
@@ -598,7 +723,7 @@ class AttendanceController extends Controller
                 return response()->json([
                     'success' => true,
                     'status' => 'ignored',
-                    'message' => 'Anda sudah melakukan absen masuk (' . Carbon::parse($attendance->clock_in, 'Asia/Jakarta')->format('H:i') . ') dan absen pulang (' . Carbon::parse($attendance->clock_out, 'Asia/Jakarta')->format('H:i') . ') hari ini.',
+                    'message' => 'You have already completed clock-in (' . Carbon::parse($attendance->clock_in, 'Asia/Jakarta')->format('H:i') . ') and clock-out (' . Carbon::parse($attendance->clock_out, 'Asia/Jakarta')->format('H:i') . ') today.',
                     'employee' => $employee,
                     'attendance' => $attendance
                 ]);
@@ -615,7 +740,7 @@ class AttendanceController extends Controller
                 return response()->json([
                     'success' => false,
                     'status' => 'too_early_out',
-                    'message' => "Minimal jam kerja belum terpenuhi. Anda baru absen masuk pukul {$clockInTime->format('H:i')} WIB ({$hoursWorked} jam yang lalu). Minimal durasi kerja adalah {$minWorkHours} jam.",
+                    'message' => "Minimum work hours not met. You clocked in at {$clockInTime->format('H:i')} WIB ({$hoursWorked} hours ago). Minimum required duration is {$minWorkHours} hours.",
                     'employee' => $employee
                 ]);
             }
@@ -628,7 +753,7 @@ class AttendanceController extends Controller
                 return response()->json([
                     'success' => false,
                     'status' => 'too_early_out',
-                    'message' => "Belum waktunya absen pulang. Jam pulang Anda: {$standardEndTime->format('H:i')} WIB. Absen pulang dibuka mulai pukul {$earliestOut->format('H:i')} WIB.",
+                    'message' => "Too early to clock out. Your shift ends at {$standardEndTime->format('H:i')} WIB. Clock-out opens at {$earliestOut->format('H:i')} WIB.",
                     'employee' => $employee
                 ]);
             }
@@ -688,7 +813,7 @@ class AttendanceController extends Controller
                 'penalty_late_minutes' => $penaltyLateMinutes,
             ]);
             $action = 'clock_in';
-            $message = "Absen masuk berhasil. Selamat pagi {$employee->full_name}, selamat bekerja!";
+            $message = "Clock-in successful. Good morning {$employee->full_name}, have a productive workday!";
         } else {
             // Clock Out
             if (empty($attendance->clock_out)) {
@@ -714,12 +839,12 @@ class AttendanceController extends Controller
                     'overtime_minutes' => $overtimeMinutes,
                 ]);
                 $action = 'clock_out';
-                $message = "Absen pulang berhasil. Terima kasih {$employee->full_name}, hati-hati di jalan!";
+                $message = "Clock-out successful. Thank you {$employee->full_name}, have a safe trip home!";
             } else {
                 return response()->json([
                     'success' => true,
                     'status' => 'ignored',
-                    'message' => 'Anda sudah melakukan absen masuk dan pulang hari ini.',
+                    'message' => 'You have already completed check-in and check-out for today.',
                     'employee' => $employee,
                     'attendance' => $attendance
                 ]);

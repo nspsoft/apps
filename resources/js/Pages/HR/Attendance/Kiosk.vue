@@ -57,7 +57,7 @@ const videoRef = ref(null);
 const canvasRef = ref(null);
 const stream = ref(null);
 const modelsLoaded = ref(false);
-const statusMessage = ref('Memuat modul kecerdasan buatan...');
+const statusMessage = ref('Loading AI facial recognition modules...');
 const isScanning = ref(false);
 const showSuccessOverlay = ref(false);
 const showWarningOverlay = ref(false);
@@ -82,8 +82,8 @@ const currentTimeStr = ref('');
 const currentDateStr = ref('');
 const updateClock = () => {
     const now = new Date();
-    currentTimeStr.value = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':') + ' WIB';
-    currentDateStr.value = now.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    currentTimeStr.value = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
+    currentDateStr.value = now.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 // Slider and Scheduler State
@@ -116,7 +116,7 @@ const activeSettingsTab = ref('schedule');
 const k3Form = ref({
     zero_accident_since: '2026-05-15',
     safety_hotline: 'Ext. 119 / 0812-9988-7711',
-    safety_officer: 'Tim K3 & HSE PT. Jidoka',
+    safety_officer: 'HSE & Safety Team PT. Jidoka',
     running_text: ''
 });
 
@@ -125,22 +125,22 @@ const isEditingAnnouncement = ref(false);
 const announcementForm = ref({
     id: null,
     title: '',
-    category: 'K3 & HSE',
+    category: 'HSE & Safety',
     badge_color: 'emerald',
-    issuer: 'Panitia K3 & Lingkungan',
+    issuer: 'HSE & Safety Committee',
     date: '',
     is_pinned: false,
     content: ''
 });
 
 const openNewAnnouncementForm = () => {
-    const todayStr = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
+    const todayStr = new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
     announcementForm.value = {
         id: Date.now(),
         title: '',
-        category: 'K3 & HSE',
+        category: 'HSE & Safety',
         badge_color: 'emerald',
-        issuer: 'Tim K3 & HSE',
+        issuer: 'HSE & Safety Team',
         date: todayStr,
         is_pinned: false,
         content: ''
@@ -160,10 +160,11 @@ const cancelAnnouncementForm = () => {
 const saveAnnouncementItem = () => {
     if (!announcementForm.value.title.trim()) return;
     
-    if (announcementForm.value.category === 'K3 & HSE') announcementForm.value.badge_color = 'emerald';
-    else if (announcementForm.value.category === 'SOP WAJIB') announcementForm.value.badge_color = 'rose';
-    else if (announcementForm.value.category === 'INFORMASI HR') announcementForm.value.badge_color = 'cyan';
-    else if (announcementForm.value.category === 'AGENDA') announcementForm.value.badge_color = 'indigo';
+    const cat = (announcementForm.value.category || '').toUpperCase();
+    if (cat.includes('HSE') || cat.includes('K3')) announcementForm.value.badge_color = 'emerald';
+    else if (cat.includes('SOP')) announcementForm.value.badge_color = 'rose';
+    else if (cat.includes('HR') || cat.includes('INFORMASI')) announcementForm.value.badge_color = 'cyan';
+    else if (cat.includes('AGENDA')) announcementForm.value.badge_color = 'indigo';
 
     const idx = announcements.value.findIndex(a => a.id === announcementForm.value.id);
     if (idx !== -1) {
@@ -203,24 +204,33 @@ const doughnutChartData = ref(null);
 const leaderboardData = ref({
     top_disciplined: [],
     top_late: [],
+    top_absent: [],
     dept_rankings: []
 });
 
 const k3Stats = ref({
     zero_accident_days: 140,
-    zero_accident_since: '15 Mei 2026',
+    zero_accident_since: '15 May 2026',
     safety_hotline: 'Ext. 119 / 0812-9988-7711',
-    safety_officer: 'Tim K3 & HSE PT. Jidoka',
-    total_safe_hours: '15.680',
+    safety_officer: 'HSE & Safety Team PT. Jidoka',
+    total_safe_hours: '15,680',
 });
 const announcements = ref([]);
-const runningText = ref('⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI');
+const runningText = ref('⚠️ PRIORITIZE OCCUPATIONAL HEALTH & SAFETY (HSE) • ZERO ACCIDENT IS OUR TARGET • PRACTICE 5S: SORT, SET IN ORDER, SHINE, STANDARDIZE, SUSTAIN • WORK WITH FOCUS, DISCIPLINE, AND HIGH INTEGRITY');
 const activeK3Tab = ref('5r'); // '5r' | 'apd'
 const selectedAnnouncementCategory = ref('all');
 
 const filteredAnnouncements = computed(() => {
     if (selectedAnnouncementCategory.value === 'all') return announcements.value;
-    return announcements.value.filter(a => a.category === selectedAnnouncementCategory.value);
+    const target = selectedAnnouncementCategory.value.toUpperCase();
+    return announcements.value.filter(a => {
+        const cat = (a.category || '').toUpperCase();
+        if (target.includes('HSE') || target.includes('K3')) return cat.includes('HSE') || cat.includes('K3');
+        if (target.includes('SOP')) return cat.includes('SOP');
+        if (target.includes('HR')) return cat.includes('HR') || cat.includes('INFORMASI');
+        if (target.includes('AGENDA')) return cat.includes('AGENDA');
+        return cat === target;
+    });
 });
 
 let statsInterval = null;
@@ -296,13 +306,13 @@ const playChime = () => {
 const speakAnnouncement = (name, action) => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const text = action === 'clock_in' ? 'Silahkan Masuk' : 'Sampai Jumpa';
+    const text = action === 'clock_in' ? 'Welcome, please enter' : 'Have a safe trip home';
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'id-ID';
+    utterance.lang = 'en-US';
     utterance.rate = 1.0;
     const voices = window.speechSynthesis.getVoices();
-    const idVoice = voices.find(voice => voice.lang.includes('id') || voice.lang.includes('ID'));
-    if (idVoice) utterance.voice = idVoice;
+    const enVoice = voices.find(voice => voice.lang.includes('en') || voice.lang.includes('US') || voice.lang.includes('GB'));
+    if (enVoice) utterance.voice = enVoice;
     window.speechSynthesis.speak(utterance);
 };
 
@@ -335,12 +345,12 @@ const playWarningChime = () => {
 const speakWarning = () => {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance('Silahkan Coba lagi');
-    utterance.lang = 'id-ID';
+    const utterance = new SpeechSynthesisUtterance('Please try again');
+    utterance.lang = 'en-US';
     utterance.rate = 1.0;
     const voices = window.speechSynthesis.getVoices();
-    const idVoice = voices.find(voice => voice.lang.includes('id') || voice.lang.includes('ID'));
-    if (idVoice) utterance.voice = idVoice;
+    const enVoice = voices.find(voice => voice.lang.includes('en') || voice.lang.includes('US') || voice.lang.includes('GB'));
+    if (enVoice) utterance.voice = enVoice;
     window.speechSynthesis.speak(utterance);
 };
 
@@ -358,14 +368,14 @@ const loadModels = async () => {
     
     for (const modelPath of candidatePaths) {
         try {
-            statusMessage.value = `Memuat modul AI dari ${modelPath}...`;
+            statusMessage.value = `Loading AI models from ${modelPath}...`;
             await Promise.all([
                 faceapi.nets.tinyFaceDetector.loadFromUri(modelPath),
                 faceapi.nets.faceLandmark68Net.loadFromUri(modelPath),
                 faceapi.nets.faceRecognitionNet.loadFromUri(modelPath)
             ]);
             modelsLoaded.value = true;
-            statusMessage.value = 'Modul AI siap.';
+            statusMessage.value = 'AI modules ready.';
             checkScheduleMode();
             return;
         } catch (e) {
@@ -373,7 +383,7 @@ const loadModels = async () => {
         }
     }
     
-    statusMessage.value = 'GAGAL MEMUAT MODUL KECERDASAN BUATAN';
+    statusMessage.value = 'FAILED TO LOAD AI MODULE';
     modelLoadFailed.value = true;
     console.error('All model paths exhausted.');
 };
@@ -386,13 +396,13 @@ const startVideo = async () => {
         await nextTick();
         if (videoRef.value) {
             videoRef.value.srcObject = currentStream;
-            statusMessage.value = 'Scanner aktif. Silakan berdiri menghadap kamera.';
+            statusMessage.value = 'Scanner active. Please stand facing the camera.';
             isScanning.value = true;
             startScanningLoop();
         }
     } catch (err) {
         console.error('Camera access failed:', err);
-        statusMessage.value = 'Gagal mengakses kamera. Periksa izin perangkat.';
+        statusMessage.value = 'Failed to access camera. Check device permissions.';
     }
 };
 
@@ -470,7 +480,7 @@ const startScanningLoop = () => {
                         
                         const lastScan = scannedCooldown.value[bestMatch.id] || 0;
                         if (nowTs - lastScan < COOLDOWN_MS) {
-                            cooldownNotice.value = `SUDAH ABSEN: ${bestMatch.full_name}`;
+                            cooldownNotice.value = `ALREADY RECORDED: ${bestMatch.full_name}`;
                             setTimeout(() => { cooldownNotice.value = ''; }, 2500);
                             return;
                         }
@@ -479,7 +489,7 @@ const startScanningLoop = () => {
                     } else {
                         lastMatchId = bestMatch.id;
                         lastMatchTimestamp = nowTs;
-                        statusMessage.value = `Memverifikasi: ${bestMatch.full_name}...`;
+                        statusMessage.value = `Verifying: ${bestMatch.full_name}...`;
                     }
                 } else {
                     if (Date.now() - lastMatchTimestamp > STABILITY_WINDOW_MS) {
@@ -513,8 +523,8 @@ const registerKioskClock = async (employeeId) => {
             successData.value = {
                 name: payload.employee.full_name,
                 nik: payload.employee.nik,
-                department: payload.employee.department?.name || 'Umum',
-                time: new Date(payload.attendance.clock_in || payload.attendance.clock_out).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') + ' WIB',
+                department: payload.employee.department?.name || 'General',
+                time: new Date(payload.attendance.clock_in || payload.attendance.clock_out).toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }) + ' WIB',
                 avatar: payload.employee.profile_picture ? `/storage/${payload.employee.profile_picture}` : null,
                 action: payload.status
             };
@@ -547,7 +557,7 @@ const registerKioskClock = async (employeeId) => {
             }, 2500);
         } else if (payload.success === false) {
             warningData.value = {
-                message: payload.message || 'Absensi ditolak oleh sistem.',
+                message: payload.message || 'Attendance rejected by system.',
                 status: payload.status || 'rejected'
             };
             showWarningOverlay.value = true;
@@ -565,7 +575,7 @@ const registerKioskClock = async (employeeId) => {
         console.error('Kiosk Clock registration failed:', e);
         if (e.response && e.response.data && e.response.data.success === false) {
             warningData.value = {
-                message: e.response.data.message || 'Absensi ditolak oleh sistem.',
+                message: e.response.data.message || 'Attendance rejected by system.',
                 status: e.response.data.status || 'rejected'
             };
             showWarningOverlay.value = true;
@@ -586,7 +596,7 @@ const fetchStats = async () => {
     try {
         filterDate.value = getLocalDateString();
         const res = await axios.get(route('hr.attendance.dashboard-data'), {
-            params: { date: filterDate.value }
+            params: { date: filterDate.value, lang: 'en' }
         });
         const data = res.data;
         summary.value = data.summary;
@@ -622,7 +632,7 @@ const fetchStats = async () => {
             labels: data.charts.weekly.labels,
             datasets: [
                 {
-                    label: 'Hadir',
+                    label: 'Present',
                     data: data.charts.weekly.present,
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.08)',
@@ -630,7 +640,7 @@ const fetchStats = async () => {
                     fill: true
                 },
                 {
-                    label: 'Terlambat',
+                    label: 'Late',
                     data: data.charts.weekly.late,
                     borderColor: '#f59e0b',
                     backgroundColor: 'rgba(245, 158, 11, 0.08)',
@@ -804,7 +814,7 @@ const saveSettings = async () => {
         };
         const res = await axios.post(route('hr.attendance.kiosk-settings'), payload);
         if (res.data.success) {
-            settingsSaveNotice.value = 'Pengaturan berhasil diperbarui!';
+            settingsSaveNotice.value = 'Settings updated successfully!';
             setTimeout(() => {
                 showSettingsModal.value = false;
                 settingsSaveNotice.value = '';
@@ -813,7 +823,7 @@ const saveSettings = async () => {
         }
     } catch (e) {
         console.error('Failed to save kiosk settings:', e);
-        settingsSaveNotice.value = 'Gagal menyimpan pengaturan.';
+        settingsSaveNotice.value = 'Failed to save settings.';
     } finally {
         isSavingSettings.value = false;
     }
@@ -841,12 +851,12 @@ onUnmounted(() => {
 
 const formatTimeString = (dateTime) => {
     if (!dateTime) return '--:--';
-    return new Date(dateTime).toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':') + ' WIB';
+    return new Date(dateTime).toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' }) + ' WIB';
 };
 </script>
 
 <template>
-    <Head title="Smart Attendance Kiosk - Layar Lobi 32&quot;" />
+    <Head title="Smart Attendance Kiosk - 32&quot; Lobby Display" />
 
     <!-- Pure standalone full screen view for 32" Display -->
     <div class="fixed inset-0 z-[9999] bg-slate-950 text-slate-100 flex flex-col font-sans select-none overflow-hidden h-screen w-screen">
@@ -861,7 +871,7 @@ const formatTimeString = (dateTime) => {
                 <Link 
                     :href="route('hr.attendance.dashboard')"
                     class="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white transition active:scale-95 flex items-center justify-center shadow-sm"
-                    title="Kembali ke Dashboard HR"
+                    title="Back to HR Dashboard"
                 >
                     <ArrowLeft class="w-5 h-5" />
                 </Link>
@@ -873,7 +883,7 @@ const formatTimeString = (dateTime) => {
                         </h1>
                         <span class="text-[9px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-bold uppercase">32&quot; PRO DISPLAY</span>
                     </div>
-                    <p class="text-[10px] text-slate-400 font-semibold tracking-wider mt-0.5">Sistem Pemindai Wajah AI & Papan Akuntabilitas Disiplin</p>
+                    <p class="text-[10px] text-slate-400 font-semibold tracking-wider mt-0.5">AI Face Recognition System & Discipline Accountability Board</p>
                 </div>
             </div>
 
@@ -887,7 +897,7 @@ const formatTimeString = (dateTime) => {
                         :class="activeSlide === 'camera' ? 'bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]' : 'text-slate-400 hover:text-white hover:bg-white/5'"
                     >
                         <Camera class="w-4 h-4" />
-                        <span>📷 Scanner Absensi</span>
+                        <span>📷 Attendance Scanner</span>
                     </button>
 
                     <button 
@@ -896,7 +906,7 @@ const formatTimeString = (dateTime) => {
                         :class="activeSlide === 'leaderboard' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.4)]' : 'text-slate-400 hover:text-white hover:bg-white/5'"
                     >
                         <Trophy class="w-4 h-4" />
-                        <span>🏆 Leaderboard & Evaluasi</span>
+                        <span>🏆 Leaderboard & Evaluation</span>
                     </button>
 
                     <button 
@@ -905,7 +915,7 @@ const formatTimeString = (dateTime) => {
                         :class="activeSlide === 'announcements' ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.4)]' : 'text-slate-400 hover:text-white hover:bg-white/5'"
                     >
                         <Megaphone class="w-4 h-4" />
-                        <span>📢 Pengumuman & K3</span>
+                        <span>📢 Announcements & Safety</span>
                     </button>
                 </div>
 
@@ -916,21 +926,21 @@ const formatTimeString = (dateTime) => {
                         class="flex items-center gap-1.5 text-amber-400 font-black uppercase tracking-wider"
                     >
                         <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                        ⚡ Jam Sibuk (Kamera Aktif)
+                        ⚡ Peak Hours (Camera Active)
                     </span>
                     <span 
                         v-else-if="!isPeakHour && kioskSettings.schedule_mode === 'auto' && activeSlide === 'camera'"
                         class="flex items-center gap-1.5 text-cyan-300 font-black uppercase tracking-wider"
                     >
                         <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                        ⏳ Scanner Aktif Sementara ({{ cameraManualRemainingSeconds }}s)
+                        ⏳ Temporary Scanner Active ({{ cameraManualRemainingSeconds }}s)
                     </span>
                     <span 
                         v-else-if="!isPeakHour && kioskSettings.schedule_mode === 'auto'"
                         class="flex items-center gap-1.5 text-slate-300 font-medium"
                     >
                         <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                        <span>💤 Luar Jam Sibuk (Kamera Standby)</span>
+                        <span>💤 Off-Peak Hours (Camera Standby)</span>
                     </span>
                     <span v-else class="text-slate-400">
                         Mode: <span class="text-white uppercase font-bold">{{ kioskSettings.schedule_mode.replace('_', ' ') }}</span>
@@ -949,7 +959,7 @@ const formatTimeString = (dateTime) => {
                 <button 
                     @click="showSettingsModal = true"
                     class="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition active:scale-95 shadow-sm"
-                    title="Pengaturan Jam Tayang Kiosk"
+                    title="Kiosk Display & Schedule Settings"
                 >
                     <Settings class="w-5 h-5" />
                 </button>
@@ -981,7 +991,7 @@ const formatTimeString = (dateTime) => {
                         <div class="grid grid-cols-3 gap-3 shrink-0">
                             <!-- Hadir Tepat -->
                             <div class="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-3 shadow-lg relative overflow-hidden">
-                                <span class="text-[9px] font-black text-emerald-400 uppercase tracking-wider block">Hadir Tepat</span>
+                                <span class="text-[9px] font-black text-emerald-400 uppercase tracking-wider block">On Time</span>
                                 <div class="mt-1 flex items-baseline gap-1">
                                     <span class="text-2xl font-black font-mono text-white">{{ summary.present }}</span>
                                     <span class="text-[9px] text-slate-400">/ {{ summary.total_employees }}</span>
@@ -991,7 +1001,7 @@ const formatTimeString = (dateTime) => {
 
                             <!-- Terlambat -->
                             <div class="bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-2xl p-3 shadow-lg relative overflow-hidden">
-                                <span class="text-[9px] font-black text-amber-400 uppercase tracking-wider block">Terlambat</span>
+                                <span class="text-[9px] font-black text-amber-400 uppercase tracking-wider block">Late</span>
                                 <div class="mt-1">
                                     <span class="text-2xl font-black font-mono text-white">{{ summary.late }}</span>
                                 </div>
@@ -1000,7 +1010,7 @@ const formatTimeString = (dateTime) => {
 
                             <!-- Belum Absen -->
                             <div class="bg-gradient-to-br from-rose-500/10 to-red-500/5 border border-rose-500/20 rounded-2xl p-3 shadow-lg relative overflow-hidden">
-                                <span class="text-[9px] font-black text-rose-400 uppercase tracking-wider block">Belum Hadir</span>
+                                <span class="text-[9px] font-black text-rose-400 uppercase tracking-wider block">Not Present</span>
                                 <div class="mt-1">
                                     <span class="text-2xl font-black font-mono text-white">{{ summary.absent }}</span>
                                 </div>
@@ -1013,9 +1023,9 @@ const formatTimeString = (dateTime) => {
                             <div class="flex items-center justify-between mb-2 shrink-0">
                                 <div class="flex items-center gap-2">
                                     <TrendingUp class="w-4 h-4 text-cyan-400" />
-                                    <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-300">Tren Kehadiran (7 Hari)</h3>
+                                    <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-300">Attendance Trend (7 Days)</h3>
                                 </div>
-                                <span class="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Harian</span>
+                                <span class="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Daily</span>
                             </div>
                             <div class="flex-1 w-full relative min-h-0">
                                 <Line v-if="lineChartData" :data="lineChartData" :options="lineChartOptions" />
@@ -1027,9 +1037,9 @@ const formatTimeString = (dateTime) => {
                             <div class="flex items-center justify-between mb-2 shrink-0">
                                 <div class="flex items-center gap-2">
                                     <Building2 class="w-4 h-4 text-indigo-400" />
-                                    <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-300">Distribusi Departemen Hadir</h3>
+                                    <h3 class="text-[10px] font-black uppercase tracking-wider text-slate-300">Attendance by Department</h3>
                                 </div>
-                                <span class="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Hari Ini</span>
+                                <span class="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Today</span>
                             </div>
                             <div class="flex-1 w-full relative min-h-0">
                                 <Doughnut v-if="doughnutChartData" :data="doughnutChartData" :options="doughnutChartOptions" />
@@ -1064,7 +1074,7 @@ const formatTimeString = (dateTime) => {
                                         class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5"
                                     >
                                         <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                                        JAM SIBUK
+                                        PEAK HOURS
                                     </span>
                                     <span 
                                         v-else-if="cameraManualRemainingSeconds > 0"
@@ -1124,12 +1134,12 @@ const formatTimeString = (dateTime) => {
                                     class="absolute inset-0 z-30 bg-slate-950/95 flex flex-col items-center justify-center gap-3 p-6 text-center"
                                 >
                                     <AlertTriangle class="w-10 h-10 text-rose-400" />
-                                    <p class="text-xs font-bold text-rose-300">Gagal memuat modul pengenal wajah.<br>Periksa koneksi jaringan.</p>
+                                    <p class="text-xs font-bold text-rose-300">Failed to load facial recognition modules.<br>Check network connection.</p>
                                     <button 
                                         @click="loadModels()" 
                                         class="px-5 py-2 bg-cyan-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition hover:bg-cyan-400 shadow-lg cursor-pointer"
                                     >
-                                        Coba Lagi
+                                        Try Again
                                     </button>
                                 </div>
 
@@ -1167,7 +1177,7 @@ const formatTimeString = (dateTime) => {
                                                         class="inline-flex items-center text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border"
                                                         :class="successData.action === 'clock_in' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300'"
                                                     >
-                                                        {{ successData.action === 'clock_in' ? 'ABSEN MASUK' : 'ABSEN PULANG' }}
+                                                        {{ successData.action === 'clock_in' ? 'CLOCK IN' : 'CLOCK OUT' }}
                                                     </span>
                                                     <span class="text-[10px] font-mono font-bold text-slate-300">{{ successData.time }}</span>
                                                 </div>
@@ -1179,9 +1189,9 @@ const formatTimeString = (dateTime) => {
                                         <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
                                             <span class="text-emerald-400 font-bold flex items-center gap-1.5">
                                                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                                {{ successData.action === 'clock_in' ? 'Silahkan Masuk' : 'Sampai Jumpa' }}
+                                                {{ successData.action === 'clock_in' ? 'Welcome, please enter' : 'Have a safe trip home' }}
                                             </span>
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PRESENSI TERCATAT</span>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ATTENDANCE RECORDED</span>
                                         </div>
                                     </div>
                                 </Transition>
@@ -1205,7 +1215,7 @@ const formatTimeString = (dateTime) => {
                                             </div>
                                             <div class="flex-1 min-w-0">
                                                 <span class="text-[10px] font-black uppercase tracking-wider text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded-md inline-block">
-                                                    ABSENSI GAGAL / DITOLAK
+                                                    ATTENDANCE REJECTED
                                                 </span>
                                                 <p class="text-xs font-bold text-white mt-1 leading-snug">{{ warningData.message }}</p>
                                             </div>
@@ -1214,9 +1224,9 @@ const formatTimeString = (dateTime) => {
                                         <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
                                             <span class="text-rose-400 font-bold flex items-center gap-1.5">
                                                 <span class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"></span>
-                                                Silahkan Coba lagi
+                                                Please try again
                                             </span>
-                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ warningData.status ? warningData.status.replace(/_/g, ' ') : 'GAGAL' }}</span>
+                                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{{ warningData.status ? warningData.status.replace(/_/g, ' ').toUpperCase() : 'FAILED' }}</span>
                                         </div>
                                     </div>
                                 </Transition>
@@ -1225,7 +1235,7 @@ const formatTimeString = (dateTime) => {
                             <!-- Bottom Instruction Bar -->
                             <div class="p-3 bg-slate-950/80 border-t border-cyan-500/20 text-center shrink-0">
                                 <p class="text-[11px] text-slate-400 font-semibold">
-                                    Berdirilah menghadap lensa kamera dengan pencahayaan cukup
+                                    Stand facing the camera lens with adequate lighting
                                 </p>
                             </div>
                         </div>
@@ -1244,7 +1254,7 @@ const formatTimeString = (dateTime) => {
                                     </span>
                                 </div>
                                 <span class="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                                    HEMAT ENERGI
+                                    ENERGY SAVING
                                 </span>
                             </div>
 
@@ -1285,10 +1295,10 @@ const formatTimeString = (dateTime) => {
                                 <div class="mt-3 shrink-0">
                                     <h3 class="text-xs font-black text-white tracking-wider uppercase flex items-center justify-center gap-1.5">
                                         <EyeOff class="w-3.5 h-3.5 text-cyan-400" />
-                                        <span>PEMINDAI OPTIK NON-AKTIF</span>
+                                        <span>OPTICAL SCANNER INACTIVE</span>
                                     </h3>
                                     <p class="text-[10px] text-slate-400 font-semibold max-w-[280px] mt-0.5 leading-tight mx-auto">
-                                        Kamera otomatis mati di luar jam sibuk untuk efisiensi hardware & privasi lobi.
+                                        Camera automatically powers down outside peak hours for hardware efficiency & lobby privacy.
                                     </p>
                                 </div>
 
@@ -1297,17 +1307,17 @@ const formatTimeString = (dateTime) => {
                                     <div class="flex items-center justify-between text-[8px] font-mono font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-white/5">
                                         <span class="flex items-center gap-1 text-cyan-300 font-black">
                                             <Radio class="w-2.5 h-2.5 text-cyan-400 animate-pulse" />
-                                            JADWAL OTOMATIS JAM SIBUK
+                                            AUTOMATIC PEAK HOURS SCHEDULE
                                         </span>
                                         <span class="text-slate-500 font-bold">WIB</span>
                                     </div>
                                     <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
                                         <div class="bg-cyan-950/30 border border-cyan-500/10 rounded-lg p-1.5">
-                                            <span class="text-[8px] text-cyan-400 font-black uppercase block">PAGI (MASUK)</span>
+                                            <span class="text-[8px] text-cyan-400 font-black uppercase block">MORNING (CHECK-IN)</span>
                                             <span class="text-white font-bold">{{ kioskSettings.morning_in_start || '07:00' }} - {{ kioskSettings.morning_in_end || '08:30' }}</span>
                                         </div>
                                         <div class="bg-indigo-950/30 border border-indigo-500/10 rounded-lg p-1.5">
-                                            <span class="text-[8px] text-indigo-400 font-black uppercase block">SORE (PULANG)</span>
+                                            <span class="text-[8px] text-indigo-400 font-black uppercase block">EVENING (CHECK-OUT)</span>
                                             <span class="text-white font-bold">{{ kioskSettings.evening_out_start || '16:30' }} - {{ kioskSettings.evening_out_end || '20:00' }}</span>
                                         </div>
                                     </div>
@@ -1319,10 +1329,10 @@ const formatTimeString = (dateTime) => {
                                     class="mt-3.5 w-full max-w-[320px] py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_35px_rgba(6,182,212,0.45)] hover:shadow-[0_0_50px_rgba(6,182,212,0.7)] flex items-center justify-center gap-2 cursor-pointer border border-cyan-200/50 group shrink-0"
                                 >
                                     <Zap class="w-4 h-4 text-slate-950 fill-slate-950 group-hover:scale-110 transition" />
-                                    <span>⚡ AKTIFKAN PEMINDAI WAJAH</span>
+                                    <span>⚡ ACTIVATE FACE SCANNER</span>
                                 </button>
                                 <p class="text-[9px] text-cyan-300/70 font-bold mt-1 tracking-wide shrink-0">
-                                    Sentuh tombol untuk menyalakan kamera selama 60 detik
+                                    Touch button to activate camera for 60 seconds
                                 </p>
                             </div>
 
@@ -1338,7 +1348,7 @@ const formatTimeString = (dateTime) => {
                         <div class="mt-3 flex items-center justify-between w-full max-w-[420px] px-1">
                             <div class="flex items-center gap-2 text-slate-400 text-[10px] font-medium">
                                 <Volume2 class="w-3.5 h-3.5 text-cyan-400" />
-                                <span>Respon Suara Aktif</span>
+                                <span>Audio Feedback Active</span>
                             </div>
 
                             <button 
@@ -1347,7 +1357,7 @@ const formatTimeString = (dateTime) => {
                                 class="px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-lg border border-white/10 text-[10px] font-bold transition flex items-center gap-1.5 cursor-pointer"
                             >
                                 <X class="w-3 h-3 text-rose-400" />
-                                <span>Tutup Kamera ({{ cameraManualRemainingSeconds }}s)</span>
+                                <span>Close Camera ({{ cameraManualRemainingSeconds }}s)</span>
                             </button>
                         </div>
                     </section>
@@ -1361,13 +1371,13 @@ const formatTimeString = (dateTime) => {
                             <div>
                                 <h3 class="text-xs font-black uppercase tracking-wider text-slate-100 flex items-center gap-2">
                                     <Clock class="w-4 h-4 text-cyan-400" />
-                                    Live Absensi Hari Ini
+                                    Today's Live Attendance
                                 </h3>
-                                <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Riwayat Pemindaian Masuk & Keluar</p>
+                                <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Real-time Check-in & Check-out Scan History</p>
                             </div>
                             <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                                <span class="text-[9px] font-black uppercase tracking-wider text-emerald-400">Stream Aktif</span>
+                                <span class="text-[9px] font-black uppercase tracking-wider text-emerald-400">Stream Active</span>
                             </div>
                         </div>
 
@@ -1375,8 +1385,8 @@ const formatTimeString = (dateTime) => {
                         <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0 scrollbar-thin scrollbar-thumb-white/10">
                             <div v-if="recentLogs.length === 0" class="h-full flex flex-col justify-center items-center text-slate-500 gap-2 p-8 text-center">
                                 <Clock class="w-10 h-10 text-slate-700" />
-                                <p class="text-xs font-semibold">Belum ada aktivitas absensi tercatat hari ini.</p>
-                                <span class="text-[10px] text-slate-600">Hasil pemindaian wajah akan langsung muncul di sini.</span>
+                                <p class="text-xs font-semibold">No attendance activity recorded today yet.</p>
+                                <span class="text-[10px] text-slate-600">Facial scan results will appear here automatically.</span>
                             </div>
 
                             <div 
@@ -1395,7 +1405,7 @@ const formatTimeString = (dateTime) => {
                                             {{ log.employee?.full_name }}
                                         </h4>
                                         <p class="text-[10px] text-slate-400 truncate max-w-[140px]">
-                                            {{ log.employee?.department?.name || 'Umum' }}
+                                            {{ log.employee?.department?.name || 'General' }}
                                         </p>
                                     </div>
                                 </div>
@@ -1405,13 +1415,13 @@ const formatTimeString = (dateTime) => {
                                     <div class="flex items-center justify-end gap-3">
                                         <!-- Masuk Time -->
                                         <div class="text-right">
-                                            <span class="text-[8px] text-emerald-400 uppercase font-black tracking-wider block leading-none mb-1">Masuk</span>
+                                            <span class="text-[8px] text-emerald-400 uppercase font-black tracking-wider block leading-none mb-1">In</span>
                                             <span class="font-mono text-xs font-bold text-slate-100 block leading-none">{{ formatTimeString(log.clock_in) }}</span>
                                         </div>
                                         <div class="h-6 w-px bg-white/10"></div>
                                         <!-- Keluar Time -->
                                         <div class="text-right">
-                                            <span class="text-[8px] uppercase font-black tracking-wider block leading-none mb-1" :class="log.clock_out ? 'text-cyan-400' : 'text-slate-500'">Keluar</span>
+                                            <span class="text-[8px] uppercase font-black tracking-wider block leading-none mb-1" :class="log.clock_out ? 'text-cyan-400' : 'text-slate-500'">Out</span>
                                             <span class="font-mono text-xs font-bold block leading-none" :class="log.clock_out ? 'text-cyan-300' : 'text-slate-600'">
                                                 {{ log.clock_out ? formatTimeString(log.clock_out) : '--:--' }}
                                             </span>
@@ -1424,13 +1434,13 @@ const formatTimeString = (dateTime) => {
                                             class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase inline-block border"
                                             :class="log.status === 'present' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'"
                                         >
-                                            {{ log.status === 'present' ? 'Tepat Waktu' : 'Terlambat' }}
+                                            {{ log.status === 'present' ? 'On Time' : 'Late' }}
                                         </span>
                                         <span 
                                             v-if="log.clock_out"
                                             class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase inline-block bg-cyan-500/10 border border-cyan-500/20 text-cyan-400"
                                         >
-                                            Sudah Pulang
+                                            Checked Out
                                         </span>
                                     </div>
                                 </div>
@@ -1467,10 +1477,10 @@ const formatTimeString = (dateTime) => {
                             <div>
                                 <div class="flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Mode Standby &bull; Protokol Sensor Non-Aktif</h3>
+                                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Standby Mode &bull; Sensor Protocol Inactive</h3>
                                 </div>
                                 <p class="text-[11px] text-slate-300 font-medium mt-0.5">
-                                    Kamera absensi di-nonaktifkan di luar jam sibuk. Tekan tombol untuk mengaktifkan pemindai wajah.
+                                    Attendance camera is disabled outside peak hours. Press button to activate face scanner.
                                 </p>
                             </div>
                         </div>
@@ -1480,175 +1490,141 @@ const formatTimeString = (dateTime) => {
                             class="px-5 py-2.5 bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition active:scale-95 shadow-[0_0_25px_rgba(6,182,212,0.5)] flex items-center gap-2 cursor-pointer border border-cyan-200/40"
                         >
                             <Zap class="w-4 h-4 fill-slate-950" />
-                            <span>⚡ Aktifkan Pemindai Wajah</span>
+                            <span>⚡ Activate Face Scanner</span>
                         </button>
                     </div>
 
                     <!-- 2 Columns Grid for Hall of Fame & Late Accountability -->
                     <div class="flex-1 grid grid-cols-12 gap-6 min-h-0 overflow-hidden">
                     <!-- ============================================== -->
-                    <!-- LEFT COLUMN: Hall of Fame (Top 6 Terdisiplin) (col-span-6) -->
-                    <!-- ============================================== -->
-                    <section class="col-span-6 bg-slate-900/40 border border-amber-500/20 rounded-3xl p-5 backdrop-blur-md flex flex-col h-full min-h-0 shadow-[0_0_40px_rgba(245,158,11,0.08)]">
-                        <!-- Header Hall of Fame -->
-                        <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4 shrink-0">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <Trophy class="w-5 h-5 text-amber-400" />
-                                    <h2 class="text-sm font-black uppercase tracking-wider text-amber-300">
-                                        KARYAWAN TELADAN
-                                    </h2>
-                                </div>
-                                <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Apresiasi Kehadiran Tepat Waktu & Konsistensi Bulan Ini</p>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold">
-                                BULAN INI
-                            </span>
-                        </div>
-
-                        <!-- Top 3 Podium Cards -->
-                        <div class="grid grid-cols-3 gap-3 mb-4 shrink-0">
-                            <div 
-                                v-for="(empData, idx) in leaderboardData.top_disciplined.slice(0, 3)"
-                                :key="empData.employee?.id || idx"
-                                class="rounded-2xl p-3.5 flex flex-col items-center text-center relative overflow-hidden shadow-lg border"
-                                :class="[
-                                    idx === 0 ? 'bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-950 border-amber-400/60 shadow-[0_0_25px_rgba(245,158,11,0.25)]' :
-                                    idx === 1 ? 'bg-gradient-to-b from-slate-400/20 via-slate-900 to-slate-950 border-slate-300/40 shadow-md' :
-                                    'bg-gradient-to-b from-orange-600/20 via-slate-900 to-slate-950 border-orange-500/40 shadow-md'
-                                ]"
-                            >
-                                <!-- Rank Crown / Medal Badge -->
-                                <div 
-                                    class="w-7 h-7 rounded-full flex items-center justify-center font-black text-xs mb-2 shadow-md"
-                                    :class="[
-                                        idx === 0 ? 'bg-amber-400 text-slate-950 shadow-[0_0_12px_#fbbf24]' :
-                                        idx === 1 ? 'bg-slate-300 text-slate-950' :
-                                        'bg-orange-400 text-slate-950'
-                                    ]"
-                                >
-                                    #{{ idx + 1 }}
-                                </div>
-
-                                <!-- Avatar -->
-                                <div class="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-white/20 overflow-hidden flex items-center justify-center font-black text-lg text-white mb-2 shadow">
-                                    <img 
-                                        v-if="empData.employee?.profile_picture" 
-                                        :src="'/storage/' + empData.employee.profile_picture" 
-                                        class="w-full h-full object-cover" 
-                                    />
-                                    <span v-else>{{ empData.employee?.full_name ? empData.employee.full_name.charAt(0) : 'U' }}</span>
-                                </div>
-
-                                <h4 class="text-xs font-black text-white truncate w-full tracking-tight">{{ empData.employee?.full_name }}</h4>
-                                <span class="text-[9px] text-slate-400 truncate w-full block mt-0.5">{{ empData.employee?.department?.name || 'Umum' }}</span>
-
-                                <!-- Streak & Days Pill -->
-                                <div class="mt-2 w-full pt-2 border-t border-white/10 flex flex-col items-center gap-1">
-                                    <div class="flex items-center gap-1 text-[10px] font-black text-amber-300">
-                                        <Flame class="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                                        <span>{{ empData.streak_days }} Hari Beruntun</span>
-                                    </div>
-                                    <span class="text-[9px] font-mono text-emerald-400 font-bold">
-                                        {{ empData.on_time_count }}x Tepat ({{ empData.punctuality_rate }}%)
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Rank 4 - 6 List -->
-                        <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
-                            <div 
-                                v-for="empData in leaderboardData.top_disciplined.slice(3, 6)"
-                                :key="empData.employee?.id"
-                                class="p-3 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between hover:bg-white/[0.04] transition"
-                            >
-                                <div class="flex items-center gap-3 min-w-0">
-                                    <span class="w-6 h-6 rounded-lg bg-slate-800 border border-white/10 flex items-center justify-center font-mono font-black text-xs text-slate-300">
-                                        #{{ empData.rank }}
-                                    </span>
-                                    <div class="min-w-0">
-                                        <h5 class="text-xs font-black text-white truncate max-w-[180px]">{{ empData.employee?.full_name }}</h5>
-                                        <p class="text-[10px] text-slate-400 truncate">{{ empData.employee?.department?.name }}</p>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-xs font-mono font-black text-emerald-400">{{ empData.on_time_count }} Hari Tepat</span>
-                                    <span class="text-[10px] font-mono text-slate-400 block">{{ empData.punctuality_rate }}% Presensi</span>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- ============================================== -->
-                    <!-- RIGHT COLUMN: Evaluasi Kedisiplinan & Peringkat Departemen (col-span-6) -->
+                    <!-- LEFT COLUMN: Top Disciplined & Department Rankings (col-span-6) -->
                     <!-- ============================================== -->
                     <section class="col-span-6 flex flex-col gap-4 h-full min-h-0 overflow-hidden">
-                        <!-- Card 1: Evaluasi Kedisiplinan (Karyawan Sering Terlambat) -->
-                        <div class="flex-1 bg-slate-900/40 border border-rose-500/20 rounded-3xl p-5 backdrop-blur-md flex flex-col min-h-0 shadow-[0_0_40px_rgba(244,63,94,0.08)]">
+                        <!-- Card 1: Top Disciplined Employees -->
+                        <div class="flex-1 bg-slate-900/40 border border-amber-500/20 rounded-3xl p-5 backdrop-blur-md flex flex-col min-h-0 shadow-[0_0_40px_rgba(245,158,11,0.08)]">
+                            <!-- Header Hall of Fame -->
                             <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3 shrink-0">
                                 <div>
                                     <div class="flex items-center gap-2">
-                                        <AlertTriangle class="w-5 h-5 text-rose-400" />
-                                        <h3 class="text-sm font-black uppercase tracking-wider text-rose-300">
-                                            KARYAWAN TIDAK DISIPLIN
-                                        </h3>
+                                        <Trophy class="w-5 h-5 text-amber-400" />
+                                        <h2 class="text-sm font-black uppercase tracking-wider text-amber-300">
+                                            TOP DISCIPLINED EMPLOYEES
+                                        </h2>
                                     </div>
-                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Pemantauan Kedisiplinan untuk Peningkatan Kinerja Bersama</p>
+                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Recognition for On-Time Attendance & Consistency This Month</p>
                                 </div>
-                                <span class="px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-[10px] font-bold">
-                                    PERINGATAN
+                                <span class="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold">
+                                    THIS MONTH
                                 </span>
                             </div>
 
-                            <!-- List of Top Late -->
-                            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
-                                <div v-if="leaderboardData.top_late.length === 0" class="h-full flex flex-col justify-center items-center text-slate-500 gap-1 text-center p-6">
-                                    <CheckCircle2 class="w-8 h-8 text-emerald-400" />
-                                    <p class="text-xs font-bold text-slate-300">Tidak ada pelanggaran keterlambatan bulan ini!</p>
-                                    <span class="text-[10px] text-slate-500">Seluruh karyawan mematuhi jam kerja.</span>
-                                </div>
-
+                            <!-- Top 3 Podium Cards -->
+                            <div class="grid grid-cols-3 gap-2.5 mb-3 shrink-0">
                                 <div 
-                                    v-else
-                                    v-for="(lateData, idx) in leaderboardData.top_late"
-                                    :key="lateData.employee?.id || idx"
-                                    class="p-2.5 bg-rose-500/[0.03] border border-rose-500/10 rounded-2xl flex items-center justify-between hover:bg-rose-500/[0.07] transition"
+                                    v-for="(empData, idx) in leaderboardData.top_disciplined.slice(0, 3)"
+                                    :key="empData.employee?.id || idx"
+                                    class="rounded-2xl p-2.5 flex flex-col items-center text-center relative overflow-hidden shadow-lg border"
+                                    :class="[
+                                        idx === 0 ? 'bg-gradient-to-b from-amber-500/20 via-slate-900 to-slate-950 border-amber-400/60 shadow-[0_0_25px_rgba(245,158,11,0.25)]' :
+                                        idx === 1 ? 'bg-gradient-to-b from-slate-400/20 via-slate-900 to-slate-950 border-slate-300/40 shadow-md' :
+                                        'bg-gradient-to-b from-orange-600/20 via-slate-900 to-slate-950 border-orange-500/40 shadow-md'
+                                    ]"
                                 >
-                                    <div class="flex items-center gap-3 min-w-0">
-                                        <span class="w-6 h-6 rounded-lg bg-rose-950 border border-rose-500/30 flex items-center justify-center font-mono font-black text-xs text-rose-400">
-                                            #{{ lateData.rank }}
+                                    <!-- Rank Crown / Medal Badge -->
+                                    <div 
+                                        class="w-6 h-6 rounded-full flex items-center justify-center font-black text-[11px] mb-1.5 shadow-md"
+                                        :class="[
+                                            idx === 0 ? 'bg-amber-400 text-slate-950 shadow-[0_0_12px_#fbbf24]' :
+                                            idx === 1 ? 'bg-slate-300 text-slate-950' :
+                                            'bg-orange-400 text-slate-950'
+                                        ]"
+                                    >
+                                        #{{ idx + 1 }}
+                                    </div>
+
+                                    <!-- Avatar -->
+                                    <div class="w-10 h-10 rounded-xl bg-slate-800 border-2 border-white/20 overflow-hidden flex items-center justify-center font-black text-sm text-white mb-1.5 shadow relative">
+                                        <span class="absolute">{{ empData.employee?.full_name ? empData.employee.full_name.charAt(0) : 'U' }}</span>
+                                        <img 
+                                            v-if="empData.employee?.profile_picture" 
+                                            :src="'/storage/' + empData.employee.profile_picture" 
+                                            class="w-full h-full object-cover relative z-10" 
+                                            @error="(e) => e.target.style.display = 'none'"
+                                        />
+                                    </div>
+
+                                    <h4 class="text-xs font-black text-white truncate w-full tracking-tight">{{ empData.employee?.full_name }}</h4>
+                                    <span class="text-[9px] text-slate-400 truncate w-full block mt-0.5">{{ empData.employee?.department?.name || 'General' }}</span>
+
+                                    <!-- Streak & Days Pill -->
+                                    <div class="mt-1.5 w-full pt-1.5 border-t border-white/10 flex flex-col items-center gap-0.5">
+                                        <div class="flex items-center gap-1 text-[9px] font-black text-amber-300">
+                                            <Flame class="w-3 h-3 text-amber-400 fill-amber-400" />
+                                            <span>{{ empData.streak_days }} Day Streak</span>
+                                        </div>
+                                        <span class="text-[8.5px] font-mono text-emerald-400 font-bold">
+                                            {{ empData.on_time_count }}x On Time ({{ empData.punctuality_rate }}%)
                                         </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rank 4 - 6 List -->
+                            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
+                                <div 
+                                    v-for="empData in leaderboardData.top_disciplined.slice(3, 6)"
+                                    :key="empData.employee?.id"
+                                    class="p-2.5 bg-white/[0.02] border border-white/5 rounded-2xl flex items-center justify-between hover:bg-white/[0.04] transition"
+                                >
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <span class="w-5 h-5 rounded-md bg-slate-800 border border-white/10 flex items-center justify-center font-mono font-black text-[10px] text-slate-300 shrink-0">
+                                            #{{ empData.rank }}
+                                        </span>
+                                        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-white/10 overflow-hidden flex items-center justify-center font-black text-xs text-amber-300 shrink-0 shadow-sm relative">
+                                            <span class="absolute">{{ empData.employee?.full_name ? empData.employee.full_name.charAt(0) : 'U' }}</span>
+                                            <img 
+                                                v-if="empData.employee?.profile_picture" 
+                                                :src="'/storage/' + empData.employee.profile_picture" 
+                                                class="w-full h-full object-cover relative z-10" 
+                                                @error="(e) => e.target.style.display = 'none'"
+                                            />
+                                        </div>
                                         <div class="min-w-0">
-                                            <h5 class="text-xs font-black text-white truncate max-w-[180px]">{{ lateData.employee?.full_name }}</h5>
-                                            <p class="text-[10px] text-slate-400 truncate">{{ lateData.employee?.department?.name }}</p>
+                                            <h5 class="text-xs font-black text-white truncate max-w-[170px]">{{ empData.employee?.full_name }}</h5>
+                                            <p class="text-[10px] text-slate-400 truncate">{{ empData.employee?.department?.name || 'General' }}</p>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <span class="text-xs font-mono font-black text-rose-400">{{ lateData.late_count }}x Terlambat</span>
-                                        <span class="text-[10px] font-mono text-slate-400 block">{{ lateData.total_late_minutes }} Menit Total</span>
+                                    <div class="text-right shrink-0">
+                                        <span class="text-xs font-mono font-black text-emerald-400">{{ empData.on_time_count }} Days On Time</span>
+                                        <span class="text-[9px] font-mono text-slate-400 block">{{ empData.punctuality_rate }}% Attendance</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Card 2: Peringkat Persentase Disiplin Departemen -->
-                        <div class="flex-1 bg-slate-900/40 border border-white/5 rounded-3xl p-5 backdrop-blur-md flex flex-col min-h-0 shadow-xl">
+                        <!-- Card 2: Department Punctuality Ranking -->
+                        <div class="flex-1 bg-slate-900/40 border border-cyan-500/20 rounded-3xl p-5 backdrop-blur-md flex flex-col min-h-0 shadow-[0_0_40px_rgba(6,182,212,0.08)]">
                             <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3 shrink-0">
-                                <div class="flex items-center gap-2">
-                                    <Building2 class="w-4 h-4 text-cyan-400" />
-                                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-200">
-                                        Peringkat Kedisiplinan Antar Departemen
-                                    </h3>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <Building2 class="w-5 h-5 text-cyan-400" />
+                                        <h3 class="text-sm font-black uppercase tracking-wider text-cyan-300">
+                                            DEPARTMENT PUNCTUALITY RANKING
+                                        </h3>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Average on-time arrival rate per department this month</p>
                                 </div>
-                                <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest">% Tepat Waktu</span>
+                                <span class="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-[10px] font-bold">
+                                    DEPARTMENTS
+                                </span>
                             </div>
 
-                            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2.5 min-h-0">
+                            <!-- Department Punctuality List -->
+                            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
                                 <div 
                                     v-for="(dept, idx) in leaderboardData.dept_rankings"
                                     :key="dept.name"
-                                    class="p-2.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-1.5"
+                                    class="p-2.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-1.5 hover:bg-white/[0.04] transition"
                                 >
                                     <div class="flex items-center justify-between text-xs">
                                         <span class="font-bold text-slate-200 flex items-center gap-2">
@@ -1668,12 +1644,133 @@ const formatTimeString = (dateTime) => {
                             </div>
                         </div>
                     </section>
+
+                    <!-- ============================================== -->
+                    <!-- RIGHT COLUMN: Discipline & Attendance Accountability (col-span-6) -->
+                    <!-- ============================================== -->
+                    <section class="col-span-6 flex flex-col gap-4 h-full min-h-0 overflow-hidden">
+                        <!-- Card 1: Discipline Evaluation (Frequent Lateness) -->
+                        <div class="flex-1 bg-slate-900/40 border border-rose-500/20 rounded-3xl p-5 backdrop-blur-md flex flex-col min-h-0 shadow-[0_0_40px_rgba(244,63,94,0.08)]">
+                            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3 shrink-0">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <AlertTriangle class="w-5 h-5 text-rose-400" />
+                                        <h3 class="text-sm font-black uppercase tracking-wider text-rose-300">
+                                            LATENESS ACCOUNTABILITY
+                                        </h3>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Monitoring punctuality & frequent late arrivals this month</p>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-[10px] font-bold">
+                                    ATTENTION
+                                </span>
+                            </div>
+
+                            <!-- List of Top Late (With Employee Photos) -->
+                            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
+                                <div v-if="leaderboardData.top_late.length === 0" class="h-full flex flex-col justify-center items-center text-slate-500 gap-1 text-center p-6">
+                                    <CheckCircle2 class="w-8 h-8 text-emerald-400" />
+                                    <p class="text-xs font-bold text-slate-300">No lateness records this month!</p>
+                                    <span class="text-[10px] text-slate-500">All employees arrived on time.</span>
+                                </div>
+
+                                <div 
+                                    v-else
+                                    v-for="(lateData, idx) in leaderboardData.top_late"
+                                    :key="lateData.employee?.id || idx"
+                                    class="p-2.5 bg-rose-500/[0.03] border border-rose-500/10 rounded-2xl flex items-center justify-between hover:bg-rose-500/[0.07] transition"
+                                >
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <span class="w-6 h-6 rounded-lg bg-rose-950 border border-rose-500/30 flex items-center justify-center font-mono font-black text-xs text-rose-400 shrink-0">
+                                            #{{ lateData.rank }}
+                                        </span>
+                                        <!-- Employee Avatar / Photo -->
+                                        <div class="w-9 h-9 rounded-xl bg-slate-800 border border-rose-500/30 overflow-hidden flex items-center justify-center font-black text-xs text-rose-300 shrink-0 shadow-sm relative">
+                                            <span class="absolute">{{ lateData.employee?.full_name ? lateData.employee.full_name.charAt(0) : 'U' }}</span>
+                                            <img 
+                                                v-if="lateData.employee?.profile_picture" 
+                                                :src="'/storage/' + lateData.employee.profile_picture" 
+                                                class="w-full h-full object-cover relative z-10" 
+                                                @error="(e) => e.target.style.display = 'none'"
+                                            />
+                                        </div>
+                                        <div class="min-w-0">
+                                            <h5 class="text-xs font-black text-white truncate max-w-[180px]">{{ lateData.employee?.full_name }}</h5>
+                                            <p class="text-[10px] text-slate-400 truncate">{{ lateData.employee?.department?.name || 'General' }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <span class="text-xs font-mono font-black text-rose-400">{{ lateData.late_count }}x Late</span>
+                                        <span class="text-[10px] font-mono text-slate-400 block">{{ lateData.total_late_minutes }} Mins Total</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Attendance Evaluation (Lowest Attendance / Chronic Absenteeism) -->
+                        <div class="flex-1 bg-slate-900/40 border border-amber-500/20 rounded-3xl p-5 backdrop-blur-md flex flex-col min-h-0 shadow-[0_0_40px_rgba(245,158,11,0.08)]">
+                            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3 shrink-0">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <AlertTriangle class="w-5 h-5 text-amber-400" />
+                                        <h3 class="text-sm font-black uppercase tracking-wider text-amber-300">
+                                            ATTENDANCE EVALUATION
+                                        </h3>
+                                    </div>
+                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Monitoring lowest attendance & unexcused absences this month</p>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] font-bold">
+                                    CHRONIC ABSENTEEISM
+                                </span>
+                            </div>
+
+                            <!-- Lowest Attendance List (With Employee Photos) -->
+                            <div class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 min-h-0">
+                                <div v-if="!leaderboardData.top_absent || leaderboardData.top_absent.length === 0" class="h-full flex flex-col justify-center items-center text-slate-500 gap-1 text-center p-6">
+                                    <CheckCircle2 class="w-8 h-8 text-emerald-400" />
+                                    <p class="text-xs font-bold text-slate-300">Perfect Attendance!</p>
+                                    <span class="text-[10px] text-slate-500">No unexcused absences or missing days recorded.</span>
+                                </div>
+
+                                <div 
+                                    v-else
+                                    v-for="(absentData, idx) in leaderboardData.top_absent"
+                                    :key="absentData.employee?.id || idx"
+                                    class="p-2.5 bg-amber-500/[0.03] border border-amber-500/10 rounded-2xl flex items-center justify-between hover:bg-amber-500/[0.07] transition"
+                                >
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <span class="w-6 h-6 rounded-lg bg-amber-950 border border-amber-500/30 flex items-center justify-center font-mono font-black text-xs text-amber-400 shrink-0">
+                                            #{{ absentData.rank }}
+                                        </span>
+                                        <!-- Employee Avatar / Photo -->
+                                        <div class="w-9 h-9 rounded-xl bg-slate-800 border border-amber-500/30 overflow-hidden flex items-center justify-center font-black text-xs text-amber-300 shrink-0 shadow-sm relative">
+                                            <span class="absolute">{{ absentData.employee?.full_name ? absentData.employee.full_name.charAt(0) : 'U' }}</span>
+                                            <img 
+                                                v-if="absentData.employee?.profile_picture" 
+                                                :src="'/storage/' + absentData.employee.profile_picture" 
+                                                class="w-full h-full object-cover relative z-10" 
+                                                @error="(e) => e.target.style.display = 'none'"
+                                            />
+                                        </div>
+                                        <div class="min-w-0">
+                                            <h5 class="text-xs font-black text-white truncate max-w-[180px]">{{ absentData.employee?.full_name }}</h5>
+                                            <p class="text-[10px] text-slate-400 truncate">{{ absentData.employee?.department?.name || 'General' }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right shrink-0">
+                                        <span class="text-xs font-mono font-black text-amber-400">{{ absentData.absent_days }} Days Absent</span>
+                                        <span class="text-[10px] font-mono text-slate-400 block">{{ absentData.attended_days }}/{{ absentData.working_days }} Days ({{ absentData.attendance_rate }}%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </Transition>
 
             <!-- ======================================================== -->
-            <!-- SLIDE 3: PAPAN PENGUMUMAN RESMI & BUDAYA K3 / SAFETY -->
+            <!-- SLIDE 3: OFFICIAL NOTICE BOARD & HSE / SAFETY CULTURE -->
             <!-- ======================================================== -->
             <Transition
                 enter-active-class="transition duration-400 ease-out"
@@ -1699,10 +1796,10 @@ const formatTimeString = (dateTime) => {
                             <div>
                                 <div class="flex items-center gap-2">
                                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Pusat Informasi & Budaya K3 &bull; Keselamatan Kerja Utama</h3>
+                                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Information Center & HSE Culture &bull; Safety First</h3>
                                 </div>
                                 <p class="text-[11px] text-slate-300 font-medium mt-0.5">
-                                    Papan digital resmi manajemen pabrik, protokol K3/5R industri, dan pengumuman karyawan.
+                                    Official factory management board, industrial HSE/5S protocols, and employee notices.
                                 </p>
                             </div>
                         </div>
@@ -1712,14 +1809,14 @@ const formatTimeString = (dateTime) => {
                             class="px-5 py-2 bg-gradient-to-r from-cyan-500 via-teal-400 to-indigo-500 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition active:scale-95 shadow-[0_0_25px_rgba(6,182,212,0.5)] flex items-center gap-2 cursor-pointer border border-cyan-200/40"
                         >
                             <Zap class="w-4 h-4 fill-slate-950" />
-                            <span>⚡ Aktifkan Pemindai Wajah</span>
+                            <span>⚡ Activate Face Scanner</span>
                         </button>
                     </div>
 
-                    <!-- 2 Columns Grid: K3 Safety (col-span-5) & Official Announcements (col-span-7) -->
+                    <!-- 2 Columns Grid: HSE Safety (col-span-5) & Official Announcements (col-span-7) -->
                     <div class="flex-1 grid grid-cols-12 gap-5 min-h-0 overflow-hidden">
                         <!-- ============================================== -->
-                        <!-- LEFT COLUMN: Zero Accident Hologram & 5R / APD (col-span-5) -->
+                        <!-- LEFT COLUMN: Zero Accident Hologram & 5S / PPE (col-span-5) -->
                         <!-- ============================================== -->
                         <section class="col-span-5 flex flex-col gap-3.5 h-full min-h-0 overflow-hidden">
                             <!-- Card 1: Zero Accident Hologram Meter -->
@@ -1731,33 +1828,33 @@ const formatTimeString = (dateTime) => {
                                     <div class="flex items-center gap-2">
                                         <ShieldCheck class="w-5 h-5 text-emerald-400" />
                                         <h2 class="text-xs font-black uppercase tracking-wider text-emerald-300">
-                                            K3 &bull; ZERO ACCIDENT METER
+                                            HSE &bull; ZERO ACCIDENT METER
                                         </h2>
                                     </div>
                                     <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                        RECORD AKTIF
+                                        ACTIVE RECORD
                                     </span>
                                 </div>
 
                                 <!-- Big Counter Display -->
                                 <div class="mt-3 flex items-center justify-between gap-4">
                                     <div>
-                                        <span class="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest block">Hari Tanpa Kecelakaan Kerja</span>
+                                        <span class="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest block">Days Without Workplace Accidents</span>
                                         <div class="flex items-baseline gap-2 mt-0.5">
                                             <span class="text-5xl font-black font-mono text-emerald-400 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]">
                                                 {{ k3Stats.zero_accident_days }}
                                             </span>
-                                            <span class="text-sm font-black text-white uppercase tracking-wider">HARI</span>
+                                            <span class="text-sm font-black text-white uppercase tracking-wider">DAYS</span>
                                         </div>
                                         <p class="text-[9px] text-slate-400 mt-1">
-                                            Konsistensi kerja aman sejak <span class="text-emerald-300 font-bold font-mono">{{ k3Stats.zero_accident_since }}</span>
+                                            Safe workplace consistency since <span class="text-emerald-300 font-bold font-mono">{{ k3Stats.zero_accident_since }}</span>
                                         </p>
                                     </div>
 
                                     <!-- Safe Man-Hours Box -->
                                     <div class="p-3 rounded-2xl bg-slate-950/80 border border-emerald-500/20 text-right">
-                                        <span class="text-[8px] font-mono font-bold text-slate-500 uppercase tracking-wider block">Jam Kerja Selamat</span>
+                                        <span class="text-[8px] font-mono font-bold text-slate-500 uppercase tracking-wider block">Safe Working Hours</span>
                                         <span class="text-base font-black font-mono text-white block mt-0.5">{{ k3Stats.total_safe_hours }}</span>
                                         <span class="text-[8px] text-emerald-400 font-bold tracking-tight block">Man-Hours</span>
                                     </div>
@@ -1767,17 +1864,17 @@ const formatTimeString = (dateTime) => {
                                 <div class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-[9px] font-mono">
                                     <span class="text-slate-400 flex items-center gap-1">
                                         <PhoneCall class="w-3 h-3 text-cyan-400" />
-                                        Hotline K3: <strong class="text-cyan-300">{{ k3Stats.safety_hotline }}</strong>
+                                        Safety Hotline: <strong class="text-cyan-300">{{ k3Stats.safety_hotline }}</strong>
                                     </span>
                                     <span class="text-slate-400">
-                                        Koordinator: <strong class="text-white">{{ k3Stats.safety_officer }}</strong>
+                                        Safety Officer: <strong class="text-white">{{ k3Stats.safety_officer }}</strong>
                                     </span>
                                 </div>
                             </div>
 
-                            <!-- Card 2: Tabbed 5R & Checklist APD Wajib -->
+                            <!-- Card 2: Tabbed 5S & Mandatory PPE Checklist -->
                             <div class="flex-1 bg-slate-900/40 border border-white/5 rounded-3xl p-4 backdrop-blur-md flex flex-col min-h-0 shadow-xl">
-                                <!-- Tab Switcher 5R vs APD -->
+                                <!-- Tab Switcher 5S vs PPE -->
                                 <div class="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
                                     <div class="flex items-center gap-1 bg-slate-950/70 p-1 rounded-xl border border-white/10">
                                         <button 
@@ -1786,7 +1883,7 @@ const formatTimeString = (dateTime) => {
                                             :class="activeK3Tab === '5r' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
                                         >
                                             <Award class="w-3 h-3" />
-                                            <span>Budaya 5R Pabrik</span>
+                                            <span>Factory 5S Culture</span>
                                         </button>
                                         <button 
                                             @click="activeK3Tab = 'apd'"
@@ -1794,73 +1891,73 @@ const formatTimeString = (dateTime) => {
                                             :class="activeK3Tab === 'apd' ? 'bg-amber-400 text-slate-950 shadow-sm' : 'text-slate-400 hover:text-white'"
                                         >
                                             <HardHat class="w-3 h-3" />
-                                            <span>APD Standar K3</span>
+                                            <span>Standard PPE Guidelines</span>
                                         </button>
                                     </div>
                                     <span class="text-[9px] font-mono text-slate-500 font-bold uppercase tracking-wider">
-                                        STANDAR OHSAS / ISO
+                                        OHSAS / ISO STANDARD
                                     </span>
                                 </div>
 
-                                <!-- 5R Content -->
+                                <!-- 5S Content -->
                                 <div v-if="activeK3Tab === '5r'" class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 mt-2.5 min-h-0 scrollbar-thin scrollbar-thumb-white/10">
                                     <div class="p-2.5 rounded-2xl bg-cyan-500/[0.04] border border-cyan-500/20 flex items-start gap-3">
-                                        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 font-mono font-black text-xs flex items-center justify-center shrink-0">1R</div>
+                                        <div class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 font-mono font-black text-xs flex items-center justify-center shrink-0">1S</div>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
-                                                <h4 class="text-xs font-black text-cyan-200">RINGKAS (Seiri)</h4>
-                                                <span class="text-[8px] font-mono text-slate-400">Pemilahan</span>
+                                                <h4 class="text-xs font-black text-cyan-200">SORT (Seiri)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Organization</span>
                                             </div>
-                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Singkirkan barang yang tidak diperlukan dari area kerja & meja operasional.</p>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Remove unnecessary items and clutter from workspaces and operational areas.</p>
                                         </div>
                                     </div>
 
                                     <div class="p-2.5 rounded-2xl bg-teal-500/[0.04] border border-teal-500/20 flex items-start gap-3">
-                                        <div class="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 font-mono font-black text-xs flex items-center justify-center shrink-0">2R</div>
+                                        <div class="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-300 font-mono font-black text-xs flex items-center justify-center shrink-0">2S</div>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
-                                                <h4 class="text-xs font-black text-teal-200">RAPI (Seiton)</h4>
-                                                <span class="text-[8px] font-mono text-slate-400">Penataan</span>
+                                                <h4 class="text-xs font-black text-teal-200">SET IN ORDER (Seiton)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Orderliness</span>
                                             </div>
-                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Tata dan beri label barang agar mudah diakses serta segera dikembalikan.</p>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Organize and label tools so they are easily accessible and promptly returned.</p>
                                         </div>
                                     </div>
 
                                     <div class="p-2.5 rounded-2xl bg-emerald-500/[0.04] border border-emerald-500/20 flex items-start gap-3">
-                                        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono font-black text-xs flex items-center justify-center shrink-0">3R</div>
+                                        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 font-mono font-black text-xs flex items-center justify-center shrink-0">3S</div>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
-                                                <h4 class="text-xs font-black text-emerald-200">RESIK (Seiso)</h4>
-                                                <span class="text-[8px] font-mono text-slate-400">Pembersihan</span>
+                                                <h4 class="text-xs font-black text-emerald-200">SHINE (Seiso)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Cleanliness</span>
                                             </div>
-                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Bersihkan peralatan, lantai, mesin kerja secara berkala tanpa menunggu kotor.</p>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Clean tools, floors, and equipment regularly without waiting for dirt to accumulate.</p>
                                         </div>
                                     </div>
 
                                     <div class="p-2.5 rounded-2xl bg-indigo-500/[0.04] border border-indigo-500/20 flex items-start gap-3">
-                                        <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-300 font-mono font-black text-xs flex items-center justify-center shrink-0">4R</div>
+                                        <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-300 font-mono font-black text-xs flex items-center justify-center shrink-0">4S</div>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
-                                                <h4 class="text-xs font-black text-indigo-200">RAWAT (Seiketsu)</h4>
-                                                <span class="text-[8px] font-mono text-slate-400">Pemeliharaan</span>
+                                                <h4 class="text-xs font-black text-indigo-200">STANDARDIZE (Seiketsu)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Standardization</span>
                                             </div>
-                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Pertahankan standar Ringkas, Rapi, dan Resik menjadi norma harian tim.</p>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Maintain Sort, Set in Order, and Shine as daily operational team standards.</p>
                                         </div>
                                     </div>
 
                                     <div class="p-2.5 rounded-2xl bg-amber-500/[0.04] border border-amber-500/20 flex items-start gap-3">
-                                        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 font-mono font-black text-xs flex items-center justify-center shrink-0">5R</div>
+                                        <div class="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-300 font-mono font-black text-xs flex items-center justify-center shrink-0">5S</div>
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-2">
-                                                <h4 class="text-xs font-black text-amber-200">RAJIN (Shitsuke)</h4>
-                                                <span class="text-[8px] font-mono text-slate-400">Pembiasaan</span>
+                                                <h4 class="text-xs font-black text-amber-200">SUSTAIN (Shitsuke)</h4>
+                                                <span class="text-[8px] font-mono text-slate-400">Discipline</span>
                                             </div>
-                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Disiplin mematuhi SOP keselamatan dan tata tertib kerja tanpa harus diawasi.</p>
+                                            <p class="text-[10px] text-slate-300 mt-0.5 leading-snug">Consistently follow safety SOPs and workplace guidelines with self-discipline.</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- APD Content -->
+                                <!-- PPE Content -->
                                 <div v-else class="flex-1 overflow-y-auto pr-1 flex flex-col gap-2 mt-2.5 min-h-0 scrollbar-thin scrollbar-thumb-white/10">
                                     <div class="grid grid-cols-2 gap-2.5">
                                         <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
@@ -1868,33 +1965,33 @@ const formatTimeString = (dateTime) => {
                                                 <HardHat class="w-4 h-4" />
                                                 <span class="text-xs font-black text-white">Safety Helmet</span>
                                             </div>
-                                            <p class="text-[9px] text-slate-400 leading-snug">Wajib di area fabrikasi, permesinan overhead & crane.</p>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Mandatory in fabrication, overhead machinery & crane zones.</p>
                                         </div>
                                         <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                                             <div class="flex items-center gap-2 text-cyan-400">
                                                 <ShieldCheck class="w-4 h-4" />
                                                 <span class="text-xs font-black text-white">Safety Shoes</span>
                                             </div>
-                                            <p class="text-[9px] text-slate-400 leading-snug">Sol anti-slip & steel toe pelindung benturan berat.</p>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Anti-slip soles & steel toe caps for heavy impact protection.</p>
                                         </div>
                                         <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                                             <div class="flex items-center gap-2 text-emerald-400">
                                                 <Eye class="w-4 h-4" />
-                                                <span class="text-xs font-black text-white">Kacamata Safety</span>
+                                                <span class="text-xs font-black text-white">Safety Glasses</span>
                                             </div>
-                                            <p class="text-[9px] text-slate-400 leading-snug">Perlindungan serpihan gerinda, las & cairan kimia.</p>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Protection against grinding debris, welding, and chemical splashes.</p>
                                         </div>
                                         <div class="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
                                             <div class="flex items-center gap-2 text-rose-400">
                                                 <Activity class="w-4 h-4" />
-                                                <span class="text-xs font-black text-white">Rompi Reflektif</span>
+                                                <span class="text-xs font-black text-white">High-Vis Vest</span>
                                             </div>
-                                            <p class="text-[9px] text-slate-400 leading-snug">Tingkatkan visibilitas operator & forklift di lorong.</p>
+                                            <p class="text-[9px] text-slate-400 leading-snug">Enhance visibility of operators & forklift traffic in corridors.</p>
                                         </div>
                                     </div>
                                     <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
                                         <p class="text-[9px] text-amber-300 font-bold uppercase tracking-wider">
-                                            "Keselamatan Anda Adalah Kebahagiaan Keluarga di Rumah"
+                                            "Your Safety is Your Family's Happiness at Home"
                                         </p>
                                     </div>
                                 </div>
@@ -1911,10 +2008,10 @@ const formatTimeString = (dateTime) => {
                                     <div class="flex items-center gap-2">
                                         <Megaphone class="w-5 h-5 text-cyan-400" />
                                         <h2 class="text-sm font-black uppercase tracking-wider text-slate-100">
-                                            PAPAN PENGUMUMAN RESMI PERUSAHAAN
+                                            OFFICIAL COMPANY NOTICE BOARD
                                         </h2>
                                     </div>
-                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Informasi Manajemen, SOP Kerja & Agenda Perusahaan</p>
+                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">Management Announcements, Work SOPs & Corporate Agenda</p>
                                 </div>
                                 <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
                                     <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
@@ -1929,28 +2026,28 @@ const formatTimeString = (dateTime) => {
                                     class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
                                     :class="selectedAnnouncementCategory === 'all' ? 'bg-white/15 text-white border border-white/20' : 'text-slate-400 hover:text-white bg-white/5'"
                                 >
-                                    Semua ({{ announcements.length }})
+                                    All ({{ announcements.length }})
                                 </button>
                                 <button 
-                                    @click="selectedAnnouncementCategory = 'K3 & HSE'"
+                                    @click="selectedAnnouncementCategory = 'HSE'"
                                     class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
-                                    :class="selectedAnnouncementCategory === 'K3 & HSE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
+                                    :class="selectedAnnouncementCategory === 'HSE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
                                 >
-                                    K3 & HSE
+                                    HSE & Safety
                                 </button>
                                 <button 
-                                    @click="selectedAnnouncementCategory = 'SOP WAJIB'"
+                                    @click="selectedAnnouncementCategory = 'SOP'"
                                     class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
-                                    :class="selectedAnnouncementCategory === 'SOP WAJIB' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
+                                    :class="selectedAnnouncementCategory === 'SOP' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
                                 >
-                                    SOP Wajib
+                                    Mandatory SOP
                                 </button>
                                 <button 
-                                    @click="selectedAnnouncementCategory = 'INFORMASI HR'"
+                                    @click="selectedAnnouncementCategory = 'HR'"
                                     class="px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase transition cursor-pointer"
-                                    :class="selectedAnnouncementCategory === 'INFORMASI HR' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
+                                    :class="selectedAnnouncementCategory === 'HR' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'text-slate-400 hover:text-white bg-white/5'"
                                 >
-                                    Info HR
+                                    HR Notice
                                 </button>
                                 <button 
                                     @click="selectedAnnouncementCategory = 'AGENDA'"
@@ -1968,9 +2065,9 @@ const formatTimeString = (dateTime) => {
                                     :key="ann.id"
                                     class="p-4 rounded-2xl border transition-all relative overflow-hidden group"
                                     :class="[
-                                        ann.category === 'K3 & HSE' ? 'bg-gradient-to-r from-emerald-950/30 to-slate-900/60 border-emerald-500/30 hover:border-emerald-500/50' :
-                                        ann.category === 'SOP WAJIB' ? 'bg-gradient-to-r from-rose-950/30 to-slate-900/60 border-rose-500/30 hover:border-rose-500/50' :
-                                        ann.category === 'INFORMASI HR' ? 'bg-gradient-to-r from-cyan-950/30 to-slate-900/60 border-cyan-500/30 hover:border-cyan-500/50' :
+                                        (ann.category || '').toUpperCase().includes('HSE') || (ann.category || '').toUpperCase().includes('K3') ? 'bg-gradient-to-r from-emerald-950/30 to-slate-900/60 border-emerald-500/30 hover:border-emerald-500/50' :
+                                        (ann.category || '').toUpperCase().includes('SOP') ? 'bg-gradient-to-r from-rose-950/30 to-slate-900/60 border-rose-500/30 hover:border-rose-500/50' :
+                                        (ann.category || '').toUpperCase().includes('HR') || (ann.category || '').toUpperCase().includes('INFO') ? 'bg-gradient-to-r from-cyan-950/30 to-slate-900/60 border-cyan-500/30 hover:border-cyan-500/50' :
                                         'bg-gradient-to-r from-indigo-950/30 to-slate-900/60 border-indigo-500/30 hover:border-indigo-500/50'
                                     ]"
                                 >
@@ -1980,9 +2077,9 @@ const formatTimeString = (dateTime) => {
                                             <span 
                                                 class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider"
                                                 :class="[
-                                                    ann.category === 'K3 & HSE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                                                    ann.category === 'SOP WAJIB' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
-                                                    ann.category === 'INFORMASI HR' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
+                                                    (ann.category || '').toUpperCase().includes('HSE') || (ann.category || '').toUpperCase().includes('K3') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                                                    (ann.category || '').toUpperCase().includes('SOP') ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                                                    (ann.category || '').toUpperCase().includes('HR') || (ann.category || '').toUpperCase().includes('INFO') ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
                                                     'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                                                 ]"
                                             >
@@ -2012,6 +2109,10 @@ const formatTimeString = (dateTime) => {
                                         {{ ann.content }}
                                     </p>
                                 </div>
+
+                                <div v-if="filteredAnnouncements.length === 0" class="text-center py-10 text-slate-500 text-xs">
+                                    No announcements in this category.
+                                </div>
                             </div>
                         </section>
                     </div>
@@ -2020,11 +2121,11 @@ const formatTimeString = (dateTime) => {
                     <div class="shrink-0 h-9 rounded-xl bg-slate-950/90 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)] flex items-center overflow-hidden px-3 gap-3">
                         <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-[9px] font-black text-cyan-300 uppercase tracking-widest shrink-0">
                             <Megaphone class="w-3 h-3 text-cyan-400 animate-pulse" />
-                            <span>INFO K3 & LOBI</span>
+                            <span>HSE & LOBBY BROADCAST</span>
                         </div>
                         <div class="flex-1 overflow-hidden whitespace-nowrap relative">
                             <div class="inline-block animate-marquee text-xs font-mono font-bold text-slate-200 tracking-wider">
-                                {{ runningText || '⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI' }}
+                                {{ runningText || '⚠️ PRIORITIZE OCCUPATIONAL HEALTH & SAFETY (HSE) • ZERO ACCIDENT IS OUR TARGET • PRACTICE 5S: SORT, SET IN ORDER, SHINE, STANDARDIZE, SUSTAIN • WORK WITH FOCUS, DISCIPLINE, AND HIGH INTEGRITY' }}
                             </div>
                         </div>
                     </div>
@@ -2056,8 +2157,8 @@ const formatTimeString = (dateTime) => {
                                 <Settings class="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 class="text-sm font-black uppercase tracking-wider text-white">Pengaturan Kiosk & Konten</h3>
-                                <p class="text-[10px] text-slate-400 font-semibold">Kelola jadwal rotasi, siaran pengumuman, dan data metrik K3</p>
+                                <h3 class="text-sm font-black uppercase tracking-wider text-white">Kiosk & Content Settings</h3>
+                                <p class="text-[10px] text-slate-400 font-semibold">Manage rotation schedules, broadcast notices, and HSE metrics</p>
                             </div>
                         </div>
                         <button 
@@ -2077,7 +2178,7 @@ const formatTimeString = (dateTime) => {
                             class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
                         >
                             <Clock class="w-3.5 h-3.5" />
-                            <span>Jam Tayang</span>
+                            <span>Display Schedule</span>
                         </button>
                         <button 
                             type="button"
@@ -2086,7 +2187,7 @@ const formatTimeString = (dateTime) => {
                             class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
                         >
                             <Megaphone class="w-3.5 h-3.5" />
-                            <span>Kelola Pengumuman ({{ announcements.length }})</span>
+                            <span>Manage Announcements ({{ announcements.length }})</span>
                         </button>
                         <button 
                             type="button"
@@ -2095,37 +2196,37 @@ const formatTimeString = (dateTime) => {
                             class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
                         >
                             <ShieldCheck class="w-3.5 h-3.5" />
-                            <span>K3 & Ticker</span>
+                            <span>HSE & Ticker</span>
                         </button>
                     </div>
 
                     <!-- Modal Body Container (Scrollable) -->
                     <div class="overflow-y-auto pr-1 flex flex-col gap-4 text-xs max-h-[calc(90vh-220px)] custom-scrollbar">
-                        <!-- TAB 1: JAM TAYANG -->
+                        <!-- TAB 1: DISPLAY SCHEDULE -->
                         <div v-if="activeSettingsTab === 'schedule'" class="flex flex-col gap-4">
-                            <!-- Mode Operasional -->
+                            <!-- Operational Mode -->
                             <div class="flex flex-col gap-1.5">
-                                <label class="font-bold text-slate-300">Mode Operasional Tayang Layar 32"</label>
+                                <label class="font-bold text-slate-300">32" Screen Operational Mode</label>
                                 <select 
                                     v-model="kioskSettings.schedule_mode"
                                     class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
                                 >
-                                    <option value="auto">Otomatis (Ikuti Jam Sibuk & Rotasi Slider Standby)</option>
-                                    <option value="camera_only">Selalu Scanner Kamera Wajah</option>
-                                    <option value="leaderboard_only">Selalu Leaderboard Disiplin</option>
-                                    <option value="announcements_only">Selalu Papan Pengumuman & K3</option>
+                                    <option value="auto">Automatic (Follow Peak Hours & Standby Slider Rotation)</option>
+                                    <option value="camera_only">Always Face Scanner Camera</option>
+                                    <option value="leaderboard_only">Always Discipline Leaderboard</option>
+                                    <option value="announcements_only">Always Announcements & HSE Board</option>
                                 </select>
                             </div>
 
-                            <!-- Jam Sibuk Masuk Pagi -->
+                            <!-- Morning Peak Hours -->
                             <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
                                 <span class="font-black text-cyan-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
                                     <Clock class="w-3.5 h-3.5" />
-                                    Jam Sibuk Masuk (Prioritas Kamera Pagi)
+                                    Morning Peak Hours (Check-in Camera Priority)
                                 </span>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">Mulai</label>
+                                        <label class="text-[10px] text-slate-400 block mb-1">Start</label>
                                         <input 
                                             type="time" 
                                             v-model="kioskSettings.morning_in_start"
@@ -2133,7 +2234,7 @@ const formatTimeString = (dateTime) => {
                                         />
                                     </div>
                                     <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">Selesai</label>
+                                        <label class="text-[10px] text-slate-400 block mb-1">End</label>
                                         <input 
                                             type="time" 
                                             v-model="kioskSettings.morning_in_end"
@@ -2143,15 +2244,15 @@ const formatTimeString = (dateTime) => {
                                 </div>
                             </div>
 
-                            <!-- Jam Sibuk Pulang Sore -->
+                            <!-- Evening Peak Hours -->
                             <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
                                 <span class="font-black text-indigo-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
                                     <Clock class="w-3.5 h-3.5" />
-                                    Jam Sibuk Pulang (Prioritas Kamera Sore)
+                                    Evening Peak Hours (Check-out Camera Priority)
                                 </span>
                                 <div class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">Mulai</label>
+                                        <label class="text-[10px] text-slate-400 block mb-1">Start</label>
                                         <input 
                                             type="time" 
                                             v-model="kioskSettings.evening_out_start"
@@ -2159,7 +2260,7 @@ const formatTimeString = (dateTime) => {
                                         />
                                     </div>
                                     <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">Selesai</label>
+                                        <label class="text-[10px] text-slate-400 block mb-1">End</label>
                                         <input 
                                             type="time" 
                                             v-model="kioskSettings.evening_out_end"
@@ -2169,39 +2270,39 @@ const formatTimeString = (dateTime) => {
                                 </div>
                             </div>
 
-                            <!-- Interval Rotasi Slider -->
+                            <!-- Slider Rotation Interval -->
                             <div class="flex flex-col gap-1.5">
-                                <label class="font-bold text-slate-300">Durasi Pergantian Halaman Slider (Detik)</label>
+                                <label class="font-bold text-slate-300">Slider Page Rotation Interval (Seconds)</label>
                                 <select 
                                     v-model="kioskSettings.slider_interval"
                                     class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
                                 >
-                                    <option :value="10">10 Detik</option>
-                                    <option :value="15">15 Detik</option>
-                                    <option :value="20">20 Detik (Direkomendasikan)</option>
-                                    <option :value="30">30 Detik</option>
-                                    <option :value="45">45 Detik</option>
-                                    <option :value="60">60 Detik (1 Menit)</option>
+                                    <option :value="10">10 Seconds</option>
+                                    <option :value="15">15 Seconds</option>
+                                    <option :value="20">20 Seconds (Recommended)</option>
+                                    <option :value="30">30 Seconds</option>
+                                    <option :value="45">45 Seconds</option>
+                                    <option :value="60">60 Seconds (1 Minute)</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- TAB 2: KELOLA PENGUMUMAN -->
+                        <!-- TAB 2: MANAGE ANNOUNCEMENTS -->
                         <div v-else-if="activeSettingsTab === 'announcements'" class="flex flex-col gap-3">
                             <!-- Header List / Action Button -->
                             <div v-if="!isEditingAnnouncement" class="flex items-center justify-between pb-1">
-                                <span class="text-[11px] font-bold text-slate-400">Daftar Pengumuman Aktif di Layar</span>
+                                <span class="text-[11px] font-bold text-slate-400">Active Announcements on Screen</span>
                                 <button 
                                     type="button"
                                     @click="openNewAnnouncementForm"
                                     class="px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-bold text-[11px] hover:bg-cyan-500 hover:text-slate-950 transition flex items-center gap-1.5"
                                 >
                                     <Plus class="w-3.5 h-3.5" />
-                                    <span>Tambah Pengumuman</span>
+                                    <span>Add Announcement</span>
                                 </button>
                             </div>
 
-                            <!-- List Pengumuman -->
+                            <!-- Announcement List -->
                             <div v-if="!isEditingAnnouncement" class="flex flex-col gap-2.5">
                                 <div 
                                     v-for="item in announcements" 
@@ -2213,10 +2314,10 @@ const formatTimeString = (dateTime) => {
                                             <span 
                                                 class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider"
                                                 :class="{
-                                                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30': item.category === 'K3 & HSE',
-                                                    'bg-rose-500/20 text-rose-300 border border-rose-500/30': item.category === 'SOP WAJIB',
-                                                    'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30': item.category === 'INFORMASI HR',
-                                                    'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30': item.category === 'AGENDA',
+                                                    'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30': (item.category || '').toUpperCase().includes('HSE') || (item.category || '').toUpperCase().includes('K3'),
+                                                    'bg-rose-500/20 text-rose-300 border border-rose-500/30': (item.category || '').toUpperCase().includes('SOP'),
+                                                    'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30': (item.category || '').toUpperCase().includes('HR') || (item.category || '').toUpperCase().includes('INFO'),
+                                                    'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30': (item.category || '').toUpperCase().includes('AGENDA'),
                                                 }"
                                             >
                                                 {{ item.category }}
@@ -2228,14 +2329,14 @@ const formatTimeString = (dateTime) => {
                                         </div>
                                         <h4 class="font-bold text-white text-xs truncate mb-1">{{ item.title }}</h4>
                                         <p class="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">{{ item.content }}</p>
-                                        <div class="text-[10px] text-slate-500 font-medium mt-1">Oleh: {{ item.issuer }}</div>
+                                        <div class="text-[10px] text-slate-500 font-medium mt-1">By: {{ item.issuer }}</div>
                                     </div>
                                     <div class="flex items-center gap-1 shrink-0 pt-1">
                                         <button 
                                             type="button"
                                             @click="openEditAnnouncementForm(item)"
                                             class="p-2 rounded-xl bg-white/5 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-300 border border-transparent hover:border-cyan-500/30 transition"
-                                            title="Edit Pengumuman"
+                                            title="Edit Announcement"
                                         >
                                             <Edit3 class="w-3.5 h-3.5" />
                                         </button>
@@ -2243,7 +2344,7 @@ const formatTimeString = (dateTime) => {
                                             type="button"
                                             @click="deleteAnnouncementItem(item.id)"
                                             class="p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-transparent hover:border-rose-500/30 transition"
-                                            title="Hapus Pengumuman"
+                                            title="Delete Announcement"
                                         >
                                             <Trash2 class="w-3.5 h-3.5" />
                                         </button>
@@ -2251,70 +2352,70 @@ const formatTimeString = (dateTime) => {
                                 </div>
 
                                 <div v-if="announcements.length === 0" class="text-center py-8 text-slate-500 text-xs">
-                                    Belum ada pengumuman. Klik "+ Tambah Pengumuman" di atas.
+                                    No announcements yet. Click "+ Add Announcement" above.
                                 </div>
                             </div>
 
-                            <!-- Sub Form: Tambah / Edit Pengumuman -->
+                            <!-- Sub Form: Add / Edit Announcement -->
                             <div v-else class="p-4 bg-slate-950/80 border border-cyan-500/40 rounded-2xl flex flex-col gap-3">
                                 <div class="flex items-center justify-between pb-2 border-b border-white/10">
                                     <span class="font-black text-cyan-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                                         <Edit3 class="w-3.5 h-3.5" />
-                                        {{ announcementForm.id ? 'Edit Pengumuman' : 'Tambah Pengumuman Baru' }}
+                                        {{ announcementForm.id ? 'Edit Announcement' : 'Add New Announcement' }}
                                     </span>
                                     <button 
                                         type="button" 
                                         @click="cancelAnnouncementForm"
                                         class="text-slate-400 hover:text-white text-[11px] font-bold"
                                     >
-                                        Kembali ke List
+                                        Back to List
                                     </button>
                                 </div>
 
-                                <!-- Judul -->
+                                <!-- Title -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-slate-400 font-bold">Judul Pengumuman</label>
+                                    <label class="text-[10px] text-slate-400 font-bold">Announcement Title</label>
                                     <input 
                                         type="text" 
                                         v-model="announcementForm.title"
-                                        placeholder="Contoh: Audit Keselamatan Kerja & Pelaksanaan 5R"
+                                        placeholder="e.g. Workplace Safety Audit & 5S Implementation"
                                         class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
                                     />
                                 </div>
 
-                                <!-- Kategori & Penerbit -->
+                                <!-- Category & Issuer -->
                                 <div class="grid grid-cols-2 gap-3">
                                     <div class="flex flex-col gap-1">
-                                        <label class="text-[10px] text-slate-400 font-bold">Kategori</label>
+                                        <label class="text-[10px] text-slate-400 font-bold">Category</label>
                                         <select 
                                             v-model="announcementForm.category"
                                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
                                         >
-                                            <option value="K3 & HSE">K3 & HSE</option>
-                                            <option value="SOP WAJIB">SOP WAJIB</option>
-                                            <option value="INFORMASI HR">INFORMASI HR</option>
-                                            <option value="AGENDA">AGENDA</option>
+                                            <option value="HSE & Safety">HSE & Safety</option>
+                                            <option value="Mandatory SOP">Mandatory SOP</option>
+                                            <option value="HR Notice">HR Notice</option>
+                                            <option value="Agenda">Agenda</option>
                                         </select>
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <label class="text-[10px] text-slate-400 font-bold">Penerbit / Bagian</label>
+                                        <label class="text-[10px] text-slate-400 font-bold">Issuer / Department</label>
                                         <input 
                                             type="text" 
                                             v-model="announcementForm.issuer"
-                                            placeholder="Contoh: Panitia K3 / HR Dept"
+                                            placeholder="e.g. HSE Committee / HR Dept"
                                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
                                         />
                                     </div>
                                 </div>
 
-                                <!-- Tanggal & Pinned -->
+                                <!-- Date & Pinned -->
                                 <div class="grid grid-cols-2 gap-3 items-center">
                                     <div class="flex flex-col gap-1">
-                                        <label class="text-[10px] text-slate-400 font-bold">Tanggal Terbit</label>
+                                        <label class="text-[10px] text-slate-400 font-bold">Publish Date</label>
                                         <input 
                                             type="text" 
                                             v-model="announcementForm.date"
-                                            placeholder="Contoh: 02 Okt 2026"
+                                            placeholder="e.g. 09 Oct 2026"
                                             class="w-full bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none"
                                         />
                                     </div>
@@ -2326,18 +2427,18 @@ const formatTimeString = (dateTime) => {
                                             class="w-4 h-4 rounded border-white/20 bg-slate-900 text-cyan-500 focus:ring-cyan-400"
                                         />
                                         <label for="chk_pinned" class="text-xs text-white font-bold cursor-pointer select-none">
-                                            Sematkan di Paling Atas (Pinned)
+                                            Pin to Top (Pinned)
                                         </label>
                                     </div>
                                 </div>
 
-                                <!-- Isi Pengumuman -->
+                                <!-- Announcement Content -->
                                 <div class="flex flex-col gap-1">
-                                    <label class="text-[10px] text-slate-400 font-bold">Isi Pesan Pengumuman</label>
+                                    <label class="text-[10px] text-slate-400 font-bold">Announcement Content</label>
                                     <textarea 
                                         v-model="announcementForm.content"
                                         rows="3"
-                                        placeholder="Tuliskan detail pengumuman yang jelas dan mudah dipahami karyawan..."
+                                        placeholder="Write clear and concise announcement details for employees..."
                                         class="w-full bg-slate-900 border border-white/10 rounded-xl p-3 text-white text-xs focus:border-cyan-400 focus:outline-none leading-relaxed"
                                     ></textarea>
                                 </div>
@@ -2348,26 +2449,26 @@ const formatTimeString = (dateTime) => {
                                         @click="cancelAnnouncementForm"
                                         class="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold text-xs transition"
                                     >
-                                        Batal
+                                        Cancel
                                     </button>
                                     <button 
                                         type="button"
                                         @click="saveAnnouncementItem"
                                         class="px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs transition"
                                     >
-                                        Terapkan ke Daftar
+                                        Apply to List
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- TAB 3: K3 & TICKER -->
+                        <!-- TAB 3: HSE & TICKER -->
                         <div v-else-if="activeSettingsTab === 'k3'" class="flex flex-col gap-4">
                             <!-- Zero Accident Base Date -->
                             <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
                                 <span class="font-black text-emerald-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
                                     <ShieldCheck class="w-3.5 h-3.5" />
-                                    Tanggal Awal Perhitungan Zero Accident
+                                    Zero Accident Benchmark Date
                                 </span>
                                 <div class="flex flex-col gap-1">
                                     <input 
@@ -2376,15 +2477,15 @@ const formatTimeString = (dateTime) => {
                                         class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2 text-white font-mono focus:border-cyan-400 focus:outline-none"
                                     />
                                     <p class="text-[10px] text-slate-500 font-medium">
-                                        * Sistem akan otomatis menghitung jumlah hari nihil kecelakaan kerja (Zero Accident) dan total jam kerja aman (Safe Man-Hours) pabrik sejak tanggal ini.
+                                        * The system will automatically calculate zero accident days and safe working man-hours from this date.
                                     </p>
                                 </div>
                             </div>
 
-                            <!-- Hotline K3 & Koordinator -->
+                            <!-- HSE Hotline & Coordinator -->
                             <div class="grid grid-cols-2 gap-3">
                                 <div class="flex flex-col gap-1.5">
-                                    <label class="font-bold text-slate-300">Hotline Darurat K3 / HSE</label>
+                                    <label class="font-bold text-slate-300">HSE Emergency Hotline</label>
                                     <input 
                                         type="text" 
                                         v-model="k3Form.safety_hotline"
@@ -2393,27 +2494,27 @@ const formatTimeString = (dateTime) => {
                                     />
                                 </div>
                                 <div class="flex flex-col gap-1.5">
-                                    <label class="font-bold text-slate-300">Penanggung Jawab / Tim K3</label>
+                                    <label class="font-bold text-slate-300">HSE Officer / Team</label>
                                     <input 
                                         type="text" 
                                         v-model="k3Form.safety_officer"
-                                        placeholder="Tim K3 & HSE PT. Jidoka"
+                                        placeholder="HSE & Safety Team PT. Jidoka"
                                         class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-cyan-400 focus:outline-none"
                                     />
                                 </div>
                             </div>
 
-                            <!-- Teks Berjalan / Marquee Ticker -->
+                            <!-- Marquee Ticker -->
                             <div class="flex flex-col gap-1.5">
-                                <label class="font-bold text-slate-300">Teks Berjalan Layar Kiosk (Running Marquee Ticker)</label>
+                                <label class="font-bold text-slate-300">Kiosk Running Marquee Ticker</label>
                                 <textarea 
                                     v-model="k3Form.running_text"
                                     rows="3"
-                                    placeholder="Tuliskan slogan K3, motivasi kerja, atau maklumat penting yang terus berjalan di bagian bawah layar..."
+                                    placeholder="Write HSE slogans, workplace motivation, or important notices to scroll along the bottom of the screen..."
                                     class="w-full bg-slate-950 border border-white/10 rounded-xl p-3 text-white text-xs focus:border-cyan-400 focus:outline-none leading-relaxed"
                                 ></textarea>
                                 <p class="text-[10px] text-slate-500 font-medium">
-                                    * Teks ini akan berjalan tanpa henti di seluruh layar (Leaderboard dan Papan Pengumuman).
+                                    * This text scrolls continuously at the bottom of the screen (Leaderboard and Announcements).
                                 </p>
                             </div>
                         </div>
@@ -2427,22 +2528,22 @@ const formatTimeString = (dateTime) => {
                     <!-- Modal Actions -->
                     <div class="pt-3 border-t border-white/10 flex items-center justify-between shrink-0">
                         <span class="text-[10px] text-slate-500 font-medium hidden sm:inline">
-                            Perubahan akan langsung aktif di layar monitor absensi 32"
+                            Changes will take effect immediately on the 32" attendance kiosk screen
                         </span>
                         <div class="flex items-center gap-3 ml-auto">
                             <button 
-                                @click="showSettingsModal = false"
+                                @click="showSettingsModal = false" 
                                 class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-bold transition text-xs"
                             >
-                                Tutup
+                                Close
                             </button>
                             <button 
-                                @click="saveSettings"
+                                @click="saveSettings" 
                                 :disabled="isSavingSettings"
                                 class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-black flex items-center gap-2 hover:opacity-95 transition text-xs shadow-lg disabled:opacity-50"
                             >
                                 <Save class="w-4 h-4" />
-                                <span>{{ isSavingSettings ? 'Menyimpan...' : 'Simpan Semua Perubahan' }}</span>
+                                <span>{{ isSavingSettings ? 'Saving...' : 'Save All Changes' }}</span>
                             </button>
                         </div>
                     </div>
