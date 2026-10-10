@@ -884,6 +884,8 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::post('/database/hard-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'hardReset'])->name('database.hard-reset');
     Route::post('/database/module-reset', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'moduleReset'])->name('database.module-reset');
     Route::get('/database/backup-info/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'backupInfo'])->name('database.backup-info');
+    Route::post('/database/auto-backup/settings', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'saveAutoBackupSettings'])->name('database.auto-backup.settings');
+    Route::post('/database/auto-backup/run-now', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'runAutoBackupNow'])->name('database.auto-backup.run-now');
     // System Maintenance (In-App Artisan Commands)
     Route::post('/database/sync-permissions', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'syncPermissions'])->name('database.sync-permissions');
     Route::post('/database/sync-numbering', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'syncDocumentNumbering'])->name('database.sync-numbering');

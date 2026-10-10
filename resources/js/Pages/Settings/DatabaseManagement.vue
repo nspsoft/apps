@@ -15,11 +15,16 @@ import {
     ShieldExclamationIcon,
     CubeIcon,
     WrenchScrewdriverIcon,
+    ClockIcon,
+    CalendarDaysIcon,
+    BoltIcon,
+    PlayIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     modules: Array,
     backups: Array,
+    auto_backup: Object,
 });
 
 const activeTab = ref('backup');
@@ -28,6 +33,36 @@ const confirmAction = ref(null);
 const confirmTitle = ref('');
 const confirmMessage = ref('');
 const confirmType = ref('warning'); // warning, danger
+
+// Auto Backup Form & Dynamic Options
+const autoBackupForm = useForm({
+    enabled: props.auto_backup?.enabled ?? false,
+    frequency: props.auto_backup?.frequency ?? 'daily',
+    time: props.auto_backup?.time ?? '02:00',
+    interval_hours: props.auto_backup?.interval_hours ?? 6,
+    day_of_week: props.auto_backup?.day_of_week ?? 'sunday',
+    retention_days: props.auto_backup?.retention_days ?? 30,
+});
+
+const isRunningAutoBackup = ref(false);
+
+const daysOfWeek = [
+    { value: 'sunday', label: 'Minggu (Sunday)' },
+    { value: 'monday', label: 'Senin (Monday)' },
+    { value: 'tuesday', label: 'Selasa (Tuesday)' },
+    { value: 'wednesday', label: 'Rabu (Wednesday)' },
+    { value: 'thursday', label: 'Kamis (Thursday)' },
+    { value: 'friday', label: 'Jumat (Friday)' },
+    { value: 'saturday', label: 'Sabtu (Saturday)' },
+];
+
+const intervalOptions = [
+    { value: 2, label: 'Setiap 2 Jam' },
+    { value: 4, label: 'Setiap 4 Jam' },
+    { value: 6, label: 'Setiap 6 Jam (Rekomendasi)' },
+    { value: 8, label: 'Setiap 8 Jam (Per Shift)' },
+    { value: 12, label: 'Setiap 12 Jam (2x Sehari)' },
+];
 
 // Forms
 const backupForm = useForm({
@@ -80,6 +115,29 @@ const softResettableModules = new Set(['sales', 'purchasing', 'inventory', 'manu
 
 // Computed
 const selectedModuleCount = computed(() => backupForm.modules.length);
+
+// Auto Backup Actions
+const saveAutoBackupSettings = () => {
+    autoBackupForm.post(route('settings.database.auto-backup.settings'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            router.reload({ only: ['auto_backup'] });
+        },
+    });
+};
+
+const runAutoBackupNow = () => {
+    if (confirm('Jalankan backup otomatis sekarang? Sistem akan membuat file backup full (.sql.gz) dan membersihkan file lama sesuai batas retensi.')) {
+        isRunningAutoBackup.value = true;
+        router.post(route('settings.database.auto-backup.run-now'), {}, {
+            preserveScroll: true,
+            onFinish: () => {
+                isRunningAutoBackup.value = false;
+                router.reload({ only: ['backups', 'auto_backup'] });
+            },
+        });
+    }
+};
 
 // Methods
 const createBackup = () => {
@@ -247,13 +305,216 @@ const formatDate = (dateStr) => {
             </div>
 
             <!-- BACKUP TAB -->
-            <div v-if="activeTab === 'backup'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Create Backup Card -->
-                <div class="glass-card p-6 rounded-2xl">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                        <ArrowDownTrayIcon class="h-5 w-5 text-indigo-500" />
-                        Create Backup
-                    </h3>
+            <div v-if="activeTab === 'backup'" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <!-- Left Column: Automated Scheduler & Manual Backup -->
+                <div class="space-y-6">
+                    <!-- Automated Backup Scheduler Card -->
+                    <div class="glass-card p-6 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 relative overflow-hidden shadow-sm">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-5">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white shadow-md shadow-indigo-500/20">
+                                    <ClockIcon class="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        Jadwal Backup Otomatis
+                                        <span v-if="autoBackupForm.enabled" class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
+                                            Aktif
+                                        </span>
+                                        <span v-else class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-300 dark:border-slate-700">
+                                            Non-Aktif
+                                        </span>
+                                    </h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Pencadangan database mandiri berkala tanpa intervensi manual</p>
+                                </div>
+                            </div>
+
+                            <!-- Toggle Switch -->
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" v-model="autoBackupForm.enabled" class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-indigo-600"></div>
+                            </label>
+                        </div>
+
+                        <form @submit.prevent="saveAutoBackupSettings" class="space-y-4">
+                            <!-- Frekuensi Dinamis -->
+                            <div>
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                                    Frekuensi Eksekusi
+                                </label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button 
+                                        type="button" 
+                                        @click="autoBackupForm.frequency = 'daily'"
+                                        class="p-2.5 rounded-xl border text-xs font-medium text-center transition-all cursor-pointer flex flex-col items-center gap-1"
+                                        :class="autoBackupForm.frequency === 'daily' 
+                                            ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm' 
+                                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                                    >
+                                        <CalendarDaysIcon class="w-4 h-4" />
+                                        <span>Setiap Hari</span>
+                                    </button>
+
+                                    <button 
+                                        type="button" 
+                                        @click="autoBackupForm.frequency = 'interval_hours'"
+                                        class="p-2.5 rounded-xl border text-xs font-medium text-center transition-all cursor-pointer flex flex-col items-center gap-1"
+                                        :class="autoBackupForm.frequency === 'interval_hours' 
+                                            ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm' 
+                                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                                    >
+                                        <BoltIcon class="w-4 h-4" />
+                                        <span>Interval Jam</span>
+                                    </button>
+
+                                    <button 
+                                        type="button" 
+                                        @click="autoBackupForm.frequency = 'weekly'"
+                                        class="p-2.5 rounded-xl border text-xs font-medium text-center transition-all cursor-pointer flex flex-col items-center gap-1"
+                                        :class="autoBackupForm.frequency === 'weekly' 
+                                            ? 'border-indigo-500 bg-indigo-50/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm' 
+                                            : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'"
+                                    >
+                                        <ClockIcon class="w-4 h-4" />
+                                        <span>Mingguan</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Opsi Waktu Dinamis berdasarkan Frekuensi -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-3">
+                                <!-- Mode Daily -->
+                                <div v-if="autoBackupForm.frequency === 'daily'" class="flex items-center justify-between">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Jam Eksekusi Harian</label>
+                                        <p class="text-[11px] text-slate-500">Pukul berapa backup dijalankan setiap harinya (WIB)</p>
+                                    </div>
+                                    <input 
+                                        type="time" 
+                                        v-model="autoBackupForm.time"
+                                        class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-indigo-500"
+                                        required
+                                    />
+                                </div>
+
+                                <!-- Mode Interval Hours -->
+                                <div v-else-if="autoBackupForm.frequency === 'interval_hours'" class="flex items-center justify-between">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Interval Waktu</label>
+                                        <p class="text-[11px] text-slate-500">Ulangi backup secara otomatis setiap periode jam</p>
+                                    </div>
+                                    <select 
+                                        v-model="autoBackupForm.interval_hours"
+                                        class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                    >
+                                        <option v-for="opt in intervalOptions" :key="opt.value" :value="opt.value">
+                                            {{ opt.label }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Mode Weekly -->
+                                <div v-else class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Hari Eksekusi</label>
+                                            <p class="text-[11px] text-slate-500">Pilih hari untuk backup mingguan</p>
+                                        </div>
+                                        <select 
+                                            v-model="autoBackupForm.day_of_week"
+                                            class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                        >
+                                            <option v-for="d in daysOfWeek" :key="d.value" :value="d.value">
+                                                {{ d.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700/50">
+                                        <div>
+                                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Jam Eksekusi</label>
+                                            <p class="text-[11px] text-slate-500">Pukul berapa backup dijalankan pada hari tersebut (WIB)</p>
+                                        </div>
+                                        <input 
+                                            type="time" 
+                                            v-model="autoBackupForm.time"
+                                            class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-indigo-500"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Masa Retensi Otomatis -->
+                            <div class="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Retensi File (Pembersihan Otomatis)</label>
+                                    <p class="text-[11px] text-slate-500">Hapus file backup otomatis yang lebih lama dari jumlah hari ini</p>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <input 
+                                        type="number" 
+                                        v-model.number="autoBackupForm.retention_days"
+                                        min="1" 
+                                        max="365"
+                                        class="w-20 px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-mono text-center focus:ring-2 focus:ring-indigo-500"
+                                        required
+                                    />
+                                    <span class="text-xs font-medium text-slate-500">Hari</span>
+                                </div>
+                            </div>
+
+                            <!-- Ringkasan Status & Next Run -->
+                            <div class="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500 dark:text-slate-400">Jadwal Berikutnya:</span>
+                                    <span class="font-semibold text-indigo-700 dark:text-indigo-300 font-mono">
+                                        {{ auto_backup?.next_run_human || 'Belum diatur' }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-500 dark:text-slate-400">Eksekusi Terakhir:</span>
+                                    <span class="font-semibold text-slate-700 dark:text-slate-300 font-mono">
+                                        {{ auto_backup?.last_run_at ? formatDate(auto_backup.last_run_at) : 'Belum pernah dijalankan' }}
+                                    </span>
+                                </div>
+                                <div v-if="auto_backup?.last_message" class="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-indigo-100 dark:border-indigo-900/30 truncate" :title="auto_backup.last_message">
+                                    Catatan: {{ auto_backup.last_message }}
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex items-center gap-2 pt-1">
+                                <button
+                                    type="submit"
+                                    :disabled="autoBackupForm.processing"
+                                    class="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs shadow-md transition disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                                >
+                                    <ArrowPathIcon v-if="autoBackupForm.processing" class="h-4 w-4 animate-spin" />
+                                    <CheckCircleIcon v-else class="h-4 w-4" />
+                                    <span>Simpan Pengaturan</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="runAutoBackupNow"
+                                    :disabled="isRunningAutoBackup"
+                                    class="py-2.5 px-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs border border-slate-300 dark:border-slate-600 transition disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                                    title="Uji coba proses backup otomatis dan rotasi file sekarang"
+                                >
+                                    <ArrowPathIcon v-if="isRunningAutoBackup" class="h-4 w-4 animate-spin text-indigo-500" />
+                                    <PlayIcon v-else class="h-4 w-4 text-emerald-500" />
+                                    <span>Run Now</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Create Manual Backup Card -->
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                            <ArrowDownTrayIcon class="h-5 w-5 text-indigo-500" />
+                            Create Manual Backup
+                        </h3>
 
                     <form @submit.prevent="createBackup" class="space-y-4">
                         <!-- Backup Type -->
@@ -319,6 +580,7 @@ const formatDate = (dateStr) => {
                         </button>
                     </form>
                 </div>
+            </div>
 
                 <!-- Available Backups Card -->
                 <div class="glass-card p-6 rounded-2xl">
@@ -335,7 +597,7 @@ const formatDate = (dateStr) => {
                         <p>No backups available</p>
                     </div>
 
-                    <div v-else class="space-y-2 max-h-96 overflow-y-auto">
+                    <div v-else class="space-y-2 max-h-[640px] overflow-y-auto pr-1">
                         <div 
                             v-for="backup in backups" 
                             :key="backup.filename"

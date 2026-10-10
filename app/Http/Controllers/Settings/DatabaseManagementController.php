@@ -7,6 +7,9 @@ use App\Services\DatabaseBackupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use App\Models\AppSetting;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Inertia\Inertia;
 
 class DatabaseManagementController extends Controller
@@ -26,6 +29,7 @@ class DatabaseManagementController extends Controller
         return Inertia::render('Settings/DatabaseManagement', [
             'modules' => $this->backupService->getModules(),
             'backups' => $this->backupService->getBackupList(),
+            'auto_backup' => $this->getAutoBackupConfig(),
         ]);
     }
 
@@ -280,6 +284,143 @@ class DatabaseManagementController extends Controller
             return back()->with('success', 'All caches cleared successfully!');
         } catch (\Exception $e) {
             return back()->with('error', 'Cache clear failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get automated backup configuration object
+     */
+    protected function getAutoBackupConfig(): array
+    {
+        $enabled = (bool) AppSetting::get('backup_auto_enabled', false);
+        $frequency = AppSetting::get('backup_auto_frequency', 'daily');
+        $time = AppSetting::get('backup_auto_time', '02:00');
+        $intervalHours = (int) AppSetting::get('backup_auto_interval_hours', 6);
+        $dayOfWeek = AppSetting::get('backup_auto_day_of_week', 'sunday');
+        $retentionDays = (int) AppSetting::get('backup_auto_retention_days', 30);
+        $lastRunAt = AppSetting::get('backup_last_run_at', null);
+        $lastStatus = AppSetting::get('backup_last_status', null);
+        $lastMessage = AppSetting::get('backup_last_message', null);
+
+        return [
+            'enabled' => $enabled,
+            'frequency' => $frequency,
+            'time' => $time,
+            'interval_hours' => $intervalHours > 0 ? $intervalHours : 6,
+            'day_of_week' => $dayOfWeek ?: 'sunday',
+            'retention_days' => $retentionDays > 0 ? $retentionDays : 30,
+            'last_run_at' => $lastRunAt,
+            'last_status' => $lastStatus,
+            'last_message' => $lastMessage,
+            'next_run_human' => $this->calculateNextRunHuman($enabled, $frequency, $time, $intervalHours, $dayOfWeek, $lastRunAt),
+        ];
+    }
+
+    /**
+     * Calculate human-readable next run schedule
+     */
+    protected function calculateNextRunHuman(bool $enabled, string $frequency, string $time, int $intervalHours, string $dayOfWeek, ?string $lastRunAt): string
+    {
+        if (!$enabled) {
+            return 'Jadwal Non-Aktif (Disabled)';
+        }
+
+        $tz = 'Asia/Jakarta';
+        $now = Carbon::now($tz);
+
+        try {
+            switch ($frequency) {
+                case 'interval_hours':
+                    if ($intervalHours < 1) $intervalHours = 6;
+                    if ($lastRunAt) {
+                        $last = Carbon::parse($lastRunAt)->setTimezone($tz);
+                        $next = $last->copy()->addHours($intervalHours);
+                        if ($next->isPast()) {
+                            return 'Segera / Dalam Antrean (Due Now)';
+                        }
+                        return $next->translatedFormat('d M Y, H:i') . ' WIB (' . $next->diffForHumans($now) . ')';
+                    }
+                    return 'Segera / Dalam Antrean (Due Now)';
+
+                case 'weekly':
+                    $parts = explode(':', $time);
+                    $hour = isset($parts[0]) ? (int) $parts[0] : 2;
+                    $minute = isset($parts[1]) ? (int) $parts[1] : 0;
+                    $targetDayNum = [
+                        'sunday' => Carbon::SUNDAY,
+                        'monday' => Carbon::MONDAY,
+                        'tuesday' => Carbon::TUESDAY,
+                        'wednesday' => Carbon::WEDNESDAY,
+                        'thursday' => Carbon::THURSDAY,
+                        'friday' => Carbon::FRIDAY,
+                        'saturday' => Carbon::SATURDAY,
+                    ][strtolower($dayOfWeek)] ?? Carbon::SUNDAY;
+
+                    $next = $now->copy()->setTime($hour, $minute, 0);
+                    if ($now->dayOfWeek === $targetDayNum && $next->isFuture()) {
+                        // Today is target day and time is in the future
+                    } else {
+                        $next->next($targetDayNum);
+                    }
+
+                    return $next->translatedFormat('l, d M Y, H:i') . ' WIB (' . $next->diffForHumans($now) . ')';
+
+                case 'daily':
+                default:
+                    $parts = explode(':', $time);
+                    $hour = isset($parts[0]) ? (int) $parts[0] : 2;
+                    $minute = isset($parts[1]) ? (int) $parts[1] : 0;
+                    $next = $now->copy()->setTime($hour, $minute, 0);
+                    if ($next->isPast()) {
+                        $next->addDay();
+                    }
+                    return $next->translatedFormat('d M Y, H:i') . ' WIB (' . $next->diffForHumans($now) . ')';
+            }
+        } catch (\Throwable $e) {
+            return 'Jadwal Aktif';
+        }
+    }
+
+    /**
+     * Save automated backup settings
+     */
+    public function saveAutoBackupSettings(Request $request)
+    {
+        $request->validate([
+            'enabled' => 'required|boolean',
+            'frequency' => 'required|in:daily,interval_hours,weekly',
+            'time' => 'required|string|regex:/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/',
+            'interval_hours' => 'required|integer|min:1|max:24',
+            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'retention_days' => 'required|integer|min:1|max:365',
+        ]);
+
+        AppSetting::set('backup_auto_enabled', (bool) $request->enabled, 'backup', 'Enable Automated Database Backup');
+        AppSetting::set('backup_auto_frequency', $request->frequency, 'backup', 'Automated Backup Frequency');
+        AppSetting::set('backup_auto_time', $request->time, 'backup', 'Automated Backup Execution Time (WIB)');
+        AppSetting::set('backup_auto_interval_hours', (int) $request->interval_hours, 'backup', 'Automated Backup Interval in Hours');
+        AppSetting::set('backup_auto_day_of_week', $request->day_of_week, 'backup', 'Automated Backup Day of Week for Weekly Schedule');
+        AppSetting::set('backup_auto_retention_days', (int) $request->retention_days, 'backup', 'Automated Backup Retention Period in Days');
+
+        return back()->with('success', 'Automated backup settings saved successfully.');
+    }
+
+    /**
+     * Trigger immediate automated backup run
+     */
+    public function runAutoBackupNow()
+    {
+        try {
+            $exitCode = Artisan::call('database:backup-automated', ['--force' => true]);
+            $output = Artisan::output();
+
+            if ($exitCode === 0) {
+                return back()->with('success', 'Automated backup executed successfully! ' . trim($output));
+            }
+
+            return back()->with('error', 'Backup failed: ' . trim($output));
+        } catch (\Exception $e) {
+            return back()->with('error', 'Execution error: ' . $e->getMessage());
         }
     }
 }
