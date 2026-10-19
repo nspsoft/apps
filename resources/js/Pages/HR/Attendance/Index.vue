@@ -5,6 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { 
     ClockIcon, 
     CalendarIcon, 
+    CalendarDaysIcon,
     MagnifyingGlassIcon,
     ArrowRightOnRectangleIcon,
     ArrowLeftOnRectangleIcon,
@@ -39,8 +40,28 @@ const activeTab = ref('logs'); // 'logs' or 'requests'
 const page = usePage();
 const search = ref(props.filters.search);
 const date = ref(props.filters.date || new Date().toISOString().split('T')[0]);
+const isRangeFilter = ref(!!(props.filters.start_date && props.filters.end_date));
+const startDate = ref(props.filters.start_date || '');
+const endDate = ref(props.filters.end_date || '');
 const status = ref(props.filters.status);
 const showImportModal = ref(false);
+const showExportModal = ref(false);
+
+const toggleRangeMode = () => {
+    isRangeFilter.value = !isRangeFilter.value;
+    if (isRangeFilter.value) {
+        if (!startDate.value) {
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            startDate.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+        }
+        if (!endDate.value) {
+            const d = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            endDate.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        }
+    }
+};
 
 const employeeSearch = ref('');
 const filteredEmployees = computed(() => {
@@ -68,12 +89,18 @@ const importForm = useForm({
     file: null,
 });
 
-watch([search, date, status], debounce(() => {
-    router.get(route('hr.attendance.index'), { 
+watch([search, date, startDate, endDate, status, isRangeFilter], debounce(() => {
+    const query = { 
         search: search.value, 
-        date: date.value, 
         status: status.value 
-    }, { preserveState: true, replace: true });
+    };
+    if (isRangeFilter.value) {
+        if (startDate.value) query.start_date = startDate.value;
+        if (endDate.value) query.end_date = endDate.value;
+    } else {
+        if (date.value) query.date = date.value;
+    }
+    router.get(route('hr.attendance.index'), query, { preserveState: true, replace: true });
 }, 300));
 
 // Find if current login user has an employee record
@@ -121,15 +148,90 @@ const downloadTemplate = () => {
     window.location.href = route('hr.attendance.template');
 };
 
-const exportExcel = () => {
+const exportForm = ref({
+    mode: 'range',
+    date: props.filters.date || new Date().toISOString().split('T')[0],
+    start_date: props.filters.start_date || '',
+    end_date: props.filters.end_date || '',
+    department_id: props.filters.department_id || '',
+    status: props.filters.status || '',
+    search: props.filters.search || '',
+    activePreset: 'this_month',
+});
+
+const openExportModal = () => {
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const formatYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (isRangeFilter.value && startDate.value && endDate.value) {
+        exportForm.value.mode = 'range';
+        exportForm.value.start_date = startDate.value;
+        exportForm.value.end_date = endDate.value;
+        exportForm.value.activePreset = 'custom';
+    } else if (date.value) {
+        exportForm.value.date = date.value;
+        if (!exportForm.value.start_date) {
+            exportForm.value.start_date = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
+            exportForm.value.end_date = formatYmd(today);
+        }
+    }
+    exportForm.value.search = search.value || '';
+    exportForm.value.status = status.value || '';
+    showExportModal.value = true;
+};
+
+const setExportPreset = (preset) => {
+    exportForm.value.activePreset = preset;
+    const today = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const formatYmd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (preset === 'today') {
+        exportForm.value.mode = 'single';
+        exportForm.value.date = formatYmd(today);
+        exportForm.value.start_date = formatYmd(today);
+        exportForm.value.end_date = formatYmd(today);
+    } else if (preset === '7days') {
+        exportForm.value.mode = 'range';
+        const past7 = new Date();
+        past7.setDate(today.getDate() - 6);
+        exportForm.value.start_date = formatYmd(past7);
+        exportForm.value.end_date = formatYmd(today);
+    } else if (preset === 'this_month') {
+        exportForm.value.mode = 'range';
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        exportForm.value.start_date = formatYmd(firstDay);
+        exportForm.value.end_date = formatYmd(today);
+    } else if (preset === 'last_month') {
+        exportForm.value.mode = 'range';
+        const firstDayLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+        exportForm.value.start_date = formatYmd(firstDayLastMonth);
+        exportForm.value.end_date = formatYmd(lastDayLastMonth);
+    } else if (preset === 'custom') {
+        exportForm.value.mode = 'range';
+    }
+};
+
+const submitExport = () => {
     const params = new URLSearchParams();
-    if (search.value) params.append('search', search.value);
-    if (date.value) params.append('date', date.value);
-    if (status.value) params.append('status', status.value);
+
+    if (exportForm.value.mode === 'single') {
+        if (exportForm.value.date) params.append('date', exportForm.value.date);
+    } else {
+        if (exportForm.value.start_date) params.append('start_date', exportForm.value.start_date);
+        if (exportForm.value.end_date) params.append('end_date', exportForm.value.end_date);
+    }
+
+    if (exportForm.value.department_id) params.append('department_id', exportForm.value.department_id);
+    if (exportForm.value.status) params.append('status', exportForm.value.status);
+    if (exportForm.value.search) params.append('search', exportForm.value.search);
 
     const queryString = params.toString();
     const url = route('hr.attendance.export') + (queryString ? `?${queryString}` : '');
     window.location.href = url;
+    showExportModal.value = false;
 };
 
 const formatTime = (dateTime) => {
@@ -238,7 +340,7 @@ const deleteAttendance = (logId) => {
                 
                 <div class="flex items-center gap-3">
                     <button 
-                        @click="exportExcel"
+                        @click="openExportModal"
                         class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-600/20 transition-all hover:-translate-y-0.5 cursor-pointer"
                         title="Export attendance logs to Excel"
                     >
@@ -353,7 +455,39 @@ const deleteAttendance = (logId) => {
                             <MagnifyingGlassIcon class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                             <input v-model="search" type="text" placeholder="Search employee / NIK..." class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 pl-9 pr-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none" />
                         </div>
-                        <input v-model="date" type="date" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none" />
+                        <div class="flex items-center gap-1">
+                            <div v-if="!isRangeFilter">
+                                <input 
+                                    v-model="date" 
+                                    type="date" 
+                                    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none" 
+                                />
+                            </div>
+                            <div v-else class="flex items-center gap-1">
+                                <input 
+                                    v-model="startDate" 
+                                    type="date" 
+                                    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-2.5 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none w-32" 
+                                />
+                                <span class="text-[11px] text-slate-400 font-mono">s/d</span>
+                                <input 
+                                    v-model="endDate" 
+                                    type="date" 
+                                    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-2.5 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none w-32" 
+                                />
+                            </div>
+
+                            <button 
+                                type="button" 
+                                @click="toggleRangeMode" 
+                                :title="isRangeFilter ? 'Ganti ke filter tanggal tunggal' : 'Ganti ke filter rentang tanggal'"
+                                :class="['inline-flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer', isRangeFilter ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800']"
+                            >
+                                <CalendarDaysIcon class="h-4 w-4" />
+                                <span class="hidden sm:inline">{{ isRangeFilter ? 'Range' : 'Single' }}</span>
+                            </button>
+                        </div>
+
                         <select v-model="status" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none">
                             <option value="">All Status</option>
                             <option value="present">Present</option>
@@ -362,9 +496,9 @@ const deleteAttendance = (logId) => {
                             <option value="leave">On Leave</option>
                         </select>
                         <button 
-                            @click="exportExcel"
+                            @click="openExportModal"
                             type="button"
-                            title="Export filtered records to Excel"
+                            title="Export data ke Excel dengan pilihan filter / rentang tanggal"
                             class="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 rounded-xl py-2 px-3 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all cursor-pointer shadow-sm active:scale-95"
                         >
                             <ArrowDownTrayIcon class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -713,6 +847,183 @@ const deleteAttendance = (logId) => {
                                             class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-8 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-900/20 hover:bg-indigo-500 disabled:opacity-50 transition-all"
                                         >
                                             Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </DialogPanel>
+                        </TransitionChild>
+                    </div>
+                </div>
+            </Dialog>
+        </TransitionRoot>
+
+        <!-- Export Attendance Modal -->
+        <TransitionRoot as="template" :show="showExportModal">
+            <Dialog as="div" class="relative z-[100]" @close="showExportModal = false">
+                <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0" enter-to="opacity-100" leave="ease-in duration-200" leave-from="opacity-100" leave-to="opacity-0">
+                    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
+                </TransitionChild>
+
+                <div class="fixed inset-0 z-10 overflow-y-auto">
+                    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                        <TransitionChild as="template" enter="ease-out duration-300" enter-from="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" enter-to="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200" leave-from="opacity-100 translate-y-0 sm:scale-100" leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
+                            <DialogPanel class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                                <form @submit.prevent="submitExport">
+                                    <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
+                                        <div class="flex items-center gap-3">
+                                            <div class="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                <ArrowDownTrayIcon class="h-6 w-6" />
+                                            </div>
+                                            <div>
+                                                <DialogTitle as="h3" class="text-base font-bold text-slate-900 dark:text-white">
+                                                    Export Data Absensi ke Excel
+                                                </DialogTitle>
+                                                <p class="text-xs text-slate-500">Pilih rentang tanggal dan kriteria filter ekspor</p>
+                                            </div>
+                                        </div>
+                                        <button @click="showExportModal = false" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1 rounded-lg">
+                                            <XMarkIcon class="h-5 w-5" />
+                                        </button>
+                                    </div>
+
+                                    <div class="p-6 space-y-5">
+                                        <!-- Preset Buttons -->
+                                        <div class="space-y-1.5">
+                                            <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Preset Rentang Tanggal</label>
+                                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                                <button 
+                                                    type="button" 
+                                                    @click="setExportPreset('today')"
+                                                    :class="['px-3 py-2 text-xs font-semibold rounded-xl border transition-all text-center cursor-pointer', exportForm.activePreset === 'today' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800']"
+                                                >
+                                                    Hari Ini
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    @click="setExportPreset('7days')"
+                                                    :class="['px-3 py-2 text-xs font-semibold rounded-xl border transition-all text-center cursor-pointer', exportForm.activePreset === '7days' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800']"
+                                                >
+                                                    7 Hari Terakhir
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    @click="setExportPreset('this_month')"
+                                                    :class="['px-3 py-2 text-xs font-semibold rounded-xl border transition-all text-center cursor-pointer', exportForm.activePreset === 'this_month' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800']"
+                                                >
+                                                    Bulan Ini
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    @click="setExportPreset('last_month')"
+                                                    :class="['px-3 py-2 text-xs font-semibold rounded-xl border transition-all text-center cursor-pointer', exportForm.activePreset === 'last_month' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800']"
+                                                >
+                                                    Bulan Lalu
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Mode Toggle -->
+                                        <div class="flex items-center gap-4 py-1">
+                                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                <input type="radio" value="range" v-model="exportForm.mode" @change="exportForm.activePreset = 'custom'" class="text-emerald-600 focus:ring-emerald-500" />
+                                                <span>Rentang Tanggal (Date Range)</span>
+                                            </label>
+                                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                <input type="radio" value="single" v-model="exportForm.mode" @change="exportForm.activePreset = 'custom'" class="text-emerald-600 focus:ring-emerald-500" />
+                                                <span>Satu Tanggal Tertentu</span>
+                                            </label>
+                                        </div>
+
+                                        <!-- Date inputs -->
+                                        <div v-if="exportForm.mode === 'range'" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div class="space-y-1.5">
+                                                <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tanggal Mulai (Start Date)</label>
+                                                <input 
+                                                    type="date" 
+                                                    v-model="exportForm.start_date"
+                                                    @input="exportForm.activePreset = 'custom'"
+                                                    class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-emerald-500/50 outline-none" 
+                                                    required
+                                                />
+                                            </div>
+                                            <div class="space-y-1.5">
+                                                <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Tanggal Selesai (End Date)</label>
+                                                <input 
+                                                    type="date" 
+                                                    v-model="exportForm.end_date"
+                                                    @input="exportForm.activePreset = 'custom'"
+                                                    class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-emerald-500/50 outline-none" 
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div v-else class="space-y-1.5">
+                                            <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Pilih Tanggal</label>
+                                            <input 
+                                                type="date" 
+                                                v-model="exportForm.date"
+                                                @input="exportForm.activePreset = 'custom'"
+                                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-emerald-500/50 outline-none" 
+                                                required
+                                            />
+                                        </div>
+
+                                        <!-- Additional Filters -->
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                            <div class="space-y-1.5">
+                                                <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Departemen (Opsional)</label>
+                                                <select 
+                                                    v-model="exportForm.department_id"
+                                                    class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                                                >
+                                                    <option value="">Semua Departemen</option>
+                                                    <option v-for="dept in props.departments" :key="dept.id" :value="dept.id">
+                                                        {{ dept.name }}
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div class="space-y-1.5">
+                                                <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Status Kehadiran</label>
+                                                <select 
+                                                    v-model="exportForm.status"
+                                                    class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                                                >
+                                                    <option value="">Semua Status</option>
+                                                    <option value="present">Present (Hadir)</option>
+                                                    <option value="late">Late (Terlambat)</option>
+                                                    <option value="absent">Absent (Tidak Hadir)</option>
+                                                    <option value="leave">On Leave (Cuti/Izin)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-1.5">
+                                            <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Cari Karyawan / NIK (Opsional)</label>
+                                            <input 
+                                                type="text" 
+                                                v-model="exportForm.search"
+                                                placeholder="Kosongkan untuk mengekspor semua karyawan..."
+                                                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+                                        <button 
+                                            @click="showExportModal = false" 
+                                            type="button" 
+                                            class="px-5 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+                                        >
+                                            Batal
+                                        </button>
+                                        <button 
+                                            type="submit" 
+                                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-6 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                                        >
+                                            <ArrowDownTrayIcon class="h-4 w-4" />
+                                            <span>Unduh File Excel</span>
                                         </button>
                                     </div>
                                 </form>

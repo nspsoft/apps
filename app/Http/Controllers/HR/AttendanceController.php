@@ -35,12 +35,20 @@ class AttendanceController extends Controller
             });
         }
 
-        if ($request->date) {
+        if ($request->start_date && $request->end_date) {
+            $query->whereBetween('date', [$request->start_date, $request->end_date]);
+        } elseif ($request->date) {
             $query->where('date', $request->date);
         }
 
         if ($request->status) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->department_id) {
+            $query->whereHas('employee', function ($q) use ($request) {
+                $q->where('department_id', $request->department_id);
+            });
         }
 
         $requestsQuery = AttendanceRequest::with(['employee.department'])
@@ -61,7 +69,7 @@ class AttendanceController extends Controller
                 ->with('department:id,name')
                 ->orderBy('full_name')
                 ->get(['id', 'nik', 'full_name', 'department_id']),
-            'filters' => $request->only(['search', 'date', 'status']),
+            'filters' => $request->only(['search', 'date', 'start_date', 'end_date', 'status', 'department_id']),
         ]);
     }
 

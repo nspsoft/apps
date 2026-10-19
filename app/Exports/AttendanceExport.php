@@ -152,6 +152,12 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Sho
                 } elseif (!empty($this->filters['start_date']) && !empty($this->filters['end_date'])) {
                     $filterParts[] = 'Period: ' . $this->filters['start_date'] . ' to ' . $this->filters['end_date'];
                 }
+                if (!empty($this->filters['department_id'])) {
+                    $dept = \App\Models\Department::find($this->filters['department_id']);
+                    if ($dept) {
+                        $filterParts[] = 'Dept: ' . $dept->name;
+                    }
+                }
                 if (!empty($this->filters['status'])) {
                     $filterParts[] = 'Status: ' . ucfirst($this->filters['status']);
                 }
