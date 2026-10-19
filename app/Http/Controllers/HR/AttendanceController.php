@@ -17,6 +17,7 @@ use App\Models\PayrollSetting;
 
 use App\Imports\AttendanceImport;
 use App\Exports\AttendanceTemplateExport;
+use App\Exports\AttendanceExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class AttendanceController extends Controller
@@ -67,6 +68,16 @@ class AttendanceController extends Controller
     public function template()
     {
         return Excel::download(new AttendanceTemplateExport, 'attendance-template.xlsx');
+    }
+
+    public function export(Request $request)
+    {
+        $filters = $request->only(['search', 'date', 'start_date', 'end_date', 'status', 'department_id']);
+        $dateSuffix = $request->date 
+            ?? (($request->start_date && $request->end_date) ? "{$request->start_date}_to_{$request->end_date}" : now()->format('Y-m-d'));
+        $filename = 'attendance_logs_' . $dateSuffix . '.xlsx';
+
+        return Excel::download(new AttendanceExport($filters), $filename);
     }
 
     public function import(Request $request)

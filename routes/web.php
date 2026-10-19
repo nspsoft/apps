@@ -615,6 +615,7 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::get('/attendance-template', [AttendanceController::class, 'template'])->name('attendance.template');
     Route::post('/attendance-import', [AttendanceController::class, 'import'])->name('attendance.import');
+    Route::get('/attendance-export', [AttendanceController::class, 'export'])->name('attendance.export');
     Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
     Route::post('/attendance/clock-out/{attendance}', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
     Route::put('/attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');

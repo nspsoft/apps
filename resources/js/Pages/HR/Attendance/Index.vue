@@ -14,6 +14,7 @@ import {
     CheckCircleIcon,
     ExclamationCircleIcon,
     ArrowUpTrayIcon,
+    ArrowDownTrayIcon,
     DocumentArrowDownIcon,
     XMarkIcon,
     PencilSquareIcon,
@@ -118,6 +119,17 @@ const handleImport = () => {
 
 const downloadTemplate = () => {
     window.location.href = route('hr.attendance.template');
+};
+
+const exportExcel = () => {
+    const params = new URLSearchParams();
+    if (search.value) params.append('search', search.value);
+    if (date.value) params.append('date', date.value);
+    if (status.value) params.append('status', status.value);
+
+    const queryString = params.toString();
+    const url = route('hr.attendance.export') + (queryString ? `?${queryString}` : '');
+    window.location.href = url;
 };
 
 const formatTime = (dateTime) => {
@@ -226,8 +238,16 @@ const deleteAttendance = (logId) => {
                 
                 <div class="flex items-center gap-3">
                     <button 
+                        @click="exportExcel"
+                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-emerald-600/20 transition-all hover:-translate-y-0.5 cursor-pointer"
+                        title="Export attendance logs to Excel"
+                    >
+                        <ArrowDownTrayIcon class="h-5 w-5" />
+                        Export Excel
+                    </button>
+                    <button 
                         @click="showImportModal = true"
-                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-slate-900 px-5 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all hover:-translate-y-0.5"
+                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-slate-900 px-5 py-2.5 text-sm font-bold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all hover:-translate-y-0.5"
                     >
                         <ArrowUpTrayIcon class="h-5 w-5" />
                         Import Fingerprint
@@ -341,6 +361,15 @@ const deleteAttendance = (logId) => {
                             <option value="absent">Absent</option>
                             <option value="leave">On Leave</option>
                         </select>
+                        <button 
+                            @click="exportExcel"
+                            type="button"
+                            title="Export filtered records to Excel"
+                            class="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 rounded-xl py-2 px-3 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-all cursor-pointer shadow-sm active:scale-95"
+                        >
+                            <ArrowDownTrayIcon class="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                            <span>Export</span>
+                        </button>
                     </div>
                 </div>
 
