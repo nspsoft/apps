@@ -411,6 +411,7 @@ const navigation = [
         permission: 'manufacturing.view',
         children: [
             { name: 'Intelligence Hub', href: '/manufacturing/dashboard', icon: PresentationChartBarIcon, permission: 'manufacturing.view' },
+            { name: 'Plant Operations Kiosk TV', href: '/logistics/kiosk', icon: ComputerDesktopIcon, permission: 'manufacturing.view', target: '_blank' },
             { name: 'Information', href: '/manufacturing/information', icon: InformationCircleIcon, permission: 'manufacturing.view' },
             { name: 'Bill of Materials', href: '/manufacturing/boms', icon: ListBulletIcon, permission: 'manufacturing.bill_of_materials.view' },
             { name: 'Production Routing', href: '/manufacturing/routing', icon: ArrowsRightLeftIcon, permission: 'manufacturing.production_routing.view' },
@@ -457,7 +458,7 @@ const navigation = [
         permission: 'logistics.view',
         children: [
             { name: 'Logistics Hub', href: '/logistics/dashboard', icon: PresentationChartBarIcon, permission: 'logistics.view' },
-            { name: 'Logistics Kiosk TV', href: '/logistics/kiosk', icon: ComputerDesktopIcon, permission: 'logistics.view' },
+            { name: 'Plant Operations Kiosk TV', href: '/logistics/kiosk', icon: ComputerDesktopIcon, permission: 'logistics.view', target: '_blank' },
             { name: 'Loading Queue', href: '/warehouse/loading', icon: CubeIcon, permission: 'logistics.view' },
             { name: 'Delivery Planning', href: '/logistics/planning', icon: MapIcon, permission: 'logistics.delivery_planning.view' },
             { name: 'Dispatch', href: '/logistics/dispatch', icon: TruckIcon, permission: 'logistics.view' },

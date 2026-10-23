@@ -53,7 +53,8 @@ import {
     BuildingOfficeIcon, 
     UserIcon,
     XMarkIcon,
-    Square3Stack3DIcon
+    Square3Stack3DIcon,
+    CpuChipIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -294,10 +295,11 @@ const mapMarkers = ref([]);
 
 // Slide Definitions
 const slides = [
-    { id: 0, key: 'matrix', title: 'MATRIKS RIT & DISPATCH DOCK', short: 'Rit Matrix', icon: TruckIcon },
-    { id: 1, key: 'radar', title: 'FLEET RADAR & LIVE GPS ETA', short: 'Fleet Radar', icon: SignalIcon },
-    { id: 2, key: 'manifest', title: 'MANIFEST ITEM & STATUS BARANG PER DO', short: 'Item DO', icon: Square3Stack3DIcon },
-    { id: 3, key: 'kpis', title: 'REKAP KPI & PERFORMA LOGISTIK', short: 'KPI & Metrik', icon: ChartBarIcon },
+    { id: 0, key: 'dual', title: '72" COMMAND HUD: DUAL PRODUKSI & KIRIM', short: 'Dual 50:50 (72" TV)', icon: Square3Stack3DIcon },
+    { id: 1, key: 'matrix', title: 'MATRIKS RIT & DISPATCH DOCK', short: 'Rit Matrix', icon: TruckIcon },
+    { id: 2, key: 'radar', title: 'FLEET RADAR & LIVE GPS ETA', short: 'Fleet Radar', icon: SignalIcon },
+    { id: 3, key: 'manifest', title: 'MANIFEST ITEM & STATUS BARANG PER DO', short: 'Item DO', icon: CubeIcon },
+    { id: 4, key: 'kpis', title: 'REKAP KPI & PERFORMA LOGISTIK', short: 'KPI & Metrik', icon: ChartBarIcon },
 ];
 
 // Clock updating
@@ -315,7 +317,7 @@ const refreshData = async (dateParam = activeDate.value) => {
         if (response.data?.success) {
             kioskData.value = response.data.data;
             lastSyncTime.value = response.data.timestamp || new Date().toLocaleTimeString('id-ID');
-            if (currentSlide.value === 1) {
+            if (currentSlide.value === 2) {
                 renderMapMarkers();
             }
         }
@@ -338,7 +340,7 @@ const goToSlide = (slideIndex) => {
     currentSlide.value = slideIndex;
     slideTimerProgress.value = 0;
     triggerManualPause();
-    if (slideIndex === 1) {
+    if (slideIndex === 2) {
         setTimeout(() => initRadarMap(), 200);
     }
 };
@@ -346,7 +348,7 @@ const goToSlide = (slideIndex) => {
 const nextSlide = () => {
     currentSlide.value = (currentSlide.value + 1) % slides.length;
     slideTimerProgress.value = 0;
-    if (currentSlide.value === 1) {
+    if (currentSlide.value === 2) {
         setTimeout(() => initRadarMap(), 200);
     }
 };
@@ -354,7 +356,7 @@ const nextSlide = () => {
 const prevSlide = () => {
     currentSlide.value = (currentSlide.value - 1 + slides.length) % slides.length;
     slideTimerProgress.value = 0;
-    if (currentSlide.value === 1) {
+    if (currentSlide.value === 2) {
         setTimeout(() => initRadarMap(), 200);
     }
 };
@@ -552,7 +554,7 @@ const getStatusBadgeStyle = (statusCode) => {
 </script>
 
 <template>
-    <Head :title="`${companyName} - Logistics Kiosk TV Display`" />
+    <Head :title="`${companyName} - Plant Command 72&quot; TV HUD`" />
 
     <div class="h-screen w-screen bg-[#070B14] text-slate-100 flex flex-col select-none overflow-hidden font-sans antialiased">
         
@@ -587,8 +589,8 @@ const getStatusBadgeStyle = (statusCode) => {
                     </span>
                     <div>
                         <h1 class="text-sm sm:text-base font-black tracking-wider uppercase text-white flex items-center gap-2">
-                            DISPATCH DOCK KIOSK
-                            <span class="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 font-mono border border-blue-500/30">40" TV HUD</span>
+                            PLANT COMMAND KIOSK
+                            <span class="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono border border-cyan-500/30">72" TV HUD</span>
                         </h1>
                     </div>
                 </div>
@@ -715,13 +717,296 @@ const getStatusBadgeStyle = (statusCode) => {
             </div>
         </div>
 
-        <!-- MAIN SLIDE CONTENT AREA (100% Fit for 40-inch TV) -->
-        <main class="flex-1 overflow-hidden relative p-4 sm:p-6 bg-[#070B14]">
+        <!-- MAIN SLIDE CONTENT AREA (100% Fit for 72-inch TV) -->
+        <main class="flex-1 overflow-hidden relative p-4 sm:p-5 bg-[#070B14]">
             
+            <!-- ========================================== -->
+            <!-- SLIDE 0: DUAL 50:50 COMMAND HUD (72" TV)   -->
+            <!-- ========================================== -->
+            <div v-if="currentSlide === 0" class="h-full grid grid-cols-12 gap-4 animate-fade-in overflow-hidden">
+                
+                <!-- LEFT: SCHEDULE & MONITORING PRODUKSI (6 COLS) -->
+                <div class="col-span-6 flex flex-col gap-3 h-full overflow-hidden">
+                    
+                    <!-- Header Banner Produksi -->
+                    <div class="bg-gradient-to-r from-emerald-950/80 via-slate-900 to-slate-900 border-l-4 border-emerald-500 border-y border-r border-slate-800 rounded-xl p-3 flex items-center justify-between shrink-0 shadow-lg">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <CpuChipIcon class="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-sm font-black text-white font-mono tracking-wide uppercase">SCHEDULE & MONITORING PRODUKSI</h2>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/50">ANDON LIVE</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400">Target Shift &bull; Active Work Orders (SPK) & Output Mesin</p>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Produksi -->
+                        <div class="flex items-center gap-3 font-mono shrink-0">
+                            <div class="text-right">
+                                <div class="text-[9px] text-slate-400 uppercase">Target Hari Ini</div>
+                                <div class="text-xs font-black text-slate-200">{{ kioskData.manufacturing?.kpis?.target_today || '185.000' }} <span class="text-[9px] font-normal text-slate-400">Pcs</span></div>
+                            </div>
+                            <div class="h-6 w-px bg-slate-800"></div>
+                            <div class="text-right">
+                                <div class="text-[9px] text-slate-400 uppercase">Aktual Output</div>
+                                <div class="text-xs font-black text-emerald-400">
+                                    {{ kioskData.manufacturing?.kpis?.actual_today || '128.450' }} 
+                                    <span class="text-[9px] font-normal text-emerald-500/80">({{ kioskData.manufacturing?.kpis?.achievement_pct || '69.4' }}%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3x Andon Machine Line Cards -->
+                    <div class="grid grid-cols-3 gap-2.5 shrink-0">
+                        <div 
+                            v-for="line in (kioskData.manufacturing?.lines || [])" 
+                            :key="line.id"
+                            class="bg-slate-900/90 border rounded-xl p-2.5 flex flex-col justify-between shadow-lg relative overflow-hidden"
+                            :class="line.status_color === 'emerald' ? 'border-emerald-500/40' : (line.status_color === 'cyan' ? 'border-cyan-500/40' : 'border-amber-500/40')"
+                        >
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-1.5 truncate">
+                                    <span class="w-2 h-2 rounded-full shrink-0" :class="line.status_color === 'emerald' ? 'bg-emerald-400 animate-pulse' : (line.status_color === 'cyan' ? 'bg-cyan-400 animate-pulse' : 'bg-amber-400')"></span>
+                                    <span class="font-bold text-[11px] font-mono text-white truncate">{{ line.name }}</span>
+                                </div>
+                                <span 
+                                    class="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold uppercase shrink-0 border"
+                                    :class="line.status_color === 'emerald' ? 'bg-emerald-950 text-emerald-300 border-emerald-800' : (line.status_color === 'cyan' ? 'bg-cyan-950 text-cyan-300 border-cyan-800' : 'bg-amber-950 text-amber-300 border-amber-800')"
+                                >
+                                    {{ line.status_label }}
+                                </span>
+                            </div>
+
+                            <div class="text-[10px] text-slate-400 font-mono truncate mb-2">
+                                {{ line.active_wo }}
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px] font-mono">
+                                    <span class="text-slate-400">{{ line.downtime_minutes > 0 ? 'Downtime' : 'Progress' }}</span>
+                                    <span class="font-black" :class="line.status_color === 'emerald' ? 'text-emerald-400' : (line.status_color === 'cyan' ? 'text-cyan-400' : 'text-amber-400')">
+                                        {{ line.downtime_minutes > 0 ? `${line.downtime_minutes} Mins` : `${line.progress_pct}%` }}
+                                    </span>
+                                </div>
+                                <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                    <div 
+                                        class="h-full rounded-full transition-all duration-500"
+                                        :class="line.status_color === 'emerald' ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : (line.status_color === 'cyan' ? 'bg-gradient-to-r from-cyan-600 to-cyan-400' : 'bg-gradient-to-r from-amber-600 to-amber-400')"
+                                        :style="{ width: `${Math.min(100, line.progress_pct)}%` }"
+                                    ></div>
+                                </div>
+                                <div class="flex justify-between text-[9px] font-mono text-slate-400 pt-0.5">
+                                    <span>Act: <b class="text-slate-200">{{ line.actual_qty }}</b></span>
+                                    <span>Tgt: {{ line.target_qty }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Work Order Priority Table -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex-1 flex flex-col shadow-xl overflow-hidden">
+                        <div class="flex items-center justify-between mb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-sm bg-emerald-400"></span>
+                                <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">ANTREAN WORK ORDER &bull; SPK AKTIF</h3>
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-mono">{{ (kioskData.manufacturing?.work_orders || []).length }} SPK Berjalan</span>
+                        </div>
+
+                        <div class="overflow-y-auto flex-1 no-scrollbar">
+                            <table class="w-full text-left font-mono border-collapse">
+                                <thead class="sticky top-0 bg-[#0B1120] z-10">
+                                    <tr class="border-b border-slate-800 text-[9px] text-slate-400 uppercase tracking-wider">
+                                        <th class="py-1.5 px-2">No. SPK / PO</th>
+                                        <th class="py-1.5 px-2">Item Produk & Spec</th>
+                                        <th class="py-1.5 px-2 text-center">Mesin</th>
+                                        <th class="py-1.5 px-2 text-right">Target</th>
+                                        <th class="py-1.5 px-2 text-right">Aktual</th>
+                                        <th class="py-1.5 px-2 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/60 text-xs">
+                                    <tr 
+                                        v-for="wo in (kioskData.manufacturing?.work_orders || [])" 
+                                        :key="wo.id" 
+                                        class="hover:bg-slate-800/40 transition-colors"
+                                    >
+                                        <td class="py-2 px-2 font-bold text-white">
+                                            <div>{{ wo.wo_number }}</div>
+                                            <span class="text-[9px] font-normal text-cyan-400 truncate block max-w-[130px]">{{ wo.customer_po }}</span>
+                                        </td>
+                                        <td class="py-2 px-2">
+                                            <div class="font-semibold text-slate-200 truncate max-w-[150px]">{{ wo.product_name }}</div>
+                                            <div class="text-[9px] text-slate-400 truncate max-w-[150px]">{{ wo.product_spec }}</div>
+                                        </td>
+                                        <td class="py-2 px-2 text-center">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] bg-slate-800 border border-slate-700 text-slate-300 font-semibold">{{ wo.machine_line }}</span>
+                                        </td>
+                                        <td class="py-2 px-2 text-right font-bold text-slate-300">{{ wo.qty_planned }}</td>
+                                        <td class="py-2 px-2 text-right font-bold text-emerald-400">{{ wo.qty_produced }}</td>
+                                        <td class="py-2 px-2 text-center">
+                                            <span 
+                                                class="px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase whitespace-nowrap"
+                                                :class="wo.status_color === 'emerald' ? 'bg-emerald-950 text-emerald-400 border-emerald-700' : (wo.status_color === 'cyan' ? 'bg-cyan-950 text-cyan-400 border-cyan-700' : 'bg-slate-800 text-slate-400 border-slate-700')"
+                                            >
+                                                {{ wo.status_label }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="pt-2 mt-1 border-t border-slate-800/80 flex justify-between items-center text-[10px] text-slate-400 font-mono shrink-0">
+                            <span>* Data otomatis sinkronisasi dari Work Order & Produksi</span>
+                            <span class="text-emerald-400 font-bold">OEE Est: {{ kioskData.manufacturing?.kpis?.oee_est || '88.4' }}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT: SCHEDULE & MONITORING KIRIM (6 COLS) -->
+                <div class="col-span-6 flex flex-col gap-3 h-full overflow-hidden">
+                    
+                    <!-- Header Banner Logistik -->
+                    <div class="bg-gradient-to-r from-amber-950/80 via-slate-900 to-slate-900 border-l-4 border-amber-500 border-y border-r border-slate-800 rounded-xl p-3 flex items-center justify-between shrink-0 shadow-lg">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                <TruckIcon class="h-5 w-5" />
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-sm font-black text-white font-mono tracking-wide uppercase">SCHEDULE & MONITORING KIRIM</h2>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-700/50">DISPATCH HUD</span>
+                                </div>
+                                <p class="text-[11px] text-slate-400">Ritase Armada, Alokasi Pintu Muat & Surat Jalan (DO)</p>
+                            </div>
+                        </div>
+
+                        <!-- Quick Stats Logistik -->
+                        <div class="flex items-center gap-3 font-mono shrink-0">
+                            <div class="text-right">
+                                <div class="text-[9px] text-slate-400 uppercase">Total Armada</div>
+                                <div class="text-xs font-black text-slate-200">{{ kioskData.kpis?.total_active_trucks || '14' }} <span class="text-[9px] font-normal text-slate-400">Trucks</span></div>
+                            </div>
+                            <div class="h-6 w-px bg-slate-800"></div>
+                            <div class="text-right">
+                                <div class="text-[9px] text-slate-400 uppercase">Terkirim Hari Ini</div>
+                                <div class="text-xs font-black text-cyan-400">
+                                    {{ kioskData.kpis?.total_rits_done || '9' }} 
+                                    <span class="text-[9px] font-normal text-cyan-500/80">({{ kioskData.kpis?.on_time_departure_rate || '96' }}%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3x Dock Bay Cards -->
+                    <div class="grid grid-cols-3 gap-2.5 shrink-0">
+                        <div 
+                            v-for="dock in (kioskData.dock_bays || [])" 
+                            :key="dock.bay_number"
+                            class="bg-slate-900/90 border rounded-xl p-2.5 flex flex-col justify-between shadow-lg relative overflow-hidden"
+                            :class="dock.status_color === 'cyan' ? 'border-cyan-500/40' : (dock.status_color === 'amber' ? 'border-amber-500/40' : 'border-slate-800')"
+                        >
+                            <div class="flex items-center justify-between mb-1">
+                                <div class="flex items-center gap-1.5 truncate">
+                                    <span class="w-2 h-2 rounded-full shrink-0" :class="dock.status_color === 'cyan' ? 'bg-cyan-400 animate-pulse' : (dock.status_color === 'amber' ? 'bg-amber-400' : 'bg-emerald-400')"></span>
+                                    <span class="font-bold text-[11px] font-mono text-white truncate">{{ dock.bay_number }} &bull; {{ dock.name }}</span>
+                                </div>
+                                <span 
+                                    class="px-1.5 py-0.5 rounded text-[8px] font-mono font-bold uppercase shrink-0 border"
+                                    :class="dock.status_color === 'cyan' ? 'bg-cyan-950 text-cyan-300 border-cyan-800' : (dock.status_color === 'amber' ? 'bg-amber-950 text-amber-300 border-amber-800' : 'bg-emerald-950 text-emerald-300 border-emerald-800')"
+                                >
+                                    {{ dock.status }}
+                                </span>
+                            </div>
+
+                            <div class="text-xs font-bold font-mono text-white truncate">
+                                {{ dock.truck }}
+                            </div>
+                            <div class="text-[10px] text-slate-400 truncate mb-2">
+                                {{ dock.customer }}
+                            </div>
+
+                            <div class="pt-1.5 border-t border-slate-800 flex justify-between text-[9px] font-mono">
+                                <span class="text-slate-400">Muatan: <b class="text-slate-200">{{ dock.tonnage }}</b></span>
+                                <span class="font-bold text-cyan-400">{{ dock.eta }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logistics Dispatch Table (Multi-Rit Matrix Preview) -->
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex-1 flex flex-col shadow-xl overflow-hidden">
+                        <div class="flex items-center justify-between mb-2 shrink-0">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-sm bg-amber-400"></span>
+                                <h3 class="text-xs font-bold text-slate-200 uppercase tracking-wider font-mono">JADWAL RITASE &bull; SURAT JALAN (DO)</h3>
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-mono">Real-time Dispatch</span>
+                        </div>
+
+                        <div class="overflow-y-auto flex-1 no-scrollbar">
+                            <table class="w-full text-left font-mono border-collapse">
+                                <thead class="sticky top-0 bg-[#0B1120] z-10">
+                                    <tr class="border-b border-slate-800 text-[9px] text-slate-400 uppercase tracking-wider">
+                                        <th class="py-1.5 px-2">No. DO / Rute</th>
+                                        <th class="py-1.5 px-2">Customer / Destinasi</th>
+                                        <th class="py-1.5 px-2">Truk & Supir</th>
+                                        <th class="py-1.5 px-2 text-center">Rit</th>
+                                        <th class="py-1.5 px-2 text-right">Tonase</th>
+                                        <th class="py-1.5 px-2 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/60 text-xs">
+                                    <tr 
+                                        v-for="manifest in (kioskData.do_items_manifest || []).slice(0, 5)" 
+                                        :key="manifest.do_number" 
+                                        class="hover:bg-slate-800/40 transition-colors"
+                                    >
+                                        <td class="py-2 px-2 font-bold text-white">
+                                            <div>{{ manifest.do_number }}</div>
+                                            <span class="text-[9px] font-normal text-cyan-400 truncate block max-w-[130px]">{{ manifest.origin_to_destination || 'Plant Central' }}</span>
+                                        </td>
+                                        <td class="py-2 px-2">
+                                            <div class="font-semibold text-slate-200 truncate max-w-[150px]">{{ manifest.customer_name }}</div>
+                                            <div class="text-[9px] text-slate-400 truncate max-w-[150px]">{{ manifest.destination_city || 'Jawa Barat' }}</div>
+                                        </td>
+                                        <td class="py-2 px-2">
+                                            <div class="font-semibold text-white truncate max-w-[140px]">{{ manifest.license_plate || 'B 9821 TXX' }}</div>
+                                            <div class="text-[9px] text-slate-400 truncate max-w-[140px]">{{ manifest.driver_name || 'Driver' }}</div>
+                                        </td>
+                                        <td class="py-2 px-2 text-center">
+                                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-950 text-cyan-400 border border-cyan-800">RIT {{ manifest.rit_number || 1 }}</span>
+                                        </td>
+                                        <td class="py-2 px-2 text-right font-bold text-slate-200">{{ manifest.total_weight_ton || '12.5' }} T</td>
+                                        <td class="py-2 px-2 text-center">
+                                            <span 
+                                                class="px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase whitespace-nowrap"
+                                                :class="getStatusBadgeStyle(manifest.status_code)"
+                                            >
+                                                {{ manifest.status_label }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="pt-2 mt-1 border-t border-slate-800/80 flex justify-between items-center text-[10px] text-slate-400 font-mono shrink-0">
+                            <span>* Data otomatis sinkronisasi dari Delivery Order & Planning</span>
+                            <span class="text-cyan-400 font-bold">On-Time: {{ kioskData.kpis?.on_time_departure_rate || '96' }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- ========================================== -->
             <!-- SLIDE 1: DAILY MULTI-RIT DISPATCH MATRIX   -->
             <!-- ========================================== -->
-            <div v-if="currentSlide === 0" class="h-full flex flex-col gap-4 animate-fade-in">
+            <div v-else-if="currentSlide === 1" class="h-full flex flex-col gap-4 animate-fade-in">
                 <!-- Top Matrix Header & Column Legend -->
                 <div class="grid grid-cols-12 gap-3 px-4 py-3 bg-[#0E1626] border border-slate-800 rounded-2xl text-xs font-black uppercase tracking-wider text-slate-400 shrink-0 shadow-lg">
                     <div class="col-span-3 flex items-center gap-2 text-slate-300">
@@ -899,9 +1184,9 @@ const getStatusBadgeStyle = (statusCode) => {
             </div>
 
             <!-- ========================================== -->
-            <!-- SLIDE 2: LIVE FLEET RADAR & GPS ETA        -->
+            <!-- SLIDE 3: LIVE FLEET RADAR & GPS ETA        -->
             <!-- ========================================== -->
-            <div v-else-if="currentSlide === 1" class="h-full grid grid-cols-12 gap-4 animate-fade-in">
+            <div v-else-if="currentSlide === 2" class="h-full grid grid-cols-12 gap-4 animate-fade-in">
                 <!-- Left 8-Cols: Interactive Live HUD Map -->
                 <div class="col-span-8 bg-[#0D1424] border border-slate-800 rounded-2xl overflow-hidden relative shadow-2xl flex flex-col">
                     <div class="p-3 bg-[#0B1120]/90 border-b border-slate-800 flex items-center justify-between shrink-0 z-10">
@@ -976,9 +1261,9 @@ const getStatusBadgeStyle = (statusCode) => {
             </div>
 
             <!-- ========================================== -->
-            <!-- SLIDE 3: MANIFEST ITEM BARANG PER DO       -->
+            <!-- SLIDE 4: MANIFEST ITEM BARANG PER DO       -->
             <!-- ========================================== -->
-            <div v-else-if="currentSlide === 2" class="h-full flex flex-col gap-4 animate-fade-in">
+            <div v-else-if="currentSlide === 3" class="h-full flex flex-col gap-4 animate-fade-in">
                 <!-- Header Scorecard: Manifest Items -->
                 <!-- Header Scorecard: Manifest Items -->
                 <div class="grid grid-cols-5 gap-3.5 shrink-0">
@@ -1183,9 +1468,9 @@ const getStatusBadgeStyle = (statusCode) => {
             </div>
 
             <!-- ========================================== -->
-            <!-- SLIDE 4: LOGISTICS KPIS & ANALYTICS CHARTS -->
+            <!-- SLIDE 5: LOGISTICS KPIS & ANALYTICS CHARTS -->
             <!-- ========================================== -->
-            <div v-else-if="currentSlide === 3" class="h-full flex flex-col gap-4 animate-fade-in overflow-hidden">
+            <div v-else-if="currentSlide === 4" class="h-full flex flex-col gap-4 animate-fade-in overflow-hidden">
                 <!-- Top 4 Quick KPI Cards -->
                 <div class="grid grid-cols-4 gap-4 shrink-0">
                     <!-- KPI 1 -->

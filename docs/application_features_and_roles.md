@@ -96,30 +96,132 @@ Pembukuan mutasi uang, piutang, hutang, dan laba rugi.
 *   **Production Costing & Overhead:** (Modul *Costing*) Penentuan Harga Pokok Produksi (HPP/COGS) berdasarkan alokasi biaya listrik/buruh, dll (PIC: Cost Accountant).
 
 ## 10. Modul Human Resources (HR & Payroll)
-Sistem absensi dan kepegawaian internal perusahaan.
-**PIC / Role Utama:** _HR Admin_, _Payroll Officer_, _All Employees_.
+Sistem absensi, kepegawaian, penggajian, dan tata kelola SDM internal perusahaan.
+**PIC / Role Utama:** _HR Manager_, _HR Admin_, _Payroll Officer_.
 
-*   **My Time-Off:** Pengajuan cuti, sakit, dan lembur (PIC: Semua Karyawan).
-*   **Employee Directory:** Master Biodata karyawan (PIC: HR Admin).
-*   **Attendance & Leave Mgmt:** Validasi rekap kehadiran (Fingerprint) dan siklus libur (PIC: HR Admin).
-*   **Payroll:** Perhitungan Gaji, Tunjangan, dan Potongan Pajak bulanan (PIC: Payroll / Finance).
+*   **Employee Directory:** Master biodata karyawan, NIK, penempatan departemen, dan status kontrak (PIC: HR Admin).
+*   **Pendaftaran Face ID (Biometric):** Registrasi wajah karyawan untuk absensi biometrik nir-sentuh (PIC: HR Admin).
+*   **Attendance & Dashboard:** Monitoring kehadiran harian, keterlambatan, pulang awal, dan lembur (PIC: HR Admin).
+*   **Attendance Kiosk:** Layar tap absensi mandiri kamera berbasis tablet/web di pos sekuriti/lobby (PIC: HR / Sekuriti).
+*   **Jadwal & Shift:** Pengaturan shift kerja dinamis, toleransi jam telat, dan aturan penalti denda (PIC: HR Admin).
+*   **Leave Management:** Persetujuan cuti tahunan, sakit, dan izin khusus (PIC: HR Admin & Dept Head).
+*   **Overtime Requests:** Verifikasi dan persetujuan Surat Perintah Kerja Lembur (SPKL) (PIC: Dept Head & HR).
+*   **HR Reimbursements:** Verifikasi klaim biaya medis/transport dan pembayaran ke karyawan (PIC: HR & Finance).
+*   **Payroll & Settings:** Penggajian terotomatisasi (Gaji Pokok, Tunjangan, BPJS, PPh 21, Potongan Telat, dan slip gaji PDF/WA) (PIC: Payroll Officer).
+*   **Performance Monitoring:** Evaluasi KPI dan penilaian berkala kinerja karyawan (PIC: HR & Management).
+*   **HR WhatsApp Center:** Saluran komunikasi chat resmi HR ke seluruh karyawan (PIC: HR Admin).
 
-## 11. Modul Pengaturan (Settings / IT & System Admin)
-Konfigurasi akar sistem, Hak Akses, Alur Persetujuan (Approval), dan utilitas pemeliharaan database aplikasi.
+## 11. Modul General Affair (GA)
+Pengelolaan aset umum, operasional gedung, kendaraan dinas, dan pengadaan kantor.
+**PIC / Role Utama:** _GA Manager_, _GA Officer_, _Building Maintenance_.
+
+*   **GA Dashboard:** Ringkasan status tiket servis, jadwal pemeliharaan gedung, dan okupansi armada.
+*   **Tickets:** Pengaduan kerusakan fasilitas kerja (lampu, AC, meja, toilet, plumbing) dari staf internal (PIC: GA Officer).
+*   **Assets:** Master inventaris aset non-produksi (furnitur, laptop kantor, printer, AC, genset) beserta nomor barcode (PIC: GA Asset Admin).
+*   **Preventive Maintenance (PM):** Kalender servis rutin fasilitas gedung dan pencatatan riwayat teknisi (PIC: GA Officer).
+*   **Armada Operasional (Fleet):** Pendataan mobil/motor dinas kantor, masa berlaku STNK/KIR, dan riwayat servis (PIC: GA Fleet Staff).
+*   **Peminjaman Kendaraan (Vehicle Booking):** Formulir permohonan pinjam mobil dinas kantor, verifikasi approval, catatan kilometer awal/akhir, dan pengembalian (PIC: All Staff & GA Approver).
+*   **Locations:** Pemetaan denah ruangan, lantai gedung, dan pos operasional (PIC: GA Admin).
+*   **Requests (PR):** Pengajuan pembelian belanja kebutuhan rumah tangga kantor / GA ke Purchasing (PIC: GA Officer).
+
+## 12. Modul Rekrutmen & Pelamar (ATS & Portal Karir)
+Sistem penerimaan pegawai baru dari pembukaan lowongan hingga seleksi.
+**PIC / Role Utama:** _HR Recruiter_, _Hiring Manager_.
+
+*   **Job Postings (ATS):** Pembuatan dan penayangan lowongan kerja baru ke publik (PIC: HR Recruiter).
+*   **Applicant Tracking:** Pelacakan berkas lamaran, riwayat CV, tahapan interview, psikotes, hingga penawaran kerja (Offering) (PIC: HR Recruiter).
+*   **Public Careers Portal (`/careers`):** Halaman depan eksternal responsif bagi publik untuk melamar kerja tanpa perlu login ke sistem ERP.
+
+## 13. Modul Employee Self-Service (ESS Portal)
+Portal mandiri bagi setiap karyawan untuk mengelola urusan kepegawaian pribadi dari smartphone atau browser.
+**PIC / Role Utama:** _Seluruh Karyawan Perusahaan (All Employees)_.
+
+*   **Smart Attendance:** Tap absensi langsung dari HP/Laptop dengan verifikasi kamera (PIC: Karyawan).
+*   **My Attendance:** Rekap histori absensi pribadi per bulan (PIC: Karyawan).
+*   **My Time-Off (`/my-timeoff`):** Pengajuan cuti, izin, dan surat sakit mandiri (PIC: Karyawan).
+*   **My Overtime:** Pengajuan permohonan lembur mandiri ke atasan (PIC: Karyawan).
+*   **My Reimbursements:** Pengajuan klaim nota belanja operasional/kesehatan dengan bukti foto (PIC: Karyawan).
+*   **My Performance:** Melihat penilaian capaian target dan feedback dari atasan (PIC: Karyawan).
+
+## 14. Modul Meeting Command & AI MoM
+Sentralisasi manajemen rapat kerja, absensi digital, dan notulensi cerdas berbasis AI.
+**PIC / Role Utama:** _Sekretaris Direksi_, _Project Leader_, _Department Head_.
+
+*   **Dashboard / List Rapat:** Kalender dan daftar agenda rapat yang sedang/akan berlangsung (PIC: Meeting Organizer).
+*   **New Meeting:** Pembuatan undangan rapat, penetapan ruang/link virtual, dan daftar peserta wajib/opsional (PIC: Organizer).
+*   **Public Check-in:** Presensi kehadiran rapat digital via pemindaian QR code atau tautan mandiri oleh peserta.
+*   **AI Transcription & Audio Processing:** Fitur cerdas Google Gemini untuk mengekstrak rekaman suara/catatan rapat menjadi ringkasan resmi dan notulensi (Minutes of Meeting / MoM) secara otomatis.
+*   **Action Items Kanban Board:** Papan penugasan tugas lanjutan (Follow-up Tasks) pasca-rapat dengan status To-Do, In-Progress, Done.
+*   **Approval & WhatsApp Dispatch:** Pengesahan resmi risalah rapat dan pengiriman notifikasi rangkuman hasil rapat via WhatsApp ke nomor peserta.
+
+## 15. Modul Automated Bell System (JICOS Bell Agent)
+Sistem otomatisasi jadwal bel dan sirene pabrik yang terintegrasi antara cloud ERP dengan speaker fisik di area workshop.
+**PIC / Role Utama:** _HR Officer_, _Facility Admin_, _PPIC_.
+
+*   **Schedule Settings:** Pengaturan jadwal alarm dan bel harian/mingguan (Jam Masuk Kerja, Bel Istirahat Shift 1/2/3, Bel Masuk Kembali, Bel Pulang, Alarm Darurat) (PIC: HR / GA).
+*   **Bell Terminal (Kiosk):** Pemutar audio bel berbasis antarmuka web mandiri di ruang audio/sekuriti.
+*   **JICOS Bell Agent (`apps/bell-agent`):** Aplikasi background client (Python) yang berjalan di komputer pabrik terhubung ke sound system/amplifier. Sinkron otomatis via API ke server ERP untuk memutar file chime MP3/WAV secara tepat waktu tanpa koneksi internet statis.
+
+## 16. Modul Fasilitas & Video Wall CCTV (Live Streaming)
+Pemantauan keamanan visual area pabrik, gudang, dan gerbang secara real-time.
+**PIC / Role Utama:** _Security Head_, _Safety Officer_, _Operations Director_.
+
+*   **Video Wall (Kiosk):** Tata letak layar multi-channel (Grid 2x2, 3x3) untuk TV monitor pemantau operasional di command center atau pos sekuriti.
+*   **CCTV Settings:** Pendaftaran stream RTSP/HLS kamera CCTV, pengaturan resolusi, dan mapping titik kamera per area gudang/pabrik (PIC: IT / Security).
+*   **Snapshot Generator:** Pengambilan cuplikan visual otomatis untuk lampiran bukti insiden keamanan.
+
+## 17. Modul Helpdesk & Dukungan Internal
+Ticketing keluhan dan permohonan bantuan teknis IT dan operasional.
+**PIC / Role Utama:** _IT Support_, _Helpdesk Admin_, _Seluruh Pengguna_.
+
+*   **Create Ticket:** Pembuatan tiket komplain/permohonan bantuan (komputer error, printer macet, reset password) lengkap dengan tingkat prioritas (Low, Medium, High, Urgent).
+*   **Ticket Queue & Discussion:** Alur interaksi chat tanya-jawab teknisi dengan pemohon hingga masalah terselesaikan (*Closed*).
+
+## 18. Modul Driver Mobile Portal
+Antarmuka khusus supir pengiriman logistik yang dioptimalkan untuk layar ponsel.
+**PIC / Role Utama:** _Supir Pengiriman (Delivery Drivers)_.
+
+*   **Driver Dashboard:** Daftar Surat Jalan (DO) yang ditugaskan ke supir hari ini.
+*   **DO Barcode Scanner:** Pemindaian barcode lembar surat jalan menggunakan kamera smartphone supir saat memuat barang ke truk.
+*   **Arrival & Delivery Confirmation:** Supir mengonfirmasi saat tiba di lokasi pembeli, mengambil foto bukti terima barang, dan mencatat nama penerima.
+
+## 19. Modul Portal Mitra Eksternal (Supplier & Partner Portal)
+Portal web aman dengan hak akses terbatas yang disediakan khusus bagi mitra pemasok (vendor).
+**PIC / Role Utama:** _Vendor / Rekanan Pemasok Perusahaan_.
+
+*   **Portal Dashboard:** Ringkasan pesanan aktif dan status tagihan vendor.
+*   **Purchase Orders:** Vendor melihat PO resmi dari perusahaan, serta melakukan konfirmasi kesanggupan (*Acknowledge*) atau penolakan (*Reject*).
+*   **Surat Jalan Vendor (Deliveries):** Vendor membuat dan mencetak Surat Jalan pengiriman dari sistem sebelum mengirim truk ke pabrik kita.
+*   **Unggah Faktur (Invoices):** Vendor mengunggah berkas tagihan/invoice dan kwitansi secara online untuk mempercepat proses verifikasi AP.
+*   **Schedule & RFQ:** Melihat jadwal penerimaan pabrik dan menanggapi permintaan penawaran harga (*Request For Quotation*).
+*   **Document Repository:** Tempat vendor mengunduh PO resmi dan mengunggah dokumen legalitas (NPWP, NIB, Sertifikasi).
+
+## 20. Modul Project Matrix (Manajemen Proyek)
+Pengelolaan proyek jangka panjang, instalasi mesin pabrik, maupun proyek internal IT.
+**PIC / Role Utama:** _Project Manager_, _Project Engineer_, _Team Members_.
+
+*   **Project Dashboard:** Pantauan linimasa progres proyek, persentase penyelesaian, dan kurva anggaran.
+*   **Task Management & Kanban:** Pembagian tugas (WBS), penetapan tenggat waktu, PIC penanggung jawab, dan lampiran berkas teknis.
+*   **Project Members:** Alokasi anggota tim dan pembagian peran proyek.
+
+## 21. Modul Pengaturan (Settings / IT & System Admin)
+Konfigurasi akar sistem, hak akses, alur persetujuan, dan utilitas pemeliharaan aplikasi.
 **PIC / Role Utama:** _Super Admin_, _Head of IT_, _System Administrator_.
 
-*   **User Management:** Pembuatan dan penonaktifan akun login pengguna (PIC: IT / HR Admin).
-*   **Roles & Permissions:** Manajemen kelompok jabatan (*roles*) serta penentuan hak akses (*permission*) rinci batas *view/create/edit/delete* di setiap modul (PIC: IT Manager / Super Admin).
-*   **Company Profile:** Konfigurasi identitas pendaftaran PT, NPWP, Logo Kop Surat Invoice, dan kontak perusahaan resmi (PIC: General Manager / IT).
-*   **Departments:** Pembuatan struktur nama Departemen pengelompokan karyawan (PIC: HR Admin / IT).
-*   **AI Configuration:** Setelan sistem *Artificial Intelligence* (Token API, behavior prompt bot, dll) (PIC: IT).
-*   **Document Numbering:** Setting format kode surat keluar yang seragam ("SO-2026/01/xxx", "PO-INV-111", dsb.) (PIC: Admin / Finance Controller).
-*   **Regional & Tax:** Penentuan jenis pajak PPn, Rate Kurs Valuta Asing (IDR-USD), dan manajemen region Area Penjualan (PIC: Finance / Tax Officer).
-*   **System Preferences:** Penyetelan preferensi dasar ERP seperti Notifikasi, Batas waktu Sesi Login, Email Server (SMTP), dsb (PIC: IT).
-*   **Workflow Approval:** Pembuatan urutan persetujuan jabatan ("Siapa yang ACC jika PO di atas 1 Milyar? -> Manager lalu Direktur") (PIC: IT / Director).
-*   **Database Management:** Tools cadangan data otomatis (*Backup* & *Restore* SQL) dan penjadwal sinkronisasi tabel (PIC: IT / Database Administrator).
-*   **Activity Logs (Audit Trail):** Penelusuran jejak aktivitas secara detil (*Activity Audit*), mencari siapa yang menginput, mengedit, atau menghapus sebuah data di detik/jam tertentu (PIC: IT / Internal Auditor).
-*   **WhatsApp Bot:** Konfigurasi kredensial koneksi Server Bot WA, registrasi Gateway API, hingga template balasan *Auto-responder* (PIC: IT / CRM Admin).
+*   **User Management:** Pembuatan, penonaktifan, dan reset akses akun login pengguna (PIC: IT).
+*   **Roles & Permissions:** Manajemen kelompok jabatan (*roles*) serta penentuan matriks hak akses (*permissions*) granular (PIC: IT Manager / Super Admin).
+*   **Mobile Navbar:** Penyesuaian navigasi menu bawah (*bottom bar*) untuk pengalaman aplikasi mobile (PIC: IT).
+*   **Company Profile:** Konfigurasi identitas pendaftaran PT, NPWP, Logo Kop Surat Invoice, dan kontak resmi (PIC: IT / Direksi).
+*   **Departments:** Penataan struktur departemen dan divisi perusahaan (PIC: HR Admin / IT).
+*   **AI Configuration:** Setelan integrasi Google Gemini (API key, threshold temperatur, dan prompt pemrosesan dokumen) (PIC: IT).
+*   **Document Numbering:** Pengaturan formula kode penomoran dokumen otomatis (Prefix, Romawi Bulan, Sequence, Suffix) (PIC: Finance Controller / IT).
+*   **Regional & Tax:** Penentuan jenis tarif PPN, mata uang asing, dan zona perpajakan regional (PIC: Finance / Tax Officer).
+*   **System Preferences:** Penyetelan preferensi dasar ERP (timeout login, notifikasi email, sesi pengguna) (PIC: IT).
+*   **Workflow Approval:** Penyusunan matriks alur persetujuan bertingkat per jenis dokumen dan batas nominal (PIC: IT / Direksi).
+*   **Database Management:** Utilitas backup, restore basis data, dan optimalisasi tabel (PIC: IT / DBA).
+*   **Activity Logs (Audit Trail):** Penelusuran jejak rekam detail seluruh aksi di sistem (PIC: IT / Internal Auditor).
+*   **WhatsApp Bot:** Konfigurasi koneksi Gateway API Wablas/Fonnte dan template pesan otomatis (PIC: IT / CRM Admin).
+*   **Traccar Tracking:** Konfigurasi koneksi server GPS satelit Traccar untuk live monitoring kendaraan armada (PIC: IT / Logistics Head).
 
 ---
-_Catatan: Role dapat disesuaikan kembali sewaktu-waktu di menu **Settings -> Roles & Permissions** tergantung struktur riil yang berlaku di lapangan atau SK Organisasi._
+_Catatan: Seluruh hak akses fitur dapat disesuaikan sewaktu-waktu di menu **Settings -> Roles & Permissions** sesuai SK penugasan resmi organisasi._

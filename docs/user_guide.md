@@ -18,6 +18,15 @@ Buku panduan komprehensif ini menjabarkan seluruh menu, fungsi, alur kerja (work
 11. Modul Project Matrix (Manajemen Proyek)
 12. Modul Documentation (Dokumentasi & Uji Coba)
 13. Modul Settings (Pengaturan Sistem & IT)
+14. Modul General Affair (GA, Aset & Peminjaman Kendaraan)
+15. Modul Employee Self-Service (ESS Portal Mandiri)
+16. Modul Rekrutmen & Pelamar (ATS & Karir Publik)
+17. Modul Meeting Command & AI Notulensi (MoM)
+18. Modul Automated Bell System (Bel Pabrik JICOS)
+19. Modul Fasilitas & Live Streaming CCTV (Video Wall)
+20. Modul Helpdesk & Dukungan IT
+21. Modul Driver Mobile Portal (Aplikasi Supir)
+22. Modul Rekanan Pemasok Luar (Supplier Portal)
 
 ---
 
@@ -196,6 +205,113 @@ Area restriksi tinggi (*Role: Super Admin Only*). Digunakan untuk setelan jantun
 *   **Database Management**: Alat pembersihan penyimpanan *caches* dan pengunduhan tabel *Backup SQL Database* secara darurat oleh IT.
 *   **Activity Logs**: Penelusuran jejak rekam historis siapa admin yang mengeklik, men-delete, dan meng-approve nomor nota di setiap modul untuk audit sekuritas tanpa bisa dihapus perorangan.
 *   **WhatsApp Bot**: Sambungan URL layanan Notifikasi Gateway *Whatsapp Business Multi-device Server*. Berguna bagi tembakan *Blast Message* Modul CRM dan interaksi pelanggan robot.
+
+
+---
+
+## 14. MODUL GENERAL AFFAIR (GA, ASET & PEMINJAMAN KENDARAAN)
+Mengelola sarana perkantoran, pemeliharaan fasilitas gedung, dan armada kendaraan dinas.
+**PIC Utama:** GA Manager, GA Officer, Building Maintenance.
+
+*   **Tickets (Tiket Keluhan):** Staf melaporkan kerusakan fasilitas kerja (lampu padam, AC bocor, meja rusak). GA menerima tiket, menugaskan teknisi, dan mengubah status ke *Resolved*.
+*   **Assets (Master Aset GA):** Inventarisasi furnitur, AC, genset, dispenser kantor dengan label barcode dan penempatan ruangan.
+*   **Preventive Maintenance (PM):** Kalender servis rutin lift, genset, AC, dan fasilitas gedung beserta riwayat kerja teknisi.
+*   **Armada Operasional (Fleet):** Pendataan mobil dan motor operasional kantor, masa berlaku STNK, polis asuransi, dan jadwal servis berkala.
+*   **Peminjaman Kendaraan (Vehicle Booking):**
+    *   *Cara Input:* Pegawai membuka menu > Ajukan Peminjaman > Pilih kendaraan, tanggal, jam, dan tujuan dinas.
+    *   *Verifikasi:* Atasan menyetujui, staf GA mencatat KM Awal & serah terima kunci.
+    *   *Pengembalian:* Pegawai mengembalikan kunci, mengisi KM Akhir, dan mengunggah bukti pembelian BBM.
+*   **Requests (PR GA):** Formulir pengadaan kebutuhan rumah tangga dan logistik kantor ke bagian Purchasing.
+
+---
+
+## 15. MODUL EMPLOYEE SELF-SERVICE (ESS PORTAL MANDIRI)
+Portal terpadu bagi setiap karyawan untuk mengurus hak kepegawaian pribadi langsung dari smartphone atau browser.
+**PIC Utama:** Seluruh Karyawan Perusahaan (*All Employees*).
+
+*   **Smart Attendance (/employee/attendance/clock):** Karyawan melakukan absensi masuk (*Clock-In*) dan pulang (*Clock-Out*) dengan verifikasi kamera wajah dan deteksi lokasi kantor.
+*   **My Attendance:** Rekap histori absensi pribadi per bulan, jam kedatangan, dan akumulasi menit keterlambatan.
+*   **My Time-Off (/my-timeoff):** Pengajuan cuti tahunan, izin keluarga, atau sakit dengan melampirkan foto surat dokter. Saldo cuti terpotong otomatis saat disetujui atasan.
+*   **My Overtime:** Pengajuan permohonan lembur mandiri sebelum atau sesudah jam kerja normal.
+*   **My Reimbursements:** Pengajuan klaim penggantian biaya operasional dinas atau kesehatan dengan memotret kwitansi resmi.
+*   **My Performance:** Melihat penilaian capaian KPI dan evaluasi berkala dari pimpinan departemen.
+
+---
+
+## 16. MODUL REKRUTMEN & PELAMAR (ATS & KARIR PUBLIK)
+Sistem penerimaan pegawai baru dari pembukaan lowongan kerja hingga perekrutan.
+**PIC Utama:** HR Recruiter, Hiring Manager.
+
+*   **Job Postings (ATS):** Pembuatan judul lowongan kerja, kualifikasi minimum, deskripsi tugas, dan batas akhir pendaftaran.
+*   **Applicant Tracking:** Papan seleksi kandidat (Screening CV -> Interview HR -> Interview User -> Psikotes -> Offering -> Hired).
+*   **Public Careers Portal (/careers):** Halaman depan eksternal responsif bagi pelamar umum dari luar perusahaan untuk melamar tanpa perlu login.
+
+---
+
+## 17. MODUL MEETING COMMAND & AI NOTULENSI (MOM)
+Sentralisasi manajemen rapat kerja, absensi digital, dan notulensi cerdas berbasis AI.
+**PIC Utama:** Sekretaris Direksi, Project Leader, Department Head.
+
+*   **Dashboard / List:** Kalender jadwal rapat yang akan datang dan arsip hasil rapat lampau.
+*   **New Meeting:** Membuat undangan rapat, menentukan agenda bahasan, ruang fisik/link online, serta daftar peserta.
+*   **Presensi Digital (QR Check-in):** Peserta memindai QR code di layar proyektor atau klik link konfirmasi kehadiran mandiri.
+*   **AI Transcription & Audio Processing:**
+    *   *Cara Penggunaan:* Unggah rekaman suara rapat atau masukkan teks transkrip mentah.
+    *   *Eksekusi AI:* Google Gemini API secara otomatis menyusun ringkasan eksekutif (*Summary*), keputusan rapat (*Decisions*), dan daftar tugas tindak lanjut (*Action Items*).
+*   **Action Items Kanban Board:** Papan seret-lepas (*To-Do, In-Progress, Done*) untuk melacak penyelesaian tugas lanjutan pasca-rapat.
+*   **WhatsApp Notification Dispatch:** Mengirim rangkuman resmi risalah rapat (MoM PDF) langsung ke nomor WhatsApp seluruh peserta.
+
+---
+
+## 18. MODUL AUTOMATED BELL SYSTEM (BEL PABRIK JICOS)
+Sistem otomasi jadwal lonceng pergantian shift dan alarm workshop pabrik yang terintegrasi secara cloud dan offline-ready.
+**PIC Utama:** HR Admin, GA Officer, PPIC.
+
+*   **Schedule Settings:** Menentukan jam bel harian (Masuk Pagi, Istirahat Shift 1/2/3, Masuk Kembali, Bel Pulang, Alarm Darurat).
+*   **Bell Terminal (Kiosk):** Antarmuka web pemutar suara bel untuk ruangan operator sekuriti atau audio sentral.
+*   **JICOS Bell Agent (pps/bell-agent):** Aplikasi background Python di PC pabrik yang tersambung speaker pabrik. Menyinkronkan jadwal via API dan membunyikan chime audio secara presisi dan handal.
+
+---
+
+## 19. MODUL FASILITAS & LIVE STREAMING CCTV (VIDEO WALL)
+Pusat pengawasan visual area pabrik, gudang, dan gerbang secara real-time.
+**PIC Utama:** Security Head, Safety Officer, Operations Director.
+
+*   **Video Wall (Kiosk):** Tampilan layar multi-kamera (Grid 2x2, 3x3) tanpa header untuk TV monitor command center pos sekuriti.
+*   **CCTV Settings:** Pendaftaran stream RTSP/HLS kamera CCTV per area gudang dan pengaturan hak intip kamera sensitif.
+*   **Snapshot:** Pengambilan foto cuplikan langsung dari kamera untuk dokumentasi laporan keamanan.
+
+---
+
+## 20. MODUL HELPDESK & DUKUNGAN IT
+Layanan terpusat bagi karyawan untuk meminta bantuan teknis perangkat keras, jaringan, dan sistem aplikasi.
+**PIC Utama:** IT Support, Helpdesk Officer, Seluruh Pengguna.
+
+*   **Create Ticket:** Karyawan mengisi judul kendala, kategori (Hardware, Network, ERP, Printer), tingkat urgensi, dan foto bukti eror.
+*   **Ticket Queue & Discussion:** IT Support merespon melalui kolom percakapan terpadu dan menutup tiket saat masalah terselesaikan (*Closed*).
+
+---
+
+## 21. MODUL DRIVER MOBILE PORTAL (APLIKASI SUPIR)
+Antarmuka khusus supir pengiriman logistik yang dirancang ringan untuk layar ponsel.
+**PIC Utama:** Supir Pengiriman (*Delivery Drivers*).
+
+*   **Driver Dashboard:** Menampilkan daftar Surat Jalan (DO) yang ditugaskan ke supir pada hari berjalan.
+*   **DO Barcode Scanner:** Memindai barcode lembar surat jalan menggunakan kamera smartphone saat barang dinaikkan ke bak truk.
+*   **Arrival & Delivery Confirmation:** Supir menekan tombol konfirmasi tiba di lokasi pembeli, mengambil foto bukti serah-terima (*Proof of Delivery*), dan meminta tanda tangan digital penerima barang.
+
+---
+
+## 22. MODUL REKANAN PEMASOK LUAR (SUPPLIER PORTAL)
+Portal web aman dengan hak akses terbatas yang disediakan khusus bagi mitra vendor perusahaan.
+**PIC Utama:** Rekanan Pemasok / Vendor Eksternal.
+
+*   **Portal Dashboard:** Ringkasan pesanan aktif dan status dokumen tagihan vendor.
+*   **Purchase Orders:** Vendor melihat PO resmi dari pabrik dan menekan tombol *Acknowledge* (siap kirim) atau *Reject*.
+*   **Surat Jalan Vendor (Deliveries):** Vendor membuat dan mencetak Surat Jalan pengiriman mandiri sebelum mengirim truk ke pabrik.
+*   **Unggah Faktur (Invoices):** Vendor mengunggah file invoice PDF dan kwitansi tagihan online untuk mempercepat verifikasi pembayaran AP.
+*   **Schedule & RFQ:** Melihat jadwal penerimaan barang gudang dan menanggapi permintaan penawaran harga (*RFQ*).
+
 
 ---
 > Buku Panduan ini bersifat dinamis. Pastikan karyawan tetap merujuk pada fitur yang tersedia dan *role permission* pada level otorisasinya masing-masing demi kerahasiaan kebijakan perusahaan.

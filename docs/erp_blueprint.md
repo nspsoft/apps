@@ -12,6 +12,7 @@
 3. [Spesifikasi Modul & Alur Kerja (Workflows)](#3-spesifikasi-modul--alur-kerja-workflows)
 4. [Dokumentasi API & Rute URL](#4-dokumentasi-api--rute-url)
 5. [Panduan Deployment & Infrastruktur](#5-panduan-deployment--infrastruktur)
+6. [Referensi Standar Arsitektur Enterprise](#6-referensi-standar-arsitektur-enterprise)
 
 ---
 
@@ -34,48 +35,68 @@
 | **Integrasi WhatsApp** | API Fonnte & Wablas | `FonnteService.php`, `WablasService.php` |
 | **E-Meterai Digital** | Integrasi Kustom | Khusus untuk dokumen resmi (`EmeteraiService.php`) |
 | **Email** | SMTP + Laravel Mail | Notifikasi dan pengiriman email (`EmailService.php`) |
+| **Pelacakan Armada (GPS)** | Traccar Server API | Integrasi satelit posisi armada truk (`TraccarProxyController.php`) |
+| **Otomasi Bel Pabrik** | Python Desktop Daemon | Client desktop workshop (`apps/bell-agent`, PyStray, sounddevice) |
+| **Pengawasan Visual (CCTV)**| RTSP / HLS Live Stream | Monitoring multi-channel Video Wall (`CctvController.php`) |
+| **Biometrik & Face ID** | Canvas Face Recognition | Pendaftaran & presensi nir-sentuh (`EmployeeFaceController.php`) |
 
 ## 1.2 Diagram Arsitektur
 
 ```mermaid
 graph TB
-    subgraph Client["🖥️ Klien (Browser Pengguna)"]
-        VUE["Visualisasi Vue.js 3 (SPA)"]
+    subgraph Clients["🖥️ Lapisan Klien & Antarmuka Pengguna"]
+        WEB["Portal Utama ERP (Vue.js 3 + Inertia SPA)"]
+        ESS["Employee Self-Service (Mobile Web ESS)"]
+        DRIVER["Aplikasi Ponsel Supir (Driver Mobile Web)"]
+        PORTAL_V["Portal Mitra Vendor (Supplier Portal)"]
+        KIOSK["Layar Kiosk (Absensi Face ID, Video Wall CCTV & TV Logistik)"]
+        BELL_AGENT["JICOS Bell Agent (Python Desktop Service di PC Pabrik)"]
     end
 
-    subgraph Server["⚙️ Server Utama (Laravel Backend)"]
-        INERTIA["Protokol Inertia.js"]
-        CONTROLLERS["Fungsi Pengendali (18 namespace Controller)"]
-        MODELS["Model Data Eloquent (89 Model)"]
-        SERVICES["Lapisan Layanan Tambahan (Services)"]
-        EXPORTS["Modul Ekspor Excel (38 Kelas)"]
-        IMPORTS["Modul Impor Excel (19 Kelas)"]
+    subgraph Server["⚙️ Server Aplikasi Utama (Laravel 11 Enterprise Backend)"]
+        ROUTING["Routing & Middleware (Granular RBAC + Auth Guard)"]
+        CONTROLLERS["23 Namespace Controllers (Sales, Purchasing, Mfg, GA, HR, dll)"]
+        SERVICES["Service Layer (Gemini AI, WhatsApp, E-Meterai, Traccar GPS)"]
+        MODELS["Eloquent ORM (117 Models Database)"]
+        EXPORTS_IMPORTS["Excel Engine (63 Exports, 23 Imports)"]
+        JOBS["Queue Workers & Background Jobs"]
     end
 
-    subgraph External["🌐 Layanan Pihak Ketiga"]
-        GEMINI["Google Gemini AI"]
-        FONNTE["Fonnte WhatsApp API"]
-        WABLAS["Wablas WhatsApp API"]
-        EMETERAI["Layanan E-Meterai"]
-        SMTP["Server Email (SMTP)"]
+    subgraph External["🌐 Layanan Pihak Ketiga & IoT Server"]
+        GEMINI["Google Gemini AI (PO Extractor, Audio MoM, Recon AI)"]
+        WHATSAPP["WhatsApp Gateway (Fonnte & Wablas)"]
+        TRACCAR["Traccar GPS Satellite Server (Fleet Tracking)"]
+        CCTV["RTSP IP Cameras & Video Streaming"]
+        EMETERAI["Peruri E-Meterai Digital Service"]
+        SMTP["Mail Server (SMTP)"]
     end
 
-    subgraph DB["🗄️ Database MySQL"]
-        TABLES["60+ Tabel Basis Data"]
+    subgraph Storage["🗄️ Lapisan Penyimpanan Data (Storage & Persistence)"]
+        MYSQL[("MySQL Database (100+ Tables, InnoDB, ACID)")]
+        LOCAL_STORAGE["Private & Public Storage (PDF Dokumen, Foto POD, Face ID)"]
+        BACKUP_VAULT["Cold Storage / Automated Off-Site Backups"]
     end
 
-    VUE <-->|Komunikasi Inertia| INERTIA
-    INERTIA --> CONTROLLERS
-    CONTROLLERS --> MODELS
+    WEB <-->|Inertia Bridge| ROUTING
+    ESS <-->|Inertia Bridge| ROUTING
+    DRIVER <-->|REST API / Web| ROUTING
+    PORTAL_V <-->|Inertia Bridge| ROUTING
+    KIOSK <-->|Web Interface| ROUTING
+    BELL_AGENT <-->|REST API JSON /api/bell-agent/*| ROUTING
+
+    ROUTING --> CONTROLLERS
     CONTROLLERS --> SERVICES
-    CONTROLLERS --> EXPORTS
-    CONTROLLERS --> IMPORTS
-    MODELS <--> TABLES
+    CONTROLLERS --> MODELS
+    CONTROLLERS --> EXPORTS_IMPORTS
+    CONTROLLERS --> JOBS
+    MODELS <--> MYSQL
     SERVICES --> GEMINI
-    SERVICES --> FONNTE
-    SERVICES --> WABLAS
+    SERVICES --> WHATSAPP
+    SERVICES --> TRACCAR
+    SERVICES --> CCTV
     SERVICES --> EMETERAI
     SERVICES --> SMTP
+    JOBS --> BACKUP_VAULT
 ```
 
 ## 1.3 Struktur Folder (Direktori)
@@ -83,32 +104,43 @@ graph TB
 ```
 app/
 ├── Console/          # Perintah Command Line (Artisan) (7 file)
-├── Exports/          # Skrip Pembuatan Excel (38 file + 16 template)
+├── Exports/          # Skrip Pembuatan Excel (63 file)
 ├── Http/
-│   └── Controllers/  # Logika Aplikasi Utama dibagi 18 Kategori
+│   └── Controllers/  # Logika Aplikasi Utama (23 Kategori Namespace)
 │       ├── Admin/           # Log Aktivitas & Sistem
-│       ├── CRM/             # Pesan WhatsApp & Email
-│       ├── Finance/         # Faktur & Pembayaran
-│       ├── HR/              # Pegawai, Absensi, Penggajian
-│       ├── Inventory/       # Produk, Gudang, Stok Barang
-│       ├── Logistics/       # Kendaraan & Rute Ekspedisi
-│       ├── Maintenance/     # Pemeliharaan Mesin
-│       ├── Manufacturing/   # Produksi, BOM, Work Orders
-│       ├── Portal/          # Halaman Khusus Pelanggan/Supplier
-│       ├── Purchasing/      # Pembelian (PO, GRN, Supplier, RFQ)
-│       ├── QualityControl/  # Inspeksi Kualitas (QC)
-│       ├── Sales/           # Penjualan (Penawaran, SO, DO, Faktur)
-│       ├── Settings/        # Konfigurasi Perusahaan & Workflow
-│       └── Warehouse/       # Operasional Gudang
-├── Imports/          # Skrip Pembacaan File Excel Masuk (19 file)
+│       ├── Api/             # Webhook WhatsApp & Bell Agent API
+│       ├── Auth/            # Otentikasi & Sesi
+│       ├── CRM/             # Leads, Kampanye, Sales Visits & Intelligence
+│       ├── Driver/          # Antarmuka Ponsel Supir Logistik
+│       ├── Employee/        # Employee Self-Service (Cuti, Reimburse, Absensi)
+│       ├── Facilities/      # Live Streaming CCTV & Video Wall
+│       ├── Finance/         # Buku Besar, Bank Rekonsiliasi, Costing HPP
+│       ├── GeneralAffair/   # Aset Kantor, Tiket Servis, Booking Mobil Dinas
+│       ├── Helpdesk/        # Ticketing Bantuan IT & Operasional
+│       ├── HR/              # Pegawai, Face ID, Payroll, Rekrutmen/ATS
+│       ├── Inventory/       # SKU, Reklasifikasi, Gudang, Stok Barang
+│       ├── Logistics/       # Truk, Kiosk TV, Dispatch, Traccar GPS
+│       ├── Maintenance/     # Pemeliharaan Mesin, Sparepart, Public Breakdown
+│       ├── Manufacturing/   # Produksi, BOM, Work Orders, Maklon
+│       ├── Meeting/         # Meeting Command, AI MoM, QR Presensi
+│       ├── Portal/          # Portal Khusus Rekanan Supplier & Pelanggan
+│       ├── Project/         # Manajemen Proyek & Kanban Task
+│       ├── Purchasing/      # Pengadaan (PO, GRN, Supplier, RFQ, DN AI)
+│       ├── QualityControl/  # Inspeksi Masuk/Proses, NCR, COA Sertifikat
+│       ├── Sales/           # Penjualan, PO Extractor AI, SO, DO, Faktur
+│       ├── Settings/        # Konfigurasi Sistem, Bell Schedule, Database
+│       └── Warehouse/       # Docking & Antrian Muat Truk (Loading Queue)
+apps/
+└── bell-agent/       # JICOS Bell Agent (Python Desktop Service Pemutar Bel Pabrik)
+├── Imports/          # Skrip Pembacaan File Excel Masuk (23 file)
 ├── Jobs/             # Proses Latar Belakang (Antrian)
-├── Models/           # 89 Model yang mewakili Tabel Database
+├── Models/           # 117 Model (212 Migrasi Database) yang mewakili Tabel Database
 ├── Notifications/    # Sistem Notifikasi
 ├── Providers/        # Registrasi Layanan Laravel
 └── Services/         # 10 Layanan Pihak Ketiga (AI, WA, Email)
 
 resources/js/
-├── Pages/            # Tampilan Vue.js (dibagi dalam 21 grup modul)
+├── Pages/            # Tampilan Vue.js (dibagi dalam 22 grup modul (287 Halaman Vue.js))
 ├── Components/       # Komponen Tombol/Input yang bisa dipakai ulang
 ├── Layouts/          # Kerangka Tampilan Utama Aplikasi
 └── helpers.js        # Fungsi Bantuan Javascript
@@ -182,6 +214,37 @@ erDiagram
     APPROVAL_REQUESTS ||--o{ APPROVAL_HISTORY : "dilacak oleh"
 ```
 
+### D. ERD Modul General Affair (GA), Aset & Armada Kendaraan
+```mermaid
+erDiagram
+    USERS ||--o{ GA_VEHICLE_BOOKINGS : "mengajukan pinjam"
+    GA_VEHICLES ||--o{ GA_VEHICLE_BOOKINGS : "dialokasikan"
+    GA_LOCATIONS ||--o{ GA_ASSETS : "penempatan ruang"
+    USERS ||--o{ GA_TICKETS : "melaporkan keluhan"
+    GA_ASSETS ||--o{ GA_PM_SCHEDULES : "dijadwalkan servis"
+```
+
+### E. ERD Modul Sumber Daya Manusia (HR), Absensi & Rekrutmen
+```mermaid
+erDiagram
+    DEPARTMENTS ||--o{ EMPLOYEES : "membawahi"
+    EMPLOYEES ||--o{ ATTENDANCES : "presensi harian"
+    EMPLOYEES ||--o{ PAYROLLS : "menerima gaji"
+    EMPLOYEES ||--o{ LEAVES : "mengajukan cuti"
+    EMPLOYEES ||--o{ OVERTIMES : "lembur SPKL"
+    DEPARTMENTS ||--o{ JOB_POSTINGS : "kebutuhan loker"
+    JOB_POSTINGS ||--o{ APPLICANTS : "dilamar oleh"
+```
+
+### F. ERD Modul Rapat (Meeting Command) & Notulensi AI
+```mermaid
+erDiagram
+    USERS ||--o{ MEETINGS : "menyelenggarakan"
+    MEETINGS ||--o{ MEETING_ATTENDEES : "dihadiri oleh"
+    MEETINGS ||--o{ MEETING_ACTION_ITEMS : "menghasilkan task"
+    USERS ||--o{ MEETING_ACTION_ITEMS : "penanggung jawab"
+```
+
 ## 2.2 Ringkasan Tabel Berdasarkan Kategori
 
 | Domain (Area) | Tabel Utama | Deskripsi Singkat |
@@ -196,9 +259,17 @@ erDiagram
 | **SDM (HR)** | `employees`, `departments`, `positions`, `attendances`, `payrolls`, `payroll_items`, `shifts` | Karyawan, jabatan, absen sidik jari/Mesin, dan penggajian |
 | **Logistik** | `vehicles`, `delivery_schedules`, `locations` | Armada truk dan penjadwalan ekspedisi |
 | **Pemeliharaan** | `machines`, `maintenance_schedules`, `maintenance_logs`, `spareparts` | Jadwal servis mesin produksi & perbaikan alat |
-| **Proyek (Projects)** | `projects`, `project_tasks`, `project_members`, `task_members` | Manajemen pekerjaan per proyek & penugasan personil |
-| **Hub. Pelanggan (CRM)** | `whatsapp_messages`, `whatsapp_templates`, `email_messages` | Kotak masuk, bot WA, dan template balasan cepat |
-| **Mesin Evaluasi** | `approval_requests`, `approval_history`, `workflows`, `workflow_steps`, `app_settings` | Pengaturan tahapan persetujuan bertingkat (Mekanisme ACC dokumen) |
+| **Proyek (Projects)** | projects, project_tasks, project_members, 	ask_members | Manajemen pekerjaan per proyek & penugasan personil |
+| **Hub. Pelanggan (CRM)** | whatsapp_messages, whatsapp_templates, email_messages, leads, opportunities, sales_visits | Kotak masuk WA/Email AI, prospek leads, dan GPS canvassing sales |
+| **General Affair (GA)** | ga_assets, ga_tickets, ga_pm_schedules, ga_vehicles, ga_vehicle_bookings, ga_locations, ga_purchase_requests | Inventaris gedung, tiket keluhan, servis fasilitas, dan pinjam mobil dinas |
+| **Meeting Command** | meetings, meeting_attendees, meeting_action_items | Notulensi rapat AI, check-in QR peserta, papan tugas action items |
+| **Fasilitas & CCTV** | cctv_devices, cctv_channels | Streaming multi-kamera CCTV video wall gudang & workshop |
+| **Bel Pabrik (Bell)** | ell_schedules | Jadwal bel pergantian shift & alarm otomatis terintegrasi Bell Agent |
+| **Helpdesk IT** | helpdesk_tickets, helpdesk_ticket_replies | Ticketing bantuan teknis komputer & komplain operasional internal |
+| **Rekrutmen (ATS)** | job_postings, pplicants | Penayangan lowongan kerja publik & tracking seleksi kandidat |
+| **Portal Rekanan** | portal_users, portal_documents | Akses vendor luar untuk PO, Surat Jalan mandiri, faktur tagihan |
+| **Logistik & Armada** | ehicles, delivery_schedules, locations, 	raccar_devices | GPS satelit Traccar, rute pengiriman, kiosk TV antrian gerbang |
+| **Mesin Evaluasi** | pproval_requests, pproval_history, workflows, workflow_steps, pp_settings | Pengaturan tahapan persetujuan bertingkat (Mekanisme ACC dokumen) |
 
 ---
 
@@ -437,11 +508,153 @@ Ketika sebuah Work Order di-klik **Complete (Selesai)**, sistem secara otomatis:
 
 ---
 
-## 3.6 Modul Keuangan, HR, Lainnya
+## 3.6 Modul Keuangan, Akuntansi & Analisis Biaya (Costing)
+- **General Ledger (Buku Besar)**: Penjurnalan entri otomatis dari mutasi GRN, DO, Invoice, serta entri jurnal manual berpasangan.
+- **Bank Reconciliation (Rekonsiliasi Bank)**: Import rekening koran (format CSV/Excel) dengan pencocokan otomatis transaksi penerimaan/pengeluaran kas dan bantuan AI Pattern Matching.
+- **AP & AR Monitoring**: Pemantauan umur piutang (*aging schedule* 30, 60, 90 hari) dan penjadwalan pembayaran utang supplier.
+- **Advanced Costing Module**:
+  - *Production Costing*: Penghitungan HPP per Work Order berbasis biaya aktual bahan baku, tenaga kerja langsung, dan jam mesin.
+  - *Overhead Allocation*: Distribusi biaya operasional tidak langsung (listrik pabrik, utilitas, depresiasi).
+  - *Profitability Analytics*: Analisis margin keuntungan kotor dan bersih per lini produk dan per pelanggan.
 
-- **Catatan HR**: Mencatat jam absen sidik jari, dan kalkulator cetak slip gaji di akhir bulan.
-- **Catatan Pemeliharaan**: Jadwal kapan Oli Mesin Pabrik harus diganti / Jadwal Pemeliharaan Truk Ekspedisi.
-- **Bot Integrasi CRM**: Sistem akan secara otomatis memadukan permintaan klien yang datang lewat WA menjadi draft surat dokumen di sistem ERP melalui teknologi kecerdasan buatan Google Gemini. 
+---
+
+## 3.7 Modul Human Resources (HR), Biometrik & Employee Self-Service (ESS)
+- **Employee Master & Pendaftaran Face ID**: Profil karyawan lengkap dengan registrasi embedding wajah biometrik nir-sentuh.
+- **Attendance Kiosk & Smart Attendance**: Presensi tablet di pos sekuriti serta clock-in berbasis verifikasi kamera dan geofencing.
+- **Jadwal & Shift Kerja**: Pengaturan shift fleksibel, rotasi mingguan, toleransi jam keterlambatan, dan formula denda pinalti otomatis.
+- **Payroll System**: Perhitungan gaji otomatis komponen gaji pokok, tunjangan kehadiran, BPJS Ketenagakerjaan/Kesehatan, PPh 21, potongan keterlambatan, serta rilis slip gaji PDF dan via WhatsApp.
+- **Employee Self-Service (ESS Portal)**:
+  - Portal karyawan mandiri di mobile/desktop (/employee/*).
+  - Pengajuan cuti (*My Time-Off*), lembur (*My Overtime*), dan klaim biaya (*My Reimbursements*).
+  - Pemantauan KPI dan rapor kinerja berkala (*My Performance*).
+- **Rekrutmen & ATS**:
+  - Penayangan lowongan kerja di Portal Karir Publik (/careers).
+  - *Applicant Tracking System*: Seleksi berkas CV, tahapan wawancara, dan penawaran kerja (Offering).
+
+---
+
+## 3.8 Modul General Affair (GA), Aset Gedung & Peminjaman Kendaraan
+
+### Alur Status Peminjaman Mobil Dinas (Vehicle Booking Workflow)
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "Siklus Pinjam Mobil" as VB {
+        [*] --> VB_Submitted: Pengajuan Pegawai (Draft)
+        VB_Submitted --> VB_Approved: Di-ACC GA Manager
+        VB_Submitted --> VB_Rejected: Ditolak
+        VB_Approved --> VB_InTrip: Kunci Diambil (Input KM Awal)
+        VB_InTrip --> VB_Completed: Kunci Kembali (Input KM Akhir & BBM)
+        VB_Completed --> [*]: Mobil Siap Dipinjam Lagi
+    }
+```
+- **GA Ticketing**: Sistem pelaporan perbaikan fasilitas kerja (AC, kelistrikan, air, furnitur) dari karyawan dengan status eskalasi.
+- **Aset Kantor (GA Assets)**: Inventarisasi perlengkapan kantor non-produksi beserta penomoran tag barcode dan lokasi ruangan.
+- **Preventive Maintenance (PM) Fasilitas**: Kalender servis berkala lift, genset, AC kantor, dan fasilitas gedung.
+- **Peminjaman Kendaraan Operasional (Vehicle Booking)**:
+  - Formulir pengajuan izin pinjam mobil/motor operasional kantor.
+  - Alur persetujuan atasan dan serah terima kunci.
+  - Pencatatan odometer (kilometer awal vs akhir) dan verifikasi bukti BBM.
+
+---
+
+## 3.9 Modul Meeting Command & AI Notulensi (MoM)
+
+### Alur Kerja Notulensi & Papan Tugas Rapat (Meeting Workflow)
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "Siklus Rapat Kerja" as MT {
+        [*] --> MT_Scheduled: Undangan & Link Terbit
+        MT_Scheduled --> MT_InProgress: Rapat Berjalan (Scan QR Hadir)
+        MT_InProgress --> MT_AIProcessing: Upload Audio / Catatan
+        MT_AIProcessing --> MT_Review: AI Ekstraksi MoM & Action Items
+        MT_Review --> MT_Approved: Disahkan Notulis / Leader
+        MT_Approved --> MT_Dispatched: Kirim WA PDF ke Peserta
+        MT_Dispatched --> [*]: Action Items Masuk Kanban Board
+    }
+```
+- **Sentralisasi Rapat**: Penjadwalan agenda rapat, ruangan, dan link video conference.
+- **Presensi Digital**: Peserta rapat melakukan check-in mandiri melalui pemindaian QR-Code di layar proyektor atau ponsel.
+- **AI Audio Transcription & Summary**:
+  - Memproses rekaman audio rapat atau transkrip teks langsung menggunakan integrasi Google Gemini.
+  - Menghasilkan ringkasan eksekutif, keputusan penting, dan daftar tugas lanjutan (*Action Items*) secara instan.
+- **Action Items Kanban Board**: Manajemen tugas tindak lanjut rapat dengan antarmuka seret-lepas (*drag-and-drop*).
+- **Distribusi Notifikasi**: Pengiriman otomatis hasil notulensi resmi (MoM PDF) ke grup atau nomor WhatsApp peserta rapat.
+
+---
+
+## 3.10 Modul Fasilitas, Live Streaming CCTV & Helpdesk
+
+### Alur Tiket Bantuan Teknis IT (Helpdesk Lifecycle)
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "Tiket Helpdesk" as HD {
+        [*] --> HD_Open: Staf Lapor Kendala
+        HD_Open --> HD_InProgress: Teknisi Menanggapi
+        HD_InProgress --> HD_Resolved: Perbaikan Selesai
+        HD_Resolved --> HD_Closed: Dikonfirmasi Pelapor
+    }
+```
+- **Video Wall CCTV (Live Surveillance)**:
+  - Antarmuka pemantau video multi-channel di pos sekuriti atau ruang command center.
+  - Menampilkan stream RTSP/HLS dari kamera pengawas area pabrik, gudang bahan baku, dan gerbang loading.
+  - Pengambilan snapshot visual insiden secara instan.
+- **Helpdesk Support**:
+  - Ticketing bantuan teknis IT (gangguan internet, PC mati, instalasi software, eror ERP).
+  - Alur percakapan terpadu antara staf pelapor dan teknisi IT pendamping.
+
+---
+
+## 3.11 Modul Driver Mobile & Portal Rekanan (Supplier Portal)
+
+### Alur Supir & Bukti Serah Terima Pengiriman (Proof of Delivery - POD)
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "Alur Pengantaran Supir" as DRV {
+        [*] --> DO_Assigned: Surat Jalan (DO) Terjadwal
+        DO_Assigned --> DO_Scanned: Scan Barcode DO saat Muat Truk
+        DO_Scanned --> DO_InTransit: Truk Berangkat ke Klien
+        DO_InTransit --> DO_Delivered: Tiba di Klien (Upload Foto & TTD Digital)
+        DO_Delivered --> [*]: Status DO Complete, Faktur Siap Terbit
+    }
+```
+- **Aplikasi Ponsel Supir (Driver Mobile App)**:
+  - Antarmuka supir truk logistik untuk melihat rute pengiriman harian.
+  - Pemindai barcode surat jalan DO menggunakan kamera HP saat menaikkan muatan ke bak truk.
+  - Tombol konfirmasi tiba (*Proof of Delivery*) lengkap dengan foto serah-terima dan tanda tangan digital penerima.
+- **Portal Pemasok (Supplier Portal)**:
+  - Akses aman bagi vendor eksternal untuk memeriksa pesanan resmi (PO) yang masuk.
+  - Fitur *Acknowledge* (kesanggupan mengirim) atau *Reject* PO secara real-time.
+  - Pembuatan Surat Jalan Vendor secara mandiri sebelum truk dikirim ke pabrik.
+  - Pengunggahan berkas faktur/invoice dan kwitansi tagihan online untuk mempercepat verifikasi pembayaran.
+
+---
+
+## 3.12 Modul Sistem Bel Pabrik Otomatis (JICOS Bell Agent)
+- **Pengaturan Jadwal Bel (Bell Schedules)**:
+  - Konfigurasi waktu bel harian pabrik (Masuk Kerja, Istirahat Shift 1/2/3, Masuk Kembali, Bel Pulang, Alarm Darurat Evakuasi).
+  - Penetapan nada suara (chime audio MP3/WAV) per kategori acara.
+- **JICOS Bell Agent Desktop Client (pps/bell-agent)**:
+  - Layanan latar belakang (*background service*) Python dengan system tray icon (pystray).
+  - Terpasang di komputer pabrik yang tersambung kabel audio ke amplifier/sound system workshop.
+  - Melakukan sinkronisasi jadwal secara periodik melalui endpoint /api/bell-agent/schedules.
+  - Beroperasi independen secara offline menggunakan cache lokal jika koneksi internet terputus.
+
+---
+
+## 3.13 Modul Manajemen Proyek (Project Matrix)
+- **Pelacakan Proyek**: Monitoring linimasa penyelesaian proyek internal dan instalasi lini mesin baru.
+- **Manajemen Tugas (Kanban Tasks)**: Pembagian deliverable, alokasi PIC tim, checklist sub-task, dan lampiran berkas teknis.
+
+---
+
+## 3.14 Modul Logistik Lanjutan (Fleet Tracking GPS & Kiosk TV)
+- **Integrasi GPS Satelit Traccar**: Pelacakan posisi koordinat real-time seluruh armada truk ekspedisi di peta satelit.
+- **Logistics Kiosk TV**: Layar antrian interaktif di pos gerbang pabrik untuk menampilkan giliran truk sandar di dermaga bongkar muat (*Docking Gate*).
 
 ---
 
@@ -450,6 +663,7 @@ Ketika sebuah Work Order di-klik **Complete (Selesai)**, sistem secara otomatis:
 (Ini berguna bagi programmer untuk melihat pola penamaan tautan)
 Secara keseluruhan sistem kita punya 30+ "Rumah Besar" / Grup Menu yang mengikuti fungsi CRUD (Create, Read, Update, Delete) laravel yang seragam.
 
+### 4.1 Standar RESTful Resource Routes
 | Pola URL | Aksi yang Terjadi | Penjelasan Layar |
 |---|---|---|
 | `GET /namamodul` | `index` | Menampilkan Daftar Tabel (Pencarian & Halaman) |
@@ -458,9 +672,34 @@ Secara keseluruhan sistem kita punya 30+ "Rumah Besar" / Grup Menu yang mengikut
 | `GET /namamodul/{id}` | `show` | Melihat Rincian Penuh Dokumen |
 | `GET /namamodul/{id}/edit`| `edit`| Membuka Formulir Ubah/Edit Data |
 | `PUT /namamodul/{id}` | `update` | Proses Update / Simpan Modifikasi |
-| `DELETE /namamodul/{id}`| `destroy`| Hapus Data |
+| `DELETE /namamodul/{id}`| `destroy`| Soft Delete Data |
 | `GET /.../template` | `template`| Download File Template Excel |
 | `POST /.../import` | `import`| Upload & Baca File Excel Klien |
+| `GET /.../export` | `export`| Unduh Rekap Data ke Format Excel |
+
+### 4.2 Pemetaan Rute Grup Utama Sistem (22 Modul)
+| Grup Modul | Awalan URL (Route Prefix) | Peran Pengguna Utama | Akses Antarmuka |
+|---|---|---|---|
+| **Penjualan & PO AI** | `/sales/*` | Sales Admin, Sales Manager | Web Desktop & Tablet |
+| **CRM & Kunjungan** | `/crm/*` | Marketing, Sales Representative | Web & Mobile GPS |
+| **Pembelian & Vendor** | `/purchasing/*` | Buyer, Procurement Manager | Web Desktop |
+| **Gudang & Reklasifikasi**| `/inventory/*` | Warehouse Admin, Inventory Controller| Web & Barcode Scanner |
+| **Pabrikasi & SPK** | `/manufacturing/*` | PPIC, Operator Shift, Engineering | Web & Kiosk Workshop |
+| **Kualitas & Mutu** | `/qc/*` | QC Inspector, QA Manager | Web & Tablet Lab |
+| **Logistik & Armada** | `/logistics/*` | Dispatcher, Logistics Planner | Web & TV Kiosk Gate |
+| **Supir Pengiriman** | `/driver/*` | Supir Pengiriman Truk | Mobile Smartphone |
+| **Portal Pemasok Luar** | `/portal/*` | Vendor Rekanan Eksternal | Web Eksternal Terisolasi |
+| **Keuangan & Costing** | `/finance/*`, `/costing/*` | Finance AP/AR, Cost Accountant, CFO| Web Desktop |
+| **SDM & Penggajian** | `/hr/*` | HR Admin, Payroll Officer | Web Desktop |
+| **Employee Self-Service** | `/employee/*`, `/my-timeoff`| Seluruh Karyawan Kantor & Pabrik | Mobile Phone & Web |
+| **Rekrutmen & Karir** | `/hr/recruitment/*`, `/careers`| HR Recruiter & Publik Umum | Web & Portal Terbuka |
+| **General Affair** | `/general-affair/*` | GA Officer, Building Maintenance | Web Desktop & Mobile |
+| **Meeting Command** | `/meeting-command/*` | Notulis, Project Leader, Direksi | Web, TV Wall & QR Mobile |
+| **Fasilitas & CCTV** | `/facilities/*` | Security Head, Safety Officer | Kiosk Video Wall |
+| **Helpdesk Internal** | `/helpdesk/*` | IT Support, Staf Pemohon | Web Desktop & Mobile |
+| **Otomasi Bel Pabrik** | `/settings/bell-*`, `/api/bell-agent/*`| HR, PPIC, Python Desktop Daemon | Kiosk & Background Service |
+| **Manajemen Proyek** | `/projects/*` | Project Manager, Engineer | Web Kanban Board |
+| **Pengaturan Sistem** | `/settings/*`, `/admin/*` | Super Admin, IT Head, Auditor | Web Desktop Restricted |
 
 ---
 
@@ -468,22 +707,29 @@ Secara keseluruhan sistem kita punya 30+ "Rumah Besar" / Grup Menu yang mengikut
 
 Bila kita ingin mengubah baris kode atau melakukan update untuk website produksi (*Live*).
 
-## 5.1 Siklus Standar Update
+## 5.1 Siklus Rilis Produksi Standar Enterprise (CI/CD Pipeline)
+
+Untuk menjamin ketersediaan sistem pabrik tanpa downtime (*Zero-Downtime Deployment*), pembaruan kode produksi diatur secara terstruktur melalui pipeline CI/CD:
 
 ```mermaid
 flowchart LR
-    DEV["💻 Developer\n(Komputer Lokal)"] -->|1. git push| GH["☁️ GitHub Server\n(nspsoft/apps)"]
-    GH -->|2. git pull| PROD["🖥️ Komputer Live\n(aaPanel VPS Server)"]
-    PROD --> CLEAR["3. php artisan\noptimize:clear"]
+    DEV["💻 Developer\n(Feature Branch)"] -->|1. Pull Request| GH["☁️ GitHub Actions (CI)\n(Lint, Typecheck & Tests)"]
+    GH -->|2. Merge to Main| PROD_DEPLOY["🚀 Zero-Downtime CD\n(Atomic Symlink Flip)"]
+    PROD_DEPLOY --> RELOAD["⚡ Reload PHP-FPM & Queue\n(Downtime: 0 Detik)"]
 ```
 
-### Penjelasan Praktis:
-1. **Di Komputer Kreator**: Modifikasi File Laravel atau File Vue. Setelah selesai ubah tampilan Vue, Wajib jalankan `npm run build`. Kemudian unggah ke GitHub (`git commit & push`).
-2. **Di Server Live (aaPanel)**: Buka fitur "Cron Job" di aaPanel lalu Eksekusi *Repository* yang mengikat ke *branch main*. Perintah `git pull` akan mengambil file terbaru.
-3. **Penyegaran Server**: Refresh memori RAM server menggunakan `php artisan optimize:clear` lewat Terminal server.
-4. **Verifikasi**: Buka Browser Google Chrome pengguna, lalu pencet bersama-sama **`Ctrl + Shift + R`** (Bukan *Refresh* biasa!) untuk meminta browser melupakan memori usangnya dan memakai tampilan sistem yang kekinian.
+### Prosedur Rilis Produksi:
+1. **Pemeriksaan Kualitas Otomatis**: Setiap *Pull Request* wajib lulus verifikasi `npx tsc --noEmit` (TypeScript), `./vendor/bin/pint --test` (Formatting), dan `php artisan test` (Unit/Feature Testing).
+2. **Atomic Symlink Deployment**: Direktori baru disiapkan di `/var/www/erp/releases/TIMESTAMP`. Kompilasi aset frontend `npm run build` dan migrasi database dijalankan di direktori rilis baru. Saat siap, symlink `current` dialihkan dalam waktu < 1 milidetik sehingga pengguna aktif tidak mengalami *blank screen*.
+3. **Pemberitahuan & Monitoring**: Health check otomatis di endpoint `/api/health` memverifikasi kesiapan database dan cache redis sebelum rilis dinyatakan stabil.
+*(Lihat panduan lengkap di [`docs/cicd_and_release_management.md`](cicd_and_release_management.md))*.
 
-## 5.2 Rahasia (Environment / .env)
+## 5.2 Strategi Pencadangan & Pemulihan (Disaster Recovery & Backup)
+- **Database Backup**: Pencadangan otomatis harian pukul 01:00 WIB via *mysqldump* terenkripsi AES-256 dan replikasi transaksi berjalan (*binary logs*) per 15 menit (RPO ≤ 15 menit, RTO ≤ 60 menit).
+- **Off-site Sync**: Sinkronisasi berkas dokumen faktur, surat jalan, dan sertifikat QC ke *Off-site Cloud Storage*.
+*(Lihat rincian prosedur darurat di [`docs/disaster_recovery_plan.md`](disaster_recovery_plan.md))*.
+
+## 5.3 Manajemen Kredensial Rahasia (Environment / .env)
 Daftar variabel rahasia yang tidak di-*commit* ke GitHub tapi harus ada di Server Live:
 
 | Nama Konstanta | Fungsi Tujuannya |
@@ -497,4 +743,25 @@ Daftar variabel rahasia yang tidak di-*commit* ke GitHub tapi harus ada di Serve
 ---
 
 > **Dokumen disusun oleh**: Development Team (Antigravity & User)  
-> **Terakhir diperbarui**: 7 Maret 2026
+> **Terakhir diperbarui**: 21 Oktober 2026 (Enterprise Grade Specification)
+
+---
+
+# 6. Referensi Standar Arsitektur Enterprise
+
+Untuk memenuhi kepatuhan tata kelola korporat, ketahanan sistem, dan integritas data industri, blueprint ini dilengkapi dengan dokumen spesifikasi teknis pendukung:
+
+1. **[Kamus Data & Arsitektur Konkurensi Database (Data Dictionary)](data_dictionary_and_concurrency.md)**  
+   *Spesifikasi struktur tabel inti, indeks performa tinggi, proteksi soft delete, dan penanganan race condition (pessimistic locking).*
+2. **[Matriks Keamanan & Kontrol Akses Granular (Granular RBAC)](security_and_rbac_matrix.md)**  
+   *Otorisasi dua lapis (Backend Policy + UI Guard), enkripsi data finansial/biometrik (UU PDP No. 27/2022), dan arsitektur immutable audit trail.*
+3. **[Rencana Pemulihan Bencana & Keberlanjutan Sistem (DRP / BCP)](disaster_recovery_plan.md)**  
+   *Standar SLA 99.9%, target RPO ≤ 15 menit & RTO ≤ 60 menit, strategi backup otomatis off-site, dan health check monitoring (`/api/health`).*
+4. **[Spesifikasi Fungsional Rinci & Aturan Bisnis (FSD Teknis)](detailed_functional_specifications.md)**  
+   *Aturan validasi limit kredit, alur 3-way matching pengadaan, formulasi HPP aktual BOM pabrikasi, dan auto-journaling akuntansi.*
+5. **[Matriks & Skenario Uji Keberterimaan Pengguna (UAT Test Catalog)](uat_test_scenarios.md)**  
+   *Katalog kasus uji terstruktur untuk validasi kelayakan serah-terima modul operasional pabrik dan keuangan.*
+6. **[Panduan CI/CD & Manajemen Rilis Produksi (Release SOP)](cicd_and_release_management.md)**  
+   *Git branching model, gerbang kualitas otomatis (CI), dan deployment nir-downtime (atomic symlink).*
+7. **[Kontrak API & Standarisasi Komunikasi Data](api_contract_specification.md)**  
+   *Standarisasi envelope JSON, katalog error code bisnis enterprise, dan webhook komunikasi pesan.*
