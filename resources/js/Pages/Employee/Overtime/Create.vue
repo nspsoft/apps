@@ -5,9 +5,21 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
-import { ChevronLeftIcon, ClockIcon, InformationCircleIcon } from '@heroicons/vue/24/outline';
+import { ChevronLeftIcon, ClockIcon, InformationCircleIcon, UserIcon } from '@heroicons/vue/24/outline';
+
+const props = defineProps({
+    employees: {
+        type: Array,
+        default: () => []
+    },
+    currentEmployeeId: {
+        type: [Number, String],
+        default: null
+    }
+});
 
 const form = useForm({
+    employee_id: props.currentEmployeeId,
     type: 'pre_planned',
     date: new Date().toISOString().split('T')[0],
     start_time: '17:00',
@@ -55,6 +67,29 @@ const submit = () => {
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8 py-6">
             <div class="bg-white dark:bg-slate-800 sm:rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
                 <form @submit.prevent="submit" class="p-5 sm:p-7 space-y-6">
+                    <!-- Pilihan Karyawan -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <InputLabel for="employee_id" value="Nama Karyawan yang Lembur" class="text-sm font-semibold text-slate-700 dark:text-slate-300" />
+                            <span class="text-[11px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                Otomatis terisi nama Anda (dapat diganti)
+                            </span>
+                        </div>
+                        <div class="relative">
+                            <select
+                                id="employee_id"
+                                v-model="form.employee_id"
+                                class="block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-xl shadow-sm text-sm py-2.5 px-3 pr-8 transition"
+                                required
+                            >
+                                <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                                    {{ emp.full_name }} (NIK: {{ emp.nik }}) — {{ emp.department?.name || 'No Dept' }}
+                                </option>
+                            </select>
+                        </div>
+                        <InputError :message="form.errors.employee_id" class="mt-1.5" />
+                    </div>
+
                     <!-- Tipe Lembur (Radio Cards) -->
                     <div>
                         <InputLabel value="Tipe Lembur" class="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300" />
@@ -174,7 +209,7 @@ const submit = () => {
                             class="mt-1 block w-full border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-xl shadow-sm sm:text-sm resize-none py-2.5 px-3"
                             rows="3"
                             required
-                            placeholder="Tuliskan pekerjaan yang akan/telah Anda kerjakan selama lembur..."
+                            placeholder="Tuliskan pekerjaan yang akan/telah dikerjakan selama lembur..."
                         ></textarea>
                         <InputError :message="form.errors.reason" class="mt-2" />
                     </div>
