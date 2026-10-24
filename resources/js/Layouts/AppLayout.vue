@@ -177,6 +177,17 @@ const hasPermission = (permission) => {
     const auth = page.props.auth;
     if (!auth) return false;
     if (auth.roles?.includes('Super Admin')) return true;
+    if (permission === 'hr_payroll.view') {
+        return auth.permissions?.includes('hr_payroll.view') ||
+               auth.permissions?.includes('employee_self_service.view') ||
+               auth.permissions?.some(p => p.startsWith('employee_self_service.')) ||
+               !!auth.has_employee;
+    }
+    if (permission?.startsWith('employee_self_service.')) {
+        return auth.permissions?.includes(permission) ||
+               auth.permissions?.includes('employee_self_service.view') ||
+               !!auth.has_employee;
+    }
     if (permission === 'hr_payroll.work_schedules.view') {
         return auth.permissions?.includes('hr_payroll.work_schedules.view') || auth.permissions?.includes('hr_payroll.attendance.view');
     }
@@ -490,13 +501,13 @@ const navigation = [
         icon: UsersIcon, 
         current: false,
         children: [
-            { name: 'Employee Self Service', isHeader: true, requiresEmployee: true },
-            { name: 'Smart Attendance', href: '/employee/attendance/clock', icon: VideoCameraIcon, requiresEmployee: true },
-            { name: 'My Attendance', href: '/employee/attendance', icon: ClockIcon, requiresEmployee: true },
-            { name: 'My Time-Off', href: '/my-timeoff', icon: CalendarIcon, requiresEmployee: true },
-            { name: 'My Overtime', href: '/employee/overtime', icon: ClockIcon, requiresEmployee: true },
-            { name: 'My Reimbursements', href: '/employee/reimbursements', icon: BanknotesIcon, requiresEmployee: true },
-            { name: 'My Performance', href: '/employee/performance', icon: ChartBarIcon, requiresEmployee: true },
+            { name: 'Employee Self Service', isHeader: true, requiresEmployee: true, permission: 'employee_self_service.view' },
+            { name: 'Smart Attendance', href: '/employee/attendance/clock', icon: VideoCameraIcon, requiresEmployee: true, permission: 'employee_self_service.attendance.view' },
+            { name: 'My Attendance', href: '/employee/attendance', icon: ClockIcon, requiresEmployee: true, permission: 'employee_self_service.attendance.view' },
+            { name: 'My Time-Off', href: '/my-timeoff', icon: CalendarIcon, requiresEmployee: true, permission: 'employee_self_service.timeoff.view' },
+            { name: 'My Overtime', href: '/employee/overtime', icon: ClockIcon, requiresEmployee: true, permission: 'employee_self_service.overtime.view' },
+            { name: 'My Reimbursements', href: '/employee/reimbursements', icon: BanknotesIcon, requiresEmployee: true, permission: 'employee_self_service.reimbursements.view' },
+            { name: 'My Performance', href: '/employee/performance', icon: ChartBarIcon, requiresEmployee: true, permission: 'employee_self_service.performance.view' },
             
             { name: 'HR Administration', isHeader: true },
             { name: 'WhatsApp Center', href: '/hr/whatsapp', icon: ChatBubbleLeftRightIcon, permission: 'hr_payroll.payroll.view', badgeKey: 'waHrUnread' },

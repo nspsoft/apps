@@ -64,6 +64,8 @@ class RoleController extends Controller
             'meeting_command' => 'Meeting Command',
             'automated_bell' => 'Automated Bell',
             'cctv' => 'Live Streaming',
+            'employee_self_service' => 'Employee Self Service',
+            'timeoff' => 'My Time-Off (Cuti & Izin)',
             'project_matrix' => 'Project Matrix',
             'settings' => 'Settings'
         ];

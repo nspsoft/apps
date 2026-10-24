@@ -634,6 +634,7 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
 
     // Leaves Management
     Route::get('/leaves', [\App\Http\Controllers\HR\LeaveController::class, 'index'])->name('leaves.index');
+    Route::post('/leaves', [\App\Http\Controllers\HR\LeaveController::class, 'store'])->name('leaves.store');
     Route::post('/leaves/{leave}/approve', [\App\Http\Controllers\HR\LeaveController::class, 'approve'])->name('leaves.approve');
     Route::post('/leaves/{leave}/reject', [\App\Http\Controllers\HR\LeaveController::class, 'reject'])->name('leaves.reject');
     
@@ -643,6 +644,7 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
 
     // Overtime Management
     Route::get('/overtime', [\App\Http\Controllers\HR\OvertimeController::class, 'index'])->name('overtime.index');
+    Route::post('/overtime', [\App\Http\Controllers\HR\OvertimeController::class, 'store'])->name('overtime.store');
     Route::post('/overtime/{overtime}/approve', [\App\Http\Controllers\HR\OvertimeController::class, 'approve'])->name('overtime.approve');
     Route::post('/overtime/{overtime}/reject', [\App\Http\Controllers\HR\OvertimeController::class, 'reject'])->name('overtime.reject');
 

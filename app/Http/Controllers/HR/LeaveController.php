@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\HR\Leave;
 use App\Models\HR\LeaveBalance;
+use App\Models\HR\LeaveType;
+use App\Models\Employee;
 use Carbon\Carbon;
 
 class LeaveController extends Controller
@@ -22,10 +24,89 @@ class LeaveController extends Controller
 
         $leaves = $query->paginate(15)->withQueryString();
 
+        $employees = Employee::where('is_active', true)
+            ->with(['department:id,name', 'position:id,name'])
+            ->orderBy('full_name')
+            ->get(['id', 'nik', 'full_name', 'department_id', 'position_id']);
+
+        $leaveTypes = LeaveType::where('is_active', true)->get();
+
         return Inertia::render('HR/Leaves/Index', [
             'leaves' => $leaves,
-            'filters' => $request->only(['status'])
+            'filters' => $request->only(['status']),
+            'employees' => $employees,
+            'leaveTypes' => $leaveTypes,
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->hasAnyRole(['Super Admin', 'Administrator', 'HR', 'HR & Payroll']) && !$user->can('hr_payroll.leave_management.edit'))) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:hr_employees,id',
+            'leave_type_id' => 'required|exists:hr_leave_types,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'reason' => 'required|string|max:1000',
+            'auto_approve' => 'nullable|boolean',
+        ]);
+
+        $leaveType = LeaveType::findOrFail($validated['leave_type_id']);
+
+        $start = Carbon::parse($validated['start_date']);
+        $end = Carbon::parse($validated['end_date']);
+        $totalDays = $start->diffInDays($end) + 1;
+
+        $status = 'pending';
+        $approvedBy = null;
+        $approvedAt = null;
+
+        if (!empty($validated['auto_approve'])) {
+            if ($leaveType->is_paid) {
+                $year = $start->year;
+                $balance = LeaveBalance::where('employee_id', $validated['employee_id'])
+                    ->where('leave_type_id', $leaveType->id)
+                    ->where('year', $year)
+                    ->first();
+
+                if ($balance) {
+                    if ($balance->used_days + $totalDays > $balance->total_days) {
+                        return redirect()->back()->withErrors(['start_date' => 'Sisa kuota cuti karyawan tidak mencukupi untuk persetujuan otomatis.']);
+                    }
+                    $balance->increment('used_days', $totalDays);
+                } else {
+                    LeaveBalance::create([
+                        'employee_id' => $validated['employee_id'],
+                        'leave_type_id' => $leaveType->id,
+                        'year' => $year,
+                        'total_days' => 12,
+                        'used_days' => $totalDays,
+                    ]);
+                }
+            }
+
+            $status = 'approved';
+            $approvedBy = auth()->id();
+            $approvedAt = now();
+        }
+
+        Leave::create([
+            'employee_id' => $validated['employee_id'],
+            'leave_type_id' => $validated['leave_type_id'],
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'],
+            'total_days' => $totalDays,
+            'reason' => $validated['reason'],
+            'status' => $status,
+            'approved_by' => $approvedBy,
+            'approved_at' => $approvedAt,
+        ]);
+
+        return redirect()->back()->with('success', 'Data pengajuan cuti berhasil disimpan' . ($status === 'approved' ? ' dan langsung disetujui.' : '.'));
     }
 
     public function approve(Leave $leave)
