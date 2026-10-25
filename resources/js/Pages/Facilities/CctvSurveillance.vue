@@ -22,7 +22,9 @@ import {
     PlayIcon,
     StopIcon,
     InformationCircleIcon,
-    WrenchScrewdriverIcon
+    WrenchScrewdriverIcon,
+    ComputerDesktopIcon,
+    ServerStackIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -72,6 +74,55 @@ const connectForm = useForm({
 // Calculate live channels vs standby
 const isChannelLive = (channel) => {
     return !!channel.stream_url || !!demoFeeds.value[channel.id];
+};
+
+const isNativeVideo = (channel) => {
+    if (!channel || !channel.stream_url) return false;
+    const url = channel.stream_url.toLowerCase();
+    return url.endsWith('.mp4') || url.endsWith('.webm');
+};
+
+// Edge Hybrid Architecture & Local Gateway Config
+const localGatewayIp = ref(typeof window !== 'undefined' ? (localStorage.getItem('cctv_local_gateway_ip') || '192.168.1.30') : '192.168.1.30');
+const showGatewayModal = ref(false);
+const tempGatewayIp = ref('');
+
+const isCloudDomain = computed(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.protocol === 'https:' || window.location.hostname.includes('nsp.my.id');
+});
+
+const localKioskUrl = computed(() => {
+    return `http://${localGatewayIp.value}/facilities/cctv`;
+});
+
+const openGatewayModal = () => {
+    tempGatewayIp.value = localGatewayIp.value;
+    showGatewayModal.value = true;
+};
+
+const saveGatewayIp = () => {
+    if (tempGatewayIp.value.trim()) {
+        localGatewayIp.value = tempGatewayIp.value.trim();
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('cctv_local_gateway_ip', localGatewayIp.value);
+        }
+    }
+    showGatewayModal.value = false;
+};
+
+const resolveStreamUrl = (channel) => {
+    if (!channel || !channel.stream_url) return '';
+    const url = channel.stream_url.trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+    }
+    // If RTSP, automatically route through local MediaMTX WebRTC player
+    const host = window.location.hostname && window.location.hostname !== 'localhost' && !isCloudDomain.value
+        ? window.location.hostname
+        : (isCloudDomain.value ? localGatewayIp.value : 'localhost');
+    const ch = channel.channel_number || 1;
+    return `http://${host}:8889/cam${ch}/?autoplay=1&muted=1&controls=0`;
 };
 
 const liveChannelsCount = computed(() => {
@@ -360,6 +411,26 @@ onUnmounted(() => {
                     </div>
                 </div>
 
+                <!-- Open Terminal Kiosk Button (Local Edge) -->
+                <a 
+                    :href="localKioskUrl"
+                    target="_blank"
+                    class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-teal-600/30 hover:bg-teal-600/50 border border-teal-500/40 text-teal-300 hover:text-white rounded-xl text-xs font-mono font-bold transition shadow-sm"
+                    title="Buka Layar Terminal Surveillance Lokal di Jaringan Pabrik"
+                >
+                    <ComputerDesktopIcon class="w-4 h-4 text-teal-400" />
+                    <span>Layar Kiosk</span>
+                </a>
+
+                <!-- Edge Gateway IP Config Button -->
+                <button 
+                    @click="openGatewayModal"
+                    class="p-2 bg-[#052b33] hover:bg-[#083d49] text-teal-300 rounded-xl border border-teal-500/30 text-xs font-bold transition shadow-sm"
+                    title="Pengaturan IP Gateway Lokal Pabrik"
+                >
+                    <ServerStackIcon class="w-4 h-4" />
+                </button>
+
                 <!-- TV Kiosk Fullscreen Button -->
                 <button 
                     @click="toggleFullscreen"
@@ -381,6 +452,37 @@ onUnmounted(() => {
                 </Link>
             </div>
         </header>
+
+        <!-- HYBRID ARCHITECTURE NOTICE (When opened from VPS Cloud / HTTPS) -->
+        <div 
+            v-if="isCloudDomain" 
+            class="bg-[#051f28]/95 border-b border-teal-500/40 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-slate-200 z-20 shadow-md"
+        >
+            <div class="flex items-center gap-3">
+                <span class="px-2 py-0.5 rounded-full bg-teal-500/20 border border-teal-400/40 text-teal-300 text-[10px] font-black uppercase tracking-wider">
+                    HYBRID EDGE GATEWAY
+                </span>
+                <span class="text-slate-300 text-xs">
+                    Sistem CCTV berjalan di Local Edge Gateway (<span class="text-cyan-300 font-bold">{{ localGatewayIp }}</span>). Untuk efisiensi bandwidth & keamanan, pantau via Layar Kiosk Lokal.
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button 
+                    @click="openGatewayModal" 
+                    class="text-xs text-teal-400 hover:text-teal-300 underline font-medium px-2 py-1"
+                >
+                    Ubah IP Gateway
+                </button>
+                <a 
+                    :href="localKioskUrl" 
+                    target="_blank" 
+                    class="px-3.5 py-1.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-teal-700/30"
+                >
+                    <ComputerDesktopIcon class="w-4 h-4" />
+                    <span>Buka Layar Kiosk Lokal</span>
+                </a>
+            </div>
+        </div>
 
         <!-- Toast Feedback for Ping / Action -->
         <div 
@@ -417,13 +519,19 @@ onUnmounted(() => {
                     
                     <!-- A. Real Video Stream OR Demo Simulation -->
                     <video 
-                        v-if="focusedCamera.stream_url" 
+                        v-if="focusedCamera.stream_url && isNativeVideo(focusedCamera)" 
                         :src="focusedCamera.stream_url" 
                         autoplay 
                         muted 
                         playsinline 
                         class="absolute inset-0 w-full h-full object-cover"
                     ></video>
+                    <iframe
+                        v-else-if="focusedCamera.stream_url"
+                        :src="resolveStreamUrl(focusedCamera)"
+                        class="absolute inset-0 w-full h-full border-0 pointer-events-none"
+                        allow="autoplay"
+                    ></iframe>
 
                     <!-- Simulation Live Canvas -->
                     <div 
@@ -623,13 +731,19 @@ onUnmounted(() => {
                         
                         <!-- 1. Real Video Stream (If configured) -->
                         <video 
-                            v-if="camera.stream_url" 
+                            v-if="camera.stream_url && isNativeVideo(camera)" 
                             :src="camera.stream_url" 
                             autoplay 
                             muted 
                             playsinline 
                             class="absolute inset-0 w-full h-full object-cover"
                         ></video>
+                        <iframe
+                            v-else-if="camera.stream_url"
+                            :src="resolveStreamUrl(camera)"
+                            class="absolute inset-0 w-full h-full border-0 pointer-events-none"
+                            allow="autoplay"
+                        ></iframe>
 
                         <!-- 2. Simulation Live Feed (If toggled) -->
                         <div 
@@ -952,6 +1066,70 @@ onUnmounted(() => {
                             <span>Unduh Foto JPEG</span>
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. LOCAL GATEWAY CONFIG MODAL -->
+        <div 
+            v-if="showGatewayModal" 
+            class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+        >
+            <div class="bg-[#031c23] border border-teal-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between pb-3 border-b border-teal-900/60">
+                    <div class="flex items-center gap-2.5">
+                        <div class="p-2 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-400">
+                            <ServerStackIcon class="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm uppercase tracking-wider font-mono">
+                                Konfigurasi Gateway Lokal
+                            </h3>
+                            <p class="text-xs text-slate-400 font-mono">
+                                JICOS Edge Surveillance
+                            </p>
+                        </div>
+                    </div>
+                    <button @click="showGatewayModal = false" class="p-1 text-slate-400 hover:text-white rounded-lg">
+                        <XMarkIcon class="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div class="my-4 space-y-3">
+                    <p class="text-xs text-slate-300 font-sans leading-relaxed">
+                        Masukkan IP PC / Host di jaringan pabrik yang menjalankan service <b>CCTV Gateway (MediaMTX)</b>:
+                    </p>
+                    <div>
+                        <label class="block text-xs font-mono font-bold text-teal-300 uppercase mb-1">
+                            IP PC Gateway Lokal
+                        </label>
+                        <input 
+                            v-model="tempGatewayIp"
+                            type="text" 
+                            placeholder="192.168.1.30 atau localhost"
+                            class="w-full px-3.5 py-2.5 rounded-xl bg-[#021014] border border-teal-500/40 text-white font-mono text-sm focus:ring-2 focus:ring-teal-400 focus:outline-none"
+                        />
+                    </div>
+                    <div class="p-3 rounded-xl bg-[#021318] border border-teal-900/60 text-[11px] font-mono text-slate-400 space-y-1">
+                        <div>• Port WebRTC: <span class="text-teal-300">8889</span></div>
+                        <div>• Port HLS fmp4: <span class="text-teal-300">8888</span></div>
+                        <div>• Script Launcher: <span class="text-slate-300 font-bold">apps/cctv-gateway/Start-CCTV-Gateway.bat</span></div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-teal-900/60">
+                    <button 
+                        @click="showGatewayModal = false"
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
+                    >
+                        Batal
+                    </button>
+                    <button 
+                        @click="saveGatewayIp"
+                        class="px-5 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-teal-700/30"
+                    >
+                        Simpan Pengaturan
+                    </button>
                 </div>
             </div>
         </div>
