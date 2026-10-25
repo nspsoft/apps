@@ -213,10 +213,10 @@ class AttendanceController extends Controller
         $totalActive = Employee::where('is_active', true)->count();
         
         $attendances = Attendance::where('date', $date)->get();
-        $presentCount = $attendances->where('status', 'present')->count();
-        $lateCount = $attendances->where('status', 'late')->count();
-        $leaveCount = $attendances->whereIn('status', ['leave', 'sick'])->count();
-        $absentCount = max(0, $totalActive - ($presentCount + $lateCount + $leaveCount));
+        $todayPresentCount = $attendances->where('status', 'present')->count();
+        $todayLateCount = $attendances->where('status', 'late')->count();
+        $todayLeaveCount = $attendances->whereIn('status', ['leave', 'sick'])->count();
+        $todayAbsentCount = max(0, $totalActive - ($todayPresentCount + $todayLateCount + $todayLeaveCount));
 
         // Recent check-ins / outs (Tampilkan aksi terbaru di urutan paling atas)
         $recentLogs = Attendance::with(['employee.department'])
@@ -351,13 +351,13 @@ class AttendanceController extends Controller
 
         foreach ($activeEmployees as $emp) {
             $empLogs = $monthAttendances->get($emp->id, collect());
-            $presentCount = $empLogs->where('status', 'present')->count();
-            $lateCount = $empLogs->where('status', 'late')->count();
-            $leaveCount = $empLogs->whereIn('status', ['leave', 'sick'])->count();
-            $explicitAbsent = $empLogs->where('status', 'absent')->count();
+            $empPresentCount = $empLogs->where('status', 'present')->count();
+            $empLateCount = $empLogs->where('status', 'late')->count();
+            $empLeaveCount = $empLogs->whereIn('status', ['leave', 'sick'])->count();
+            $empExplicitAbsent = $empLogs->where('status', 'absent')->count();
 
-            $attendedDays = $presentCount + $lateCount;
-            $unattendedDays = max(0, $workingDays - ($attendedDays + $leaveCount)) + $explicitAbsent;
+            $attendedDays = $empPresentCount + $empLateCount;
+            $unattendedDays = max(0, $workingDays - ($attendedDays + $empLeaveCount)) + $empExplicitAbsent;
             $attendanceRate = round(($attendedDays / $workingDays) * 100, 1);
 
             if ($unattendedDays > 0) {
@@ -367,8 +367,8 @@ class AttendanceController extends Controller
                     'attended_days' => $attendedDays,
                     'working_days' => $workingDays,
                     'attendance_rate' => $attendanceRate,
-                    'explicit_absent' => $explicitAbsent,
-                    'leave_days' => $leaveCount,
+                    'explicit_absent' => $empExplicitAbsent,
+                    'leave_days' => $empLeaveCount,
                 ]);
             }
         }
@@ -540,10 +540,10 @@ class AttendanceController extends Controller
             'date' => $date,
             'summary' => [
                 'total_employees' => $totalActive,
-                'present' => $presentCount,
-                'late' => $lateCount,
-                'leave' => $leaveCount,
-                'absent' => $absentCount
+                'present' => $todayPresentCount,
+                'late' => $todayLateCount,
+                'leave' => $todayLeaveCount,
+                'absent' => $todayAbsentCount
             ],
             'recent_logs' => $recentLogs,
             'charts' => [
