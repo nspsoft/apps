@@ -8,15 +8,15 @@ echo ===================================================================
 
 :: Prioritaskan Google Chrome jika tersedia
 if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
-    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk "http://localhost/facilities/cctv" --start-fullscreen
+    start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk "http://localhost:8880" --start-fullscreen
     exit
 )
 
 if exist "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" (
-    start "" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --kiosk "http://localhost/facilities/cctv" --start-fullscreen
+    start "" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" --kiosk "http://localhost:8880" --start-fullscreen
     exit
 )
 
 :: Alternatif Microsoft Edge
-start "" msedge --kiosk "http://localhost/facilities/cctv" --edge-kiosk-type=fullscreen
+start "" msedge --kiosk "http://localhost:8880" --edge-kiosk-type=fullscreen
 exit

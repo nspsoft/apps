@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JICOS CCTV - Factory Surveillance Center</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #030e12;
+            color: #f1f5f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-col;
+            flex-direction: column;
+        }
+
+        /* Top Header */
+        header {
+            height: 56px;
+            background: rgba(2, 21, 27, 0.95);
+            border-bottom: 1px solid #0a3a44;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: relative;
+            z-index: 30;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box {
+            width: 36px;
+            height: 36px;
+            background: #042830;
+            border: 1px solid rgba(20, 184, 166, 0.4);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+            color: #2dd4bf;
+            font-family: monospace;
+            box-shadow: 0 0 10px rgba(20, 184, 166, 0.3);
+        }
+
+        .brand-name {
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-family: monospace;
+            color: #ffffff;
+        }
+
+        .header-title-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 16px;
+            background: #04252d;
+            border: 1px solid rgba(20, 184, 166, 0.4);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            font-family: monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .header-title-pill span.accent {
+            color: #2dd4bf;
+        }
+
+        .header-title-pill span.sub {
+            color: #94a3b8;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .clock {
+            font-family: monospace;
+            font-size: 15px;
+            font-weight: 900;
+            color: #67e8f9;
+            letter-spacing: 1.5px;
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(6, 78, 59, 0.5);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            font-family: monospace;
+            color: #34d399;
+            text-transform: uppercase;
+        }
+
+        .badge-live .dot {
+            width: 7px;
+            height: 7px;
+            background-color: #34d399;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #34d399;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.7; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.7; }
+        }
+
+        .btn-action {
+            background: #052b33;
+            border: 1px solid rgba(20, 184, 166, 0.4);
+            color: #2dd4bf;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: monospace;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .btn-action:hover {
+            background: #083d49;
+            color: #ffffff;
+            border-color: #2dd4bf;
+        }
+
+        /* 6 Grid Container */
+        main {
+            flex: 1;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 10px;
+            min-height: 0;
+            background: radial-gradient(circle at center, #04181f 0%, #020c10 100%);
+        }
+
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+            }
+        }
+
+        /* Camera Card Tile */
+        .camera-tile {
+            position: relative;
+            background: #000000;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(20, 184, 166, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.2s;
+        }
+
+        .camera-tile:hover {
+            border-color: rgba(45, 212, 191, 0.8);
+        }
+
+        .camera-tile iframe {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #000;
+            pointer-events: none;
+        }
+
+        /* Top HUD Overlay inside tile */
+        .hud-top {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .cam-badge-red {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 8px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(244, 63, 94, 0.5);
+            border-radius: 20px;
+            font-size: 9px;
+            font-weight: 900;
+            font-family: monospace;
+            color: #fb7185;
+            text-transform: uppercase;
+        }
+
+        .cam-badge-red .dot {
+            width: 6px;
+            height: 6px;
+            background: #f43f5e;
+            border-radius: 50%;
+        }
+
+        /* Bottom HUD Overlay inside tile */
+        .hud-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 12px;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.7) 60%, transparent 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 10;
+        }
+
+        .cam-info {
+            min-width: 0;
+        }
+
+        .cam-company {
+            font-size: 9px;
+            font-family: monospace;
+            font-weight: 900;
+            color: #2dd4bf;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .cam-name {
+            font-size: 13px;
+            font-weight: 800;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 3px black;
+        }
+
+        .cam-res {
+            padding: 2px 6px;
+            background: rgba(4, 40, 48, 0.8);
+            border: 1px solid rgba(45, 212, 191, 0.4);
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 700;
+            font-family: monospace;
+            color: #5eead4;
+        }
+
+        /* Fullscreen Focused View */
+        .focused {
+            position: fixed !important;
+            inset: 60px 10px 10px 10px !important;
+            z-index: 50 !important;
+            border-color: #2dd4bf !important;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Bar -->
+    <header>
+        <div class="brand">
+            <div class="logo-box">J</div>
+            <div class="brand-name">PT. JIDOKA RESULT INDONESIA</div>
+        </div>
+
+        <div class="header-title-pill">
+            <span class="accent">SURVEILLANCE CENTER</span>
+            <span class="sub">•</span>
+            <span class="sub">PLANT MONITORING</span>
+        </div>
+
+        <div class="header-right">
+            <div class="clock" id="digitalClock">--:--:-- WIB</div>
+            <div class="badge-live">
+                <span class="dot"></span>
+                <span>6 LIVE / 6 CAM</span>
+            </div>
+            <button class="btn-action" onclick="toggleFullscreen()">
+                <span>[ ⛶ ]</span>
+                <span id="fsText">LAYAR PENUH</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 6 Camera Grid -->
+    <main id="cameraGrid">
+        <!-- CAM 01 -->
+        <div class="camera-tile" onclick="toggleZoom(this)">
+            <iframe id="frameCam1" allow="autoplay; fullscreen"></iframe>
+            <div class="hud-top">
+                <div class="cam-badge-red"><span class="dot"></span> LIVE</div>
+            </div>
+            <div class="hud-bottom">
+                <div class="cam-info">
+                    <div class="cam-company">PT. JIDOKA RESULT INDONESIA</div>
+                    <div class="cam-name">CAM 01: Main Gate & Pos Satpam</div>
+                </div>
+                <div class="cam-res">1080p</div>
+            </div>
+        </div>
+
+        <!-- CAM 02 -->
+        <div class="camera-tile" onclick="toggleZoom(this)">
+            <iframe id="frameCam2" allow="autoplay; fullscreen"></iframe>
+            <div class="hud-top">
+                <div class="cam-badge-red"><span class="dot"></span> LIVE</div>
+            </div>
+            <div class="hud-bottom">
+                <div class="cam-info">
+                    <div class="cam-company">PT. JIDOKA RESULT INDONESIA</div>
+                    <div class="cam-name">CAM 02: Workshop & Production Floor</div>
+                </div>
+                <div class="cam-res">1080p</div>
+            </div>
+        </div>
+
+        <!-- CAM 03 -->
+        <div class="camera-tile" onclick="toggleZoom(this)">
+            <iframe id="frameCam3" allow="autoplay; fullscreen"></iframe>
+            <div class="hud-top">
+                <div class="cam-badge-red"><span class="dot"></span> LIVE</div>
+            </div>
+            <div class="hud-bottom">
+                <div class="cam-info">
+                    <div class="cam-company">PT. JIDOKA RESULT INDONESIA</div>
+                    <div class="cam-name">CAM 03: Warehouse Material Storage</div>
+                </div>
+                <div class="cam-res">1080p</div>
+            </div>
+        </div>
+
+        <!-- CAM 04 -->
+        <div class="camera-tile" onclick="toggleZoom(this)">
+            <iframe id="frameCam4" allow="autoplay; fullscreen"></iframe>
+            <div class="hud-top">
+                <div class="cam-badge-red"><span class="dot"></span> LIVE</div>
+            </div>
+            <div class="hud-bottom">
+                <div class="cam-info">
+                    <div class="cam-company">PT. JIDOKA RESULT INDONESIA</div>
+                    <div class="cam-name">CAM 04: Loading Dock & Logistics</div>
+                </div>
+                <div class="cam-res">1080p</div>
+            </div>
+        </div>
+
+        <!-- CAM 05 -->
+        <div class="camera-tile" onclick="toggleZoom(this)">
+            <iframe id="frameCam5" allow="autoplay; fullscreen"></iframe>
+            <div class="hud-top">
+                <div class="cam-badge-red"><span class="dot"></span> LIVE</div>
+            </div>
+            <div class="hud-bottom">
+                <div class="cam-info">
+                    <div class="cam-company">PT. JIDOKA RESULT INDONESIA</div>
+                    <div class="cam-name">CAM 05: Control Room & Electrical Panel</div>
+                </div>
+                <div class="cam-res">1080p</div>
+            </div>
+        </div>
+
+        <!-- CAM 06 -->
+        <div class="camera-tile" onclick="toggleZoom(this)">
+            <iframe id="frameCam6" allow="autoplay; fullscreen"></iframe>
+            <div class="hud-top">
+                <div class="cam-badge-red"><span class="dot"></span> LIVE</div>
+            </div>
+            <div class="hud-bottom">
+                <div class="cam-info">
+                    <div class="cam-company">PT. JIDOKA RESULT INDONESIA</div>
+                    <div class="cam-name">CAM 06: Office Entrance Lobby</div>
+                </div>
+                <div class="cam-res">1080p</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Update Clock
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', {
+                timeZone: 'Asia/Jakarta',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            }).replace(/\./g, ':');
+            document.getElementById('digitalClock').innerText = timeStr + ' WIB';
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Auto-resolve host (Supports localhost, IP, or jidoka.local)
+        const host = window.location.hostname || 'localhost';
+        for (let i = 1; i <= 6; i++) {
+            const frame = document.getElementById('frameCam' + i);
+            if (frame) {
+                frame.src = `http://${host}:8889/cam${i}/?autoplay=1&muted=1&controls=0`;
+            }
+        }
+
+        // Fullscreen Toggle
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    document.getElementById('fsText').innerText = 'KELUAR';
+                }).catch(e => console.log(e));
+            } else {
+                document.exitFullscreen().then(() => {
+                    document.getElementById('fsText').innerText = 'LAYAR PENUH';
+                }).catch(e => console.log(e));
+            }
+        }
+
+        // Click to Zoom Single Camera
+        let currentZoom = null;
+        function toggleZoom(elem) {
+            if (currentZoom === elem) {
+                elem.classList.remove('focused');
+                currentZoom = null;
+            } else {
+                if (currentZoom) currentZoom.classList.remove('focused');
+                elem.classList.add('focused');
+                currentZoom = elem;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentZoom) {
+                currentZoom.classList.remove('focused');
+                currentZoom = null;
+            }
+        });
+    </script>
+</body>
+</html>
