@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -66,30 +66,32 @@ watch(() => props.positions, (newVal) => {
     localPositions.value = [...(newVal || [])];
 });
 
-const showQuickPositionModal = ref(false);
-const quickPositionForm = ref({
-    name: '',
-    department_id: '',
-});
+const showQuickPositionInput = ref(false);
+const quickPositionName = ref('');
 const isSavingPosition = ref(false);
 const quickPositionError = ref('');
+const quickPosInputRef = ref(null);
 
-const openQuickPositionModal = () => {
-    quickPositionForm.value = {
-        name: '',
-        department_id: form.department_id || (props.departments?.[0]?.id || ''),
-    };
+const toggleQuickPositionInput = () => {
+    showQuickPositionInput.value = !showQuickPositionInput.value;
+    quickPositionName.value = '';
     quickPositionError.value = '';
-    showQuickPositionModal.value = true;
+    if (showQuickPositionInput.value) {
+        nextTick(() => {
+            quickPosInputRef.value?.focus();
+        });
+    }
 };
 
 const saveQuickPosition = async () => {
-    if (!quickPositionForm.value.name.trim()) {
+    if (!quickPositionName.value.trim()) {
         quickPositionError.value = 'Nama posisi / jabatan wajib diisi.';
         return;
     }
-    if (!quickPositionForm.value.department_id) {
-        quickPositionError.value = 'Silakan pilih departemen untuk posisi ini.';
+
+    const targetDeptId = form.department_id || (props.departments?.[0]?.id || null);
+    if (!targetDeptId) {
+        quickPositionError.value = 'Silakan pilih Departemen terlebih dahulu di atas.';
         return;
     }
 
@@ -97,7 +99,10 @@ const saveQuickPosition = async () => {
     quickPositionError.value = '';
 
     try {
-        const res = await axios.post(route('settings.positions.store'), quickPositionForm.value);
+        const res = await axios.post(route('settings.positions.store'), {
+            name: quickPositionName.value.trim(),
+            department_id: targetDeptId,
+        });
         if (res.data.success && res.data.position) {
             const newPos = res.data.position;
             if (!localPositions.value.some(p => p.id === newPos.id)) {
@@ -107,7 +112,8 @@ const saveQuickPosition = async () => {
             if (!form.department_id) {
                 form.department_id = newPos.department_id;
             }
-            showQuickPositionModal.value = false;
+            showQuickPositionInput.value = false;
+            quickPositionName.value = '';
         }
     } catch (e) {
         console.error('Failed to quick-save position:', e);
@@ -836,12 +842,42 @@ const deleteFace = (employee) => {
                                                     <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Position</label>
                                                     <button 
                                                         type="button" 
-                                                        @click="openQuickPositionModal"
+                                                        @click="toggleQuickPositionInput"
                                                         class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 hover:underline flex items-center gap-1 transition"
                                                     >
                                                         <PlusIcon class="w-3.5 h-3.5" />
-                                                        <span>+ Tambah Posisi</span>
+                                                        <span>Tambah Posisi</span>
                                                     </button>
+                                                </div>
+
+                                                <!-- Inline Quick Add Box (Seamless & Instant) -->
+                                                <div v-if="showQuickPositionInput" class="p-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-xl space-y-2">
+                                                    <div class="flex items-center justify-between text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                                                        <span>Tambah Posisi Baru ke Departemen:</span>
+                                                        <button type="button" @click="showQuickPositionInput = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                                                            <XMarkIcon class="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div class="flex gap-2">
+                                                        <input 
+                                                            v-model="quickPositionName"
+                                                            @keyup.enter="saveQuickPosition"
+                                                            type="text" 
+                                                            placeholder="Contoh: Quality Control, Welder Specialist" 
+                                                            class="flex-1 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-white dark:bg-slate-900 py-2 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                                                            ref="quickPosInputRef"
+                                                        />
+                                                        <button 
+                                                            type="button" 
+                                                            @click="saveQuickPosition"
+                                                            :disabled="isSavingPosition"
+                                                            class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-sm disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+                                                        >
+                                                            <span v-if="isSavingPosition" class="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                                                            <span>Simpan</span>
+                                                        </button>
+                                                    </div>
+                                                    <p v-if="quickPositionError" class="text-[11px] text-red-500 font-medium">{{ quickPositionError }}</p>
                                                 </div>
                                                 <select v-model="form.position_id" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all">
                                                     <option value="">Select Position</option>
@@ -1068,92 +1104,8 @@ const deleteFace = (employee) => {
                 </div>
             </Dialog>
         </TransitionRoot>
-        <!-- Modal Quick Add Position -->
-        <TransitionRoot as="template" :show="showQuickPositionModal">
-            <Dialog as="div" class="relative z-[60]" @close="showQuickPositionModal = false">
-                <TransitionChild as="template" enter="ease-out duration-200" enter-from="opacity-0" enter-to="opacity-100" leave="ease-in duration-150" leave-from="opacity-100" leave-to="opacity-0">
-                    <div class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity" />
-                </TransitionChild>
 
-                <div class="fixed inset-0 z-10 overflow-y-auto">
-                    <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                        <TransitionChild as="template" enter="ease-out duration-200" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100" leave="ease-in duration-150" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
-                            <DialogPanel class="relative transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md">
-                                <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                                            <BriefcaseIcon class="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <DialogTitle as="h3" class="text-base font-bold text-slate-900 dark:text-white">
-                                                Tambah Posisi / Jabatan Baru
-                                            </DialogTitle>
-                                            <p class="text-xs text-slate-500">Jabatan baru akan langsung terpilih di form</p>
-                                        </div>
-                                    </div>
-                                    <button @click="showQuickPositionModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg">
-                                        <XMarkIcon class="w-5 h-5" />
-                                    </button>
-                                </div>
-
-                                <div class="space-y-4 py-4">
-                                    <div v-if="quickPositionError" class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-500 font-medium">
-                                        {{ quickPositionError }}
-                                    </div>
-
-                                    <div class="space-y-1.5">
-                                        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                            Departemen <span class="text-red-500">*</span>
-                                        </label>
-                                        <select 
-                                            v-model="quickPositionForm.department_id"
-                                            class="block w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50"
-                                        >
-                                            <option value="">-- Pilih Departemen --</option>
-                                            <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="space-y-1.5">
-                                        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                            Nama Posisi / Jabatan <span class="text-red-500">*</span>
-                                        </label>
-                                        <input 
-                                            v-model="quickPositionForm.name"
-                                            @keyup.enter="saveQuickPosition"
-                                            type="text" 
-                                            placeholder="Contoh: Quality Control, Welder Specialist" 
-                                            class="block w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 px-3 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50"
-                                            autofocus
-                                        />
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                    <button 
-                                        type="button" 
-                                        @click="showQuickPositionModal = false"
-                                        class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-                                    >
-                                        Batal
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        @click="saveQuickPosition"
-                                        :disabled="isSavingPosition"
-                                        class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition flex items-center gap-1.5"
-                                    >
-                                        <span v-if="isSavingPosition" class="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-                                        <span>Simpan & Pilih</span>
-                                    </button>
-                                </div>
-                            </DialogPanel>
-                        </TransitionChild>
-                    </div>
-                </div>
-            </Dialog>
-        </TransitionRoot>
-    </AppLayout>
+        </AppLayout>
 </template>
 
 <style scoped>
