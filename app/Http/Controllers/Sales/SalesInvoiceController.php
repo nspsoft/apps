@@ -475,6 +475,8 @@ class SalesInvoiceController extends Controller
             $filePath = $coreTaxService->generate($invoices, [
                 'seller_npwp' => $request->input('seller_npwp', '0809672348413000'),
                 'seller_nitku' => $request->input('seller_nitku', '0809672348413000000000'),
+                'barang_jasa' => $request->input('barang_jasa', 'A'),
+                'kode_transaksi' => $request->input('kode_transaksi', '04'),
                 'keterangan_tambahan_07' => $request->input('keterangan_tambahan_07', 'TD.00502'),
                 'cap_fasilitas_07' => $request->input('cap_fasilitas_07', 'TD.01103'),
             ]);

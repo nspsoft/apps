@@ -67,14 +67,22 @@ class CoreTaxExportService
 
         $keterangan07 = $options['keterangan_tambahan_07'] ?? 'TD.00502';
         $capFasilitas07 = $options['cap_fasilitas_07'] ?? 'TD.01103';
+        $barangJasaType = strtoupper($options['barang_jasa'] ?? 'A');
+        if (!in_array($barangJasaType, ['A', 'B'])) {
+            $barangJasaType = 'A';
+        }
+        $selectedKodeTransaksi = $options['kode_transaksi'] ?? '04';
 
         foreach ($invoices as $inv) {
             $cust = $inv->customer ?? $inv->salesOrder?->customer;
             $taxAmount = (float) ($inv->tax_amount_manual ?? $inv->tax_amount ?? 0);
             
-            // Logic: 04 for standard VAT, 07 if VAT is 0 / exempt
-            $hasTax = $taxAmount > 0;
-            $kodeTransaksi = $hasTax ? '04' : '07';
+            // Logic: if user selected 04 and tax is 0, switch to 07
+            if ($selectedKodeTransaksi === '04') {
+                $kodeTransaksi = ($taxAmount > 0) ? '04' : '07';
+            } else {
+                $kodeTransaksi = $selectedKodeTransaksi;
+            }
 
             // Clean Customer Tax ID / NIK
             $rawTax = preg_replace('/[^0-9]/', '', $cust?->tax_id ?? '');
@@ -131,7 +139,7 @@ class CoreTaxExportService
             if ($inv->items->isEmpty()) {
                 // Single line fallback if no detail items
                 $sheetDetail->setCellValue('A' . $detailRow, $fakturIndex);
-                $sheetDetail->setCellValue('B' . $detailRow, 'A');
+                $sheetDetail->setCellValue('B' . $detailRow, $barangJasaType);
                 $sheetDetail->setCellValueExplicit('C' . $detailRow, '481900', DataType::TYPE_STRING);
                 $sheetDetail->setCellValue('D' . $detailRow, 'Penjualan Barang / Jasa ' . $inv->invoice_number);
                 $sheetDetail->setCellValue('E' . $detailRow, 'UM.0021');
@@ -162,7 +170,7 @@ class CoreTaxExportService
                     $disc = (float) ($item->discount_amount ?: 0);
 
                     $sheetDetail->setCellValue('A' . $detailRow, $fakturIndex);
-                    $sheetDetail->setCellValue('B' . $detailRow, 'A');
+                    $sheetDetail->setCellValue('B' . $detailRow, $barangJasaType);
                     $sheetDetail->setCellValueExplicit('C' . $detailRow, '481900', DataType::TYPE_STRING);
                     $sheetDetail->setCellValue('D' . $detailRow, $pName);
                     $sheetDetail->setCellValue('E' . $detailRow, $unitCode);
