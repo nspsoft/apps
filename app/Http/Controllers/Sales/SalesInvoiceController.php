@@ -427,4 +427,62 @@ class SalesInvoiceController extends Controller
             return back()->with('error', 'Gagal membubuhkan e-Meterai: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Export Sales Invoices to DJP CoreTax Excel format.
+     */
+    public function exportCoreTax(Request $request, \App\Services\CoreTaxExportService $coreTaxService)
+    {
+        $query = SalesInvoice::with(['customer', 'salesOrder.customer', 'items.product', 'items.unit']);
+
+        if ($request->filled('ids')) {
+            $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
+            $query->whereIn('id', $ids);
+        } else {
+            $query->when($request->search, function ($q, $search) {
+                $q->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhereHas('salesOrder', function ($sq) use ($search) {
+                            $sq->where('so_number', 'like', "%{$search}%")
+                                ->orWhere('customer_po_number', 'like', "%{$search}%")
+                                ->orWhereHas('customer', function ($cq) use ($search) {
+                                    $cq->where('name', 'like', "%{$search}%");
+                                });
+                        });
+                });
+            })
+            ->when($request->status, function ($q, $status) {
+                $q->where('status', $status);
+            })
+            ->when($request->customer_id, function ($q, $customerId) {
+                $q->where('customer_id', $customerId);
+            })
+            ->when($request->date_from, function ($q, $dateFrom) {
+                $q->whereDate('invoice_date', '>=', $dateFrom);
+            })
+            ->when($request->date_to, function ($q, $dateTo) {
+                $q->whereDate('invoice_date', '<=', $dateTo);
+            });
+        }
+
+        $invoices = $query->orderBy('invoice_date', 'asc')->get();
+
+        if ($invoices->isEmpty()) {
+            return back()->with('error', 'Tidak ada data invoice yang sesuai untuk diekspor ke CoreTax.');
+        }
+
+        try {
+            $filePath = $coreTaxService->generate($invoices, [
+                'seller_npwp' => $request->input('seller_npwp', '0809672348413000'),
+                'seller_nitku' => $request->input('seller_nitku', '0809672348413000000000'),
+                'keterangan_tambahan_07' => $request->input('keterangan_tambahan_07', 'TD.00502'),
+                'cap_fasilitas_07' => $request->input('cap_fasilitas_07', 'TD.01103'),
+            ]);
+
+            $fileName = 'CoreTax_Faktur_Pajak_' . now()->format('Ymd_His') . '.xlsx';
+            return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal generate template CoreTax: ' . $e->getMessage());
+        }
+    }
 }

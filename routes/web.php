@@ -413,6 +413,7 @@ Route::prefix('sales')->name('sales.')->middleware(['auth'])->group(function () 
     Route::get('/invoices/{sales_invoice}/print-v2', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'printV2'])->name('invoices.print-v2');
     Route::post('/invoices/{sales_invoice}/stamp-emeterai', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'stampEmeterai'])->name('invoices.stamp-emeterai');
     Route::get('/invoices-export', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'export'])->name('invoices.export');
+    Route::get('/invoices-export-coretax', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'exportCoreTax'])->name('invoices.export-coretax');
     Route::post('/invoices-import', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'import'])->name('invoices.import');
     Route::get('/invoices-template', [App\Http\Controllers\Sales\SalesInvoiceController::class, 'template'])->name('invoices.template');
     Route::get('/returns/so-items/{sales_order}', [App\Http\Controllers\Sales\SalesReturnController::class, 'getReturnableItems'])->name('returns.so-items');

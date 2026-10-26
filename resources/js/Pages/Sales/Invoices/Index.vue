@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
@@ -14,6 +14,9 @@ import {
     ShieldCheckIcon,
     CalendarIcon,
     DocumentArrowUpIcon,
+    DocumentArrowDownIcon,
+    InformationCircleIcon,
+    XMarkIcon,
     TrashIcon,
     ChevronUpIcon,
     ChevronDownIcon,
@@ -110,6 +113,64 @@ const deleteInvoice = (id) => {
     }
 };
 
+// Selection state
+const selectedInvoiceIds = ref([]);
+const isAllSelected = computed(() => {
+    if (!props.invoices.data || props.invoices.data.length === 0) return false;
+    return props.invoices.data.every(inv => selectedInvoiceIds.value.includes(inv.id));
+});
+const toggleSelectAll = () => {
+    if (isAllSelected.value) {
+        selectedInvoiceIds.value = [];
+    } else {
+        selectedInvoiceIds.value = props.invoices.data.map(inv => inv.id);
+    }
+};
+
+// CoreTax Export state
+const showCoreTaxModal = ref(false);
+const isExportingCoreTax = ref(false);
+const coreTaxForm = ref({
+    export_mode: 'filter', // 'selected' or 'filter'
+    date_from: props.filters.date_from || '',
+    date_to: props.filters.date_to || '',
+    seller_npwp: '0809672348413000',
+    seller_nitku: '0809672348413000000000',
+    keterangan_tambahan_07: 'TD.00502',
+    cap_fasilitas_07: 'TD.01103',
+});
+
+const openCoreTaxModal = (forSelected = false) => {
+    coreTaxForm.value.export_mode = (forSelected && selectedInvoiceIds.value.length > 0) ? 'selected' : 'filter';
+    coreTaxForm.value.date_from = dateFrom.value || '';
+    coreTaxForm.value.date_to = dateTo.value || '';
+    showCoreTaxModal.value = true;
+};
+
+const submitCoreTaxExport = () => {
+    isExportingCoreTax.value = true;
+    const params = new URLSearchParams();
+    if (coreTaxForm.value.export_mode === 'selected' && selectedInvoiceIds.value.length > 0) {
+        params.append('ids', selectedInvoiceIds.value.join(','));
+    } else {
+        if (coreTaxForm.value.date_from) params.append('date_from', coreTaxForm.value.date_from);
+        if (coreTaxForm.value.date_to) params.append('date_to', coreTaxForm.value.date_to);
+        if (selectedCustomer.value) params.append('customer_id', selectedCustomer.value);
+        if (selectedStatus.value) params.append('status', selectedStatus.value);
+        if (search.value) params.append('search', search.value);
+    }
+    params.append('seller_npwp', coreTaxForm.value.seller_npwp);
+    params.append('seller_nitku', coreTaxForm.value.seller_nitku);
+    params.append('keterangan_tambahan_07', coreTaxForm.value.keterangan_tambahan_07);
+    params.append('cap_fasilitas_07', coreTaxForm.value.cap_fasilitas_07);
+
+    window.location.href = route('sales.invoices.export-coretax') + '?' + params.toString();
+    setTimeout(() => {
+        isExportingCoreTax.value = false;
+        showCoreTaxModal.value = false;
+    }, 1200);
+};
+
 // Import modal state
 const showImportModal = ref(false);
 const importForm = useForm({ file: null });
@@ -148,6 +209,13 @@ const submitImport = () => {
             </div>
 
             <div class="flex items-center gap-2">
+                <button
+                    @click="openCoreTaxModal(false)"
+                    class="hidden md:inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-500 transition-all"
+                >
+                    <DocumentArrowDownIcon class="h-5 w-5" />
+                    Export CoreTax
+                </button>
                 <a
                     :href="route('sales.invoices.export')"
                     class="hidden md:inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-all"
@@ -211,11 +279,52 @@ const submitImport = () => {
             </div>
         </Transition>
 
+        <!-- Selection Banner for Bulk Actions -->
+        <Transition
+            enter-active-class="transition ease-out duration-200"
+            enter-from-class="opacity-0 -translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-150"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 -translate-y-2"
+        >
+            <div v-if="selectedInvoiceIds.length > 0" class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 rounded-2xl px-4 py-3 shadow-sm">
+                <div class="flex items-center gap-2.5 text-sm text-indigo-900 dark:text-indigo-200 font-medium">
+                    <span class="inline-flex items-center justify-center bg-indigo-600 text-white rounded-full size-6 text-xs font-bold">{{ selectedInvoiceIds.length }}</span>
+                    <span>Invoice terpilih untuk ekspor CoreTax</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                        @click="openCoreTaxModal(true)"
+                        class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm transition-all"
+                    >
+                        <DocumentArrowDownIcon class="h-4 w-4" />
+                        Export {{ selectedInvoiceIds.length }} ke CoreTax
+                    </button>
+                    <button
+                        @click="selectedInvoiceIds = []"
+                        class="px-3 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                    >
+                        Batal Pilih
+                    </button>
+                </div>
+            </div>
+        </Transition>
+
         <div class="rounded-2xl glass-card overflow-hidden">
             <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                 <table class="min-w-full divide-y divide-slate-100 dark:divide-slate-800">
                     <thead>
                         <tr class="border-b border-slate-200 dark:border-slate-700">
+                            <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-3 py-2 w-8 text-center">
+                                <input
+                                    type="checkbox"
+                                    :checked="isAllSelected"
+                                    @change="toggleSelectAll"
+                                    class="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer dark:bg-slate-800"
+                                    title="Pilih Semua di Halaman Ini"
+                                />
+                            </th>
                             <th @click="sort('invoice_number')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
                                 <div class="flex items-center gap-1">
                                     Inv Number
@@ -290,7 +399,16 @@ const submitImport = () => {
                             v-for="invoice in invoices.data" 
                             :key="invoice.id"
                             class="hover:bg-slate-50 dark:hover:bg-slate-800/50 dark:bg-slate-800/30 transition-colors"
+                            :class="{ 'bg-indigo-50/50 dark:bg-indigo-950/20': selectedInvoiceIds.includes(invoice.id) }"
                         >
+                            <td class="px-3 py-2 text-center w-8">
+                                <input
+                                    type="checkbox"
+                                    :value="invoice.id"
+                                    v-model="selectedInvoiceIds"
+                                    class="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer dark:bg-slate-800"
+                                />
+                            </td>
                             <td class="px-4 py-2 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
                                     <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800">
@@ -434,6 +552,166 @@ const submitImport = () => {
             </div>
         </div>
     </AppLayout>
+
+    <!-- CoreTax Export Modal -->
+    <Transition
+        enter-active-class="ease-out duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100"
+        leave-active-class="ease-in duration-200" leave-from-class="opacity-100" leave-to-class="opacity-0"
+    >
+        <div v-if="showCoreTaxModal" class="fixed inset-0 z-[100] overflow-y-auto">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm" @click="showCoreTaxModal = false"></div>
+                <div class="relative w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 p-6 border border-slate-200 dark:border-slate-800 shadow-2xl">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <div class="flex items-center gap-3">
+                            <div class="size-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                <DocumentArrowDownIcon class="size-5" />
+                            </div>
+                            <div>
+                                <h3 class="text-base font-semibold text-slate-900 dark:text-white">Export Faktur Pajak CoreTax</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Format resmi upload DJP CoreTax (Faktur & DetailFaktur)</p>
+                            </div>
+                        </div>
+                        <button @click="showCoreTaxModal = false" class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300">
+                            <XMarkIcon class="size-5" />
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="submitCoreTaxExport" class="space-y-4 pt-4">
+                        <!-- Rule Info Card -->
+                        <div class="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3.5 border border-slate-200 dark:border-slate-700/60 text-xs space-y-1.5">
+                            <div class="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
+                                <InformationCircleIcon class="size-4 text-indigo-500 shrink-0" />
+                                <span>Aturan Kode Transaksi Otomatis:</span>
+                            </div>
+                            <ul class="text-slate-600 dark:text-slate-300 list-disc list-inside space-y-0.5 pl-1 leading-relaxed">
+                                <li><strong class="text-slate-900 dark:text-white">Kode 04 (DPP Nilai Lain)</strong>: Otomatis untuk invoice dengan PPN (11% / 12%).</li>
+                                <li><strong class="text-slate-900 dark:text-white">Kode 07 (Fasilitas Tidak Dipungut)</strong>: Otomatis untuk invoice Non-PPN / PPN 0.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Export Scope Mode -->
+                        <div v-if="selectedInvoiceIds.length > 0" class="space-y-1.5">
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Cakupan Data</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label 
+                                    class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs font-medium transition-all"
+                                    :class="coreTaxForm.export_mode === 'selected' 
+                                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200' 
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
+                                >
+                                    <input type="radio" value="selected" v-model="coreTaxForm.export_mode" class="text-indigo-600 focus:ring-indigo-500 size-3.5" />
+                                    <span>{{ selectedInvoiceIds.length }} Terpilih</span>
+                                </label>
+                                <label 
+                                    class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs font-medium transition-all"
+                                    :class="coreTaxForm.export_mode === 'filter' 
+                                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200' 
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
+                                >
+                                    <input type="radio" value="filter" v-model="coreTaxForm.export_mode" class="text-indigo-600 focus:ring-indigo-500 size-3.5" />
+                                    <span>Rentang Tanggal</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Date Range Filters -->
+                        <div v-if="coreTaxForm.export_mode === 'filter' || selectedInvoiceIds.length === 0" class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Dari Tanggal</label>
+                                <input 
+                                    type="date" 
+                                    v-model="coreTaxForm.date_from" 
+                                    class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500" 
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Sampai Tanggal</label>
+                                <input 
+                                    type="date" 
+                                    v-model="coreTaxForm.date_to" 
+                                    class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500" 
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Penjual Tax Info -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">NPWP Penjual (16 Digit)</label>
+                                <input 
+                                    type="text" 
+                                    v-model="coreTaxForm.seller_npwp" 
+                                    maxlength="16"
+                                    class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 font-mono dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500" 
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">NITKU Penjual (22 Digit)</label>
+                                <input 
+                                    type="text" 
+                                    v-model="coreTaxForm.seller_nitku" 
+                                    maxlength="22"
+                                    class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 font-mono dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500" 
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Fasilitas Kode 07 Config -->
+                        <div class="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                            <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pengaturan Transaksi Fasilitas (Kode 07)</span>
+                            <div class="grid grid-cols-1 gap-2">
+                                <div>
+                                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Keterangan Tambahan 07</label>
+                                    <select 
+                                        v-model="coreTaxForm.keterangan_tambahan_07"
+                                        class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
+                                    >
+                                        <option value="TD.00502">TD.00502 - Tempat Penimbunan Berikat (Kawasan Berikat)</option>
+                                        <option value="TD.00501">TD.00501 - Kawasan Bebas</option>
+                                        <option value="TD.00509">TD.00509 - Penyerahan BKP Tertentu di KEK</option>
+                                        <option value="TD.00505">TD.00505 - Lainnya</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-600 dark:text-slate-400 mb-1">Cap Fasilitas 07</label>
+                                    <select 
+                                        v-model="coreTaxForm.cap_fasilitas_07"
+                                        class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
+                                    >
+                                        <option value="TD.01103">TD.01103 - PPN & PPnBM Tidak Dipungut</option>
+                                        <option value="TD.01101">TD.01101 - PPN Tidak Dipungut berdasarkan PP Nomor 10 Tahun 2012</option>
+                                        <option value="TD.01105">TD.01105 - Tanpa Cap</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal Actions -->
+                        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <button 
+                                type="button" 
+                                @click="showCoreTaxModal = false" 
+                                class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                type="submit" 
+                                :disabled="isExportingCoreTax" 
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm disabled:opacity-50 transition-all"
+                            >
+                                <DocumentArrowDownIcon class="size-4" />
+                                <span>{{ isExportingCoreTax ? 'Menyiapkan File...' : 'Download File CoreTax (.xlsx)' }}</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </Transition>
 
     <!-- Import Modal -->
     <Transition
