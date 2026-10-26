@@ -132,18 +132,37 @@ const showCoreTaxModal = ref(false);
 const isExportingCoreTax = ref(false);
 const coreTaxForm = ref({
     export_mode: 'filter', // 'selected' or 'filter'
-    date_from: props.filters.date_from || '',
-    date_to: props.filters.date_to || '',
     seller_npwp: '0809672348413000',
     seller_nitku: '0809672348413000000000',
     keterangan_tambahan_07: 'TD.00502',
     cap_fasilitas_07: 'TD.01103',
 });
 
+const activeCustomerName = computed(() => {
+    if (!selectedCustomer.value) return '';
+    const c = props.customers?.find(item => item.id == selectedCustomer.value);
+    return c ? c.name : '';
+});
+
+const activeFilterSummary = computed(() => {
+    if (coreTaxForm.value.export_mode === 'selected' && selectedInvoiceIds.value.length > 0) {
+        return `${selectedInvoiceIds.value.length} invoice terpilih dari centang tabel`;
+    }
+    const parts = [];
+    if (search.value) parts.push(`Pencarian: "${search.value}"`);
+    if (activeCustomerName.value) parts.push(`Customer: ${activeCustomerName.value}`);
+    if (selectedStatus.value) parts.push(`Status: ${selectedStatus.value.toUpperCase()}`);
+    if (dateFrom.value || dateTo.value) {
+        parts.push(`Tanggal: ${dateFrom.value || '...'} s/d ${dateTo.value || '...'}`);
+    }
+    if (parts.length === 0) {
+        return `Semua invoice (${props.invoices?.total || props.invoices?.data?.length || 0} data)`;
+    }
+    return parts.join(' • ');
+});
+
 const openCoreTaxModal = (forSelected = false) => {
     coreTaxForm.value.export_mode = (forSelected && selectedInvoiceIds.value.length > 0) ? 'selected' : 'filter';
-    coreTaxForm.value.date_from = dateFrom.value || '';
-    coreTaxForm.value.date_to = dateTo.value || '';
     showCoreTaxModal.value = true;
 };
 
@@ -153,11 +172,11 @@ const submitCoreTaxExport = () => {
     if (coreTaxForm.value.export_mode === 'selected' && selectedInvoiceIds.value.length > 0) {
         params.append('ids', selectedInvoiceIds.value.join(','));
     } else {
-        if (coreTaxForm.value.date_from) params.append('date_from', coreTaxForm.value.date_from);
-        if (coreTaxForm.value.date_to) params.append('date_to', coreTaxForm.value.date_to);
+        if (search.value) params.append('search', search.value);
         if (selectedCustomer.value) params.append('customer_id', selectedCustomer.value);
         if (selectedStatus.value) params.append('status', selectedStatus.value);
-        if (search.value) params.append('search', search.value);
+        if (dateFrom.value) params.append('date_from', dateFrom.value);
+        if (dateTo.value) params.append('date_to', dateTo.value);
     }
     params.append('seller_npwp', coreTaxForm.value.seller_npwp);
     params.append('seller_nitku', coreTaxForm.value.seller_nitku);
@@ -590,49 +609,23 @@ const submitImport = () => {
                             </ul>
                         </div>
 
-                        <!-- Export Scope Mode -->
-                        <div v-if="selectedInvoiceIds.length > 0" class="space-y-1.5">
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Cakupan Data</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <label 
-                                    class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs font-medium transition-all"
-                                    :class="coreTaxForm.export_mode === 'selected' 
-                                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200' 
-                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
-                                >
-                                    <input type="radio" value="selected" v-model="coreTaxForm.export_mode" class="text-indigo-600 focus:ring-indigo-500 size-3.5" />
-                                    <span>{{ selectedInvoiceIds.length }} Terpilih</span>
-                                </label>
-                                <label 
-                                    class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer text-xs font-medium transition-all"
-                                    :class="coreTaxForm.export_mode === 'filter' 
-                                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200' 
-                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
-                                >
-                                    <input type="radio" value="filter" v-model="coreTaxForm.export_mode" class="text-indigo-600 focus:ring-indigo-500 size-3.5" />
-                                    <span>Rentang Tanggal</span>
-                                </label>
+                        <!-- Active Scope Card (Directly following page filter) -->
+                        <div class="rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 p-3.5 border border-indigo-200 dark:border-indigo-800/80 text-xs space-y-1.5">
+                            <div class="flex items-center justify-between font-semibold text-indigo-950 dark:text-indigo-200">
+                                <span class="flex items-center gap-1.5">
+                                    <FunnelIcon class="size-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                    <span>Cakupan Data yang Diekspor:</span>
+                                </span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-bold">
+                                    {{ (coreTaxForm.export_mode === 'selected' && selectedInvoiceIds.length > 0) ? `${selectedInvoiceIds.length} invoice` : `${invoices.total || invoices.data.length} invoice` }}
+                                </span>
                             </div>
-                        </div>
-
-                        <!-- Date Range Filters -->
-                        <div v-if="coreTaxForm.export_mode === 'filter' || selectedInvoiceIds.length === 0" class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Dari Tanggal</label>
-                                <input 
-                                    type="date" 
-                                    v-model="coreTaxForm.date_from" 
-                                    class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500" 
-                                />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Sampai Tanggal</label>
-                                <input 
-                                    type="date" 
-                                    v-model="coreTaxForm.date_to" 
-                                    class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500" 
-                                />
-                            </div>
+                            <p class="text-indigo-900 dark:text-indigo-200 font-medium leading-relaxed">
+                                {{ activeFilterSummary }}
+                            </p>
+                            <p class="text-[11px] text-indigo-600/80 dark:text-indigo-400/80">
+                                *Otomatis mengikuti pencarian, filter customer, status, atau tanggal yang sedang aktif di layar.
+                            </p>
                         </div>
 
                         <!-- Penjual Tax Info -->
