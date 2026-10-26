@@ -102,7 +102,8 @@ const kioskSettings = ref({
     evening_out_start: '16:30',
     evening_out_end: '20:00',
     slider_interval: 20,
-    schedule_mode: 'auto' // 'auto' | 'camera_only' | 'leaderboard_only' | 'announcements_only'
+    schedule_mode: 'auto', // 'auto' | 'camera_only' | 'leaderboard_only' | 'announcements_only'
+    voice_lang: 'id' // 'id' | 'id_name' | 'en' | 'mute'
 });
 
 const showSettingsModal = ref(false);
@@ -302,17 +303,46 @@ const playChime = () => {
     }
 };
 
-// SpeechSynthesis TTS Voice Announcement (Singkat Sesuai Aturan)
+// SpeechSynthesis TTS Voice Announcement (Mendukung Bahasa Indonesia & Panggil Nama)
 const speakAnnouncement = (name, action) => {
     if (!('speechSynthesis' in window)) return;
+    const mode = kioskSettings.value.voice_lang || 'id';
+    if (mode === 'mute') return;
+
     window.speechSynthesis.cancel();
-    const text = action === 'clock_in' ? 'Welcome, please enter' : 'Have a safe trip home';
+    
+    let text = '';
+    const firstName = name ? name.trim().split(' ')[0] : '';
+
+    if (mode === 'id' || mode === 'id_name') {
+        if (action === 'clock_in') {
+            text = (mode === 'id_name' && firstName) 
+                ? `Selamat datang ${firstName}, silakan masuk` 
+                : 'Selamat datang, silakan masuk';
+        } else {
+            text = (mode === 'id_name' && firstName) 
+                ? `Terima kasih ${firstName}, hati-hati di jalan` 
+                : 'Terima kasih, hati-hati di jalan';
+        }
+    } else {
+        // English
+        text = action === 'clock_in' ? 'Welcome, please enter' : 'Have a safe trip home';
+    }
+
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
     utterance.rate = 1.0;
+    
     const voices = window.speechSynthesis.getVoices();
-    const enVoice = voices.find(voice => voice.lang.includes('en') || voice.lang.includes('US') || voice.lang.includes('GB'));
-    if (enVoice) utterance.voice = enVoice;
+    if (mode === 'id' || mode === 'id_name') {
+        utterance.lang = 'id-ID';
+        const idVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('ID') || v.name.toLowerCase().includes('indonesia'));
+        if (idVoice) utterance.voice = idVoice;
+    } else {
+        utterance.lang = 'en-US';
+        const enVoice = voices.find(v => v.lang.includes('en') || v.lang.includes('US') || v.lang.includes('GB'));
+        if (enVoice) utterance.voice = enVoice;
+    }
+
     window.speechSynthesis.speak(utterance);
 };
 
@@ -341,17 +371,80 @@ const playWarningChime = () => {
     }
 };
 
-// SpeechSynthesis for warning/rejection (Singkat)
+// SpeechSynthesis for warning/rejection (Mendukung Bahasa Indonesia)
 const speakWarning = () => {
     if (!('speechSynthesis' in window)) return;
+    const mode = kioskSettings.value.voice_lang || 'id';
+    if (mode === 'mute') return;
+
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance('Please try again');
-    utterance.lang = 'en-US';
+    
+    const text = (mode === 'id' || mode === 'id_name') 
+        ? 'Silakan coba lagi' 
+        : 'Please try again';
+        
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.0;
+
     const voices = window.speechSynthesis.getVoices();
-    const enVoice = voices.find(voice => voice.lang.includes('en') || voice.lang.includes('US') || voice.lang.includes('GB'));
-    if (enVoice) utterance.voice = enVoice;
+    if (mode === 'id' || mode === 'id_name') {
+        utterance.lang = 'id-ID';
+        const idVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('ID') || v.name.toLowerCase().includes('indonesia'));
+        if (idVoice) utterance.voice = idVoice;
+    } else {
+        utterance.lang = 'en-US';
+        const enVoice = voices.find(v => v.lang.includes('en') || v.lang.includes('US') || v.lang.includes('GB'));
+        if (enVoice) utterance.voice = enVoice;
+    }
+
     window.speechSynthesis.speak(utterance);
+};
+
+// Test Suara Absensi (untuk tombol preview di pengaturan)
+const testVoiceAnnouncement = (type = 'in') => {
+    playChime();
+    speakAnnouncement('Budi Santoso', type === 'in' ? 'clock_in' : 'clock_out');
+};
+
+// Tombol Cepat Ganti Bahasa Suara di Header Kiosk
+const toggleVoiceLangQuick = async () => {
+    const cycle = ['id', 'id_name', 'en', 'mute'];
+    const currentIdx = cycle.indexOf(kioskSettings.value.voice_lang || 'id');
+    const nextVal = cycle[(currentIdx + 1) % cycle.length];
+    kioskSettings.value.voice_lang = nextVal;
+    
+    if (nextVal !== 'mute') {
+        speakAnnouncement('Budi Santoso', 'clock_in');
+    }
+    
+    try {
+        await axios.post(route('hr.attendance.kiosk-settings'), {
+            ...kioskSettings.value,
+            voice_lang: nextVal
+        });
+    } catch (e) {
+        console.error('Failed to quick-save voice setting:', e);
+    }
+};
+
+const getVoiceLangShortBadge = () => {
+    switch (kioskSettings.value.voice_lang) {
+        case 'id_name': return 'ID+Nama';
+        case 'id': return 'ID';
+        case 'en': return 'EN';
+        case 'mute': return 'MUTE';
+        default: return 'ID';
+    }
+};
+
+const getVoiceLangLabel = () => {
+    switch (kioskSettings.value.voice_lang) {
+        case 'id_name': return 'Bahasa Indonesia + Sebut Nama';
+        case 'id': return 'Bahasa Indonesia';
+        case 'en': return 'English';
+        case 'mute': return 'Mute (Tanpa Suara)';
+        default: return 'Bahasa Indonesia';
+    }
 };
 
 // Retry state
@@ -954,6 +1047,16 @@ const formatTimeString = (dateTime) => {
                     <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider">{{ currentDateStr }}</span>
                     <span class="text-base font-black font-mono text-cyan-300 block tracking-tight">{{ currentTimeStr }}</span>
                 </div>
+
+                <!-- Quick Voice Language Toggle -->
+                <button 
+                    @click="toggleVoiceLangQuick"
+                    class="px-2.5 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition active:scale-95 flex items-center gap-1.5 shadow-sm"
+                    :title="'Mode Suara Absen: ' + getVoiceLangLabel() + ' (Klik untuk berganti)'"
+                >
+                    <Volume2 class="w-4 h-4" :class="kioskSettings.voice_lang === 'mute' ? 'text-slate-500' : 'text-emerald-400'" />
+                    <span class="text-[11px] font-bold font-mono tracking-wider">{{ getVoiceLangShortBadge() }}</span>
+                </button>
 
                 <!-- Kiosk Settings Modal Trigger -->
                 <button 
@@ -2284,6 +2387,50 @@ const formatTimeString = (dateTime) => {
                                     <option :value="45">45 Seconds</option>
                                     <option :value="60">60 Seconds (1 Minute)</option>
                                 </select>
+                            </div>
+
+                            <!-- Attendance Voice Language & Mode -->
+                            <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-black text-amber-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
+                                        <Volume2 class="w-3.5 h-3.5" />
+                                        Suara Pengumuman Absensi (Voice TTS)
+                                    </span>
+                                    <div class="flex items-center gap-1.5">
+                                        <button 
+                                            type="button"
+                                            @click="testVoiceAnnouncement('in')"
+                                            class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold hover:bg-emerald-500/30 transition flex items-center gap-1"
+                                            title="Uji Suara Masuk"
+                                        >
+                                            <Volume2 class="w-3 h-3" />
+                                            <span>Tes Masuk</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            @click="testVoiceAnnouncement('out')"
+                                            class="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold hover:bg-indigo-500/30 transition flex items-center gap-1"
+                                            title="Uji Suara Pulang"
+                                        >
+                                            <Volume2 class="w-3 h-3" />
+                                            <span>Tes Pulang</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <select 
+                                        v-model="kioskSettings.voice_lang"
+                                        class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-medium focus:border-amber-400 focus:outline-none"
+                                    >
+                                        <option value="id">🇮🇩 Bahasa Indonesia ("Selamat datang, silakan masuk")</option>
+                                        <option value="id_name">🇮🇩 Bahasa Indonesia + Panggil Nama ("Selamat datang [Nama], silakan masuk")</option>
+                                        <option value="en">🇬🇧 English ("Welcome, please enter")</option>
+                                        <option value="mute">🔇 Hening / Mute (Hanya nada chime tanpa suara bicara)</option>
+                                    </select>
+                                    <span class="text-[10px] text-slate-400">
+                                        Pilih bahasa suara yang disuarakan otomatis saat karyawan sukses scan wajah atau tap absensi.
+                                    </span>
+                                </div>
                             </div>
                         </div>
 

@@ -532,6 +532,7 @@ class AttendanceController extends Controller
             'evening_out_end' => PayrollSetting::getByKey('kiosk_evening_out_end', '20:00'),
             'slider_interval' => (int) PayrollSetting::getByKey('kiosk_slider_interval_seconds', 20),
             'schedule_mode' => PayrollSetting::getByKey('kiosk_schedule_mode', 'auto'),
+            'voice_lang' => PayrollSetting::getByKey('kiosk_voice_lang', 'id'),
             'running_text' => $runningText,
             'zero_accident_since' => $zeroAccidentBaseDate,
         ];
@@ -580,6 +581,7 @@ class AttendanceController extends Controller
             'evening_out_end' => 'nullable|string',
             'slider_interval' => 'nullable|integer|min:5|max:120',
             'schedule_mode' => 'nullable|string|in:auto,camera_only,leaderboard_only,announcements_only',
+            'voice_lang' => 'nullable|string|in:id,id_name,en,mute',
             'running_text' => 'nullable|string',
             'zero_accident_since' => 'nullable|string',
             'safety_hotline' => 'nullable|string',
