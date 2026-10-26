@@ -134,6 +134,7 @@ const coreTaxForm = ref({
     export_mode: 'filter', // 'selected' or 'filter'
     barang_jasa: 'A', // 'A' (Barang) or 'B' (Jasa)
     kode_transaksi: '04', // default 04
+    tarif_ppnbm: 0, // default 0 (persen)
     seller_npwp: '0809672348413000',
     seller_nitku: '0809672348413000000000',
     keterangan_tambahan_07: 'TD.00502',
@@ -182,6 +183,7 @@ const submitCoreTaxExport = () => {
     }
     params.append('barang_jasa', coreTaxForm.value.barang_jasa);
     params.append('kode_transaksi', coreTaxForm.value.kode_transaksi);
+    params.append('tarif_ppnbm', coreTaxForm.value.tarif_ppnbm || 0);
     params.append('seller_npwp', coreTaxForm.value.seller_npwp);
     params.append('seller_nitku', coreTaxForm.value.seller_nitku);
     params.append('keterangan_tambahan_07', coreTaxForm.value.keterangan_tambahan_07);
@@ -625,48 +627,70 @@ const submitImport = () => {
                             </p>
                         </div>
 
-                        <!-- Opsi Jenis Barang/Jasa & Kode Transaksi -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
-                            <div>
-                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Jenis Penyerahan</label>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <label 
-                                        class="flex items-center justify-center gap-1.5 p-2 rounded-xl border cursor-pointer text-xs font-medium transition-all"
-                                        :class="coreTaxForm.barang_jasa === 'A' 
-                                            ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 font-bold' 
-                                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
+                        <!-- Opsi Jenis Barang/Jasa & Kode Transaksi & Tarif PPnBM -->
+                        <div class="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Jenis Penyerahan</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <label 
+                                            class="flex items-center justify-center gap-1.5 p-2 rounded-xl border cursor-pointer text-xs font-medium transition-all"
+                                            :class="coreTaxForm.barang_jasa === 'A' 
+                                                ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 font-bold' 
+                                                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
+                                        >
+                                            <input type="radio" value="A" v-model="coreTaxForm.barang_jasa" class="sr-only" />
+                                            <span>A - Barang</span>
+                                        </label>
+                                        <label 
+                                            class="flex items-center justify-center gap-1.5 p-2 rounded-xl border cursor-pointer text-xs font-medium transition-all"
+                                            :class="coreTaxForm.barang_jasa === 'B' 
+                                                ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 font-bold' 
+                                                : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
+                                        >
+                                            <input type="radio" value="B" v-model="coreTaxForm.barang_jasa" class="sr-only" />
+                                            <span>B - Jasa</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kode Transaksi</label>
+                                    <select 
+                                        v-model="coreTaxForm.kode_transaksi"
+                                        class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
                                     >
-                                        <input type="radio" value="A" v-model="coreTaxForm.barang_jasa" class="sr-only" />
-                                        <span>A - Barang</span>
-                                    </label>
-                                    <label 
-                                        class="flex items-center justify-center gap-1.5 p-2 rounded-xl border cursor-pointer text-xs font-medium transition-all"
-                                        :class="coreTaxForm.barang_jasa === 'B' 
-                                            ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 font-bold' 
-                                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
-                                    >
-                                        <input type="radio" value="B" v-model="coreTaxForm.barang_jasa" class="sr-only" />
-                                        <span>B - Jasa</span>
-                                    </label>
+                                        <option value="04">04 - DPP Nilai Lain (Default - 07 jika VAT 0)</option>
+                                        <option value="01">01 - Kepada selain Pemungut PPN</option>
+                                        <option value="02">02 - Kepada Pemungut PPN Instansi Pemerintah</option>
+                                        <option value="03">03 - Kepada Pemungut PPN selain Instansi Pemerintah</option>
+                                        <option value="05">05 - Besaran Tertentu</option>
+                                        <option value="06">06 - Kepada Orang Pribadi Paspor LN (16E UU PPN)</option>
+                                        <option value="07">07 - Penyerahan Fasilitas PPN Tidak Dipungut</option>
+                                        <option value="08">08 - Penyerahan Fasilitas Dibebaskan PPN</option>
+                                        <option value="09">09 - Penyerahan Aktiva (16D UU PPN)</option>
+                                        <option value="10">10 - Penyerahan Lainnya</option>
+                                    </select>
                                 </div>
                             </div>
+
+                            <!-- Tarif PPnBM Field -->
                             <div>
-                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Kode Transaksi</label>
-                                <select 
-                                    v-model="coreTaxForm.kode_transaksi"
-                                    class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
-                                >
-                                    <option value="04">04 - DPP Nilai Lain (Default - 07 jika VAT 0)</option>
-                                    <option value="01">01 - Kepada selain Pemungut PPN</option>
-                                    <option value="02">02 - Kepada Pemungut PPN Instansi Pemerintah</option>
-                                    <option value="03">03 - Kepada Pemungut PPN selain Instansi Pemerintah</option>
-                                    <option value="05">05 - Besaran Tertentu</option>
-                                    <option value="06">06 - Kepada Orang Pribadi Paspor LN (16E UU PPN)</option>
-                                    <option value="07">07 - Penyerahan Fasilitas PPN Tidak Dipungut</option>
-                                    <option value="08">08 - Penyerahan Fasilitas Dibebaskan PPN</option>
-                                    <option value="09">09 - Penyerahan Aktiva (16D UU PPN)</option>
-                                    <option value="10">10 - Penyerahan Lainnya</option>
-                                </select>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    Tarif PPnBM (%)
+                                    <span class="text-[10px] font-normal text-slate-400 dark:text-slate-500 ml-1">(Isi persentase jika kena PPnBM, contoh: 10. Default: 0)</span>
+                                </label>
+                                <div class="relative w-full sm:w-48">
+                                    <input 
+                                        type="number" 
+                                        v-model.number="coreTaxForm.tarif_ppnbm" 
+                                        min="0"
+                                        max="100"
+                                        step="any"
+                                        placeholder="0"
+                                        class="block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs py-2 pr-7 font-mono dark:text-slate-200 focus:border-indigo-500 focus:ring-indigo-500" 
+                                    />
+                                    <span class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 font-bold">%</span>
+                                </div>
                             </div>
                         </div>
 

@@ -477,6 +477,7 @@ class SalesInvoiceController extends Controller
                 'seller_nitku' => $request->input('seller_nitku', '0809672348413000000000'),
                 'barang_jasa' => $request->input('barang_jasa', 'A'),
                 'kode_transaksi' => $request->input('kode_transaksi', '04'),
+                'tarif_ppnbm' => (float) $request->input('tarif_ppnbm', 0),
                 'keterangan_tambahan_07' => $request->input('keterangan_tambahan_07', 'TD.00502'),
                 'cap_fasilitas_07' => $request->input('cap_fasilitas_07', 'TD.01103'),
             ]);

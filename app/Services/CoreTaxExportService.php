@@ -72,6 +72,7 @@ class CoreTaxExportService
             $barangJasaType = 'A';
         }
         $selectedKodeTransaksi = $options['kode_transaksi'] ?? '04';
+        $tarifPpnbm = (float) ($options['tarif_ppnbm'] ?? 0);
 
         foreach ($invoices as $inv) {
             $cust = $inv->customer ?? $inv->salesOrder?->customer;
@@ -157,8 +158,13 @@ class CoreTaxExportService
                     $sheetDetail->setCellValue('K' . $detailRow, 0);
                     $sheetDetail->setCellValue('L' . $detailRow, 0);
                 }
-                $sheetDetail->setCellValue('M' . $detailRow, 0);
-                $sheetDetail->setCellValue('N' . $detailRow, 0);
+                if ($tarifPpnbm > 0) {
+                    $sheetDetail->setCellValue('M' . $detailRow, $tarifPpnbm);
+                    $sheetDetail->setCellValue('N' . $detailRow, "=M{$detailRow}*J{$detailRow}/100");
+                } else {
+                    $sheetDetail->setCellValue('M' . $detailRow, 0);
+                    $sheetDetail->setCellValue('N' . $detailRow, 0);
+                }
                 $detailRow++;
             } else {
                 foreach ($inv->items as $item) {
@@ -188,8 +194,13 @@ class CoreTaxExportService
                         $sheetDetail->setCellValue('K' . $detailRow, 0);
                         $sheetDetail->setCellValue('L' . $detailRow, 0);
                     }
-                    $sheetDetail->setCellValue('M' . $detailRow, 0);
-                    $sheetDetail->setCellValue('N' . $detailRow, 0);
+                    if ($tarifPpnbm > 0) {
+                        $sheetDetail->setCellValue('M' . $detailRow, $tarifPpnbm);
+                        $sheetDetail->setCellValue('N' . $detailRow, "=M{$detailRow}*J{$detailRow}/100");
+                    } else {
+                        $sheetDetail->setCellValue('M' . $detailRow, 0);
+                        $sheetDetail->setCellValue('N' . $detailRow, 0);
+                    }
 
                     $detailRow++;
                 }
