@@ -228,13 +228,6 @@ const submitImport = () => {
             </div>
 
             <div class="flex items-center gap-2">
-                <button
-                    @click="openCoreTaxModal(false)"
-                    class="hidden md:inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-500 transition-all"
-                >
-                    <DocumentArrowDownIcon class="h-5 w-5" />
-                    Export CoreTax
-                </button>
                 <a
                     :href="route('sales.invoices.export')"
                     class="hidden md:inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 hover:bg-emerald-500 transition-all"
