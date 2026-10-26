@@ -115,15 +115,19 @@ const deleteInvoice = (id) => {
 
 // Selection state
 const selectedInvoiceIds = ref([]);
+const selectableInvoices = computed(() => {
+    if (!props.invoices.data) return [];
+    return props.invoices.data.filter(inv => inv.status !== 'draft');
+});
 const isAllSelected = computed(() => {
-    if (!props.invoices.data || props.invoices.data.length === 0) return false;
-    return props.invoices.data.every(inv => selectedInvoiceIds.value.includes(inv.id));
+    if (selectableInvoices.value.length === 0) return false;
+    return selectableInvoices.value.every(inv => selectedInvoiceIds.value.includes(inv.id));
 });
 const toggleSelectAll = () => {
     if (isAllSelected.value) {
         selectedInvoiceIds.value = [];
     } else {
-        selectedInvoiceIds.value = props.invoices.data.map(inv => inv.id);
+        selectedInvoiceIds.value = selectableInvoices.value.map(inv => inv.id);
     }
 };
 
@@ -339,8 +343,10 @@ const submitImport = () => {
                                     type="checkbox"
                                     :checked="isAllSelected"
                                     @change="toggleSelectAll"
-                                    class="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer dark:bg-slate-800"
-                                    title="Pilih Semua di Halaman Ini"
+                                    :disabled="selectableInvoices.length === 0"
+                                    :class="selectableInvoices.length === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'"
+                                    class="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 dark:bg-slate-800 transition-opacity"
+                                    title="Pilih Semua di Halaman Ini (Kecuali Draft)"
                                 />
                             </th>
                             <th @click="sort('invoice_number')" class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-sm px-4 py-2 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-900 transition-colors group">
@@ -424,7 +430,10 @@ const submitImport = () => {
                                     type="checkbox"
                                     :value="invoice.id"
                                     v-model="selectedInvoiceIds"
-                                    class="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 cursor-pointer dark:bg-slate-800"
+                                    :disabled="invoice.status === 'draft'"
+                                    :class="invoice.status === 'draft' ? 'opacity-30 cursor-not-allowed bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700' : 'cursor-pointer'"
+                                    class="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 size-4 dark:bg-slate-800 transition-opacity"
+                                    :title="invoice.status === 'draft' ? 'Invoice berstatus draft tidak dapat diekspor' : 'Pilih invoice'"
                                 />
                             </td>
                             <td class="px-4 py-2 whitespace-nowrap">

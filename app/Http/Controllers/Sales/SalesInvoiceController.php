@@ -437,7 +437,7 @@ class SalesInvoiceController extends Controller
 
         if ($request->filled('ids')) {
             $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
-            $query->whereIn('id', $ids);
+            $query->whereIn('id', $ids)->where('status', '!=', 'draft');
         } else {
             $query->when($request->search, function ($q, $search) {
                 $q->where(function ($q) use ($search) {
@@ -453,6 +453,8 @@ class SalesInvoiceController extends Controller
             })
             ->when($request->status, function ($q, $status) {
                 $q->where('status', $status);
+            }, function ($q) {
+                $q->where('status', '!=', 'draft');
             })
             ->when($request->customer_id, function ($q, $customerId) {
                 $q->where('customer_id', $customerId);
