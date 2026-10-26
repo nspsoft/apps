@@ -43,8 +43,8 @@ class EmployeeController extends Controller
 
         return Inertia::render('HR/Employees/Index', [
             'employees' => $query->paginate(20)->withQueryString(),
-            'departments' => Department::all(),
-            'positions' => Position::all(),
+            'departments' => Department::orderBy('name')->get(),
+            'positions' => Position::with('department:id,name')->orderBy('name')->get(),
             'workSchedules' => WorkSchedule::active()->with('details')->get(),
             'users' => \App\Models\User::orderBy('name')->get(['id', 'name', 'email']),
             'filters' => $request->only(['search', 'department_id', 'status']),

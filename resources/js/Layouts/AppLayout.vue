@@ -614,7 +614,7 @@ const navigation = [
             { name: 'Roles & Permissions', href: '/settings/roles', icon: ShieldCheckIcon, permission: 'settings.roles_&_permissions.view' },
             { name: 'Mobile Navbar', href: '/settings/mobile-navbar', icon: DevicePhoneMobileIcon, permission: 'settings.mobile_navbar.view' },
             { name: 'Company Profile', href: '/settings/company', icon: BuildingOfficeIcon, permission: 'settings.company_profile.view' },
-            { name: 'Departments', href: '/settings/departments', icon: BuildingOfficeIcon, permission: 'settings.view' },
+            { name: 'Departments & Positions', href: '/settings/departments', icon: BuildingOfficeIcon, permission: 'settings.view' },
             { name: 'AI Configuration', href: '/settings/ai', icon: CpuChipIcon, permission: 'settings.company_profile.view' },
             { name: 'Document Numbering', href: '/settings/numbering', icon: QueueListIcon, permission: 'settings.document_numbering.view' },
             { name: 'Regional & Tax', href: '/settings/regional', icon: GlobeAltIcon, permission: 'settings.regional_&_tax.view' },

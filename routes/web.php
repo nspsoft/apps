@@ -837,11 +837,15 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::get('/mobile-navbar', [App\Http\Controllers\Settings\MobileNavbarController::class, 'index'])->name('mobile-navbar');
     Route::put('/mobile-navbar', [App\Http\Controllers\Settings\MobileNavbarController::class, 'update'])->name('mobile-navbar.update');
 
-    // Departments
+    // Departments & Positions
     Route::get('/departments', [App\Http\Controllers\Settings\DepartmentController::class, 'index'])->name('departments');
     Route::post('/departments', [App\Http\Controllers\Settings\DepartmentController::class, 'store'])->name('departments.store');
     Route::put('/departments/{department}', [App\Http\Controllers\Settings\DepartmentController::class, 'update'])->name('departments.update');
     Route::delete('/departments/{department}', [App\Http\Controllers\Settings\DepartmentController::class, 'destroy'])->name('departments.destroy');
+
+    Route::post('/positions', [App\Http\Controllers\Settings\PositionController::class, 'store'])->name('positions.store');
+    Route::put('/positions/{position}', [App\Http\Controllers\Settings\PositionController::class, 'update'])->name('positions.update');
+    Route::delete('/positions/{position}', [App\Http\Controllers\Settings\PositionController::class, 'destroy'])->name('positions.destroy');
 
     // UAT Scenarios
     Route::get('/uat', [App\Http\Controllers\Settings\UatController::class, 'index'])->name('uat');
