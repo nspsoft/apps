@@ -325,7 +325,12 @@ Telp : +62 21 89383915'))) !!}
                             <div class="font-bold" style="color: #003680;">Bank MANDIRI</div>
                             <div>KK Karawang Galuh Mas</div>
                             <div class="font-bold" style="font-size: 11pt; letter-spacing: 1px;">173-00-0777778-3</div>
-                            <div class="font-bold text-uppercase">PT JIDOKA RESULT INDONESIA</div>
+                            @php
+                                $custName = strtoupper($invoice->customer->name ?? $invoice->salesOrder?->customer?->name ?? '');
+                                $custCode = strtoupper($invoice->customer->code ?? $invoice->salesOrder?->customer?->code ?? '');
+                                $isNxShoji = str_contains($custName, 'NX SHOJI') || $custCode === 'NSI';
+                            @endphp
+                            <div class="font-bold text-uppercase">{{ $isNxShoji ? 'JIDOKA RESULT INDONESIA' : 'PT JIDOKA RESULT INDONESIA' }}</div>
                         </div>
                     </td>
                     <td width="45%" style="vertical-align: top;">

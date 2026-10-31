@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import {
     ArrowLeftIcon,
     PrinterIcon,
@@ -25,6 +25,12 @@ const props = defineProps({
     emeteraiConfigured: Boolean,
     emeteraiEnabled: Boolean,
     paymentMethods: Object,
+});
+
+const isNxShoji = computed(() => {
+    const name = (props.invoice?.customer?.name || props.invoice?.sales_order?.customer?.name || '').toUpperCase();
+    const code = (props.invoice?.customer?.code || props.invoice?.sales_order?.customer?.code || '').toUpperCase();
+    return name.includes('NX SHOJI') || code === 'NSI';
 });
 
 const showPaymentModal = ref(false);
@@ -429,7 +435,9 @@ const getStatusBadge = (status) => {
                             <div class="text-slate-600 dark:text-slate-300">Bank MANDIRI</div>
                             <div class="text-slate-600 dark:text-slate-300">KK Karawang Galuh Mas</div>
                             <div class="text-slate-900 dark:text-white font-bold font-mono">173-00-0777778-3</div>
-                            <div class="text-blue-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">PT JIDOKA RESULT INDONESIA</div>
+                            <div class="text-blue-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
+                                {{ isNxShoji ? 'JIDOKA RESULT INDONESIA' : 'PT JIDOKA RESULT INDONESIA' }}
+                            </div>
                         </div>
                     </div>
                 </div>
