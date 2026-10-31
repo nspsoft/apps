@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
@@ -73,6 +73,20 @@ const closeDetailDrawer = () => {
     showDetailDrawer.value = false;
     selectedSession.value = null;
 };
+
+const handleKeyDown = (e) => {
+    if (e.key === 'Escape' && showDetailDrawer.value) {
+        closeDetailDrawer();
+    }
+};
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeyDown);
+});
 
 const formatDuration = (seconds) => {
     if (!seconds) return '-';
@@ -350,15 +364,30 @@ const getExcelUrl = () => {
             <!-- SLIDE-OVER DETAIL DRAWER -->
             <div
                 v-if="showDetailDrawer && selectedSession"
-                class="fixed inset-0 z-50 overflow-hidden bg-slate-900/60 backdrop-blur-sm flex justify-end"
+                class="fixed inset-0 z-[100] overflow-hidden bg-slate-900/60 backdrop-blur-sm flex justify-end"
+                @click.self="closeDetailDrawer"
             >
                 <div class="w-full max-w-xl bg-white dark:bg-slate-900 h-full shadow-2xl overflow-y-auto border-l border-slate-200 dark:border-slate-800 flex flex-col">
                     <!-- Drawer Header -->
-                    <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-10">
-                        <div>
-                            <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 uppercase">
-                                {{ selectedSession.session_code }}
-                            </span>
+                    <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur z-20">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 uppercase bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                                    {{ selectedSession.session_code }}
+                                </span>
+                                <span
+                                    :class="[
+                                        'px-2 py-0.5 rounded text-[10px] font-semibold uppercase',
+                                        selectedSession.status === 'completed'
+                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                            : selectedSession.status === 'in_progress'
+                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 animate-pulse'
+                                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                    ]"
+                                >
+                                    {{ selectedSession.status === 'in_progress' ? 'Sedang Berlangsung' : selectedSession.status === 'completed' ? 'Selesai' : 'Tidak Lengkap' }}
+                                </span>
+                            </div>
                             <h3 class="text-lg font-bold text-slate-900 dark:text-white">
                                 Rincian Log Sesi Patroli
                             </h3>
@@ -366,31 +395,55 @@ const getExcelUrl = () => {
                                 {{ selectedSession.shift_name }} &bull; Petugas: {{ selectedSession.user?.name || '-' }}
                             </p>
                         </div>
-                        <button @click="closeDetailDrawer" class="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                        <button
+                            type="button"
+                            @click="closeDetailDrawer"
+                            class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                            title="Tutup Panel (Esc)"
+                        >
                             <XMarkIcon class="size-5" />
                         </button>
                     </div>
 
                     <!-- Drawer Body -->
                     <div class="p-4 sm:p-5 space-y-5 flex-1">
+                        <!-- Alert if session was created with 0 checkpoints -->
+                        <div
+                            v-if="!selectedSession.total_checkpoints || selectedSession.total_checkpoints === 0"
+                            class="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-300 space-y-1"
+                        >
+                            <div class="font-bold flex items-center gap-1.5">
+                                <ExclamationTriangleIcon class="size-4 shrink-0 text-amber-600" />
+                                Sesi Belum Memiliki Checkpoint Pos
+                            </div>
+                            <p class="text-[11px] leading-relaxed">
+                                Sesi ini dimulai saat belum ada titik pos terdaftar atau jadwal kosong (0 Pos). Silakan daftarkan titik pos pada menu Master Titik & Cetak QR terlebih dahulu.
+                            </p>
+                        </div>
+
                         <!-- Summary Cards -->
                         <div class="grid grid-cols-3 gap-2 text-center text-xs">
                             <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
                                 <span class="text-slate-500 block">Pos Selesai</span>
                                 <span class="text-base font-bold text-emerald-600 tabular-nums">
-                                    {{ selectedSession.completed_checkpoints }} / {{ selectedSession.total_checkpoints }}
+                                    {{ selectedSession.completed_checkpoints || 0 }} / {{ selectedSession.total_checkpoints || 0 }}
                                 </span>
                             </div>
                             <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
-                                <span class="text-slate-500 block">Pos Terlewat</span>
-                                <span class="text-base font-bold text-rose-600 tabular-nums">
-                                    {{ selectedSession.missed_checkpoints }}
+                                <span class="text-slate-500 block">
+                                    {{ selectedSession.status === 'in_progress' ? 'Sisa Belum Discan' : 'Pos Terlewat' }}
+                                </span>
+                                <span
+                                    class="text-base font-bold tabular-nums"
+                                    :class="selectedSession.status === 'in_progress' ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'"
+                                >
+                                    {{ selectedSession.status === 'in_progress' ? Math.max(0, (selectedSession.total_checkpoints || 0) - (selectedSession.completed_checkpoints || 0)) : (selectedSession.missed_checkpoints || 0) }}
                                 </span>
                             </div>
                             <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
                                 <span class="text-slate-500 block">Total Durasi</span>
                                 <span class="text-base font-bold text-slate-900 dark:text-white tabular-nums">
-                                    {{ formatDuration(selectedSession.duration_seconds) }}
+                                    {{ selectedSession.status === 'in_progress' ? 'Sedang Berjalan' : formatDuration(selectedSession.duration_seconds) }}
                                 </span>
                             </div>
                         </div>

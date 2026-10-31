@@ -86,6 +86,10 @@ class SecurityPatrolExecutionController extends Controller
             $totalCheckpoints = SecurityCheckpoint::where('is_active', true)->count();
         }
 
+        if ($totalCheckpoints === 0) {
+            return redirect()->back()->with('error', 'Tidak ada titik pos checkpoint aktif. Silakan tambahkan titik pos terlebih dahulu di Master Titik Pos & Cetak QR.');
+        }
+
         $sessionCode = 'PTR-' . $today->format('Ymd') . '-' . Str::upper(Str::random(5));
 
         $session = SecurityPatrolSession::create([

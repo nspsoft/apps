@@ -472,7 +472,7 @@ const loggedCheckpointIds = computed(() => {
             <!-- MODAL SCANNER & LOG SUBMIT -->
             <div
                 v-if="showScanModal"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto"
+                class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto"
             >
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden my-6">
                     <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">

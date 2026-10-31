@@ -393,7 +393,7 @@ const triggerPrint = () => {
             <!-- MODAL CREATE / EDIT CHECKPOINT -->
             <div
                 v-if="showModal"
-                class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
+                class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
             >
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl w-full max-w-lg overflow-hidden my-6">
                     <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -532,7 +532,7 @@ const triggerPrint = () => {
             <!-- MODAL PRINT LABELS QR CODE (EXACTLY 6 PER A4 SHEET) -->
             <div
                 v-if="showPrintModal"
-                class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto"
+                class="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto"
             >
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto">
                     <!-- Modal Header (Hidden on print) -->
