@@ -433,7 +433,7 @@ class SalesInvoiceController extends Controller
      */
     public function exportCoreTax(Request $request, \App\Services\CoreTaxExportService $coreTaxService)
     {
-        $query = SalesInvoice::with(['customer', 'salesOrder.customer', 'items.product', 'items.unit']);
+        $query = SalesInvoice::with(['customer', 'salesOrder.customer', 'items.product.partners', 'items.unit']);
 
         if ($request->filled('ids')) {
             $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);

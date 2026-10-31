@@ -167,13 +167,36 @@ class CoreTaxExportService
                 }
                 $detailRow++;
             } else {
-                foreach ($inv->items as $item) {
-                    $pName = $item->product?->name ?? $item->description ?? 'Item';
-                    $unitCode = self::mapUnitCode($item->unit?->code, $item->unit?->name);
+                // Inject customer product aliases if available
+                if ($cust) {
+                    foreach ($inv->items as $item) {
+                        if ($item->product && !isset($item->product_alias_name)) {
+                            $alias = $item->product->getAliasFor($cust);
+                            $item->product_alias_name = $alias?->alias_name;
+                            $item->product_alias_sku = $alias?->alias_sku;
+                        }
+                    }
+                }
 
-                    $qty = (float) ($item->qty ?: 1);
-                    $price = (float) ($item->unit_price ?: 0);
-                    $disc = (float) ($item->discount_amount ?: 0);
+                // Group items by Faktur line (consolidating partial deliveries / DO details into single invoice items)
+                $groupedItems = $inv->items->groupBy(function ($item) {
+                    if ($item->sales_order_item_id) {
+                        return 'so-' . $item->sales_order_item_id;
+                    }
+                    if ($item->product_id) {
+                        return 'prod-' . $item->product_id . '-' . (string)$item->unit_price;
+                    }
+                    return 'item-' . $item->id;
+                });
+
+                foreach ($groupedItems as $groupId => $items) {
+                    $firstItem = $items->first();
+                    $pName = $firstItem->product_alias_name ?? $firstItem->product?->name ?? $firstItem->description ?? 'Item';
+                    $unitCode = self::mapUnitCode($firstItem->unit?->code, $firstItem->unit?->name);
+
+                    $qty = (float) $items->sum('qty');
+                    $price = (float) ($firstItem->unit_price ?: 0);
+                    $disc = (float) $items->sum('discount_amount');
 
                     $sheetDetail->setCellValue('A' . $detailRow, $fakturIndex);
                     $sheetDetail->setCellValue('B' . $detailRow, $barangJasaType);
