@@ -10,12 +10,12 @@ use Throwable;
 
 class HelpdeskNotificationService
 {
-    protected FonnteService $fonnteService;
+    protected JicosWhatsappEngineService $waEngine;
     protected EmailService $emailService;
 
-    public function __construct(FonnteService $fonnteService, EmailService $emailService)
+    public function __construct(JicosWhatsappEngineService $waEngine, EmailService $emailService)
     {
-        $this->fonnteService = $fonnteService;
+        $this->waEngine = $waEngine;
         $this->emailService = $emailService;
     }
 
@@ -63,7 +63,7 @@ class HelpdeskNotificationService
             $message .= "Mohon segera ditugaskan/ditindaklanjuti. Link:\n{$url}";
 
             if (!empty($contacts['whatsapp'])) {
-                $this->fonnteService->sendMessage($contacts['whatsapp'], $message);
+                $this->waEngine->sendMessage($contacts['whatsapp'], $message);
             }
 
             if (!empty($contacts['email'])) {
@@ -102,7 +102,7 @@ class HelpdeskNotificationService
                     $this->sendToUser($ticket->assignedTo, $message, "[Reply] {$ticket->ticket_number}");
                 } else {
                     $contacts = $this->getCentralContacts();
-                    if (!empty($contacts['whatsapp'])) $this->fonnteService->sendMessage($contacts['whatsapp'], $message);
+                    if (!empty($contacts['whatsapp'])) $this->waEngine->sendMessage($contacts['whatsapp'], $message);
                     if (!empty($contacts['email'])) $this->emailService->sendEmail($contacts['email'], "[Reply] {$ticket->ticket_number}", nl2br(e($message)));
                 }
             } else {
@@ -145,7 +145,7 @@ class HelpdeskNotificationService
         if (!$user) return;
 
         if (!empty($user->phone)) {
-            $this->fonnteService->sendMessage($user->phone, $message);
+            $this->waEngine->sendMessage($user->phone, $message);
         }
 
         if (!empty($user->email)) {

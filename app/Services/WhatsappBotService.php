@@ -7,6 +7,8 @@ use App\Models\Customer;
 use App\Models\SalesOrder;
 use App\Models\SalesInvoice;
 use App\Models\WhatsappMessage;
+use App\Services\JicosWhatsappEngineService;
+use App\Services\WablasService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -25,12 +27,12 @@ class WhatsappBotService
         $this->quotationService = $quotationService;
         
         // Get provider from settings
-        $this->provider = AppSetting::get('whatsapp_provider', 'fonnte');
+        $this->provider = AppSetting::get('whatsapp_provider', 'jicos_engine');
         
         // Initialize the appropriate gateway service
         $this->gateway = match ($this->provider) {
             'wablas' => app(WablasService::class),
-            default => app(FonnteService::class),
+            default => app(JicosWhatsappEngineService::class),
         };
     }
 

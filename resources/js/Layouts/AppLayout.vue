@@ -543,6 +543,20 @@ const navigation = [
             { name: 'Requests (PR)', href: '/general-affair/requests', icon: DocumentPlusIcon, permission: 'general_affair.requests_pr.view' },
         ]
     },
+    {
+        name: 'Security Patrol',
+        href: '#',
+        icon: ShieldCheckIcon,
+        current: false,
+        children: [
+            { name: 'Live Map & Monitor', href: '/security-patrol/map', icon: MapIcon },
+            { name: 'Sesi & Jadwal', href: '/security-patrol/schedules', icon: CalendarDaysIcon },
+            { name: 'Patroli Aktif (Mobile)', href: '/security-patrol/active', icon: ViewfinderCircleIcon },
+            { name: 'Resume Patrol', href: '/security-patrol/resume', icon: ClipboardDocumentListIcon },
+            { name: 'Grafik & Analitik', href: '/security-patrol/analytics', icon: PresentationChartBarIcon },
+            { name: 'Master Titik & Cetak QR', href: '/security-patrol/checkpoints', icon: MapPinIcon },
+        ]
+    },
     { 
         name: 'Project Matrix', 
         href: '#', 
@@ -623,6 +637,7 @@ const navigation = [
             { name: 'Database Management', href: '/settings/database', icon: CircleStackIcon, permission: 'settings.database_management.view' },
             { name: 'Activity Logs', href: '/admin/activity-logs', icon: ClipboardDocumentListIcon, permission: 'settings.activity_logs.view' },
             { name: 'WhatsApp Bot', href: '/settings/whatsapp', icon: ChatBubbleLeftRightIcon, permission: 'settings.company_profile.view' },
+            { name: 'WA Report Scheduler', href: '/settings/whatsapp-reports', icon: CalendarDaysIcon, permission: 'settings.company_profile.view' },
             { name: 'Traccar Tracking', href: '/settings/traccar', icon: MapPinIcon, permission: 'settings.view' },
         ]
     },

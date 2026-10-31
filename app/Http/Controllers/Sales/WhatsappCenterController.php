@@ -8,7 +8,7 @@ use App\Models\WhatsappMessage;
 use App\Models\WhatsappTemplate;
 use App\Models\WhatsappContactLabel;
 use App\Models\Customer;
-use App\Services\FonnteService;
+use App\Services\JicosWhatsappEngineService;
 use App\Services\WablasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -134,7 +134,7 @@ class WhatsappCenterController extends Controller
     /**
      * Send a manual message to a customer.
      */
-    public function send(Request $request, FonnteService $fonnte, WablasService $wablas)
+    public function send(Request $request, JicosWhatsappEngineService $engine, WablasService $wablas)
     {
         $request->validate([
             'phone' => 'required',
@@ -144,8 +144,8 @@ class WhatsappCenterController extends Controller
 
         $phone = $request->phone;
         $message = $request->message ?? '';
-        $provider = AppSetting::get('whatsapp_provider') ?: 'fonnte';
-        $activeService = ($provider === 'wablas') ? $wablas : $fonnte;
+        $provider = AppSetting::get('whatsapp_provider') ?: 'jicos_engine';
+        $activeService = ($provider === 'wablas') ? $wablas : $engine->setSession('sales');
 
         $result = ['success' => false, 'error' => 'No content to send'];
 

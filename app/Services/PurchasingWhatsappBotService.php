@@ -10,6 +10,8 @@ use App\Models\GoodsReceipt;
 use App\Models\Rfq;
 use App\Models\PurchaseInvoice;
 use App\Models\WhatsappMessage;
+use App\Services\JicosWhatsappEngineService;
+use App\Services\WablasService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -26,7 +28,7 @@ class PurchasingWhatsappBotService
         $this->gemini = $gemini;
         
         // Get provider from settings
-        $this->provider = AppSetting::get('purchasing_whatsapp_provider', 'fonnte');
+        $this->provider = AppSetting::get('purchasing_whatsapp_provider', 'jicos_engine');
         
         // Initialize the appropriate gateway service with dynamic credentials
         if ($this->provider === 'wablas') {
@@ -34,8 +36,9 @@ class PurchasingWhatsappBotService
             $url = AppSetting::get('purchasing_wablas_server_url', 'https://pati.wablas.com');
             $this->gateway = app(WablasService::class)->setCredentials($token, $url);
         } else {
-            $token = AppSetting::get('purchasing_fonnte_api_token', '');
-            $this->gateway = app(FonnteService::class)->setCredentials($token);
+            $apiKey = AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026');
+            $url = AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5050');
+            $this->gateway = app(JicosWhatsappEngineService::class)->setCredentials($apiKey, $url, 'purchasing');
         }
     }
 

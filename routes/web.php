@@ -901,11 +901,23 @@ Route::middleware(['auth'])->prefix('settings')->name('settings.')->group(functi
     Route::post('/database/clear-cache', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'clearCache'])->name('database.clear-cache');
     Route::get('/database/info/{filename}', [App\Http\Controllers\Settings\DatabaseManagementController::class, 'backupInfo'])->name('database.info');
 
-    // WhatsApp / Fonnte Settings
+    // WhatsApp Gateway Settings (JICOS Engine & Wablas)
     Route::get('/whatsapp', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'index'])->name('whatsapp.index');
     Route::post('/whatsapp', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'update'])->name('whatsapp.update');
     Route::post('/whatsapp/test', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'testConnection'])->name('whatsapp.test');
+    Route::get('/whatsapp/status', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'checkEngineStatus'])->name('whatsapp.status');
     Route::post('/whatsapp/clear-history', [App\Http\Controllers\Settings\WhatsappSettingController::class, 'clearHistory'])->name('whatsapp.clear-history');
+
+    // Centralized Multi-Module WhatsApp Report Scheduler & Dispatcher
+    Route::get('/whatsapp-reports', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'index'])->name('whatsapp-reports.index');
+    Route::post('/whatsapp-reports', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'store'])->name('whatsapp-reports.store');
+    Route::put('/whatsapp-reports/{schedule}', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'update'])->name('whatsapp-reports.update');
+    Route::delete('/whatsapp-reports/{schedule}', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'destroy'])->name('whatsapp-reports.destroy');
+    Route::post('/whatsapp-reports/{schedule}/toggle', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'toggle'])->name('whatsapp-reports.toggle');
+    Route::post('/whatsapp-reports/{schedule}/send-now', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'sendNow'])->name('whatsapp-reports.send-now');
+    Route::post('/whatsapp-reports/cover-settings', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'updateCoverSettings'])->name('whatsapp-reports.cover-settings');
+    Route::get('/whatsapp-reports/groups', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'fetchGroups'])->name('whatsapp-reports.groups');
+    Route::get('/whatsapp-reports/download/{format}', [App\Http\Controllers\Settings\WhatsappReportScheduleController::class, 'downloadSample'])->name('whatsapp-reports.download');
 
     // Traccar Settings
     Route::get('/traccar', [App\Http\Controllers\Settings\TraccarSettingController::class, 'index'])->name('traccar.index');
@@ -1018,3 +1030,30 @@ Route::middleware([
 Route::get('/careers', [\App\Http\Controllers\CareersController::class, 'index'])->name('careers.index');
 Route::get('/careers/{job}', [\App\Http\Controllers\CareersController::class, 'show'])->name('careers.show');
 Route::post('/careers/{job}/apply', [\App\Http\Controllers\CareersController::class, 'apply'])->name('careers.apply');
+
+// Security Patrol & Guard Tour System
+Route::middleware(['auth'])->prefix('security-patrol')->name('security-patrol.')->group(function () {
+    // 1. Live Map & Monitor
+    Route::get('/', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolMapController::class, 'index'])->name('index');
+    Route::get('map', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolMapController::class, 'index'])->name('map');
+
+    // 2. Active Run Patrol (Mobile view & Execution API)
+    Route::get('active', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'active'])->name('active');
+    Route::post('start-session', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'startSession'])->name('start-session');
+    Route::post('scan-checkpoint', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'scanCheckpoint'])->name('scan-checkpoint');
+    Route::post('finish-session', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'finishSession'])->name('finish-session');
+
+    // 3. Resume Patrol (Rekapitulasi & Log Detail)
+    Route::get('resume', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolResumeController::class, 'index'])->name('resume');
+    Route::get('resume/export-excel', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolResumeController::class, 'exportExcel'])->name('resume.export-excel');
+
+    // 4. Grafik & Analitik
+    Route::get('analytics', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolAnalyticsController::class, 'index'])->name('analytics');
+
+    // 5. Schedules (Sesi & Jadwal)
+    Route::resource('schedules', \App\Http\Controllers\SecurityPatrol\SecurityPatrolScheduleController::class)->except(['create', 'show', 'edit']);
+
+    // 6. Checkpoints (Master Titik & Cetak QR)
+    Route::resource('checkpoints', \App\Http\Controllers\SecurityPatrol\SecurityCheckpointController::class)->except(['create', 'show', 'edit']);
+    Route::post('checkpoints/{checkpoint}/regenerate-token', [\App\Http\Controllers\SecurityPatrol\SecurityCheckpointController::class, 'regenerateToken'])->name('checkpoints.regenerate-token');
+});

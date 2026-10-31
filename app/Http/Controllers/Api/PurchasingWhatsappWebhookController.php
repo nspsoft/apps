@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Supplier;
+use App\Models\SupplierContact;
 use App\Services\PurchasingWhatsappBotService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class PurchasingWhatsappWebhookController extends Controller
@@ -17,20 +20,18 @@ class PurchasingWhatsappWebhookController extends Controller
     }
 
     /**
-     * Handle incoming webhook from Fonnte or Wablas for Purchasing
+     * Handle incoming webhook from JICOS Engine or Wablas for Purchasing
      */
     public function handle(Request $request)
     {
         Log::info('Purchasing Webhook Payload:', [
             'headers' => $request->headers->all(),
             'body' => $request->all(),
-            'json' => $request->json()->all(),
         ]);
 
-        // Wablas uses 'phone' for sender, Fonnte uses 'sender'
         $phone = $request->input('phone') ?: $request->input('sender');
         $message = $request->input('message');
-        $pushName = $request->input('pushName'); // Wablas specific
+        $pushName = $request->input('pushName');
         
         if (!$phone || !$message) {
             return response()->json(['status' => 'ignored', 'reason' => 'invalid_payload']);
@@ -44,7 +45,8 @@ class PurchasingWhatsappWebhookController extends Controller
         }
 
         // Clean phone number
-        $phone = str_replace(['@s.whatsapp.net', '@c.us'], '', $phone);
+        $phone = str_replace(['@s.whatsapp.net', '@c.us', '@lid'], '', $phone);
+        $phone = $this->resolveLidToPhone($phone, $pushName);
 
         try {
             // Process message and get response
@@ -66,6 +68,36 @@ class PurchasingWhatsappWebhookController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Resolve WhatsApp LID to real phone number for supplier
+     */
+    protected function resolveLidToPhone(string $phone, ?string $pushName): string
+    {
+        $cached = Cache::get("wa_purchasing_lid_to_phone_{$phone}");
+        if ($cached) {
+            return $cached;
+        }
+
+        if (strlen($phone) >= 14 || (!str_starts_with($phone, '62') && !str_starts_with($phone, '08'))) {
+            if (!empty($pushName)) {
+                $contact = SupplierContact::where('name', 'like', "%{$pushName}%")
+                    ->orWhere('phone', 'like', "%{$pushName}%")
+                    ->first();
+
+                if ($contact && !empty($contact->phone)) {
+                    $realPhone = preg_replace('/[^0-9]/', '', $contact->phone);
+                    if (str_starts_with($realPhone, '0')) {
+                        $realPhone = '62' . substr($realPhone, 1);
+                    }
+                    Cache::forever("wa_purchasing_lid_to_phone_{$phone}", $realPhone);
+                    return $realPhone;
+                }
+            }
+        }
+
+        return $phone;
     }
 
     /**

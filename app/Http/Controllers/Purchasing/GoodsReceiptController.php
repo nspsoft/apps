@@ -697,16 +697,8 @@ class GoodsReceiptController extends Controller
             $message .= "\nTerima kasih atas kerjasamanya.\n\n";
             $message .= "_Pesan otomatis dari JICOS ERP_";
 
-            // Send via Fonnte if configured
-            $fonnteToken = config('services.fonnte.token');
-            if ($fonnteToken) {
-                \Illuminate\Support\Facades\Http::withHeaders([
-                    'Authorization' => $fonnteToken
-                ])->post('https://api.fonnte.com/send', [
-                    'target' => $supplier->phone,
-                    'message' => $message,
-                ]);
-            }
+            // Send via JICOS WhatsApp Engine
+            app(\App\Services\JicosWhatsappEngineService::class)->setSession('purchasing')->sendMessage($supplier->phone, $message);
         } catch (\Exception $e) {
             // Log but don't fail the transaction
             \Illuminate\Support\Facades\Log::warning('Failed to send supplier notification: ' . $e->getMessage());

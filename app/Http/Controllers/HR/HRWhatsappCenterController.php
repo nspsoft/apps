@@ -8,7 +8,7 @@ use App\Models\WhatsappMessage;
 use App\Models\WhatsappTemplate;
 use App\Models\WhatsappContactLabel;
 use App\Models\Employee;
-use App\Services\FonnteService;
+use App\Services\JicosWhatsappEngineService;
 use App\Services\WablasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -32,29 +32,31 @@ class HRWhatsappCenterController extends Controller
     /**
      * Resolve the active WhatsApp service according to HR settings.
      */
-    protected function getActiveService(FonnteService $fonnte, WablasService $wablas)
+    protected function getActiveService(JicosWhatsappEngineService $engine, WablasService $wablas)
     {
         $hrMode = AppSetting::get('hr_whatsapp_mode', 'same_as_sales');
 
         if ($hrMode === 'dedicated') {
-            $provider = AppSetting::get('hr_whatsapp_provider', 'fonnte');
+            $provider = AppSetting::get('hr_whatsapp_provider', 'jicos_engine');
             if ($provider === 'wablas') {
                 $token = AppSetting::get('hr_wablas_api_token', '');
                 $url = AppSetting::get('hr_wablas_server_url', 'https://pati.wablas.com');
                 return $wablas->setCredentials($token, $url);
             } else {
-                $token = AppSetting::get('hr_fonnte_api_token', '');
-                return $fonnte->setCredentials($token);
+                $token = AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026');
+                $url = AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5050');
+                return $engine->setCredentials($token, $url, 'hr');
             }
         } else {
-            $provider = AppSetting::get('whatsapp_provider', 'fonnte');
+            $provider = AppSetting::get('whatsapp_provider', 'jicos_engine');
             if ($provider === 'wablas') {
                 $token = AppSetting::get('wablas_api_token', '');
                 $url = AppSetting::get('wablas_server_url', 'https://pati.wablas.com');
                 return $wablas->setCredentials($token, $url);
             } else {
-                $token = AppSetting::get('fonnte_api_token', '');
-                return $fonnte->setCredentials($token);
+                $token = AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026');
+                $url = AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5050');
+                return $engine->setCredentials($token, $url, 'sales');
             }
         }
     }
@@ -196,7 +198,7 @@ class HRWhatsappCenterController extends Controller
     /**
      * Send a manual message to an employee
      */
-    public function send(Request $request, FonnteService $fonnte, WablasService $wablas)
+    public function send(Request $request, JicosWhatsappEngineService $engine, WablasService $wablas)
     {
         $request->validate([
             'phone' => 'required',
@@ -207,7 +209,7 @@ class HRWhatsappCenterController extends Controller
 
         $phone = $request->phone;
         $message = $request->message ?? '';
-        $activeService = $this->getActiveService($fonnte, $wablas);
+        $activeService = $this->getActiveService($engine, $wablas);
 
         $result = ['success' => false, 'error' => 'No content to send'];
 

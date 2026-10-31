@@ -29,3 +29,11 @@ Homestead.yaml
 Thumbs.db
 *.crt
 *.key
+/whatsapp-engine/node_modules
+/whatsapp-engine/auth_info_baileys
+/whatsapp-engine/.env
+/whatsapp-engine/lid_cache.json
+/storage/app/public/reports/*
+
+
+Format Testing Faktur.xlsx

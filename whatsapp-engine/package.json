@@ -1,0 +1,30 @@
+{
+  "name": "jicos-whatsapp-engine",
+  "version": "1.0.0",
+  "description": "JICOS WhatsApp Engine - Local Node.js Multi-Device Gateway",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "gateway",
+    "baileys",
+    "jicos",
+    "erp",
+    "local-engine"
+  ],
+  "author": "PT. SPINDO / JICOS ERP",
+  "license": "ISC",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.12",
+    "axios": "^1.7.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pino": "^9.0.0",
+    "qrcode": "^1.5.3"
+  }
+}

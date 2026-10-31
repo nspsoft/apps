@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, useForm, usePage, router } from '@inertiajs/vue3';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { 
     ChatBubbleLeftRightIcon, 
@@ -20,17 +21,25 @@ import {
     SparklesIcon,
     ShoppingBagIcon,
     BriefcaseIcon,
-    UserGroupIcon
+    CubeIcon,
+    ServerStackIcon,
+    QrCodeIcon,
+    ArrowTopRightOnSquareIcon,
+    ArrowPathIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
-    settings: Object
+    settings: Object,
+    appUrl: String
 });
 
 const page = usePage();
-const showToken = ref(false);
-const showPurchasingToken = ref(false);
-const showHrToken = ref(false);
+const showSalesKey = ref(false);
+const showPurchasingKey = ref(false);
+const showInventoryKey = ref(false);
+const showWablasToken = ref(false);
+const showPurchasingWablasToken = ref(false);
+const showInventoryWablasToken = ref(false);
 const copied = ref(false);
 const activeTab = ref('sales');
 
@@ -39,65 +48,75 @@ const testPhone = ref('');
 const testLoading = ref(false);
 const testResult = ref(null);
 
+// Engine live check state
+const engineChecking = ref(false);
+const engineStatus = ref(null);
+
 const providers = [
     { 
-        id: 'fonnte', 
-        name: 'Fonnte', 
-        price: 'Rp 50.000/bulan',
-        website: 'https://fonnte.com',
-        recommended: false,
+        id: 'usics_engine', 
+        name: 'JICOS WhatsApp Engine ⭐', 
+        price: 'Self-Hosted (Gratis Seumur Hidup)',
+        website: 'Local Node.js Multi-Session Gateway',
+        recommended: true,
         color: 'emerald'
     },
     { 
         id: 'wablas', 
-        name: 'Wablas ⭐', 
+        name: 'Wablas (Cloud)', 
         price: 'Rp 50.000/bulan',
         website: 'https://wablas.com',
-        recommended: true,
+        recommended: false,
         color: 'blue'
     },
 ];
 
 const form = useForm({
     // Sales Bot Settings
-    whatsapp_provider: props.settings?.whatsapp_provider || 'fonnte',
-    fonnte_api_token: props.settings?.fonnte_api_token || '',
-    fonnte_device: props.settings?.fonnte_device || '',
+    whatsapp_provider: props.settings?.whatsapp_provider || 'usics_engine',
+    usics_engine_server_url: props.settings?.usics_engine_server_url || 'http://127.0.0.1:5050',
+    usics_engine_api_key: props.settings?.usics_engine_api_key || 'usics-wa-secret-2026',
     wablas_api_token: props.settings?.wablas_api_token || '',
     wablas_device: props.settings?.wablas_device || '',
     wablas_server_url: props.settings?.wablas_server_url || 'https://pati.wablas.com',
     whatsapp_bot_instruction: props.settings?.whatsapp_bot_instruction || '',
 
     // Purchasing Bot Settings
-    purchasing_whatsapp_provider: props.settings?.purchasing_whatsapp_provider || 'fonnte',
-    purchasing_fonnte_api_token: props.settings?.purchasing_fonnte_api_token || '',
-    purchasing_fonnte_device: props.settings?.purchasing_fonnte_device || '',
+    purchasing_whatsapp_provider: props.settings?.purchasing_whatsapp_provider || 'usics_engine',
+    purchasing_usics_engine_server_url: props.settings?.purchasing_usics_engine_server_url || 'http://127.0.0.1:5050',
+    purchasing_usics_engine_api_key: props.settings?.purchasing_usics_engine_api_key || 'usics-wa-secret-2026',
     purchasing_wablas_api_token: props.settings?.purchasing_wablas_api_token || '',
     purchasing_wablas_device: props.settings?.purchasing_wablas_device || '',
     purchasing_wablas_server_url: props.settings?.purchasing_wablas_server_url || 'https://pati.wablas.com',
     purchasing_whatsapp_bot_instruction: props.settings?.purchasing_whatsapp_bot_instruction || '',
 
-    // HR & Payroll Settings
-    hr_whatsapp_mode: props.settings?.hr_whatsapp_mode || 'same_as_sales',
-    hr_whatsapp_provider: props.settings?.hr_whatsapp_provider || 'fonnte',
-    hr_fonnte_api_token: props.settings?.hr_fonnte_api_token || '',
-    hr_fonnte_device: props.settings?.hr_fonnte_device || '',
-    hr_wablas_api_token: props.settings?.hr_wablas_api_token || '',
-    hr_wablas_device: props.settings?.hr_wablas_device || '',
-    hr_wablas_server_url: props.settings?.hr_wablas_server_url || 'https://pati.wablas.com',
-    hr_whatsapp_bot_instruction: props.settings?.hr_whatsapp_bot_instruction || '',
+    // Inventory Bot Settings
+    inventory_whatsapp_provider: props.settings?.inventory_whatsapp_provider || 'usics_engine',
+    inventory_usics_engine_server_url: props.settings?.inventory_usics_engine_server_url || 'http://127.0.0.1:5050',
+    inventory_usics_engine_api_key: props.settings?.inventory_usics_engine_api_key || 'usics-wa-secret-2026',
+    inventory_wablas_api_token: props.settings?.inventory_wablas_api_token || '',
+    inventory_wablas_device: props.settings?.inventory_wablas_device || '',
+    inventory_wablas_server_url: props.settings?.inventory_wablas_server_url || 'https://pati.wablas.com',
+    inventory_whatsapp_bot_instruction: props.settings?.inventory_whatsapp_bot_instruction || '',
 });
 
 const selectedProvider = computed(() => {
-    let providerId;
-    if (activeTab.value === 'purchasing') {
-        providerId = form.purchasing_whatsapp_provider;
-    } else if (activeTab.value === 'hr') {
-        providerId = form.hr_whatsapp_mode === 'same_as_sales' ? form.whatsapp_provider : form.hr_whatsapp_provider;
-    } else {
-        providerId = form.whatsapp_provider;
-    }
+    const providerId = activeTab.value === 'purchasing'
+        ? form.purchasing_whatsapp_provider
+        : (activeTab.value === 'inventory' ? form.inventory_whatsapp_provider : form.whatsapp_provider);
     return providers.find(p => p.id === providerId);
+});
+
+const currentEngineUrl = computed(() => {
+    if (activeTab.value === 'purchasing') return form.purchasing_usics_engine_server_url;
+    if (activeTab.value === 'inventory') return form.inventory_usics_engine_server_url;
+    return form.usics_engine_server_url;
+});
+
+const currentEngineKey = computed(() => {
+    if (activeTab.value === 'purchasing') return form.purchasing_usics_engine_api_key;
+    if (activeTab.value === 'inventory') return form.inventory_usics_engine_api_key;
+    return form.usics_engine_api_key;
 });
 
 const submit = () => {
@@ -107,11 +126,12 @@ const submit = () => {
 };
 
 const webhookUrl = computed(() => {
-    const base = page.props.appUrl || window.location.origin;
+    const base = typeof window !== 'undefined' ? window.location.origin : (props.appUrl || '');
     if (activeTab.value === 'purchasing') {
         return `${base}/whatsapp-purchasing/webhook`;
-    } else if (activeTab.value === 'hr') {
-        return `${base}/whatsapp-hr/webhook`;
+    }
+    if (activeTab.value === 'inventory') {
+        return `${base}/whatsapp-inventory/webhook`;
     }
     return `${base}/whatsapp/webhook`;
 });
@@ -120,6 +140,43 @@ const copyWebhook = () => {
     navigator.clipboard.writeText(webhookUrl.value);
     copied.value = true;
     setTimeout(() => copied.value = false, 2000);
+};
+
+// Check Engine status
+const checkEngineStatus = async () => {
+    engineChecking.value = true;
+    engineStatus.value = null;
+    try {
+        const response = await axios.get(route('settings.whatsapp.status'), {
+            params: {
+                server_url: currentEngineUrl.value,
+                api_key: currentEngineKey.value,
+                session: activeTab.value
+            }
+        });
+        const raw = response.data || {};
+        const nested = raw.data || {};
+        engineStatus.value = {
+            ...nested,
+            ...raw,
+            connected: raw.connected ?? nested.connected ?? false,
+            phone: raw.phone ?? nested.phone ?? null,
+            name: raw.name ?? nested.name ?? null,
+        };
+    } catch (error) {
+        engineStatus.value = {
+            success: false,
+            error: error.response?.data?.error || 'Tidak dapat terhubung ke JICOS WhatsApp Engine (' + error.message + ')'
+        };
+    } finally {
+        engineChecking.value = false;
+    }
+};
+
+const openQrDashboard = (session = null) => {
+    const targetSession = session || activeTab.value;
+    const url = currentEngineUrl.value.replace(/\/$/, '') + '/qr?session=' + targetSession;
+    window.open(url, '_blank');
 };
 
 // Test connection function
@@ -154,874 +211,713 @@ const testConnection = async () => {
         testLoading.value = false;
     }
 };
-
-// Danger Zone clear chat history
-const dangerZonePassword = ref('');
-const dangerZoneModule = ref('sales');
-
-const clearChatHistory = () => {
-    if (!dangerZonePassword.value) {
-        alert('Password wajib diisi!');
-        return;
-    }
-    
-    const moduleText = dangerZoneModule.value === 'all' ? 'SEMUA' : dangerZoneModule.value.toUpperCase();
-    if (confirm(`Apakah Anda yakin ingin menghapus ${moduleText} riwayat chat WhatsApp secara permanen? Tindakan ini tidak dapat dibatalkan.`)) {
-        router.post(route('settings.whatsapp.clear-history'), {
-            module: dangerZoneModule.value,
-            password: dangerZonePassword.value
-        }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                dangerZonePassword.value = '';
-                alert('Riwayat chat berhasil dihapus.');
-            },
-            onError: (errors) => {
-                alert(errors.error || 'Password salah atau gagal menghapus riwayat chat.');
-            }
-        });
-    }
-};
 </script>
 
 <template>
-    <Head title="WhatsApp Configuration" />
-    
-    <AppLayout title="WhatsApp Configuration">
-        <div class="max-w-full px-4 sm:px-6 lg:px-8 mx-auto space-y-6 pb-20">
-            <!-- Header section -->
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <a 
-                        :href="route('settings.index')"
-                        class="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
-                        <ArrowLeftIcon class="h-5 w-5" />
-                    </a>
-                    <div>
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">WhatsApp Configuration</h2>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Configure WhatsApp gateway and AI bot settings independently for Sales, Purchasing, and HR & Payroll</p>
+    <AppLayout title="WhatsApp Gateway Settings">
+        <Head title="WhatsApp Gateway Settings" />
+
+        <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
+            <!-- Header Section (Cleaned, No duplicate buttons) -->
+            <div class="border-b border-slate-200 dark:border-slate-800 pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            MULTI-SESSION READY • PORT 5050
+                        </span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Node.js Baileys Multi-Device</span>
                     </div>
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                        <ChatBubbleLeftRightIcon class="h-8 w-8 text-emerald-500" />
+                        WhatsApp Gateway & AI Bot Configuration
+                    </h1>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Kelola penyedia WhatsApp Gateway mandiri (Node.js) untuk multi-nomor Sales, Purchasing, dan Inventory.
+                    </p>
                 </div>
-                <div class="flex items-center gap-3">
-                    <a href="/whatsapp_guide.html" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-500/20 text-xs font-bold uppercase tracking-widest transition-all hover:scale-105">
-                        <BookOpenIcon class="h-4 w-4" />
-                        Panduan & Demo
-                    </a>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500">
-                        <ChatBubbleLeftRightIcon class="h-7 w-7" />
-                    </div>
-                </div>
+
+                <a
+                    href="/settings/whatsapp-reports"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition shrink-0"
+                >
+                    <span>📊 Jadwal Kirim Report (.PPTX / .DOCX)</span>
+                </a>
             </div>
 
-            <!-- Tab Buttons -->
-            <div class="flex border-b border-slate-200 dark:border-white/10">
+            <!-- Tab Switcher (Sales vs Purchasing vs Inventory) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-slate-100 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800/80">
                 <button 
                     type="button"
-                    @click="activeTab = 'sales'"
-                    class="py-4 px-6 font-black text-xs border-b-2 uppercase tracking-widest transition-all flex items-center gap-2"
-                    :class="activeTab === 'sales' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-950 dark:hover:text-white'"
+                    @click="activeTab = 'sales'; engineStatus = null"
+                    class="py-3 px-4 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
+                    :class="activeTab === 'sales' 
+                        ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/50 dark:border-slate-700' 
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'"
                 >
                     <BriefcaseIcon class="h-4 w-4" />
-                    Sales Bot (Customer)
+                    Sales Assistant Bot
+                    <span class="w-2 h-2 rounded-full" :class="form.whatsapp_provider === 'usics_engine' ? 'bg-emerald-500' : 'bg-blue-500'"></span>
                 </button>
                 <button 
                     type="button"
-                    @click="activeTab = 'purchasing'"
-                    class="py-4 px-6 font-black text-xs border-b-2 uppercase tracking-widest transition-all flex items-center gap-2"
-                    :class="activeTab === 'purchasing' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-slate-500 hover:text-slate-950 dark:hover:text-white'"
+                    @click="activeTab = 'purchasing'; engineStatus = null"
+                    class="py-3 px-4 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
+                    :class="activeTab === 'purchasing' 
+                        ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm border border-slate-200/50 dark:border-slate-700' 
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'"
                 >
                     <ShoppingBagIcon class="h-4 w-4" />
-                    Purchasing Bot (Supplier)
+                    Purchasing Assistant Bot
+                    <span class="w-2 h-2 rounded-full" :class="form.purchasing_whatsapp_provider === 'usics_engine' ? 'bg-purple-500' : 'bg-blue-500'"></span>
                 </button>
                 <button 
                     type="button"
-                    @click="activeTab = 'hr'"
-                    class="py-4 px-6 font-black text-xs border-b-2 uppercase tracking-widest transition-all flex items-center gap-2"
-                    :class="activeTab === 'hr' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-950 dark:hover:text-white'"
+                    @click="activeTab = 'inventory'; engineStatus = null"
+                    class="py-3 px-4 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
+                    :class="activeTab === 'inventory' 
+                        ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50 dark:border-slate-700' 
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'"
                 >
-                    <UserGroupIcon class="h-4 w-4" />
-                    HR & Payroll (Internal)
+                    <CubeIcon class="h-4 w-4" />
+                    Inventory Assistant Bot
+                    <span class="w-2 h-2 rounded-full" :class="form.inventory_whatsapp_provider === 'usics_engine' ? 'bg-blue-500' : 'bg-sky-500'"></span>
                 </button>
             </div>
 
-            <form @submit.prevent="submit" class="space-y-6">
-                
-                <!-- SALES BOT CONFIGURATION -->
-                <div v-if="activeTab === 'sales'" class="space-y-6">
-                    <!-- Provider Selection -->
-                    <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <StarIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">Pilih Provider Gateway (Sales)</h4>
-                        </div>
-
+            <form @submit.prevent="submit" class="space-y-8">
+                <!-- ========================================== -->
+                <!-- SALES BOT CONFIGURATION TAB               -->
+                <!-- ========================================== -->
+                <div v-show="activeTab === 'sales'" class="space-y-8">
+                    <!-- Provider Selection Cards -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <ServerStackIcon class="h-4 w-4" />
+                            PILIH GATEWAY PROVIDER (SALES)
+                        </label>
                         <div class="grid md:grid-cols-2 gap-4">
-                            <button 
-                                v-for="provider in providers" 
-                                :key="'sales-' + provider.id"
+                            <button
+                                v-for="provider in providers"
+                                :key="provider.id"
                                 type="button"
                                 @click="form.whatsapp_provider = provider.id"
-                                class="relative p-6 rounded-2xl border-2 transition-all text-left group"
-                                :class="form.whatsapp_provider === provider.id 
-                                    ? `border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/20` 
-                                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
+                                class="relative text-left p-6 rounded-2xl border transition-all duration-300"
+                                :class="[
+                                    form.whatsapp_provider === provider.id
+                                        ? 'border-emerald-500 dark:border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20'
+                                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
+                                ]"
                             >
-                                <div v-if="provider.recommended" class="absolute -top-2 -right-2 bg-yellow-500 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                    RECOMMENDED
-                                </div>
-
-                                <div class="flex items-center gap-3 mb-3">
-                                    <div 
-                                        class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors border-emerald-500"
-                                    >
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center gap-2">
                                         <div 
-                                            v-if="form.whatsapp_provider === provider.id" 
-                                            class="w-2 h-2 rounded-full bg-emerald-500"
-                                        ></div>
-                                    </div>
-                                    <h5 class="text-lg font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
-                                </div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
-                                <a :href="provider.website" target="_blank" class="text-xs text-blue-400 hover:underline mt-1 inline-block">
-                                    {{ provider.website }}
-                                </a>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Fonnte Settings -->
-                    <div v-if="form.whatsapp_provider === 'fonnte'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-emerald-600 dark:text-emerald-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <DevicePhoneMobileIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">Fonnte Gateway Settings (Sales)</h4>
-                        </div>
-
-                        <div class="space-y-8">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <KeyIcon class="h-3 w-3" />
-                                    Fonnte API Token
-                                </label>
-                                <div class="relative group">
-                                    <input 
-                                        v-model="form.fonnte_api_token" 
-                                        :type="showToken ? 'text' : 'password'" 
-                                        class="form-input pr-12 focus:ring-emerald-500/50 focus:border-emerald-500" 
-                                        placeholder="Enter your Fonnte API Token..." 
-                                    />
-                                    <button 
-                                        type="button"
-                                        @click="showToken = !showToken"
-                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-emerald-400 transition-colors"
-                                    >
-                                        <EyeIcon v-if="!showToken" class="h-5 w-5" />
-                                        <EyeSlashIcon v-else class="h-5 w-5" />
-                                    </button>
-                                </div>
-                                <p class="text-[10px] text-slate-500 mt-2 px-1">
-                                    Get your API token from <a href="https://fonnte.com" target="_blank" class="text-emerald-400 hover:underline">Fonnte Dashboard</a> → Device → API.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <DevicePhoneMobileIcon class="h-3 w-3" />
-                                    Device ID / Phone Number
-                                </label>
-                                <input 
-                                    v-model="form.fonnte_device" 
-                                    type="text" 
-                                    class="form-input focus:ring-emerald-500/50 focus:border-emerald-500" 
-                                    placeholder="e.g. 6281234567890" 
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Wablas Settings -->
-                    <div v-if="form.whatsapp_provider === 'wablas'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <DevicePhoneMobileIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">Wablas Gateway Settings (Sales)</h4>
-                        </div>
-
-                        <div class="space-y-8">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <KeyIcon class="h-3 w-3" />
-                                    Wablas API Token
-                                </label>
-                                <div class="relative group">
-                                    <input 
-                                        v-model="form.wablas_api_token" 
-                                        :type="showToken ? 'text' : 'password'" 
-                                        class="form-input pr-12 focus:ring-blue-500/50 focus:border-blue-500" 
-                                        placeholder="Enter your Wablas API Token..." 
-                                    />
-                                    <button 
-                                        type="button"
-                                        @click="showToken = !showToken"
-                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-400 transition-colors"
-                                    >
-                                        <EyeIcon v-if="!showToken" class="h-5 w-5" />
-                                        <EyeSlashIcon v-else class="h-5 w-5" />
-                                    </button>
-                                </div>
-                                <p class="text-[10px] text-slate-500 mt-2 px-1">
-                                    Get your API token from <a href="https://wablas.com" target="_blank" class="text-blue-400 hover:underline">Wablas Dashboard</a> → API Key.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <DevicePhoneMobileIcon class="h-3 w-3" />
-                                    Device / Phone Number
-                                </label>
-                                <input 
-                                    v-model="form.wablas_device" 
-                                    type="text" 
-                                    class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
-                                    placeholder="e.g. 6281234567890" 
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <GlobeAltIcon class="h-3 w-3" />
-                                    Wablas Server URL
-                                </label>
-                                <input 
-                                    v-model="form.wablas_server_url" 
-                                    type="text" 
-                                    class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
-                                    placeholder="e.g. https://pati.wablas.com" 
-                                />
-                                <p class="text-[10px] text-slate-500 mt-2 px-1">
-                                    Default: <code>https://pati.wablas.com</code>.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bot Personality -->
-                    <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-emerald-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <SparklesIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">WhatsApp Bot Personality (Sales)</h4>
-                        </div>
-
-                        <div class="space-y-6">
-                            <div class="bg-emerald-500/5 rounded-2xl p-4 border border-emerald-500/10 flex gap-3">
-                                <InformationCircleIcon class="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
-                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    Instruksi ini akan menjadi dasar bagi AI (Gemini) dalam merespon setiap pesan WhatsApp dari Customer.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <BookOpenIcon class="h-3 w-3" />
-                                    Custom Bot Instructions / Prompt
-                                </label>
-                                <textarea 
-                                    v-model="form.whatsapp_bot_instruction" 
-                                    class="form-input min-h-[120px] resize-none focus:ring-emerald-500/50 focus:border-emerald-500" 
-                                    placeholder="Gaya bahasa formal, ceria, dll..."
-                                ></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PURCHASING BOT CONFIGURATION -->
-                <div v-if="activeTab === 'purchasing'" class="space-y-6">
-                    <!-- Provider Selection -->
-                    <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-purple-600 dark:text-purple-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <StarIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">Pilih Provider Gateway (Purchasing)</h4>
-                        </div>
-
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <button 
-                                v-for="provider in providers" 
-                                :key="'purchasing-' + provider.id"
-                                type="button"
-                                @click="form.purchasing_whatsapp_provider = provider.id"
-                                class="relative p-6 rounded-2xl border-2 transition-all text-left group"
-                                :class="form.purchasing_whatsapp_provider === provider.id 
-                                    ? `border-purple-500 bg-purple-50 dark:bg-purple-500/10 shadow-lg shadow-purple-500/20` 
-                                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
-                            >
-                                <div v-if="provider.recommended" class="absolute -top-2 -right-2 bg-yellow-500 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                    RECOMMENDED
-                                </div>
-
-                                <div class="flex items-center gap-3 mb-3">
-                                    <div 
-                                        class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors border-purple-500"
-                                    >
-                                        <div 
-                                            v-if="form.purchasing_whatsapp_provider === provider.id" 
-                                            class="w-2 h-2 rounded-full bg-purple-500"
-                                        ></div>
-                                    </div>
-                                    <h5 class="text-lg font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
-                                </div>
-                                <p class="text-sm text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
-                                <a :href="provider.website" target="_blank" class="text-xs text-blue-400 hover:underline mt-1 inline-block">
-                                    {{ provider.website }}
-                                </a>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Fonnte Settings -->
-                    <div v-if="form.purchasing_whatsapp_provider === 'fonnte'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-purple-600 dark:text-purple-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <DevicePhoneMobileIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">Fonnte Gateway Settings (Purchasing)</h4>
-                        </div>
-
-                        <div class="space-y-8">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <KeyIcon class="h-3 w-3" />
-                                    Fonnte API Token
-                                </label>
-                                <div class="relative group">
-                                    <input 
-                                        v-model="form.purchasing_fonnte_api_token" 
-                                        :type="showPurchasingToken ? 'text' : 'password'" 
-                                        class="form-input pr-12 focus:ring-purple-500/50 focus:border-purple-500" 
-                                        placeholder="Enter your Fonnte API Token..." 
-                                    />
-                                    <button 
-                                        type="button"
-                                        @click="showPurchasingToken = !showPurchasingToken"
-                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-purple-400 transition-colors"
-                                    >
-                                        <EyeIcon v-if="!showPurchasingToken" class="h-5 w-5" />
-                                        <EyeSlashIcon v-else class="h-5 w-5" />
-                                    </button>
-                                </div>
-                                <p class="text-[10px] text-slate-500 mt-2 px-1">
-                                    Get your API token from <a href="https://fonnte.com" target="_blank" class="text-purple-400 hover:underline">Fonnte Dashboard</a>.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <DevicePhoneMobileIcon class="h-3 w-3" />
-                                    Device ID / Phone Number
-                                </label>
-                                <input 
-                                    v-model="form.purchasing_fonnte_device" 
-                                    type="text" 
-                                    class="form-input focus:ring-purple-500/50 focus:border-purple-500" 
-                                    placeholder="e.g. 6281234567890" 
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Wablas Settings -->
-                    <div v-if="form.purchasing_whatsapp_provider === 'wablas'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <DevicePhoneMobileIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">Wablas Gateway Settings (Purchasing)</h4>
-                        </div>
-
-                        <div class="space-y-8">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <KeyIcon class="h-3 w-3" />
-                                    Wablas API Token
-                                </label>
-                                <div class="relative group">
-                                    <input 
-                                        v-model="form.purchasing_wablas_api_token" 
-                                        :type="showPurchasingToken ? 'text' : 'password'" 
-                                        class="form-input pr-12 focus:ring-blue-500/50 focus:border-blue-500" 
-                                        placeholder="Enter your Wablas API Token..." 
-                                    />
-                                    <button 
-                                        type="button"
-                                        @click="showPurchasingToken = !showPurchasingToken"
-                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-400 transition-colors"
-                                    >
-                                        <EyeIcon v-if="!showPurchasingToken" class="h-5 w-5" />
-                                        <EyeSlashIcon v-else class="h-5 w-5" />
-                                    </button>
-                                </div>
-                                <p class="text-[10px] text-slate-500 mt-2 px-1">
-                                    Get your API token from <a href="https://wablas.com" target="_blank" class="text-blue-400 hover:underline">Wablas Dashboard</a>.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <DevicePhoneMobileIcon class="h-3 w-3" />
-                                    Device / Phone Number
-                                </label>
-                                <input 
-                                    v-model="form.purchasing_wablas_device" 
-                                    type="text" 
-                                    class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
-                                    placeholder="e.g. 6281234567890" 
-                                />
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <GlobeAltIcon class="h-3 w-3" />
-                                    Wablas Server URL
-                                </label>
-                                <input 
-                                    v-model="form.purchasing_wablas_server_url" 
-                                    type="text" 
-                                    class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
-                                    placeholder="e.g. https://pati.wablas.com" 
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Bot Personality -->
-                    <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-purple-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <SparklesIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">WhatsApp Bot Personality (Purchasing)</h4>
-                        </div>
-
-                        <div class="space-y-6">
-                            <div class="bg-purple-500/5 rounded-2xl p-4 border border-purple-500/10 flex gap-3">
-                                <InformationCircleIcon class="h-5 w-5 text-purple-400 shrink-0 mt-0.5" />
-                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    Instruksi ini akan menjadi dasar bagi AI (Gemini) dalam merespon setiap pesan WhatsApp dari Supplier / Vendor.
-                                </p>
-                            </div>
-
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <BookOpenIcon class="h-3 w-3" />
-                                    Custom Bot Instructions / Prompt
-                                </label>
-                                <textarea 
-                                    v-model="form.purchasing_whatsapp_bot_instruction" 
-                                    class="form-input min-h-[120px] resize-none focus:ring-purple-500/50 focus:border-purple-500" 
-                                    placeholder="Gaya bahasa formal, informatif, dll..."
-                                ></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- HR & PAYROLL CONFIGURATION -->
-                <div v-if="activeTab === 'hr'" class="space-y-6">
-                    <!-- Mode Selection Card -->
-                    <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                        <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-                            <StarIcon class="h-6 w-6" />
-                            <h4 class="text-sm font-black uppercase tracking-widest">Mode WhatsApp Gateway (HR & Payroll)</h4>
-                        </div>
-
-                        <div class="grid md:grid-cols-2 gap-4">
-                            <!-- Shared with Sales -->
-                            <div 
-                                @click="form.hr_whatsapp_mode = 'same_as_sales'"
-                                class="cursor-pointer p-6 rounded-2xl border-2 transition-all text-left group"
-                                :class="form.hr_whatsapp_mode === 'same_as_sales' 
-                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg shadow-blue-500/20' 
-                                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
-                            >
-                                <div class="flex items-center gap-3 mb-2">
-                                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center border-blue-500">
-                                        <div v-if="form.hr_whatsapp_mode === 'same_as_sales'" class="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    </div>
-                                    <h5 class="text-base font-bold text-slate-900 dark:text-white">Gunakan Nomor Sales (Shared)</h5>
-                                </div>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    Pengiriman slip gaji & notifikasi HR akan menggunakan nomor WhatsApp yang sama dengan konfigurasi Sales Bot (<strong>{{ form.whatsapp_provider.toUpperCase() }}</strong>). Cocok jika kantor hanya menggunakan 1 nomor resmi.
-                                </p>
-                            </div>
-
-                            <!-- Dedicated HR -->
-                            <div 
-                                @click="form.hr_whatsapp_mode = 'dedicated'"
-                                class="cursor-pointer p-6 rounded-2xl border-2 transition-all text-left group"
-                                :class="form.hr_whatsapp_mode === 'dedicated' 
-                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg shadow-blue-500/20' 
-                                    : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
-                            >
-                                <div class="flex items-center gap-3 mb-2">
-                                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center border-blue-500">
-                                        <div v-if="form.hr_whatsapp_mode === 'dedicated'" class="w-2 h-2 rounded-full bg-blue-500"></div>
-                                    </div>
-                                    <h5 class="text-base font-bold text-slate-900 dark:text-white">Nomor Khusus HRD (Dedicated)</h5>
-                                </div>
-                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    Gunakan nomor WhatsApp & token gateway tersendiri khusus untuk HRD / Personalia. Slip gaji dan notifikasi karyawan tidak akan bercampur dengan penjualan.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Shared Mode Info Notice -->
-                    <div v-if="form.hr_whatsapp_mode === 'same_as_sales'" class="bg-blue-500/10 rounded-2xl p-6 border border-blue-500/20 flex items-start gap-4">
-                        <InformationCircleIcon class="h-6 w-6 text-blue-500 shrink-0 mt-0.5" />
-                        <div class="space-y-1">
-                            <h5 class="text-sm font-bold text-blue-700 dark:text-blue-300">Modul HR Terhubung ke Sales Gateway</h5>
-                            <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                                Seluruh pengiriman slip gaji PDF, notifikasi presensi, dan persetujuan cuti otomatis dikirimkan menggunakan nomor WhatsApp resmi pada tab <strong>Sales Bot</strong> (Provider: {{ form.whatsapp_provider.toUpperCase() }}). Anda tidak perlu mengisi token ganda.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Dedicated Gateway Settings -->
-                    <template v-if="form.hr_whatsapp_mode === 'dedicated'">
-                        <!-- Provider Selection -->
-                        <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-                                <StarIcon class="h-6 w-6" />
-                                <h4 class="text-sm font-black uppercase tracking-widest">Pilih Provider Gateway (HR)</h4>
-                            </div>
-
-                            <div class="grid md:grid-cols-2 gap-4">
-                                <button 
-                                    v-for="provider in providers" 
-                                    :key="'hr-' + provider.id"
-                                    type="button"
-                                    @click="form.hr_whatsapp_provider = provider.id"
-                                    class="relative p-6 rounded-2xl border-2 transition-all text-left group"
-                                    :class="form.hr_whatsapp_provider === provider.id 
-                                        ? `border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-lg shadow-blue-500/20` 
-                                        : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-600 bg-slate-50 dark:bg-slate-900/40'"
-                                >
-                                    <div v-if="provider.recommended" class="absolute -top-2 -right-2 bg-yellow-500 text-yellow-900 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                        RECOMMENDED
-                                    </div>
-
-                                    <div class="flex items-center gap-3 mb-3">
-                                        <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors border-blue-500">
-                                            <div v-if="form.hr_whatsapp_provider === provider.id" class="w-2 h-2 rounded-full bg-blue-500"></div>
+                                            class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                            :class="form.whatsapp_provider === provider.id ? 'border-emerald-500 bg-emerald-500' : 'border-slate-400'"
+                                        >
+                                            <div v-if="form.whatsapp_provider === provider.id" class="w-1.5 h-1.5 rounded-full bg-white"></div>
                                         </div>
-                                        <h5 class="text-lg font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
+                                        <h5 class="text-base font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
                                     </div>
-                                    <p class="text-sm text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
-                                    <a :href="provider.website" target="_blank" class="text-xs text-blue-400 hover:underline mt-1 inline-block">
-                                        {{ provider.website }}
-                                    </a>
+                                    <span v-if="provider.recommended" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500 text-white">
+                                        Rekomendasi
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
+                                <span class="text-[11px] text-emerald-600 dark:text-emerald-400 mt-1 inline-block font-mono">
+                                    {{ provider.website }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- JICOS WhatsApp Engine Settings (Sales) -->
+                    <div v-if="form.whatsapp_provider === 'usics_engine'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <div class="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+                                <ServerStackIcon class="h-6 w-6 shrink-0" />
+                                <div>
+                                    <h4 class="text-sm font-black uppercase tracking-widest">JICOS WhatsApp Engine (Nomor Sales & CS)</h4>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Sesi terisolasi khusus nomor WhatsApp Customer Service</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button 
+                                    type="button" 
+                                    @click="checkEngineStatus"
+                                    :disabled="engineChecking"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
+                                >
+                                    <ArrowPathIcon class="h-3.5 w-3.5" :class="{ 'animate-spin': engineChecking }" />
+                                    <span>{{ engineChecking ? 'Mengecek...' : 'Cek Status Sesi' }}</span>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="openQrDashboard('sales')"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-md shadow-emerald-500/20 active:scale-95"
+                                >
+                                    <QrCodeIcon class="h-4 w-4" />
+                                    <span>Scan QR (Nomor Sales)</span>
+                                    <ArrowTopRightOnSquareIcon class="h-3.5 w-3.5 opacity-70" />
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Fonnte Settings for HR -->
-                        <div v-if="form.hr_whatsapp_provider === 'fonnte'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                                <DevicePhoneMobileIcon class="h-6 w-6" />
-                                <h4 class="text-sm font-black uppercase tracking-widest">Fonnte Gateway Settings (HR)</h4>
-                            </div>
-
-                            <div class="space-y-8">
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <KeyIcon class="h-3 w-3" />
-                                        Fonnte API Token
-                                    </label>
-                                    <div class="relative">
-                                        <input 
-                                            v-model="form.hr_fonnte_api_token" 
-                                            :type="showHrToken ? 'text' : 'password'" 
-                                            class="form-input pr-10 focus:ring-blue-500/50 focus:border-blue-500" 
-                                            placeholder="Masukkan token dari dashboard Fonnte" 
-                                        />
-                                        <button 
-                                            type="button"
-                                            @click="showHrToken = !showHrToken"
-                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                        >
-                                            <EyeIcon v-if="!showHrToken" class="h-5 w-5" />
-                                            <EyeSlashIcon v-else class="h-5 w-5" />
-                                        </button>
-                                    </div>
+                        <!-- Engine Status Banner -->
+                        <div v-if="engineStatus" class="p-4 rounded-xl border text-xs"
+                            :class="engineStatus.success && engineStatus.connected 
+                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' 
+                                : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 font-bold">
+                                    <span class="w-2.5 h-2.5 rounded-full" :class="engineStatus.success && engineStatus.connected ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'"></span>
+                                    <span>Status Sesi Sales: {{ engineStatus.success ? (engineStatus.connected ? 'TERHUBUNG (ONLINE)' : 'PERLU SCAN QR') : 'OFFLINE (Pastikan engine sudah dijalankan)' }}</span>
                                 </div>
-
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <DevicePhoneMobileIcon class="h-3 w-3" />
-                                        Device / Phone Number
-                                    </label>
-                                    <input 
-                                        v-model="form.hr_fonnte_device" 
-                                        type="text" 
-                                        class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
-                                        placeholder="e.g. 6281234567890" 
-                                    />
-                                </div>
+                                <span v-if="engineStatus.phone" class="font-mono font-bold">+{{ engineStatus.phone }}</span>
                             </div>
+                            <p v-if="engineStatus.error" class="mt-1 text-[11px] opacity-90">{{ engineStatus.error }}</p>
                         </div>
 
-                        <!-- Wablas Settings for HR -->
-                        <div v-if="form.hr_whatsapp_provider === 'wablas'" class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-8 border-b border-slate-200 dark:border-slate-800 pb-4">
-                                <DevicePhoneMobileIcon class="h-6 w-6" />
-                                <h4 class="text-sm font-black uppercase tracking-widest">Wablas Gateway Settings (HR)</h4>
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <GlobeAltIcon class="h-3 w-3" />
+                                    Server URL (Port 5050)
+                                </label>
+                                <input 
+                                    v-model="form.usics_engine_server_url" 
+                                    type="text" 
+                                    class="form-input font-mono" 
+                                    placeholder="http://127.0.0.1:5050" 
+                                />
+                                <p class="text-[10px] text-slate-500">Port 5050 dipilih agar tidak bentrok dengan server web lain.</p>
                             </div>
 
-                            <div class="space-y-8">
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <KeyIcon class="h-3 w-3" />
-                                        Wablas API Token
-                                    </label>
-                                    <div class="relative">
-                                        <input 
-                                            v-model="form.hr_wablas_api_token" 
-                                            :type="showHrToken ? 'text' : 'password'" 
-                                            class="form-input pr-10 focus:ring-blue-500/50 focus:border-blue-500" 
-                                            placeholder="Masukkan token dari dashboard Wablas" 
-                                        />
-                                        <button 
-                                            type="button"
-                                            @click="showHrToken = !showHrToken"
-                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                        >
-                                            <EyeIcon v-if="!showHrToken" class="h-5 w-5" />
-                                            <EyeSlashIcon v-else class="h-5 w-5" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <DevicePhoneMobileIcon class="h-3 w-3" />
-                                        Device / Phone Number
-                                    </label>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <KeyIcon class="h-3 w-3" />
+                                    API Secret Key (X-API-Key)
+                                </label>
+                                <div class="relative">
                                     <input 
-                                        v-model="form.hr_wablas_device" 
-                                        type="text" 
-                                        class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
-                                        placeholder="e.g. 6281234567890" 
+                                        v-model="form.usics_engine_api_key" 
+                                        :type="showSalesKey ? 'text' : 'password'" 
+                                        class="form-input pr-12 font-mono text-xs" 
+                                        placeholder="usics-wa-secret-2026" 
                                     />
+                                    <button 
+                                        type="button"
+                                        @click="showSalesKey = !showSalesKey"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        <EyeIcon v-if="!showSalesKey" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
                                 </div>
-
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <GlobeAltIcon class="h-3 w-3" />
-                                        Wablas Server URL
-                                    </label>
-                                    <input 
-                                        v-model="form.hr_wablas_server_url" 
-                                        type="text" 
-                                        class="form-input focus:ring-blue-500/50 focus:border-blue-500" 
-                                        placeholder="https://pati.wablas.com" 
-                                    />
-                                </div>
+                                <p class="text-[10px] text-slate-500">Kunci otentikasi pengaman komunikasi antara Laravel dan Node.js.</p>
                             </div>
                         </div>
-
-                        <!-- Bot Personality for HR -->
-                        <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                            <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-                                <SparklesIcon class="h-6 w-6" />
-                                <h4 class="text-sm font-black uppercase tracking-widest">WhatsApp Bot Personality (HR & Internal)</h4>
-                            </div>
-
-                            <div class="space-y-6">
-                                <div class="bg-blue-500/5 rounded-2xl p-4 border border-blue-500/10 flex gap-3">
-                                    <InformationCircleIcon class="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
-                                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                        Instruksi ini akan menjadi dasar bagi AI dalam merespon pesan WhatsApp masuk dari Karyawan mengenai slip gaji, cuti, absensi, atau kebijakan kantor.
-                                    </p>
-                                </div>
-
-                                <div class="space-y-2">
-                                    <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <BookOpenIcon class="h-3 w-3" />
-                                        Custom Bot Instructions / Prompt
-                                    </label>
-                                    <textarea 
-                                        v-model="form.hr_whatsapp_bot_instruction" 
-                                        class="form-input min-h-[120px] resize-none focus:ring-blue-500/50 focus:border-blue-500" 
-                                        placeholder="Gaya bahasa ramah, profesional, informatif..."
-                                    ></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Webhook URL Info (Dynamic depending on active tab) -->
-                <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                    <div class="flex items-center gap-3 text-cyan-600 dark:text-cyan-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-                        <GlobeAltIcon class="h-6 w-6" />
-                        <h4 class="text-sm font-black uppercase tracking-widest">Webhook Configuration ({{ activeTab === 'sales' ? 'Sales' : (activeTab === 'purchasing' ? 'Purchasing' : 'HR & Payroll') }})</h4>
                     </div>
 
-                    <div class="space-y-4">
-                        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
-                            Webhook URL (Salin ini ke Dashboard {{ selectedProvider?.name || 'Provider' }} untuk nomor Anda)
+                    <!-- Wablas Settings (Sales) -->
+                    <div v-if="form.whatsapp_provider === 'wablas'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <DevicePhoneMobileIcon class="h-6 w-6" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Wablas Cloud Settings (Sales)</h4>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas API Token</label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.wablas_api_token" 
+                                        :type="showWablasToken ? 'text' : 'password'" 
+                                        class="form-input pr-12" 
+                                        placeholder="Enter Wablas API Token..." 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showWablasToken = !showWablasToken"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                                    >
+                                        <EyeIcon v-if="!showWablasToken" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas Server URL</label>
+                                <input v-model="form.wablas_server_url" type="text" class="form-input" placeholder="https://pati.wablas.com" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Bot Instruction (Sales) -->
+                    <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                            <SparklesIcon class="h-5 w-5" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Instruksi AI Assistant (Sales CS Bot)</h4>
+                        </div>
+                        <textarea 
+                            v-model="form.whatsapp_bot_instruction"
+                            rows="4"
+                            class="form-input text-xs"
+                            placeholder="Tuliskan kepribadian dan pedoman respon AI Sales CS bot..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- PURCHASING BOT CONFIGURATION TAB           -->
+                <!-- ========================================== -->
+                <div v-show="activeTab === 'purchasing'" class="space-y-8">
+                    <!-- Provider Selection Cards -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <ServerStackIcon class="h-4 w-4" />
+                            PILIH GATEWAY PROVIDER (PURCHASING)
                         </label>
-                        <div class="flex gap-2">
-                            <input 
-                                :value="webhookUrl" 
-                                type="text" 
-                                class="form-input flex-1 font-mono text-sm" 
-                                readonly 
-                            />
-                            <button 
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <button
+                                v-for="provider in providers"
+                                :key="provider.id"
                                 type="button"
-                                @click="copyWebhook"
-                                class="px-4 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl flex items-center gap-2 transition-colors shrink-0"
+                                @click="form.purchasing_whatsapp_provider = provider.id"
+                                class="relative text-left p-6 rounded-2xl border transition-all duration-300"
+                                :class="[
+                                    form.purchasing_whatsapp_provider === provider.id
+                                        ? 'border-purple-500 dark:border-purple-500 bg-purple-500/5 dark:bg-purple-500/10 shadow-lg shadow-purple-500/10 ring-2 ring-purple-500/20'
+                                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
+                                ]"
                             >
-                                <ClipboardDocumentIcon class="h-5 w-5" />
-                                <span class="text-xs font-bold">{{ copied ? 'Copied!' : 'Copy' }}</span>
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div 
+                                            class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                            :class="form.purchasing_whatsapp_provider === provider.id ? 'border-purple-500 bg-purple-500' : 'border-slate-400'"
+                                        >
+                                            <div v-if="form.purchasing_whatsapp_provider === provider.id" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                        </div>
+                                        <h5 class="text-base font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
+                                    </div>
+                                    <span v-if="provider.recommended" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-600 text-white">
+                                        Rekomendasi
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
+                                <span class="text-[11px] text-purple-600 dark:text-purple-400 mt-1 inline-block font-mono">
+                                    {{ provider.website }}
+                                </span>
                             </button>
                         </div>
+                    </div>
+
+                    <!-- JICOS WhatsApp Engine Settings (Purchasing) -->
+                    <div v-if="form.purchasing_whatsapp_provider === 'usics_engine'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <div class="flex items-center gap-3 text-purple-600 dark:text-purple-400">
+                                <ServerStackIcon class="h-6 w-6 shrink-0" />
+                                <div>
+                                    <h4 class="text-sm font-black uppercase tracking-widest">JICOS WhatsApp Engine (Nomor Purchasing)</h4>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Sesi terisolasi khusus nomor WhatsApp Vendor & Supplier</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button 
+                                    type="button" 
+                                    @click="checkEngineStatus"
+                                    :disabled="engineChecking"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
+                                >
+                                    <ArrowPathIcon class="h-3.5 w-3.5" :class="{ 'animate-spin': engineChecking }" />
+                                    <span>{{ engineChecking ? 'Mengecek...' : 'Cek Status Sesi' }}</span>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="openQrDashboard('purchasing')"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 text-white hover:bg-purple-500 transition-all shadow-md shadow-purple-500/20 active:scale-95"
+                                >
+                                    <QrCodeIcon class="h-4 w-4" />
+                                    <span>Scan QR (Nomor Purchasing)</span>
+                                    <ArrowTopRightOnSquareIcon class="h-3.5 w-3.5 opacity-70" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Engine Status Banner (Purchasing) -->
+                        <div v-if="engineStatus" class="p-4 rounded-xl border text-xs"
+                            :class="engineStatus.success && engineStatus.connected 
+                                ? 'bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-300' 
+                                : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 font-bold">
+                                    <span class="w-2.5 h-2.5 rounded-full" :class="engineStatus.success && engineStatus.connected ? 'bg-purple-500' : 'bg-amber-500 animate-pulse'"></span>
+                                    <span>Status Sesi Purchasing: {{ engineStatus.success ? (engineStatus.connected ? 'TERHUBUNG (ONLINE)' : 'PERLU SCAN QR') : 'OFFLINE (Pastikan engine sudah dijalankan)' }}</span>
+                                </div>
+                                <span v-if="engineStatus.phone" class="font-mono font-bold">+{{ engineStatus.phone }}</span>
+                            </div>
+                            <p v-if="engineStatus.error" class="mt-1 text-[11px] opacity-90">{{ engineStatus.error }}</p>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <GlobeAltIcon class="h-3 w-3" />
+                                    Server URL (Port 5050)
+                                </label>
+                                <input 
+                                    v-model="form.purchasing_usics_engine_server_url" 
+                                    type="text" 
+                                    class="form-input font-mono" 
+                                    placeholder="http://127.0.0.1:5050" 
+                                />
+                                <p class="text-[10px] text-slate-500">Dapat menggunakan engine yang sama (multi-session) di port 5050.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <KeyIcon class="h-3 w-3" />
+                                    API Secret Key (X-API-Key)
+                                </label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.purchasing_usics_engine_api_key" 
+                                        :type="showPurchasingKey ? 'text' : 'password'" 
+                                        class="form-input pr-12 font-mono text-xs" 
+                                        placeholder="usics-wa-secret-2026" 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showPurchasingKey = !showPurchasingKey"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        <EyeIcon v-if="!showPurchasingKey" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p class="text-[10px] text-slate-500">Kunci otentikasi pengaman komunikasi antara Laravel dan Node.js.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wablas Settings (Purchasing) -->
+                    <div v-if="form.purchasing_whatsapp_provider === 'wablas'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <DevicePhoneMobileIcon class="h-6 w-6" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Wablas Cloud Settings (Purchasing)</h4>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas API Token</label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.purchasing_wablas_api_token" 
+                                        :type="showPurchasingWablasToken ? 'text' : 'password'" 
+                                        class="form-input pr-12" 
+                                        placeholder="Enter Wablas API Token..." 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showPurchasingWablasToken = !showPurchasingWablasToken"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                                    >
+                                        <EyeIcon v-if="!showPurchasingWablasToken" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas Server URL</label>
+                                <input v-model="form.purchasing_wablas_server_url" type="text" class="form-input" placeholder="https://pati.wablas.com" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Bot Instruction (Purchasing) -->
+                    <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center gap-2 text-purple-600 dark:text-purple-400">
+                            <SparklesIcon class="h-5 w-5" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Instruksi AI Assistant (Purchasing Bot)</h4>
+                        </div>
+                        <textarea 
+                            v-model="form.purchasing_whatsapp_bot_instruction"
+                            rows="4"
+                            class="form-input text-xs"
+                            placeholder="Tuliskan kepribadian dan pedoman respon AI Purchasing bot..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- INVENTORY BOT CONFIGURATION TAB            -->
+                <!-- ========================================== -->
+                <div v-show="activeTab === 'inventory'" class="space-y-8">
+                    <!-- Provider Selection Cards (Inventory) -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <ServerStackIcon class="h-4 w-4" />
+                            PILIH GATEWAY PROVIDER (INVENTORY & GUDANG)
+                        </label>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div 
+                                v-for="provider in providers" 
+                                :key="'inv-' + provider.id"
+                                @click="form.inventory_whatsapp_provider = provider.id"
+                                class="relative cursor-pointer rounded-2xl p-5 border-2 transition-all"
+                                :class="form.inventory_whatsapp_provider === provider.id 
+                                    ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10' 
+                                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'"
+                            >
+                                <span v-if="provider.recommended" class="absolute top-3 right-3 px-2 py-0.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-wider rounded-md">
+                                    REKOMENDASI
+                                </span>
+                                <div class="flex items-start gap-3">
+                                    <div class="mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
+                                        :class="form.inventory_whatsapp_provider === provider.id ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-slate-600'"
+                                    >
+                                        <div v-if="form.inventory_whatsapp_provider === provider.id" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <div class="text-sm font-black text-slate-900 dark:text-white">{{ provider.name }}</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ provider.price }}</div>
+                                        <div class="text-[11px] text-blue-600 dark:text-blue-400 font-mono">{{ provider.website }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- USICS Engine Config (Inventory) -->
+                    <div v-if="form.inventory_whatsapp_provider === 'usics_engine'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                    <ServerStackIcon class="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">JICOS WhatsApp Engine (Nomor Inventory & Gudang)</h3>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Sesi khusus untuk operasional Gudang, Cek Stok, SLoc, Transfer, dan Stock Opname</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button 
+                                    type="button" 
+                                    @click="checkEngineStatus"
+                                    :disabled="engineChecking"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
+                                >
+                                    <ArrowPathIcon class="h-3.5 w-3.5" :class="{ 'animate-spin': engineChecking }" />
+                                    <span>{{ engineChecking ? 'Mengecek...' : 'Cek Status Sesi' }}</span>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="openQrDashboard('inventory')"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition-colors"
+                                >
+                                    <QrCodeIcon class="h-4 w-4" />
+                                    <span>Scan QR (Nomor Inventory)</span>
+                                    <ArrowTopRightOnSquareIcon class="h-3.5 w-3.5 opacity-80" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Engine Status Banner (Inventory) -->
+                        <div v-if="engineStatus" class="p-4 rounded-xl border text-xs"
+                            :class="engineStatus.success && engineStatus.connected 
+                                ? 'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300' 
+                                : 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 font-bold">
+                                    <span class="w-2.5 h-2.5 rounded-full" :class="engineStatus.success && engineStatus.connected ? 'bg-blue-500' : 'bg-amber-500 animate-pulse'"></span>
+                                    <span>Status Sesi Inventory: {{ engineStatus.success ? (engineStatus.connected ? 'TERHUBUNG (ONLINE)' : 'PERLU SCAN QR') : 'OFFLINE (Pastikan engine sudah dijalankan)' }}</span>
+                                </div>
+                                <span v-if="engineStatus.phone" class="font-mono font-bold">+{{ engineStatus.phone }}</span>
+                            </div>
+                            <p v-if="engineStatus.error" class="mt-1 text-[11px] opacity-90">{{ engineStatus.error }}</p>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <GlobeAltIcon class="h-3.5 w-3.5" />
+                                    Server URL (Port 5050)
+                                </label>
+                                <input v-model="form.inventory_usics_engine_server_url" type="text" class="form-input font-mono" placeholder="http://127.0.0.1:5050" />
+                                <p class="text-[11px] text-slate-400 ml-1">Dapat menggunakan engine yang sama (multi-session) di port 5050.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <KeyIcon class="h-3.5 w-3.5" />
+                                    API Secret Key (X-API-Key)
+                                </label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.inventory_usics_engine_api_key" 
+                                        :type="showInventoryKey ? 'text' : 'password'" 
+                                        class="form-input pr-12 font-mono" 
+                                        placeholder="usics-wa-secret-2026" 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showInventoryKey = !showInventoryKey"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                                    >
+                                        <EyeIcon v-if="!showInventoryKey" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p class="text-[11px] text-slate-400 ml-1">Kunci otentikasi pengaman komunikasi antara Laravel dan Node.js.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wablas Config (Inventory) -->
+                    <div v-if="form.inventory_whatsapp_provider === 'wablas'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas API Token (Inventory)</label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.inventory_wablas_api_token" 
+                                        :type="showInventoryWablasToken ? 'text' : 'password'" 
+                                        class="form-input pr-12" 
+                                        placeholder="Token Wablas Inventory..." 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showInventoryWablasToken = !showInventoryWablasToken"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                                    >
+                                        <EyeIcon v-if="!showInventoryWablasToken" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas Server URL</label>
+                                <input v-model="form.inventory_wablas_server_url" type="text" class="form-input" placeholder="https://pati.wablas.com" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Bot Instruction (Inventory) -->
+                    <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                            <SparklesIcon class="h-5 w-5" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Instruksi AI Assistant (Inventory & Warehouse Bot)</h4>
+                        </div>
+                        <textarea 
+                            v-model="form.inventory_whatsapp_bot_instruction"
+                            rows="4"
+                            class="form-input text-xs"
+                            placeholder="Tuliskan kepribadian dan pedoman respon AI Inventory & Warehouse bot..."
+                        ></textarea>
+                    </div>
+                </div>
+
+                <!-- Webhook Configuration & Auto-Reply -->
+                <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex items-center gap-2 text-slate-900 dark:text-white">
+                        <SignalIcon class="h-5 w-5 text-emerald-500" />
+                        <h4 class="text-sm font-black uppercase tracking-widest">URL Webhook Masuk (Inbound Webhook)</h4>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        URL ini dikonfigurasi pada file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">whatsapp-engine/.env</code> agar pesan masuk langsung diproses oleh AI Assistant USICS.
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <input 
+                            :value="webhookUrl" 
+                            readonly 
+                            type="text" 
+                            class="form-input font-mono text-xs bg-slate-100 dark:bg-slate-800 cursor-text select-all" 
+                        />
+                        <button 
+                            type="button" 
+                            @click="copyWebhook"
+                            class="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center gap-1.5 shrink-0 transition-colors border border-slate-200 dark:border-slate-700"
+                        >
+                            <ClipboardDocumentIcon class="h-4 w-4" />
+                            <span>{{ copied ? 'Disalin!' : 'Salin URL' }}</span>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Test Connection -->
-                <div class="bg-white dark:bg-white/5 rounded-2xl p-8 border border-slate-200 dark:border-white/5 shadow-lg dark:shadow-2xl">
-                    <div class="flex items-center gap-3 text-orange-600 dark:text-orange-400 mb-6 border-b border-slate-200 dark:border-slate-800 pb-4">
-                        <SignalIcon class="h-6 w-6" />
-                        <h4 class="text-sm font-black uppercase tracking-widest">🔌 Test Connection ({{ activeTab === 'sales' ? 'Sales Bot' : (activeTab === 'purchasing' ? 'Purchasing Bot' : 'HR & Payroll') }})</h4>
+                <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex items-center gap-2 text-slate-900 dark:text-white">
+                        <SignalIcon class="h-5 w-5 text-orange-500" />
+                        <h4 class="text-sm font-black uppercase tracking-widest">Uji Coba Pengiriman Pesan (Test Connection)</h4>
                     </div>
-
-                    <div class="space-y-4">
-                        <p class="text-xs text-slate-500 dark:text-slate-400">
-                            Kirim pesan test ke nomor WhatsApp untuk memverifikasi koneksi. Pastikan Anda sudah klik <strong>Save WhatsApp Configuration</strong> terlebih dahulu!
-                        </p>
-                        
-                        <div class="flex gap-2">
-                            <input 
-                                v-model="testPhone" 
-                                type="text" 
-                                class="form-input flex-1" 
-                                placeholder="Masukkan nomor WA tujuan (e.g. 6281234567890)" 
-                            />
-                            <button 
-                                type="button"
-                                @click="testConnection"
-                                :disabled="testLoading"
-                                class="px-6 py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-600 text-white rounded-xl flex items-center gap-2 transition-colors shrink-0"
-                            >
-                                <PaperAirplaneIcon v-if="!testLoading" class="h-5 w-5" />
-                                <svg v-else class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span class="text-xs font-bold">{{ testLoading ? 'Sending...' : 'Send Test' }}</span>
-                            </button>
-                        </div>
-
-                        <!-- Result Message -->
-                        <div v-if="testResult" 
-                            class="p-4 rounded-xl text-sm font-medium"
-                            :class="testResult.success ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'"
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Kirim pesan test langsung dari modul <strong>{{ activeTab === 'sales' ? 'Sales' : 'Purchasing' }}</strong> untuk memverifikasi gateway sudah terhubung dan dapat mengirim pesan dengan lancar.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input 
+                            v-model="testPhone" 
+                            type="text" 
+                            class="form-input flex-1 font-mono text-xs" 
+                            placeholder="Contoh: 6281234567890" 
+                        />
+                        <button 
+                            type="button"
+                            @click="testConnection"
+                            :disabled="testLoading"
+                            class="px-6 py-3 bg-orange-600 hover:bg-orange-500 disabled:bg-slate-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-colors shrink-0 shadow-sm"
                         >
-                            <div class="flex items-center gap-2">
-                                <CheckBadgeIcon v-if="testResult.success" class="h-5 w-5" />
-                                <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                <span>{{ testResult.message }}</span>
-                            </div>
-                        </div>
+                            <PaperAirplaneIcon v-if="!testLoading" class="h-4 w-4" />
+                            <ArrowPathIcon v-else class="h-4 w-4 animate-spin" />
+                            <span>{{ testLoading ? 'Mengirim...' : 'Kirim Pesan Test' }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Result Alert -->
+                    <div v-if="testResult" 
+                        class="p-4 rounded-xl text-xs font-semibold flex items-center gap-2 border"
+                        :class="testResult.success ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20' : 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20'"
+                    >
+                        <CheckBadgeIcon v-if="testResult.success" class="h-4 w-4 text-emerald-500 shrink-0" />
+                        <span v-else class="shrink-0 text-rose-500">⚠️</span>
+                        <span>{{ testResult.message }}</span>
                     </div>
                 </div>
 
-                <!-- Pricing & Capabilities Info -->
+                <!-- Info Cards -->
                 <div class="grid md:grid-cols-2 gap-4">
-                    <div class="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/5">
-                        <h5 class="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                            💰 Provider Comparison
+                    <div class="bg-slate-50 dark:bg-slate-900/30 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-2">
+                        <h5 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                            <ServerStackIcon class="h-4 w-4 text-emerald-500" />
+                            Multi-Session Engine (Port 5050)
                         </h5>
-                        <ul class="space-y-2 text-xs text-slate-500 dark:text-slate-400">
-                            <li>• <strong>Fonnte</strong>: Simple setup, reliable text & image messaging.</li>
-                            <li>• <strong>Wablas</strong>: Advanced features, supports buttons, lists, and dynamic interactive elements.</li>
-                        </ul>
-                    </div>
-
-                    <div class="bg-purple-500/5 rounded-2xl p-6 border border-purple-500/10">
-                        <h5 class="text-sm font-bold text-slate-900 dark:text-white mb-3">
-                            🤖 AI Bot Capabilities
-                        </h5>
-                        <div class="grid grid-cols-2 gap-2 text-xs text-slate-500 dark:text-slate-400">
-                            <div class="flex items-center gap-2">
-                                <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
-                                <span>Sales: Cek SO & Catalog</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
-                                <span>Sales: Send Quote PDF</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
-                                <span>Purchasing: Cek PO & GRN</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <CheckBadgeIcon class="h-4 w-4 text-purple-500" />
-                                <span>Purchasing: Cek Tagihan PI</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Danger Zone -->
-                <div class="bg-red-50 dark:bg-red-950/10 rounded-2xl p-8 border border-red-200 dark:border-red-500/20 shadow-lg">
-                    <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-6 border-b border-red-200 dark:border-red-500/10 pb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 animate-pulse">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                        </svg>
-                        <h4 class="text-sm font-black uppercase tracking-widest">Zona Bahaya (Danger Zone)</h4>
-                    </div>
-
-                    <div class="space-y-6">
-                        <p class="text-xs text-red-750 dark:text-red-400">
-                            Fitur ini akan menghapus <strong>seluruh histori chat WhatsApp</strong> yang tersimpan di database ERP Anda secara permanen.
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            1 Server Node.js dapat mengelola nomor Sales dan Purchasing sekaligus. Bebas biaya langganan, tanpa batasan kuota pesan, dan data tersimpan aman di server internal kantor.
                         </p>
-                        
-                        <div class="flex flex-col md:flex-row items-end gap-4 bg-white dark:bg-slate-900/60 p-5 rounded-2xl border border-red-100 dark:border-red-500/10">
-                            <div class="flex-1 w-full space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Pilih Modul Chat</label>
-                                <select v-model="dangerZoneModule" class="form-input text-xs h-12 py-2">
-                                    <option value="sales">Sales (Customer Chat)</option>
-                                    <option value="purchasing">Purchasing (Supplier Chat)</option>
-                                    <option value="all">Semua Chat (Sales & Purchasing)</option>
-                                </select>
-                            </div>
+                    </div>
 
-                            <div class="flex-1 w-full space-y-2">
-                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Masukkan Password Admin Anda</label>
-                                <input v-model="dangerZonePassword" type="password" class="form-input text-xs h-12 py-2" placeholder="Password Admin..." />
-                            </div>
-
-                            <button 
-                                type="button"
-                                @click="clearChatHistory"
-                                class="px-6 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shrink-0 h-12 flex items-center justify-center gap-2 w-full md:w-auto"
-                            >
-                                Hapus Riwayat Massal
-                            </button>
-                        </div>
+                    <div class="bg-purple-500/5 rounded-2xl p-5 border border-purple-500/15 space-y-2">
+                        <h5 class="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                            <SparklesIcon class="h-4 w-4" />
+                            Integrasi AI Assistant Gemini
+                        </h5>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            Didukung model AI Gemini untuk menjawab katalog produk, cek status SO, membuat draft PDF penawaran otomatis, serta verifikasi invoice dan status PO supplier.
+                        </p>
                     </div>
                 </div>
 
-                <!-- Save Action Button -->
+                <!-- Save Button -->
                 <div class="flex justify-end pt-4">
                     <button 
                         type="submit" 
                         :disabled="form.processing"
-                        class="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-2xl shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50 group overflow-hidden relative"
+                        class="inline-flex items-center gap-2.5 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
                     >
-                        <span class="relative z-10 flex items-center gap-2">
-                            <CheckBadgeIcon class="h-5 w-5 transition-transform group-hover:scale-125" />
-                            Save Configuration
-                        </span>
-                        <div class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[-20deg]"></div>
+                        <CheckBadgeIcon class="h-5 w-5" />
+                        <span>Simpan Konfigurasi WhatsApp</span>
                     </button>
                 </div>
             </form>
@@ -1033,6 +929,6 @@ const clearChatHistory = () => {
 @reference "../../../css/app.css";
 
 .form-input {
-    @apply block w-full px-5 py-4 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-2xl text-sm text-slate-900 dark:text-white outline-none transition-all duration-300;
+    @apply block w-full px-4 py-3 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all;
 }
 </style>

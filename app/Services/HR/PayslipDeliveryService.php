@@ -8,7 +8,7 @@ use App\Models\HR\OvertimeRequest;
 use App\Models\Company;
 use App\Models\AppSetting;
 use App\Models\WhatsappMessage;
-use App\Services\FonnteService;
+use App\Services\JicosWhatsappEngineService;
 use App\Services\WablasService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -154,20 +154,21 @@ class PayslipDeliveryService
 
             $hrMode = AppSetting::get('hr_whatsapp_mode', 'same_as_sales');
             if ($hrMode === 'dedicated') {
-                $provider = AppSetting::get('hr_whatsapp_provider', 'fonnte');
+                $provider = AppSetting::get('hr_whatsapp_provider', 'jicos_engine');
                 if ($provider === 'wablas') {
                     $token = AppSetting::get('hr_wablas_api_token', '');
                     $url = AppSetting::get('hr_wablas_server_url', 'https://pati.wablas.com');
                     $gateway = app(WablasService::class)->setCredentials($token, $url);
                 } else {
-                    $token = AppSetting::get('hr_fonnte_api_token', '');
-                    $gateway = app(FonnteService::class)->setCredentials($token);
+                    $token = AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026');
+                    $url = AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5050');
+                    $gateway = app(JicosWhatsappEngineService::class)->setCredentials($token, $url, 'hr');
                 }
             } else {
-                $provider = AppSetting::get('whatsapp_provider', 'fonnte');
+                $provider = AppSetting::get('whatsapp_provider', 'jicos_engine');
                 $gateway = match ($provider) {
                     'wablas' => app(WablasService::class),
-                    default => app(FonnteService::class),
+                    default => app(JicosWhatsappEngineService::class)->setSession('sales'),
                 };
             }
 

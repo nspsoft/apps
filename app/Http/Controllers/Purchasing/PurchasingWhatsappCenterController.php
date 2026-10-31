@@ -9,7 +9,7 @@ use App\Models\WhatsappTemplate;
 use App\Models\WhatsappContactLabel;
 use App\Models\Supplier;
 use App\Models\SupplierContact;
-use App\Services\FonnteService;
+use App\Services\JicosWhatsappEngineService;
 use App\Services\WablasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -137,7 +137,7 @@ class PurchasingWhatsappCenterController extends Controller
     /**
      * Send a manual message to a supplier
      */
-    public function send(Request $request, FonnteService $fonnte, WablasService $wablas)
+    public function send(Request $request, JicosWhatsappEngineService $engine, WablasService $wablas)
     {
         $request->validate([
             'phone' => 'required',
@@ -147,7 +147,7 @@ class PurchasingWhatsappCenterController extends Controller
 
         $phone = $request->phone;
         $message = $request->message ?? '';
-        $provider = AppSetting::get('purchasing_whatsapp_provider') ?: 'fonnte';
+        $provider = AppSetting::get('purchasing_whatsapp_provider') ?: 'jicos_engine';
         
         // Configure dynamic credentials
         if ($provider === 'wablas') {
@@ -155,8 +155,9 @@ class PurchasingWhatsappCenterController extends Controller
             $url = AppSetting::get('purchasing_wablas_server_url', 'https://pati.wablas.com');
             $activeService = $wablas->setCredentials($token, $url);
         } else {
-            $token = AppSetting::get('purchasing_fonnte_api_token', '');
-            $activeService = $fonnte->setCredentials($token);
+            $token = AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026');
+            $url = AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5050');
+            $activeService = $engine->setCredentials($token, $url, 'purchasing');
         }
 
         $result = ['success' => false, 'error' => 'No content to send'];
