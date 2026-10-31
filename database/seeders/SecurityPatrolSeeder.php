@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\AppSetting;
 use App\Models\SecurityCheckpoint;
 use App\Models\SecurityPatrolLog;
 use App\Models\SecurityPatrolSchedule;
@@ -19,9 +20,10 @@ class SecurityPatrolSeeder extends Seeder
         $admin = User::first();
         $adminId = $admin ? $admin->id : 1;
 
-        // Base coordinates for Jababeka Cikarang Industrial Plant
-        $baseLat = -6.29520;
-        $baseLng = 107.13850;
+        // Base coordinates dynamically retrieved from Smart Attendance preferences
+        $office = AppSetting::getOfficeCoordinates();
+        $baseLat = $office['latitude'];
+        $baseLng = $office['longitude'];
 
         $checkpointsData = [
             [

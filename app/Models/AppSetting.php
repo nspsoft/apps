@@ -68,4 +68,18 @@ class AppSetting extends Model
     {
         return self::where('group', $group)->get();
     }
+
+    /**
+     * Get the Smart Attendance office geofencing coordinates & radius
+     */
+    public static function getOfficeCoordinates(): array
+    {
+        $setting = self::whereNotNull('office_latitude')->first();
+
+        return [
+            'latitude' => $setting && $setting->office_latitude ? (float) $setting->office_latitude : -6.36356577,
+            'longitude' => $setting && $setting->office_longitude ? (float) $setting->office_longitude : 107.14537203,
+            'radius' => $setting && $setting->max_radius_meters ? (int) $setting->max_radius_meters : 50,
+        ];
+    }
 }

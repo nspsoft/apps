@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\SecurityPatrol;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
+use App\Models\Company;
 use App\Models\SecurityCheckpoint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -33,7 +35,7 @@ class SecurityCheckpointController extends Controller
             ->distinct()
             ->pluck('area_zone');
 
-        $company = \App\Models\Company::first();
+        $company = Company::first();
         $companyData = [
             'name' => $company?->name ?: 'PT. JIDOKA RESULT INDONESIA',
             'logo' => $company?->logo ?: '/storage/logos/Po8YgfBcC9PjjRhnNcPRZH0u9UMDb5MIv8MUXnXe.png',
@@ -41,11 +43,15 @@ class SecurityCheckpointController extends Controller
 
         $allActiveCheckpoints = SecurityCheckpoint::where('is_active', true)->orderBy('code')->get();
 
+        // Get Smart Attendance office geofence coordinates
+        $officeCoordinates = AppSetting::getOfficeCoordinates();
+
         return Inertia::render('SecurityPatrol/Checkpoints/Index', [
             'checkpoints' => $checkpoints,
             'allActiveCheckpoints' => $allActiveCheckpoints,
             'zones' => $zones,
             'company' => $companyData,
+            'officeCoordinates' => $officeCoordinates,
             'filters' => $request->only(['search', 'area_zone']),
         ]);
     }
@@ -70,7 +76,7 @@ class SecurityCheckpointController extends Controller
 
         SecurityCheckpoint::create($validated);
 
-        return redirect()->back()->with('success', 'Titik checkpoint pos berhasil ditambahkan.');
+        return redirect()->back()->with('success', 'Titik pos patroli berhasil didaftarkan.');
     }
 
     public function update(Request $request, SecurityCheckpoint $checkpoint)
@@ -91,14 +97,19 @@ class SecurityCheckpointController extends Controller
 
         $checkpoint->update($validated);
 
-        return redirect()->back()->with('success', 'Titik checkpoint pos berhasil diperbarui.');
+        return redirect()->back()->with('success', 'Titik pos patroli berhasil diperbarui.');
     }
 
     public function destroy(SecurityCheckpoint $checkpoint)
     {
+        // Check if checkpoint has logs
+        if ($checkpoint->logs()->exists()) {
+            return redirect()->back()->with('error', 'Titik pos tidak dapat dihapus karena memiliki riwayat log patroli.');
+        }
+
         $checkpoint->delete();
 
-        return redirect()->back()->with('success', 'Titik checkpoint pos berhasil dihapus.');
+        return redirect()->back()->with('success', 'Titik pos patroli berhasil dihapus.');
     }
 
     public function regenerateToken(SecurityCheckpoint $checkpoint)
@@ -108,6 +119,6 @@ class SecurityCheckpointController extends Controller
             'updated_by' => auth()->id(),
         ]);
 
-        return redirect()->back()->with('success', 'QR Token berhasil diperbarui/di-rotasi.');
+        return redirect()->back()->with('success', 'QR Token pos patroli berhasil diperbarui.');
     }
 }

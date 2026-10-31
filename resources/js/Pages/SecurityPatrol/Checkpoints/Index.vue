@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import QrcodeVue from 'qrcode.vue';
 import Swal from 'sweetalert2';
@@ -15,6 +15,7 @@ import {
     XMarkIcon,
     CheckIcon,
     MagnifyingGlassIcon,
+    BuildingOfficeIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -33,6 +34,14 @@ const props = defineProps({
     company: {
         type: Object,
         default: () => ({ name: 'JICOS ERP', logo: '' }),
+    },
+    officeCoordinates: {
+        type: Object,
+        default: () => ({
+            latitude: -6.36356577,
+            longitude: 107.14537203,
+            radius: 50,
+        }),
     },
     filters: {
         type: Object,
@@ -60,8 +69,8 @@ const form = ref({
     name: '',
     description: '',
     area_zone: '',
-    latitude: -6.2952,
-    longitude: 107.1385,
+    latitude: -6.36356577,
+    longitude: 107.14537203,
     geofence_radius: 50,
     sop_text: '',
 });
@@ -69,14 +78,18 @@ const form = ref({
 const openCreateModal = () => {
     isEditing.value = false;
     editingId.value = null;
+    const defaultLat = props.officeCoordinates?.latitude ?? -6.36356577;
+    const defaultLng = props.officeCoordinates?.longitude ?? 107.14537203;
+    const defaultRadius = props.officeCoordinates?.radius ?? 50;
+
     form.value = {
-        code: `CP-${String(props.checkpoints.total + 1).padStart(2, '0')}`,
+        code: `CP-${String((props.checkpoints?.total || 0) + 1).padStart(2, '0')}`,
         name: '',
         description: '',
         area_zone: '',
-        latitude: -6.2952,
-        longitude: 107.1385,
-        geofence_radius: 50,
+        latitude: defaultLat,
+        longitude: defaultLng,
+        geofence_radius: defaultRadius,
         sop_text: 'Gembok terkunci rapat\nLampu penerangan menyala\nKondisi sekitar aman dan steril',
     };
     showModal.value = true;
@@ -96,6 +109,14 @@ const openEditModal = (cp) => {
         sop_text: Array.isArray(cp.sop_items) ? cp.sop_items.join('\n') : '',
     };
     showModal.value = true;
+};
+
+const useSmartAttendanceCoords = () => {
+    if (props.officeCoordinates) {
+        form.value.latitude = props.officeCoordinates.latitude;
+        form.value.longitude = props.officeCoordinates.longitude;
+        form.value.geofence_radius = props.officeCoordinates.radius || 50;
+    }
 };
 
 const closeModal = () => {
@@ -232,6 +253,20 @@ const triggerPrint = () => {
                         Tambah Titik Pos
                     </button>
                 </div>
+            </div>
+
+            <!-- Info Acuan Smart Attendance Banner -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3.5 py-2.5 bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-lg text-xs">
+                <div class="flex items-center gap-2 text-blue-900 dark:text-blue-300">
+                    <BuildingOfficeIcon class="size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <span>Lokasi Default Mengacu ke <strong>Smart Attendance:</strong> Lat <code class="font-mono font-semibold">{{ officeCoordinates?.latitude }}</code>, Lng <code class="font-mono font-semibold">{{ officeCoordinates?.longitude }}</code> (Radius Default: {{ officeCoordinates?.radius }}m)</span>
+                </div>
+                <Link
+                    href="/settings/preferences"
+                    class="text-blue-600 dark:text-blue-400 hover:underline font-semibold shrink-0"
+                >
+                    Pengaturan Smart Attendance &rarr;
+                </Link>
             </div>
 
             <!-- Filters Bar -->
@@ -416,26 +451,41 @@ const triggerPrint = () => {
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Latitude GPS *</label>
-                                <input
-                                    type="number"
-                                    step="0.0000001"
-                                    v-model.number="form.latitude"
-                                    required
-                                    class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                                />
+                        <!-- GPS Coordinates with Smart Attendance Sync Button -->
+                        <div class="pt-1">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-semibold text-slate-700 dark:text-slate-300">Koordinat Geofence GPS *</span>
+                                <button
+                                    type="button"
+                                    @click="useSmartAttendanceCoords"
+                                    class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+                                    title="Salin titik koordinat & radius dari pengaturan Smart Attendance"
+                                >
+                                    <BuildingOfficeIcon class="size-3.5" />
+                                    Samakan dg Smart Attendance ({{ officeCoordinates?.latitude?.toFixed(5) }}, {{ officeCoordinates?.longitude?.toFixed(5) }})
+                                </button>
                             </div>
-                            <div>
-                                <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Longitude GPS *</label>
-                                <input
-                                    type="number"
-                                    step="0.0000001"
-                                    v-model.number="form.longitude"
-                                    required
-                                    class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
-                                />
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-0.5">Latitude GPS *</label>
+                                    <input
+                                        type="number"
+                                        step="0.0000001"
+                                        v-model.number="form.latitude"
+                                        required
+                                        class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500 mb-0.5">Longitude GPS *</label>
+                                    <input
+                                        type="number"
+                                        step="0.0000001"
+                                        v-model.number="form.longitude"
+                                        required
+                                        class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
+                                    />
+                                </div>
                             </div>
                         </div>
 

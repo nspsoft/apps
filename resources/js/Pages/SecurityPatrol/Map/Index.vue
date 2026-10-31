@@ -35,6 +35,14 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    officeCoordinates: {
+        type: Object,
+        default: () => ({
+            latitude: -6.36356577,
+            longitude: 107.14537203,
+            radius: 50,
+        }),
+    },
     stats: {
         type: Object,
         default: () => ({}),
@@ -91,9 +99,9 @@ const initMap = () => {
 
     initLeafletIcons();
 
-    // Default center to first checkpoint or Jababeka coordinates
-    let centerLat = -6.29520;
-    let centerLng = 107.13850;
+    // Default center to Smart Attendance coordinates or first checkpoint
+    let centerLat = props.officeCoordinates?.latitude ?? -6.36356577;
+    let centerLng = props.officeCoordinates?.longitude ?? 107.14537203;
 
     if (props.checkpoints && props.checkpoints.length > 0) {
         centerLat = props.checkpoints[0].latitude;
@@ -123,6 +131,58 @@ const renderMapMarkers = () => {
 
     const bounds = [];
 
+    // 1. Draw Smart Attendance Office Geofence Circle & Marker
+    if (props.officeCoordinates?.latitude && props.officeCoordinates?.longitude) {
+        const officeLatLng = [props.officeCoordinates.latitude, props.officeCoordinates.longitude];
+        bounds.push(officeLatLng);
+
+        // Geofence Circle
+        const officeCircle = L.circle(officeLatLng, {
+            radius: props.officeCoordinates.radius || 50,
+            color: '#2563eb',
+            fillColor: '#3b82f6',
+            fillOpacity: 0.12,
+            weight: 2,
+            dashArray: '5, 5',
+        });
+
+        // Office Marker Icon
+        const officeIcon = L.divIcon({
+            className: 'custom-office-marker',
+            html: `
+                <div class="relative flex items-center justify-center size-9 rounded-full bg-blue-600 text-white shadow-lg ring-4 ring-blue-300 dark:ring-blue-900 border-2 border-white">
+                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                </div>
+            `,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -20],
+        });
+
+        const officeMarker = L.marker(officeLatLng, { icon: officeIcon });
+        officeMarker.bindPopup(`
+            <div class="p-1 text-slate-800">
+                <div class="flex items-center gap-1.5 font-bold text-xs text-blue-700 border-b border-slate-200 pb-1 mb-1">
+                    <span>🏢 TITIK PUSAT KANTOR</span>
+                </div>
+                <div class="text-xs text-slate-600 space-y-0.5">
+                    <div><strong>Pengaturan:</strong> Smart Attendance</div>
+                    <div><strong>Latitude:</strong> ${props.officeCoordinates.latitude.toFixed(8)}</div>
+                    <div><strong>Longitude:</strong> ${props.officeCoordinates.longitude.toFixed(8)}</div>
+                    <div class="mt-1 text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded font-semibold inline-block border border-blue-200">
+                        Radius Presensi: ${props.officeCoordinates.radius || 50}m
+                    </div>
+                </div>
+            </div>
+        `);
+
+        markersLayer.addLayer(officeCircle);
+        markersLayer.addLayer(officeMarker);
+    }
+
+    // 2. Draw Checkpoints
     props.checkpoints.forEach((cp) => {
         if (!cp.latitude || !cp.longitude) return;
 
@@ -165,7 +225,7 @@ const renderMapMarkers = () => {
         markersLayer.addLayer(marker);
     });
 
-    // Draw route polyline if available
+    // 3. Draw route polyline if available
     if (props.routePolyline && props.routePolyline.length > 1) {
         const polyline = L.polyline(props.routePolyline, {
             color: '#2563eb',
@@ -194,6 +254,12 @@ const selectCheckpointFromList = (cp) => {
         map.flyTo([cp.latitude, cp.longitude], 18, { duration: 1 });
     }
 };
+
+const centerToOffice = () => {
+    if (map && props.officeCoordinates?.latitude && props.officeCoordinates?.longitude) {
+        map.flyTo([props.officeCoordinates.latitude, props.officeCoordinates.longitude], 18, { duration: 1 });
+    }
+};
 </script>
 
 <template>
@@ -213,11 +279,21 @@ const selectCheckpointFromList = (cp) => {
                         </h1>
                     </div>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Peta real-time titik pos patroli satpam, jejak rute, dan status pengawasan pabrik.
+                        Peta real-time titik pos patroli satpam, jejak rute, dan status pengawasan pabrik berbasis koordinat terpadu.
                     </p>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button
+                        type="button"
+                        @click="centerToOffice"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm"
+                        title="Pusatkan peta ke lokasi kantor pusat / Smart Attendance"
+                    >
+                        <BuildingOfficeIcon class="size-4 text-blue-600 dark:text-blue-400" />
+                        Pusatkan ke Kantor (Attendance)
+                    </button>
+
                     <Link
                         href="/security-patrol/active"
                         class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 active:bg-blue-800 transition shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
@@ -260,7 +336,7 @@ const selectCheckpointFromList = (cp) => {
                     <p class="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400 mt-2 tabular-nums">
                         {{ Math.max(0, (stats.total_checkpoints || 0) - (stats.checked_checkpoints || 0)) }}
                     </p>
-                    <span class="text-xs text-slate-500 mt-1 block">Menunggu giliran</span>
+                    <span class="text-xs text-slate-500 mt-1 block">Belum discan</span>
                 </div>
 
                 <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4 shadow-sm">
@@ -291,12 +367,15 @@ const selectCheckpointFromList = (cp) => {
                 <!-- Map Container (2 cols) -->
                 <div class="lg:col-span-2 space-y-4">
                     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 sm:p-4 shadow-sm">
-                        <div class="flex items-center justify-between mb-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
                             <div class="flex items-center gap-3">
                                 <h2 class="text-base font-semibold text-slate-900 dark:text-white">
                                     Denah Patroli Lapangan
                                 </h2>
                                 <div class="hidden sm:flex items-center gap-2 text-xs">
+                                    <span class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                                        <span class="size-2.5 rounded-full bg-blue-600"></span> Kantor (Attendance)
+                                    </span>
                                     <span class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
                                         <span class="size-2.5 rounded-full bg-emerald-500"></span> Selesai
                                     </span>
@@ -308,9 +387,14 @@ const selectCheckpointFromList = (cp) => {
                                     </span>
                                 </div>
                             </div>
-                            <span v-if="activeSession" class="text-xs font-medium px-2 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800">
-                                {{ activeSession.session_code }} ({{ activeSession.shift_name }})
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <span v-if="activeSession" class="text-xs font-medium px-2 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-800">
+                                    {{ activeSession.session_code }} ({{ activeSession.shift_name }})
+                                </span>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono hidden md:inline">
+                                    Acuan: {{ officeCoordinates?.latitude?.toFixed(5) }}, {{ officeCoordinates?.longitude?.toFixed(5) }}
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Leaflet Container -->
@@ -399,33 +483,31 @@ const selectCheckpointFromList = (cp) => {
                                 class="p-3 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-xs space-y-1.5"
                             >
                                 <div class="flex items-center justify-between">
-                                    <span class="font-mono font-bold text-slate-800 dark:text-slate-200">{{ s.session_code }}</span>
+                                    <span class="font-mono font-bold text-slate-800 dark:text-slate-200">
+                                        {{ s.session_code }}
+                                    </span>
                                     <span
                                         :class="[
-                                            'px-2 py-0.5 rounded-full font-semibold text-[10px]',
+                                            'px-2 py-0.5 rounded text-[10px] font-semibold uppercase',
                                             s.status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
-                                            s.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 animate-pulse' :
+                                            s.status === 'in_progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300' :
                                             'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                                         ]"
                                     >
-                                        {{ s.status === 'completed' ? 'Selesai' : s.status === 'in_progress' ? 'Berlangsung' : 'Tidak Lengkap' }}
+                                        {{ s.status }}
                                     </span>
                                 </div>
 
-                                <div class="text-slate-600 dark:text-slate-300 flex items-center justify-between">
-                                    <span>{{ s.shift_name }}</span>
-                                    <span class="text-slate-400">Petugas: {{ s.user?.name || '-' }}</span>
+                                <div class="text-slate-600 dark:text-slate-400">
+                                    {{ s.shift_name }} &bull; {{ s.user?.name || 'Petugas' }}
                                 </div>
 
-                                <div class="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden mt-1">
-                                    <div
-                                        class="bg-blue-600 h-full rounded-full transition-all"
-                                        :style="{ width: `${s.total_checkpoints ? (s.completed_checkpoints / s.total_checkpoints) * 100 : 0}%` }"
-                                    ></div>
-                                </div>
-                                <div class="flex justify-between text-[11px] text-slate-500 tabular-nums">
-                                    <span>{{ s.completed_checkpoints }} dari {{ s.total_checkpoints }} titik</span>
-                                    <span v-if="s.incidents_count > 0" class="text-rose-600 font-semibold">{{ s.incidents_count }} insiden</span>
+                                <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+                                    <span>Checkpoint: {{ s.completed_checkpoints }}/{{ s.total_checkpoints }}</span>
+                                    <span v-if="s.incidents_count > 0" class="text-rose-600 font-semibold">
+                                        {{ s.incidents_count }} Insiden
+                                    </span>
+                                    <span v-else class="text-emerald-600 font-medium">Nihil Insiden</span>
                                 </div>
                             </div>
                         </div>
@@ -435,10 +517,3 @@ const selectCheckpointFromList = (cp) => {
         </div>
     </AppLayout>
 </template>
-
-<style>
-.custom-leaflet-marker {
-    background: transparent;
-    border: none;
-}
-</style>

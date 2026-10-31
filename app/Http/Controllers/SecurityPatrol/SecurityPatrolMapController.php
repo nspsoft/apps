@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\SecurityPatrol;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\SecurityCheckpoint;
 use App\Models\SecurityPatrolSession;
 use Carbon\Carbon;
@@ -91,11 +92,15 @@ class SecurityPatrolMapController extends Controller
         $completedSessions = $todaySessions->where('status', 'completed')->count();
         $totalIncidentsToday = $todaySessions->sum('incidents_count');
 
+        // Dynamic office coordinates from Smart Attendance preferences
+        $officeCoordinates = AppSetting::getOfficeCoordinates();
+
         return Inertia::render('SecurityPatrol/Map/Index', [
             'checkpoints' => $checkpointStatus,
             'todaySessions' => $todaySessions,
             'activeSession' => $activeSession,
             'routePolyline' => $routePolyline,
+            'officeCoordinates' => $officeCoordinates,
             'stats' => [
                 'total_checkpoints' => $checkpoints->count(),
                 'checked_checkpoints' => count($activeLogs),
