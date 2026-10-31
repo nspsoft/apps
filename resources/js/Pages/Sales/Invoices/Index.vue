@@ -134,8 +134,10 @@ const toggleSelectAll = () => {
 // CoreTax Export state
 const showCoreTaxModal = ref(false);
 const isExportingCoreTax = ref(false);
+const exportingFormat = ref(null);
 const coreTaxForm = ref({
     export_mode: 'filter', // 'selected' or 'filter'
+    file_format: 'xml', // 'xml' (Format Resmi Upload CoreTax) or 'xlsx' (Format Spreadsheet)
     barang_jasa: 'A', // 'A' (Barang) or 'B' (Jasa)
     kode_transaksi: '04', // default 04
     tarif_ppnbm: 0, // default 0 (persen)
@@ -173,8 +175,10 @@ const openCoreTaxModal = (forSelected = false) => {
     showCoreTaxModal.value = true;
 };
 
-const submitCoreTaxExport = () => {
+const submitCoreTaxExport = (overrideFormat = null) => {
     isExportingCoreTax.value = true;
+    const formatToUse = overrideFormat || coreTaxForm.value.file_format || 'xml';
+    exportingFormat.value = formatToUse;
     const params = new URLSearchParams();
     if (coreTaxForm.value.export_mode === 'selected' && selectedInvoiceIds.value.length > 0) {
         params.append('ids', selectedInvoiceIds.value.join(','));
@@ -185,6 +189,7 @@ const submitCoreTaxExport = () => {
         if (dateFrom.value) params.append('date_from', dateFrom.value);
         if (dateTo.value) params.append('date_to', dateTo.value);
     }
+    params.append('format', formatToUse);
     params.append('barang_jasa', coreTaxForm.value.barang_jasa);
     params.append('kode_transaksi', coreTaxForm.value.kode_transaksi);
     params.append('tarif_ppnbm', coreTaxForm.value.tarif_ppnbm || 0);
@@ -196,8 +201,9 @@ const submitCoreTaxExport = () => {
     window.location.href = route('sales.invoices.export-coretax') + '?' + params.toString();
     setTimeout(() => {
         isExportingCoreTax.value = false;
+        exportingFormat.value = null;
         showCoreTaxModal.value = false;
-    }, 1200);
+    }, 1500);
 };
 
 // Import modal state
@@ -636,6 +642,48 @@ const submitImport = () => {
                             </p>
                         </div>
 
+                        <!-- Opsi Format Ekspor (XML vs Excel) -->
+                        <div class="pt-1">
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                Format Dokumen CoreTax
+                            </label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <label 
+                                    class="flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer text-xs transition-all"
+                                    :class="coreTaxForm.file_format === 'xml' 
+                                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 text-indigo-950 dark:text-indigo-200 ring-1 ring-indigo-500/20' 
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'"
+                                >
+                                    <input type="radio" value="xml" v-model="coreTaxForm.file_format" class="sr-only" />
+                                    <div class="mt-0.5 size-3.5 rounded-full border flex items-center justify-center shrink-0" :class="coreTaxForm.file_format === 'xml' ? 'border-indigo-600' : 'border-slate-300 dark:border-slate-600'">
+                                        <div v-if="coreTaxForm.file_format === 'xml'" class="size-2 rounded-full bg-indigo-600"></div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-1.5 font-bold">
+                                            <span>Format XML (.xml)</span>
+                                            <span class="text-[9px] px-1.5 py-0.2 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold uppercase">Upload Resmi</span>
+                                        </div>
+                                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Format standar untuk menu Impor Data DJP CoreTax.</p>
+                                    </div>
+                                </label>
+                                <label 
+                                    class="flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer text-xs transition-all"
+                                    :class="coreTaxForm.file_format === 'xlsx' 
+                                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-200 ring-1 ring-emerald-500/20' 
+                                        : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'"
+                                >
+                                    <input type="radio" value="xlsx" v-model="coreTaxForm.file_format" class="sr-only" />
+                                    <div class="mt-0.5 size-3.5 rounded-full border flex items-center justify-center shrink-0" :class="coreTaxForm.file_format === 'xlsx' ? 'border-emerald-600' : 'border-slate-300 dark:border-slate-600'">
+                                        <div v-if="coreTaxForm.file_format === 'xlsx'" class="size-2 rounded-full bg-emerald-600"></div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="font-bold text-slate-800 dark:text-slate-200">Format Excel (.xlsx)</div>
+                                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Template spreadsheet DJP untuk arsip internal.</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
                         <!-- Opsi Jenis Barang/Jasa & Kode Transaksi & Tarif PPnBM -->
                         <div class="space-y-3 pt-1 border-t border-slate-100 dark:border-slate-800">
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -758,21 +806,31 @@ const submitImport = () => {
                         </div>
 
                         <!-- Modal Actions -->
-                        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <button 
                                 type="button" 
                                 @click="showCoreTaxModal = false" 
-                                class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-center"
                             >
                                 Batal
                             </button>
                             <button 
-                                type="submit" 
+                                type="button"
+                                @click="submitCoreTaxExport('xlsx')"
                                 :disabled="isExportingCoreTax" 
-                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm disabled:opacity-50 transition-all"
+                                class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-600/30 bg-emerald-50/60 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 shadow-sm disabled:opacity-50 transition-all cursor-pointer"
+                            >
+                                <DocumentArrowDownIcon class="size-4 text-emerald-600 dark:text-emerald-400" />
+                                <span>{{ (isExportingCoreTax && exportingFormat === 'xlsx') ? 'Menyiapkan Excel...' : 'Download Excel (.xlsx)' }}</span>
+                            </button>
+                            <button 
+                                type="button"
+                                @click="submitCoreTaxExport('xml')"
+                                :disabled="isExportingCoreTax" 
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-500 shadow-sm disabled:opacity-50 transition-all cursor-pointer"
                             >
                                 <DocumentArrowDownIcon class="size-4" />
-                                <span>{{ isExportingCoreTax ? 'Menyiapkan File...' : 'Download File CoreTax (.xlsx)' }}</span>
+                                <span>{{ (isExportingCoreTax && exportingFormat === 'xml') ? 'Menyiapkan XML...' : 'Download XML (.xml)' }}</span>
                             </button>
                         </div>
                     </form>

@@ -474,7 +474,8 @@ class SalesInvoiceController extends Controller
         }
 
         try {
-            $filePath = $coreTaxService->generate($invoices, [
+            $format = strtolower($request->input('format', $request->input('file_format', 'xml')));
+            $exportOptions = [
                 'seller_npwp' => $request->input('seller_npwp', '0809672348413000'),
                 'seller_nitku' => $request->input('seller_nitku', '0809672348413000000000'),
                 'barang_jasa' => $request->input('barang_jasa', 'A'),
@@ -482,12 +483,23 @@ class SalesInvoiceController extends Controller
                 'tarif_ppnbm' => (float) $request->input('tarif_ppnbm', 0),
                 'keterangan_tambahan_07' => $request->input('keterangan_tambahan_07', 'TD.00502'),
                 'cap_fasilitas_07' => $request->input('cap_fasilitas_07', 'TD.01103'),
-            ]);
+            ];
 
+            if ($format === 'xml') {
+                $filePath = $coreTaxService->generateXml($invoices, $exportOptions);
+                $fileName = 'CoreTax_Faktur_Pajak_' . now()->format('Ymd_His') . '.xml';
+                return response()->download($filePath, $fileName, [
+                    'Content-Type' => 'application/xml',
+                ])->deleteFileAfterSend(true);
+            }
+
+            $filePath = $coreTaxService->generate($invoices, $exportOptions);
             $fileName = 'CoreTax_Faktur_Pajak_' . now()->format('Ymd_His') . '.xlsx';
-            return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
+            return response()->download($filePath, $fileName, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal generate template CoreTax: ' . $e->getMessage());
+            return back()->with('error', 'Gagal generate CoreTax: ' . $e->getMessage());
         }
     }
 }

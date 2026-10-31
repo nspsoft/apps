@@ -1,0 +1,1 @@
+@media print{body *{visibility:hidden}.print\:grid-cols-2,.print\:grid-cols-2 *{visibility:visible}.print\:grid-cols-2{position:absolute;left:0;top:0;width:100%}}

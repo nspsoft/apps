@@ -251,6 +251,197 @@ class CoreTaxExportService
     }
 
     /**
+     * Generate CoreTax XML (TaxInvoiceBulk) from an invoice collection or query.
+     *
+     * @param iterable $invoices
+     * @param array $options
+     * @return string Path to temporary generated .xml file
+     */
+    public function generateXml(iterable $invoices, array $options = []): string
+    {
+        $sellerNpwp = preg_replace('/[^0-9]/', '', $options['seller_npwp'] ?? '0809672348413000');
+        $sellerNitku = preg_replace('/[^0-9]/', '', $options['seller_nitku'] ?? '0809672348413000000000');
+        $barangJasaType = $options['barang_jasa'] ?? 'A';
+        $selectedKodeTransaksi = $options['kode_transaksi'] ?? '04';
+        $tarifPpnbm = (float) ($options['tarif_ppnbm'] ?? 0);
+        $keterangan07 = $options['keterangan_tambahan_07'] ?? 'TD.00502';
+        $capFasilitas07 = $options['cap_fasilitas_07'] ?? 'TD.01103';
+
+        $dom = new \DOMDocument('1.0', 'utf-8');
+        $dom->formatOutput = true;
+
+        $root = $dom->createElement('TaxInvoiceBulk');
+        $root->setAttribute('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance');
+        $root->setAttribute('xsi:noNamespaceSchemaLocation', 'TaxInvoice.xsd');
+        $dom->appendChild($root);
+
+        $tin = $dom->createElement('TIN', $sellerNpwp);
+        $root->appendChild($tin);
+
+        $listOfTaxInvoice = $dom->createElement('ListOfTaxInvoice');
+        $root->appendChild($listOfTaxInvoice);
+
+        foreach ($invoices as $inv) {
+            $cust = $inv->customer ?? $inv->salesOrder?->customer;
+            $taxAmount = (float) $inv->tax_amount;
+
+            // Logic: if user selected 04 and tax is 0, switch to 07
+            if ($selectedKodeTransaksi === '04') {
+                $kodeTransaksi = ($taxAmount > 0) ? '04' : '07';
+            } else {
+                $kodeTransaksi = $selectedKodeTransaksi;
+            }
+
+            // Clean Customer Tax ID / NIK
+            $rawTax = preg_replace('/[^0-9]/', '', $cust?->tax_id ?? '');
+            if (!empty($rawTax)) {
+                if (strlen($rawTax) === 15) {
+                    $rawTax = '0' . $rawTax;
+                }
+                if (strlen($rawTax) === 16) {
+                    $buyerId = $rawTax;
+                    $buyerType = 'TIN';
+                    $buyerDocNo = '-';
+                    $buyerNitku = $rawTax . '000000'; // 22 digits
+                } else {
+                    $buyerId = str_pad($rawTax, 16, '0', STR_PAD_LEFT);
+                    $buyerType = 'National ID';
+                    $buyerDocNo = $rawTax;
+                    $buyerNitku = '0000000000000000000000';
+                }
+            } else {
+                $buyerId = '0000000000000000';
+                $buyerType = 'TIN';
+                $buyerDocNo = '-';
+                $buyerNitku = '0000000000000000000000';
+            }
+
+            $ketTambahan = ($kodeTransaksi === '07' || $kodeTransaksi === '08') ? $keterangan07 : '';
+            $capFasilitas = ($kodeTransaksi === '07' || $kodeTransaksi === '08') ? $capFasilitas07 : '';
+
+            $invDate = $inv->invoice_date instanceof Carbon 
+                ? $inv->invoice_date->format('Y-m-d') 
+                : ($inv->invoice_date ? Carbon::parse($inv->invoice_date)->format('Y-m-d') : date('Y-m-d'));
+
+            $taxInvoice = $dom->createElement('TaxInvoice');
+            $listOfTaxInvoice->appendChild($taxInvoice);
+
+            $taxInvoice->appendChild($dom->createElement('TaxInvoiceDate', $invDate));
+            $taxInvoice->appendChild($dom->createElement('TaxInvoiceOpt', 'Normal'));
+            $taxInvoice->appendChild($dom->createElement('TrxCode', $kodeTransaksi));
+            $taxInvoice->appendChild($dom->createElement('AddInfo', $ketTambahan));
+            $taxInvoice->appendChild($dom->createElement('CustomDoc', ''));
+            $taxInvoice->appendChild($dom->createElement('CustomDocMonthYear', ''));
+            $taxInvoice->appendChild($dom->createElement('RefDesc', $inv->invoice_number));
+            $taxInvoice->appendChild($dom->createElement('FacilityStamp', $capFasilitas));
+            $taxInvoice->appendChild($dom->createElement('SellerIDTKU', $sellerNitku));
+
+            $taxInvoice->appendChild($dom->createElement('BuyerTin', $buyerId));
+            $taxInvoice->appendChild($dom->createElement('BuyerDocument', $buyerType));
+            $taxInvoice->appendChild($dom->createElement('BuyerCountry', 'IDN'));
+            $taxInvoice->appendChild($dom->createElement('BuyerDocumentNumber', $buyerDocNo));
+            $taxInvoice->appendChild($dom->createElement('BuyerName', $cust?->name ?? 'Customer'));
+            $taxInvoice->appendChild($dom->createElement('BuyerAdress', $cust?->full_address ?? $cust?->address ?? '-'));
+            $taxInvoice->appendChild($dom->createElement('BuyerEmail', $cust?->email ?? ''));
+            $taxInvoice->appendChild($dom->createElement('BuyerIDTKU', $buyerNitku));
+
+            $listOfGoodService = $dom->createElement('ListOfGoodService');
+            $taxInvoice->appendChild($listOfGoodService);
+
+            // Group items by Faktur line (consolidating partial deliveries / DO details into single invoice items)
+            if ($inv->items->isEmpty()) {
+                $subtotal = (float) $inv->subtotal;
+                $disc = (float) $inv->discount_amount;
+                $taxBase = round($subtotal - $disc, 2);
+                $otherTaxBase = ($kodeTransaksi === '04') ? round((11 / 12) * $taxBase, 2) : $taxBase;
+                $vatRate = ($kodeTransaksi === '04') ? 12 : 0;
+                $vat = ($kodeTransaksi === '04') ? round($otherTaxBase * $vatRate / 100, 2) : 0;
+                $stlg = ($tarifPpnbm > 0) ? round($otherTaxBase * $tarifPpnbm / 100, 2) : 0;
+
+                $itemEl = $dom->createElement('GoodService');
+                $itemEl->appendChild($dom->createElement('Opt', $barangJasaType));
+                $itemEl->appendChild($dom->createElement('Code', '481900'));
+                $itemEl->appendChild($dom->createElement('Name', 'Penjualan Barang / Jasa ' . $inv->invoice_number));
+                $itemEl->appendChild($dom->createElement('Unit', 'UM.0021'));
+                $itemEl->appendChild($dom->createElement('Price', number_format($subtotal, 2, '.', '')));
+                $itemEl->appendChild($dom->createElement('Qty', '1'));
+                $itemEl->appendChild($dom->createElement('TotalDiscount', number_format($disc, 2, '.', '')));
+                $itemEl->appendChild($dom->createElement('TaxBase', number_format($taxBase, 2, '.', '')));
+                $itemEl->appendChild($dom->createElement('OtherTaxBase', number_format($otherTaxBase, 2, '.', '')));
+                $itemEl->appendChild($dom->createElement('VATRate', (string) $vatRate));
+                $itemEl->appendChild($dom->createElement('VAT', number_format($vat, 2, '.', '')));
+                $itemEl->appendChild($dom->createElement('STLGRate', (string) $tarifPpnbm));
+                $itemEl->appendChild($dom->createElement('STLG', number_format($stlg, 2, '.', '')));
+                $listOfGoodService->appendChild($itemEl);
+            } else {
+                // Inject customer product aliases if available
+                if ($cust) {
+                    foreach ($inv->items as $item) {
+                        if ($item->product && !isset($item->product_alias_name)) {
+                            $alias = $item->product->getAliasFor($cust);
+                            $item->product_alias_name = $alias?->alias_name;
+                            $item->product_alias_sku = $alias?->alias_sku;
+                        }
+                    }
+                }
+
+                $groupedItems = $inv->items->groupBy(function ($item) {
+                    if ($item->sales_order_item_id) {
+                        return 'so-' . $item->sales_order_item_id;
+                    }
+                    if ($item->product_id) {
+                        return 'prod-' . $item->product_id . '-' . (string)$item->unit_price;
+                    }
+                    return 'item-' . $item->id;
+                });
+
+                foreach ($groupedItems as $groupId => $items) {
+                    $firstItem = $items->first();
+                    $pName = $firstItem->product_alias_name ?? $firstItem->product?->name ?? $firstItem->description ?? 'Item';
+                    $unitCode = self::mapUnitCode($firstItem->unit?->code, $firstItem->unit?->name);
+
+                    $qty = (float) $items->sum('qty');
+                    $price = (float) ($firstItem->unit_price ?: 0);
+                    $disc = (float) $items->sum('discount_amount');
+
+                    $taxBase = round($qty * $price - $disc, 2);
+                    $otherTaxBase = ($kodeTransaksi === '04') ? round((11 / 12) * $taxBase, 2) : $taxBase;
+                    $vatRate = ($kodeTransaksi === '04') ? 12 : 0;
+                    $vat = ($kodeTransaksi === '04') ? round($otherTaxBase * $vatRate / 100, 2) : 0;
+                    $stlg = ($tarifPpnbm > 0) ? round($otherTaxBase * $tarifPpnbm / 100, 2) : 0;
+
+                    $itemEl = $dom->createElement('GoodService');
+                    $itemEl->appendChild($dom->createElement('Opt', $barangJasaType));
+                    $itemEl->appendChild($dom->createElement('Code', '481900'));
+                    $itemEl->appendChild($dom->createElement('Name', $pName));
+                    $itemEl->appendChild($dom->createElement('Unit', $unitCode));
+                    $itemEl->appendChild($dom->createElement('Price', number_format($price, 2, '.', '')));
+                    $itemEl->appendChild($dom->createElement('Qty', (float)$qty == (int)$qty ? (string)(int)$qty : number_format($qty, 2, '.', '')));
+                    $itemEl->appendChild($dom->createElement('TotalDiscount', number_format($disc, 2, '.', '')));
+                    $itemEl->appendChild($dom->createElement('TaxBase', number_format($taxBase, 2, '.', '')));
+                    $itemEl->appendChild($dom->createElement('OtherTaxBase', number_format($otherTaxBase, 2, '.', '')));
+                    $itemEl->appendChild($dom->createElement('VATRate', (string) $vatRate));
+                    $itemEl->appendChild($dom->createElement('VAT', number_format($vat, 2, '.', '')));
+                    $itemEl->appendChild($dom->createElement('STLGRate', (string) $tarifPpnbm));
+                    $itemEl->appendChild($dom->createElement('STLG', number_format($stlg, 2, '.', '')));
+                    $listOfGoodService->appendChild($itemEl);
+                }
+            }
+        }
+
+        // Save output to temporary file
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $outputPath = $tempDir . '/CoreTax_Faktur_' . date('Ymd_His') . '_' . uniqid() . '.xml';
+        $dom->save($outputPath);
+
+        return $outputPath;
+    }
+
+    /**
      * Map ERP Unit to DJP CoreTax Unit Code.
      */
     public static function mapUnitCode(?string $unitCode, ?string $unitName): string
