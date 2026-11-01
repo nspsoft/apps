@@ -11,6 +11,11 @@ class PayrollSettingController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.edit'))) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk mengelola pengaturan Payroll.');
+        }
+
         return Inertia::render('HR/Payroll/Settings', [
             'settings' => PayrollSetting::all()->groupBy('category'),
         ]);
@@ -18,6 +23,11 @@ class PayrollSettingController extends Controller
 
     public function update(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.edit'))) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk mengelola pengaturan Payroll.');
+        }
+
         $request->validate([
             'settings' => 'required|array',
             'settings.*.id' => 'required|exists:hr_payroll_settings,id',

@@ -20,6 +20,11 @@ class PayrollController extends Controller
 {
     public function index(Request $request): Response
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.view'))) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk melihat modul Payroll.');
+        }
+
         $month = $request->month ?: Carbon::now()->month;
         $year = $request->year ?: Carbon::now()->year;
 
@@ -81,6 +86,11 @@ class PayrollController extends Controller
 
     public function generate(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.create'))) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk mengenerate Payroll.');
+        }
+
         $request->validate([
             'month' => 'required|integer|between:1,12',
             'year' => 'required|integer|min:2020',
@@ -363,6 +373,11 @@ class PayrollController extends Controller
 
     public function show(Payroll $payroll): Response
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.view'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         return Inertia::render('HR/Payroll/Show', [
             'payroll' => $payroll->load(['employee.department', 'employee.position', 'items'])
         ]);
@@ -370,6 +385,11 @@ class PayrollController extends Controller
 
     public function updateStatus(Request $request, Payroll $payroll)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.edit'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $request->validate(['status' => 'required|in:confirmed,paid,cancelled']);
         
         $data = ['status' => $request->status];
@@ -384,6 +404,11 @@ class PayrollController extends Controller
 
     public function print(Payroll $payroll)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.view'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $payroll->load(['employee.department', 'employee.position', 'employee.workSchedule.details', 'items']);
 
         $cutoffStart = $payroll->cutoff_start ? Carbon::parse($payroll->cutoff_start)->toDateString() : Carbon::create($payroll->period_year, $payroll->period_month, 1)->subMonth()->day(26)->toDateString();
@@ -431,6 +456,11 @@ class PayrollController extends Controller
 
     public function downloadPdf(Payroll $payroll, PayslipDeliveryService $deliveryService)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.view'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $filePath = $deliveryService->generatePdf($payroll);
         $filename = "Slip_Gaji_{$payroll->employee->nik}_{$payroll->period_year}_{$payroll->period_month}.pdf";
 
@@ -441,6 +471,11 @@ class PayrollController extends Controller
 
     public function sendSingle(Request $request, Payroll $payroll, PayslipDeliveryService $deliveryService)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.edit'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $request->validate([
             'channel' => 'required|in:whatsapp,email,both',
         ]);
@@ -461,6 +496,11 @@ class PayrollController extends Controller
 
     public function sendBulk(Request $request, PayslipDeliveryService $deliveryService)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.payroll.edit'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $request->validate([
             'period_month' => 'required|integer|min:1|max:12',
             'period_year' => 'required|integer|min:2000',

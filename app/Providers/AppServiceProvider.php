@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +27,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Super Admin bypass for all permissions
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+            return $user->hasRole('Super Admin') ? true : null;
+        });
+
+        // Pilar 2: Anti N+1 Query Guard — log violations in development to prevent HTTP 500 crashes
+        Model::preventLazyLoading(!app()->isProduction());
+        Model::handleLazyLoadingViolationUsing(function ($model, $relation) {
+            \Illuminate\Support\Facades\Log::warning("Anti-N+1: Attempted to lazy load [{$relation}] on model [" . get_class($model) . "].");
+        });
+
         if (!app()->runningInConsole() || app()->environment('testing')) {
             try {
                 if (\Illuminate\Support\Facades\Schema::hasTable('app_settings')) {

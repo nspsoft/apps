@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             users: '/dashboard'
         );
 
+        $middleware->alias([
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\ForcePasswordChange::class,
@@ -24,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'whatsapp/webhook',
             'whatsapp-purchasing/webhook',
+            'whatsapp-inventory/webhook',
+            'whatsapp-hr/webhook',
             'api/*',
         ]);
         $middleware->trustProxies(at: '*');

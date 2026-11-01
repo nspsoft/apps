@@ -73,6 +73,8 @@ class EmployeeExport implements FromCollection, WithHeadings, WithMapping, Shoul
 
     public function map($employee): array
     {
+        $canViewSalary = auth()->user() && (auth()->user()->hasRole('Super Admin') || auth()->user()->can('hr_payroll.payroll.view'));
+
         return [
             $employee->nik,
             $employee->full_name,
@@ -86,9 +88,9 @@ class EmployeeExport implements FromCollection, WithHeadings, WithMapping, Shoul
             $employee->tax_status ?? 'TK/0',
             $employee->joining_date,
             $employee->employment_status,
-            $employee->salary_type ?? 'monthly',
-            $employee->hourly_rate ?? 0,
-            $employee->basic_salary,
+            $canViewSalary ? ($employee->salary_type ?? 'monthly') : '-',
+            $canViewSalary ? ($employee->hourly_rate ?? 0) : '-',
+            $canViewSalary ? $employee->basic_salary : '-',
             $employee->has_bpjstk ? 'Ya' : 'Tidak',
             $employee->bpjstk_number ?? '-',
             $employee->has_bpjskes ? 'Ya' : 'Tidak',

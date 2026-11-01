@@ -593,88 +593,115 @@ Route::middleware(['auth'])->prefix('finance')->name('finance.')->group(function
     Route::get('/reconciliation/template/{format}', [App\Http\Controllers\Finance\BankReconciliationController::class, 'downloadTemplate'])->name('reconciliation.template');
 });
 
-// HR
+// HR Module (Role & Permission Protected)
 Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
-    Route::get('/employees-export', [EmployeeController::class, 'export'])->name('employees.export');
-    
-    // Performance Management (HR view)
-    Route::get('performance', [\App\Http\Controllers\HR\PerformanceController::class, 'index'])->name('performance.index');
-    Route::get('performance/employee/{employee}', [\App\Http\Controllers\HR\PerformanceController::class, 'show'])->name('performance.show');
+    // 1. Employee Directory & Face Registration
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.employee_directory.view'])->group(function () {
+        Route::get('/employees-export', [EmployeeController::class, 'export'])->name('employees.export');
+        Route::get('/employees-template', [EmployeeController::class, 'template'])->name('employees.template');
+        Route::post('/employees-import', [EmployeeController::class, 'import'])->name('employees.import');
+        Route::resource('employees', EmployeeController::class);
 
-    // HR Recruitment / ATS
-    Route::resource('recruitment/jobs', \App\Http\Controllers\HR\JobPostingController::class)->names('jobs');
-    Route::get('recruitment/applicants', [\App\Http\Controllers\HR\ApplicantController::class, 'index'])->name('applicants.index');
-    Route::put('recruitment/applicants/{applicant}/status', [\App\Http\Controllers\HR\ApplicantController::class, 'updateStatus'])->name('applicants.status');
-    
-    Route::get('/employees-template', [EmployeeController::class, 'template'])->name('employees.template');
-    Route::post('/employees-import', [EmployeeController::class, 'import'])->name('employees.import');
-    Route::resource('employees', EmployeeController::class);
-    
-    // Employee Face Registration
-    Route::get('/face-registration', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'index'])->name('face-registration.index');
-    Route::get('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'show'])->name('employees.face.show');
-    Route::post('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'store'])->name('employees.face.store');
-    Route::delete('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'destroy'])->name('employees.face.destroy');
-    Route::get('/attendance/dashboard', [AttendanceController::class, 'dashboard'])->name('attendance.dashboard');
-    Route::get('/attendance/dashboard-data', [AttendanceController::class, 'getDashboardData'])->name('attendance.dashboard-data');
-    Route::get('/attendance/kiosk', [AttendanceController::class, 'kiosk'])->name('attendance.kiosk');
-    Route::post('/attendance/kiosk-clock', [AttendanceController::class, 'kioskClock'])->name('attendance.kiosk-clock');
-    Route::post('/attendance/kiosk-settings', [AttendanceController::class, 'updateKioskSettings'])->name('attendance.kiosk-settings');
-    Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
-    Route::get('/attendance-template', [AttendanceController::class, 'template'])->name('attendance.template');
-    Route::post('/attendance-import', [AttendanceController::class, 'import'])->name('attendance.import');
-    Route::get('/attendance-export', [AttendanceController::class, 'export'])->name('attendance.export');
-    Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
-    Route::post('/attendance/clock-out/{attendance}', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
-    Route::put('/attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
-    Route::delete('/attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
-    
-    Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
-    Route::get('/payroll/settings', [PayrollSettingController::class, 'index'])->name('payroll.settings');
-    Route::post('/payroll/settings', [PayrollSettingController::class, 'update'])->name('payroll.settings.update');
-    Route::post('/payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
-    Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
-    Route::get('/payroll/{payroll}/print', [PayrollController::class, 'print'])->name('payroll.print');
-    Route::get('/payroll/{payroll}/pdf', [PayrollController::class, 'downloadPdf'])->name('payroll.pdf');
-    Route::post('/payroll/{payroll}/send', [PayrollController::class, 'sendSingle'])->name('payroll.send');
-    Route::post('/payroll/send-bulk', [PayrollController::class, 'sendBulk'])->name('payroll.send-bulk');
-    Route::put('/payroll/{payroll}/status', [PayrollController::class, 'updateStatus'])->name('payroll.update-status');
+        // Employee Face Registration
+        Route::get('/face-registration', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'index'])->name('face-registration.index');
+        Route::get('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'show'])->name('employees.face.show');
+        Route::post('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'store'])->name('employees.face.store');
+        Route::delete('/employees/{employee}/face', [\App\Http\Controllers\HR\EmployeeFaceController::class, 'destroy'])->name('employees.face.destroy');
+    });
 
-    // Leaves Management
-    Route::get('/leaves', [\App\Http\Controllers\HR\LeaveController::class, 'index'])->name('leaves.index');
-    Route::post('/leaves', [\App\Http\Controllers\HR\LeaveController::class, 'store'])->name('leaves.store');
-    Route::post('/leaves/{leave}/approve', [\App\Http\Controllers\HR\LeaveController::class, 'approve'])->name('leaves.approve');
-    Route::post('/leaves/{leave}/reject', [\App\Http\Controllers\HR\LeaveController::class, 'reject'])->name('leaves.reject');
-    
-    // Reimbursements
-    Route::resource('reimbursements', \App\Http\Controllers\HR\ReimbursementController::class)->only(['index', 'show']);
-    Route::post('/reimbursements/{reimbursement}/pay', [\App\Http\Controllers\HR\ReimbursementController::class, 'markAsPaid'])->name('reimbursements.pay');
+    // 2. Payroll View
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.payroll.view'])->group(function () {
+        Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
+        Route::get('/payroll/{payroll}', [PayrollController::class, 'show'])->name('payroll.show');
+        Route::get('/payroll/{payroll}/print', [PayrollController::class, 'print'])->name('payroll.print');
+        Route::get('/payroll/{payroll}/pdf', [PayrollController::class, 'downloadPdf'])->name('payroll.pdf');
+    });
 
-    // Overtime Management
-    Route::get('/overtime', [\App\Http\Controllers\HR\OvertimeController::class, 'index'])->name('overtime.index');
-    Route::post('/overtime', [\App\Http\Controllers\HR\OvertimeController::class, 'store'])->name('overtime.store');
-    Route::post('/overtime/{overtime}/approve', [\App\Http\Controllers\HR\OvertimeController::class, 'approve'])->name('overtime.approve');
-    Route::post('/overtime/{overtime}/reject', [\App\Http\Controllers\HR\OvertimeController::class, 'reject'])->name('overtime.reject');
+    // 3. Payroll Settings, Generation & Distribution
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.payroll.edit'])->group(function () {
+        Route::get('/payroll/settings', [PayrollSettingController::class, 'index'])->name('payroll.settings');
+        Route::post('/payroll/settings', [PayrollSettingController::class, 'update'])->name('payroll.settings.update');
+        Route::post('/payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
+        Route::post('/payroll/{payroll}/send', [PayrollController::class, 'sendSingle'])->name('payroll.send');
+        Route::post('/payroll/send-bulk', [PayrollController::class, 'sendBulk'])->name('payroll.send-bulk');
+        Route::put('/payroll/{payroll}/status', [PayrollController::class, 'updateStatus'])->name('payroll.update-status');
+    });
 
-    // Attendance Requests Management
-    Route::post('/attendance-requests/{attendanceRequest}/approve', [\App\Http\Controllers\HR\AttendanceRequestController::class, 'approve'])->name('attendance-requests.approve');
-    Route::post('/attendance-requests/{attendanceRequest}/reject', [\App\Http\Controllers\HR\AttendanceRequestController::class, 'reject'])->name('attendance-requests.reject');
+    // 4. Attendance
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.attendance.view'])->group(function () {
+        Route::get('/attendance/dashboard', [AttendanceController::class, 'dashboard'])->name('attendance.dashboard');
+        Route::get('/attendance/dashboard-data', [AttendanceController::class, 'getDashboardData'])->name('attendance.dashboard-data');
+        Route::get('/attendance/kiosk', [AttendanceController::class, 'kiosk'])->name('attendance.kiosk');
+        Route::post('/attendance/kiosk-clock', [AttendanceController::class, 'kioskClock'])->name('attendance.kiosk-clock');
+        Route::post('/attendance/kiosk-settings', [AttendanceController::class, 'updateKioskSettings'])->name('attendance.kiosk-settings');
+        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::get('/attendance-template', [AttendanceController::class, 'template'])->name('attendance.template');
+        Route::post('/attendance-import', [AttendanceController::class, 'import'])->name('attendance.import');
+        Route::get('/attendance-export', [AttendanceController::class, 'export'])->name('attendance.export');
+        Route::post('/attendance/clock-in', [AttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+        Route::post('/attendance/clock-out/{attendance}', [AttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+        Route::put('/attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
+        Route::delete('/attendance/{attendance}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
 
-    // Work Schedules & Shift Management
-    Route::get('/work-schedules', [\App\Http\Controllers\HR\WorkScheduleController::class, 'index'])->name('work-schedules.index');
-    Route::post('/work-schedules', [\App\Http\Controllers\HR\WorkScheduleController::class, 'store'])->name('work-schedules.store');
-    Route::put('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'update'])->name('work-schedules.update');
-    Route::delete('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'destroy'])->name('work-schedules.destroy');
-    Route::put('/penalty-rules/{penaltyRule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'updatePenaltyRule'])->name('penalty-rules.update');
+        // Attendance Requests Management
+        Route::post('/attendance-requests/{attendanceRequest}/approve', [\App\Http\Controllers\HR\AttendanceRequestController::class, 'approve'])->name('attendance-requests.approve');
+        Route::post('/attendance-requests/{attendanceRequest}/reject', [\App\Http\Controllers\HR\AttendanceRequestController::class, 'reject'])->name('attendance-requests.reject');
+    });
 
-    // WhatsApp Center for HR & Employees
-    Route::get('/whatsapp', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'index'])->name('whatsapp.index');
-    Route::get('/whatsapp/history/{phone}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'history'])->name('whatsapp.history');
-    Route::delete('/whatsapp/history/{phone}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'destroy'])->name('whatsapp.destroy');
-    Route::post('/whatsapp/send', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'send'])->name('whatsapp.send');
-    Route::get('/whatsapp/unread-count', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'unreadCount'])->name('whatsapp.unread-count');
-    Route::post('/whatsapp/labels', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'addLabel'])->name('whatsapp.labels.store');
-    Route::delete('/whatsapp/labels/{label}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'removeLabel'])->name('whatsapp.labels.destroy');
+    // 5. Leaves Management
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.leave_management.view'])->group(function () {
+        Route::get('/leaves', [\App\Http\Controllers\HR\LeaveController::class, 'index'])->name('leaves.index');
+        Route::post('/leaves', [\App\Http\Controllers\HR\LeaveController::class, 'store'])->name('leaves.store');
+        Route::post('/leaves/{leave}/approve', [\App\Http\Controllers\HR\LeaveController::class, 'approve'])->name('leaves.approve');
+        Route::post('/leaves/{leave}/reject', [\App\Http\Controllers\HR\LeaveController::class, 'reject'])->name('leaves.reject');
+    });
+
+    // 6. Overtime Management
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.overtime.view'])->group(function () {
+        Route::get('/overtime', [\App\Http\Controllers\HR\OvertimeController::class, 'index'])->name('overtime.index');
+        Route::post('/overtime', [\App\Http\Controllers\HR\OvertimeController::class, 'store'])->name('overtime.store');
+        Route::post('/overtime/{overtime}/approve', [\App\Http\Controllers\HR\OvertimeController::class, 'approve'])->name('overtime.approve');
+        Route::post('/overtime/{overtime}/reject', [\App\Http\Controllers\HR\OvertimeController::class, 'reject'])->name('overtime.reject');
+    });
+
+    // 7. Reimbursements
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.reimbursements.view'])->group(function () {
+        Route::resource('reimbursements', \App\Http\Controllers\HR\ReimbursementController::class)->only(['index', 'show']);
+        Route::post('/reimbursements/{reimbursement}/pay', [\App\Http\Controllers\HR\ReimbursementController::class, 'markAsPaid'])->name('reimbursements.pay');
+    });
+
+    // 8. Work Schedules & Shift Management
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.work_schedules.view'])->group(function () {
+        Route::get('/work-schedules', [\App\Http\Controllers\HR\WorkScheduleController::class, 'index'])->name('work-schedules.index');
+        Route::post('/work-schedules', [\App\Http\Controllers\HR\WorkScheduleController::class, 'store'])->name('work-schedules.store');
+        Route::put('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'update'])->name('work-schedules.update');
+        Route::delete('/work-schedules/{workSchedule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'destroy'])->name('work-schedules.destroy');
+        Route::put('/penalty-rules/{penaltyRule}', [\App\Http\Controllers\HR\WorkScheduleController::class, 'updatePenaltyRule'])->name('penalty-rules.update');
+    });
+
+    // 9. Performance Management (HR view)
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.performance.view'])->group(function () {
+        Route::get('performance', [\App\Http\Controllers\HR\PerformanceController::class, 'index'])->name('performance.index');
+        Route::get('performance/employee/{employee}', [\App\Http\Controllers\HR\PerformanceController::class, 'show'])->name('performance.show');
+    });
+
+    // 10. HR Recruitment / ATS
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.recruitment.view'])->group(function () {
+        Route::resource('recruitment/jobs', \App\Http\Controllers\HR\JobPostingController::class)->names('jobs');
+        Route::get('recruitment/applicants', [\App\Http\Controllers\HR\ApplicantController::class, 'index'])->name('applicants.index');
+        Route::put('recruitment/applicants/{applicant}/status', [\App\Http\Controllers\HR\ApplicantController::class, 'updateStatus'])->name('applicants.status');
+    });
+
+    // 11. WhatsApp Center for HR & Employees
+    Route::middleware(['role_or_permission:Super Admin|hr_payroll.payroll.view'])->group(function () {
+        Route::get('/whatsapp', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'index'])->name('whatsapp.index');
+        Route::get('/whatsapp/history/{phone}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'history'])->name('whatsapp.history');
+        Route::delete('/whatsapp/history/{phone}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'destroy'])->name('whatsapp.destroy');
+        Route::post('/whatsapp/send', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'send'])->name('whatsapp.send');
+        Route::get('/whatsapp/unread-count', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'unreadCount'])->name('whatsapp.unread-count');
+        Route::post('/whatsapp/labels', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'addLabel'])->name('whatsapp.labels.store');
+        Route::delete('/whatsapp/labels/{label}', [\App\Http\Controllers\HR\HRWhatsappCenterController::class, 'removeLabel'])->name('whatsapp.labels.destroy');
+    });
 });
 
 // Warehouse (Loading Queue for Warehouse Staff)

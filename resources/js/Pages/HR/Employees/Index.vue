@@ -37,7 +37,10 @@ const props = defineProps({
     workSchedules: Array,
     filters: Object,
     users: Array,
+    canManageSalary: Boolean,
 });
+
+const canManageSalary = computed(() => !!props.canManageSalary);
 
 const search = ref(props.filters.search);
 const department_id = ref(props.filters.department_id);
@@ -388,8 +391,7 @@ const deleteFace = (employee) => {
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Departemen & Bagian</th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Jabatan & Shift</th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Status & BPJS</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5">Kompensasi / Gaji</th>
-                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5 text-center">Face ID</th>
+                                                                <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5 text-center">Face ID</th>
                                 <th class="sticky top-0 z-20 bg-slate-100 dark:bg-slate-950 shadow-xs border-b border-slate-200 dark:border-slate-800 py-4 px-5 text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -475,16 +477,7 @@ const deleteFace = (employee) => {
                                     </div>
                                 </td>
 
-                                <!-- Salary / Rate -->
-                                <td class="py-3.5 px-5 tabular-nums">
-                                    <span v-if="employee.salary_type === 'hourly'" class="text-emerald-500 font-bold">
-                                        Rp {{ formatNumber(employee.hourly_rate) }} / jam
-                                    </span>
-                                    <span v-else class="text-slate-700 dark:text-slate-300 font-medium">
-                                        Rp {{ formatNumber(employee.basic_salary) }}
-                                    </span>
-                                </td>
-
+                                
                                 <!-- Face ID Status -->
                                 <td class="py-3.5 px-5 text-center">
                                     <span
@@ -610,20 +603,7 @@ const deleteFace = (employee) => {
                                 </span>
                             </span>
                         </div>
-                        <div class="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-                            <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900 dark:bg-slate-800/50">
-                                <CurrencyDollarIcon class="h-4 w-4" />
-                            </div>
-                            <span class="text-xs font-medium">
-                                <span v-if="employee.salary_type === 'hourly'" class="text-emerald-500 font-bold">
-                                    Rp {{ formatNumber(employee.hourly_rate) }} / jam
-                                </span>
-                                <span v-else class="text-slate-600 dark:text-slate-300 font-medium">
-                                    GP: Rp {{ formatNumber(employee.basic_salary) }}
-                                </span>
-                            </span>
-                        </div>
-                    </div>
+                                            </div>
 
                     <div class="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800/50 flex items-center justify-between">
                         <div class="flex items-center gap-1.5 flex-wrap">
@@ -964,7 +944,8 @@ const deleteFace = (employee) => {
                                                 <p v-if="form.errors.is_active" class="text-[10px] text-red-500 italic">{{ form.errors.is_active }}</p>
                                             </div>
 
-                                            <div class="space-y-2">
+                                            <template v-if="canManageSalary">
+<div class="space-y-2">
                                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Skema Penggajian</label>
                                                 <select v-model="form.salary_type" class="block w-full rounded-xl border-0 bg-white dark:bg-slate-950 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 transition-all font-semibold">
                                                     <option value="monthly">Bulanan (Gaji Pokok Tetap)</option>
@@ -996,6 +977,7 @@ const deleteFace = (employee) => {
                                                 </div>
                                                 <p v-if="form.errors.basic_salary" class="text-[10px] text-red-500 italic">{{ form.errors.basic_salary }}</p>
                                             </div>
+                                            </template>
 
                                             <div class="md:col-span-2 p-5 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-500/20 space-y-4">
                                                 <div class="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-500/20 pb-2.5">

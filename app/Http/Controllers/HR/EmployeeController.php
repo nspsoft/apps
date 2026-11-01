@@ -22,6 +22,14 @@ class EmployeeController extends Controller
 {
     public function index(Request $request): Response
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.employee_directory.view'))) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk melihat Employee Directory.');
+        }
+
+        $canViewSalary = $user->hasRole('Super Admin') || $user->can('hr_payroll.payroll.view');
+        $canManageSalary = $user->hasRole('Super Admin') || $user->can('hr_payroll.payroll.edit');
+
         $query = Employee::with(['department', 'position', 'user', 'workSchedule'])
             ->orderBy('full_name');
 
@@ -41,18 +49,33 @@ class EmployeeController extends Controller
             $query->where('employment_status', $request->status);
         }
 
+        $employees = $query->paginate(20)->withQueryString();
+
+        if (!$canViewSalary) {
+            $employees->through(function ($emp) {
+                $emp->makeHidden(['basic_salary', 'hourly_rate']);
+                return $emp;
+            });
+        }
+
         return Inertia::render('HR/Employees/Index', [
-            'employees' => $query->paginate(20)->withQueryString(),
+            'employees' => $employees,
             'departments' => Department::orderBy('name')->get(),
             'positions' => Position::with('department:id,name')->orderBy('name')->get(),
             'workSchedules' => WorkSchedule::active()->with('details')->get(),
             'users' => \App\Models\User::orderBy('name')->get(['id', 'name', 'email']),
             'filters' => $request->only(['search', 'department_id', 'status']),
+            'canManageSalary' => $canManageSalary,
         ]);
     }
 
     public function export(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.employee_directory.view'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         return Excel::download(
             new EmployeeExport($request->department_id, $request->status),
             'employees-' . now()->format('Y-m-d') . '.xlsx'
@@ -61,6 +84,11 @@ class EmployeeController extends Controller
 
     public function template()
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.employee_directory.view'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         return Excel::download(
             new EmployeeTemplateExport(),
             'employee-template.xlsx'
@@ -69,6 +97,11 @@ class EmployeeController extends Controller
 
     public function import(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.employee_directory.create'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv',
             'overwrite' => 'nullable|boolean'
@@ -106,6 +139,11 @@ class EmployeeController extends Controller
 
     public function store(Request $request)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.employee_directory.create'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $validated = $request->validate([
             'nik' => 'required|string|unique:hr_employees,nik',
             'full_name' => 'required|string|max:255',
@@ -161,6 +199,13 @@ class EmployeeController extends Controller
 
     public function update(Request $request, Employee $employee)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.employee_directory.edit'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
+        $canManageSalary = $user->hasRole('Super Admin') || $user->can('hr_payroll.payroll.edit');
+
         $validated = $request->validate([
             'nik' => 'required|string|unique:hr_employees,nik,' . $employee->id,
             'full_name' => 'required|string|max:255',
@@ -205,6 +250,12 @@ class EmployeeController extends Controller
             }
         }
 
+        if (!$canManageSalary) {
+            $validated['basic_salary'] = $employee->basic_salary;
+            $validated['hourly_rate'] = $employee->hourly_rate;
+            $validated['salary_type'] = $employee->salary_type;
+        }
+
         if ($request->hasFile('profile_picture')) {
             // Delete old picture if exists
             if ($employee->profile_picture) {
@@ -221,6 +272,11 @@ class EmployeeController extends Controller
 
     public function destroy(Employee $employee)
     {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->can('hr_payroll.employee_directory.delete'))) {
+            abort(403, 'Akses ditolak.');
+        }
+
         $employee->delete();
         return redirect()->back()->with('success', 'Employee record deleted.');
     }
