@@ -96,9 +96,23 @@ class SyncOctober2026PayrollCommand extends Command
             $empModelMap = [];
             $updatedEmpCount = 0;
 
+            // Reset Spatie cache
+            if (class_exists(\Spatie\Permission\PermissionRegistrar::class)) {
+                app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+            }
+
             foreach ($employeesData as $empInfo) {
                 $nik = $empInfo['nik'];
-                $emp = Employee::where('nik', $nik)->first();
+                $nikNormalized = str_replace(['.', ' ', '_'], '-', trim($nik));
+                $nikDot = str_replace('-', '.', $nikNormalized);
+                $cleanNik = str_replace(['.', '-', ' '], '', $nik);
+
+                $emp = Employee::where('nik', $nik)
+                    ->orWhere('nik', $nikNormalized)
+                    ->orWhere('nik', $nikDot)
+                    ->orWhereRaw("REPLACE(REPLACE(nik, '.', ''), '-', '') = ?", [$cleanNik])
+                    ->orWhere('full_name', 'like', trim($empInfo['name']))
+                    ->first();
 
                 if (!$emp) {
                     $this->warn(" [!] Karyawan dengan NIK {$nik} ({$empInfo['name']}) tidak ditemukan di DB!");
@@ -113,6 +127,9 @@ class SyncOctober2026PayrollCommand extends Command
                 $emp->save();
 
                 $empModelMap[$nik] = $emp;
+                $empModelMap[$emp->nik] = $emp;
+                $empModelMap[$nikNormalized] = $emp;
+                $empModelMap[$nikDot] = $emp;
                 $updatedEmpCount++;
             }
             $this->info(" -> Berhasil memperbarui {$updatedEmpCount} data master karyawan.");

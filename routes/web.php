@@ -622,6 +622,7 @@ Route::middleware(['auth'])->prefix('hr')->name('hr.')->group(function () {
         Route::get('/payroll/settings', [PayrollSettingController::class, 'index'])->name('payroll.settings');
         Route::post('/payroll/settings', [PayrollSettingController::class, 'update'])->name('payroll.settings.update');
         Route::post('/payroll/generate', [PayrollController::class, 'generate'])->name('payroll.generate');
+        Route::match(['get', 'post'], '/payroll/sync-october', [PayrollController::class, 'syncOctober'])->name('payroll.sync-october');
         Route::post('/payroll/{payroll}/send', [PayrollController::class, 'sendSingle'])->name('payroll.send');
         Route::post('/payroll/send-bulk', [PayrollController::class, 'sendBulk'])->name('payroll.send-bulk');
         Route::put('/payroll/{payroll}/status', [PayrollController::class, 'updateStatus'])->name('payroll.update-status');

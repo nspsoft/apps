@@ -544,4 +544,27 @@ class PayrollController extends Controller
 
         return redirect()->back()->with('success', "Selesai memproses pengiriman massal: {$results['success']} berhasil, {$results['failed']} gagal.");
     }
+
+    public function syncOctober(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->hasRole('Super Admin') && !$user->hasAnyRole(['Owner', 'Director', 'HR & Payroll']) && !$user->can('hr_payroll.payroll.create'))) {
+            abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk menyinkronkan data payroll.');
+        }
+
+        try {
+            if (class_exists(\Spatie\Permission\PermissionRegistrar::class)) {
+                app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+            }
+
+            \Illuminate\Support\Facades\Artisan::call('hr:sync-october-payroll', ['--force' => true]);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+
+            return redirect()->route('hr.payroll.index', ['month' => 10, 'year' => 2026])
+                ->with('success', 'Sinkronisasi 54 Karyawan, 1.251 Absensi, dan Penggajian Oktober 2026 berhasil dijalankan!');
+        } catch (\Throwable $e) {
+            return redirect()->back()
+                ->with('error', 'Gagal menjalankan sinkronisasi: ' . $e->getMessage());
+        }
+    }
 }

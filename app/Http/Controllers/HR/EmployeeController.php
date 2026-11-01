@@ -27,8 +27,13 @@ class EmployeeController extends Controller
             abort(403, 'Akses ditolak. Anda tidak memiliki izin untuk melihat Employee Directory.');
         }
 
-        $canViewSalary = $user->hasRole('Super Admin') || $user->can('hr_payroll.payroll.view');
-        $canManageSalary = $user->hasRole('Super Admin') || $user->can('hr_payroll.payroll.edit');
+        $canAccessSalary = $user->hasRole('Super Admin') 
+            || $user->hasAnyRole(['Owner', 'Director', 'HR & Payroll']) 
+            || $user->can('hr_payroll.payroll.view') 
+            || $user->can('hr_payroll.payroll.edit');
+        $canManageSalary = $user->hasRole('Super Admin') 
+            || $user->hasAnyRole(['Owner', 'Director', 'HR & Payroll']) 
+            || $user->can('hr_payroll.payroll.edit');
 
         $query = Employee::with(['department', 'position', 'user', 'workSchedule'])
             ->orderBy('full_name');
@@ -51,7 +56,7 @@ class EmployeeController extends Controller
 
         $employees = $query->paginate(20)->withQueryString();
 
-        if (!$canViewSalary) {
+        if (!$canAccessSalary) {
             $employees->through(function ($emp) {
                 $emp->makeHidden(['basic_salary', 'hourly_rate']);
                 return $emp;
@@ -204,7 +209,9 @@ class EmployeeController extends Controller
             abort(403, 'Akses ditolak.');
         }
 
-        $canManageSalary = $user->hasRole('Super Admin') || $user->can('hr_payroll.payroll.edit');
+        $canManageSalary = $user->hasRole('Super Admin') 
+            || $user->hasAnyRole(['Owner', 'Director', 'HR & Payroll']) 
+            || $user->can('hr_payroll.payroll.edit');
 
         $validated = $request->validate([
             'nik' => 'required|string|unique:hr_employees,nik,' . $employee->id,

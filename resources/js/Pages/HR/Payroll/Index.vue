@@ -84,6 +84,29 @@ watch([search, month, year, departmentId], debounce(() => {
     }, { preserveState: true, replace: true });
 }, 300));
 
+const isSyncingOctober = ref(false);
+const syncOctoberData = () => {
+    const confirmed = confirm(
+        '⚡ SINKRONISASI DATA PENGGAJIAN OKTOBER 2026 (EXCEL RESMI)\n\n' +
+        'Proses ini akan menyelaraskan data:\n' +
+        '1. Memperbarui 54 Master Karyawan (Gaji Pokok & Hourly Rate)\n' +
+        '2. Memasukkan 1.251 Baris Kehadiran (Cutoff 26 Sept - 25 Okt 2026)\n' +
+        '3. Memasukkan 627 Lembur Disetujui (Approved Overtime)\n' +
+        '4. Mengenerate otomatis 54 Slip Gaji Periode Oktober 2026\n\n' +
+        'Apakah Anda yakin ingin menjalankan sinkronisasi sekarang?'
+    );
+
+    if (!confirmed) return;
+
+    isSyncingOctober.value = true;
+    router.post(route('hr.payroll.sync-october'), {}, {
+        preserveScroll: true,
+        onFinish: () => {
+            isSyncingOctober.value = false;
+        }
+    });
+};
+
 const genForm = useForm({
     month: month.value,
     year: year.value,
@@ -219,6 +242,17 @@ const getStatusStyle = (status) => {
                     >
                         <PaperAirplaneIcon class="h-4 w-4" />
                         Kirim Slip Massal
+                    </button>
+
+                    <button 
+                        @click="syncOctoberData"
+                        :disabled="isSyncingOctober"
+                        type="button"
+                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 px-5 py-3 text-xs font-bold text-white shadow-xl shadow-blue-900/20 transition-all hover:-translate-y-0.5 disabled:opacity-50"
+                        title="Sinkronkan 54 Master Karyawan & Payroll Oktober 2026 dari Excel"
+                    >
+                        <ArrowPathIcon class="h-4 w-4" :class="{'animate-spin': isSyncingOctober}" />
+                        <span>{{ isSyncingOctober ? 'Memproses Sinkronisasi...' : 'Sinkronisasi Data Oktober' }}</span>
                     </button>
 
                     <button 
