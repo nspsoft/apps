@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import MapPicker from '@/Components/MapPicker.vue';
 import QrcodeVue from 'qrcode.vue';
 import Swal from 'sweetalert2';
 import {
@@ -117,6 +118,24 @@ const useSmartAttendanceCoords = () => {
         form.value.longitude = props.officeCoordinates.longitude;
         form.value.geofence_radius = props.officeCoordinates.radius || 50;
     }
+};
+
+// Map Picker State & Handler
+const showMapPicker = ref(false);
+
+const openMapPicker = () => {
+    showMapPicker.value = true;
+};
+
+const onMapPickerConfirm = (details) => {
+    if (details && details.latitude && details.longitude) {
+        form.value.latitude = parseFloat(details.latitude);
+        form.value.longitude = parseFloat(details.longitude);
+        if (details.address && !form.value.description) {
+            form.value.description = details.address;
+        }
+    }
+    showMapPicker.value = false;
 };
 
 const closeModal = () => {
@@ -451,26 +470,37 @@ const triggerPrint = () => {
                             </div>
                         </div>
 
-                        <!-- GPS Coordinates with Smart Attendance Sync Button -->
+                        <!-- GPS Coordinates with Smart Attendance Sync & Map Picker Buttons -->
                         <div class="pt-1">
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 mb-1.5">
                                 <span class="font-semibold text-slate-700 dark:text-slate-300">Koordinat Geofence GPS *</span>
-                                <button
-                                    type="button"
-                                    @click="useSmartAttendanceCoords"
-                                    class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
-                                    title="Salin titik koordinat & radius dari pengaturan Smart Attendance"
-                                >
-                                    <BuildingOfficeIcon class="size-3.5" />
-                                    Samakan dg Smart Attendance ({{ officeCoordinates?.latitude?.toFixed(5) }}, {{ officeCoordinates?.longitude?.toFixed(5) }})
-                                </button>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        @click="openMapPicker"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition"
+                                        title="Buka peta interaktif untuk menentukan titik pos dengan klik / drag pin"
+                                    >
+                                        <MapPinIcon class="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                                        🗺️ Pilih di Peta
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="useSmartAttendanceCoords"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition"
+                                        title="Salin titik koordinat & radius dari pengaturan Smart Attendance"
+                                    >
+                                        <BuildingOfficeIcon class="size-3.5" />
+                                        Titik Smart Attendance
+                                    </button>
+                                </div>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
                                 <div>
                                     <label class="block text-[11px] text-slate-500 mb-0.5">Latitude GPS *</label>
                                     <input
                                         type="number"
-                                        step="0.0000001"
+                                        step="any"
                                         v-model.number="form.latitude"
                                         required
                                         class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
@@ -480,7 +510,7 @@ const triggerPrint = () => {
                                     <label class="block text-[11px] text-slate-500 mb-0.5">Longitude GPS *</label>
                                     <input
                                         type="number"
-                                        step="0.0000001"
+                                        step="any"
                                         v-model.number="form.longitude"
                                         required
                                         class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
@@ -631,6 +661,13 @@ const triggerPrint = () => {
                     </div>
                 </div>
             </div>
+            <!-- MAP PICKER INTERACTIVE MODAL -->
+            <MapPicker
+                :show="showMapPicker"
+                :initialCoordinates="{ lat: form.latitude, lng: form.longitude }"
+                @close="showMapPicker = false"
+                @confirm="onMapPickerConfirm"
+            />
         </div>
     </AppLayout>
 </template>
