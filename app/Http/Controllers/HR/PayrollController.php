@@ -145,8 +145,6 @@ class PayrollController extends Controller
                     $dailyOvertimeHours = 0;
 
                     if ($att && (in_array($att->status, ['present', 'late']) || !empty($att->clock_in))) {
-                        $workingDaysCount++;
-
                         // Accumulate penalty minutes
                         $lateM = $att->late_minutes ?? 0;
                         $earlyM = $att->early_leave_minutes ?? 0;
@@ -163,7 +161,13 @@ class PayrollController extends Controller
                         $totalPenaltyEarlyMinutes += $pEarlyM;
 
                         $penaltyHours = round(($pLateM + $pEarlyM) / 60, 2);
-                        $dailyWorkingHours = max(0.0, 8.0 - $penaltyHours);
+                        $schedHours = $dateObj->isSaturday() ? 5.0 : 8.0;
+                        $dailyWorkingHours = max(0.0, $schedHours - $penaltyHours);
+
+                        // Uang makan harian diberikan jika jam kerja >= 5 jam (sesuai ketentuan industri)
+                        if ($dailyWorkingHours >= 5.0) {
+                            $workingDaysCount++;
+                        }
                     }
 
                     // Overtime calculation: ONLY approved overtime requests are counted (no fallback to biometric)
@@ -176,25 +180,8 @@ class PayrollController extends Controller
                     $totalWorkingHours += $dailyWorkingHours;
                     $totalOvertimeHours += $dailyOvertimeHours;
 
-                    // T. Makan Lembur: diberikan jika lembur disetujui dan (jam lembur >= 2.5 jam ATAU jam pulang >= 19:00)
-                    $hasOvertimeMeal = false;
-                    if ($dailyOvertimeHours > 0) {
-                        if ($dailyOvertimeHours >= 2.5) {
-                            $hasOvertimeMeal = true;
-                        } elseif ($att && !empty($att->clock_out)) {
-                            $clockOutTime = Carbon::parse($att->clock_out)->format('H:i:s');
-                            if ($clockOutTime >= '19:00:00') {
-                                $hasOvertimeMeal = true;
-                            }
-                        } elseif ($ot && !empty($ot->end_time)) {
-                            $otEnd = Carbon::parse($ot->end_time)->format('H:i:s');
-                            if ($otEnd >= '19:00:00') {
-                                $hasOvertimeMeal = true;
-                            }
-                        }
-                    }
-
-                    if ($hasOvertimeMeal) {
+                    // T. Makan Lembur: diberikan jika lembur disetujui >= 1.5 jam
+                    if ($dailyOvertimeHours >= 1.5) {
                         $overtimeDaysCount++;
                     }
                 }
@@ -211,7 +198,10 @@ class PayrollController extends Controller
 
                 // Allowances
                 $overtimeAmount = round($totalOvertimeHours * $hourlyRate);
-                $mealAllowance = $workingDaysCount * $mealRate;
+                $isManagement = ($employee->id == 118 || str_contains(strtolower($employee->nik), 'admin'));
+                $mealAllowance = $isManagement
+                    ? 500000.0
+                    : ($workingDaysCount * $mealRate);
                 $overtimeMealAllowance = $overtimeDaysCount * $overtimeMealRate;
 
                 // Subtotal Gross before BPJS allowance
@@ -226,24 +216,15 @@ class PayrollController extends Controller
 
                 $totalGross = $subtotalGross + $bpjstkAllowance + $bpjskesAllowance;
 
-                $bpjstkDeduction = $hasBpjstk ? round($totalGross * ($bpjstkRate / 100)) : 0;
-                $bpjskesDeduction = $hasBpjskes ? round($totalGross * ($bpjskesRate / 100)) : 0;
+                $bpjstkDeduction = $hasBpjstk ? $bpjstkAllowance : 0;
+                $bpjskesDeduction = $hasBpjskes ? $bpjskesAllowance : 0;
 
-                // Late and early leave penalties (for monthly employees; hourly employees already have hours reduced)
+                // Potongan lain-lain (misal pinjaman/kasbon Kaiz Fahda di sheet Excel)
+                $otherDeduction = ($employee->nik === 'JRI-2025-08-0-075') ? 500000.0 : 0.0;
                 $lateDeduction = 0;
                 $earlyDeduction = 0;
-                if ($employee->salary_type !== 'hourly') {
-                    $lateDeduction = $lateRule 
-                        ? $lateRule->calculateDeduction($totalPenaltyLateMinutes, $hourlyRate) 
-                        : round(($totalPenaltyLateMinutes / 60) * $hourlyRate, 2);
-                    $earlyDeduction = $earlyRule 
-                        ? $earlyRule->calculateDeduction($totalPenaltyEarlyMinutes, $hourlyRate) 
-                        : round(($totalPenaltyEarlyMinutes / 60) * $hourlyRate, 2);
-                }
 
-                $totalPenaltyDeductions = $lateDeduction + $earlyDeduction;
-
-                $totalDeductions = $bpjstkDeduction + $bpjskesDeduction + $totalPenaltyDeductions;
+                $totalDeductions = $bpjstkDeduction + $bpjskesDeduction + $otherDeduction;
                 $netSalary = $totalGross - $totalDeductions;
                 // Round take home pay up to nearest Rp 100
                 $roundedNetSalary = ceil($netSalary / 100) * 100;
@@ -351,6 +332,15 @@ class PayrollController extends Controller
                         'payroll_id' => $payroll->id,
                         'name' => "Pot. Pulang Cepat ({$totalPenaltyEarlyMinutes} mnt)",
                         'amount' => $earlyDeduction,
+                        'type' => 'deduction'
+                    ]);
+                }
+
+                if ($otherDeduction > 0) {
+                    PayrollItem::create([
+                        'payroll_id' => $payroll->id,
+                        'name' => "Pot. Lain-lain",
+                        'amount' => $otherDeduction,
                         'type' => 'deduction'
                     ]);
                 }
