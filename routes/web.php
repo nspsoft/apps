@@ -70,14 +70,21 @@ Route::post('/login', [App\Http\Controllers\Auth\AuthController::class, 'login']
 Route::get('/register', [App\Http\Controllers\Auth\AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [App\Http\Controllers\Auth\AuthController::class, 'register']);
 
+// MFA Challenge Routes
+Route::get('/auth/mfa-challenge', [App\Http\Controllers\Auth\MfaChallengeController::class, 'show'])->name('auth.mfa.challenge');
+Route::post('/auth/mfa-challenge', [App\Http\Controllers\Auth\MfaChallengeController::class, 'verify'])->name('auth.mfa.verify');
+Route::post('/auth/mfa-challenge/resend', [App\Http\Controllers\Auth\MfaChallengeController::class, 'resend'])->name('auth.mfa.resend');
+
 // Dashboard
 // Landing Page
 Route::get('/', [App\Http\Controllers\WelcomeController::class, 'index'])->name('welcome');
 Route::view('/features', 'features')->name('features');
 
-// Public WhatsApp Webhook (Exempt from CSRF in bootstrap/app.php)
+// Public WhatsApp Webhooks (Exempt from CSRF in bootstrap/app.php)
 Route::post('/whatsapp/webhook', [App\Http\Controllers\Api\WhatsappWebhookController::class, 'handle'])->name('whatsapp.webhook');
 Route::post('/whatsapp-purchasing/webhook', [App\Http\Controllers\Api\PurchasingWhatsappWebhookController::class, 'handle'])->name('whatsapp.purchasing.webhook');
+Route::post('/whatsapp-inventory/webhook', [App\Http\Controllers\Api\WhatsappWebhookController::class, 'handle'])->name('whatsapp.inventory.webhook');
+Route::post('/whatsapp-hr/webhook', [App\Http\Controllers\Api\WhatsappWebhookController::class, 'handle'])->name('whatsapp.hr.webhook');
 
 use App\Http\Controllers\Admin\BlueprintInteractiveController;
 
@@ -964,6 +971,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () 
 Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show'])->name('profile.show');
 Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 Route::put('/profile/password', [App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password');
+Route::post('/profile/mfa/request-enable', [App\Http\Controllers\ProfileController::class, 'requestMfaActivation'])->name('profile.mfa.request');
+Route::post('/profile/mfa/confirm-enable', [App\Http\Controllers\ProfileController::class, 'confirmMfaActivation'])->name('profile.mfa.confirm');
+Route::post('/profile/mfa/totp/initiate', [App\Http\Controllers\ProfileController::class, 'initiateTotp'])->name('profile.mfa.totp.initiate');
+Route::post('/profile/mfa/totp/confirm', [App\Http\Controllers\ProfileController::class, 'confirmTotp'])->name('profile.mfa.totp.confirm');
+Route::post('/profile/mfa/disable', [App\Http\Controllers\ProfileController::class, 'disableMfa'])->name('profile.mfa.disable');
+Route::post('/profile/mfa/recovery-codes', [App\Http\Controllers\ProfileController::class, 'regenerateRecoveryCodes'])->name('profile.mfa.recovery-codes');
 Route::post('/logout', [App\Http\Controllers\ProfileController::class, 'logout'])->name('logout');
 
 // Approvals
@@ -1051,6 +1064,7 @@ Route::middleware(['auth'])->prefix('security-patrol')->name('security-patrol.')
     Route::get('analytics', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolAnalyticsController::class, 'index'])->name('analytics');
 
     // 5. Schedules (Sesi & Jadwal)
+    Route::post('schedules/batch-generate', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolScheduleController::class, 'batchGenerate'])->name('schedules.batch-generate');
     Route::resource('schedules', \App\Http\Controllers\SecurityPatrol\SecurityPatrolScheduleController::class)->except(['create', 'show', 'edit']);
 
     // 6. Checkpoints (Master Titik & Cetak QR)

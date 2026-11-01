@@ -7,6 +7,7 @@ use App\Models\SecurityCheckpoint;
 use App\Models\SecurityPatrolSchedule;
 use App\Models\Shift;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SecurityPatrolScheduleController extends Controller
@@ -28,6 +29,41 @@ class SecurityPatrolScheduleController extends Controller
             'shifts' => $shifts,
             'allCheckpoints' => $allCheckpoints,
         ]);
+    }
+
+    public function batchGenerate(Request $request)
+    {
+        $validated = $request->validate([
+            'shift_id' => 'nullable|exists:shifts,id',
+            'checkpoint_ids' => 'required|array|min:1',
+            'checkpoint_ids.*' => 'exists:security_checkpoints,id',
+            'schedules' => 'required|array|min:1|max:10',
+            'schedules.*.name' => 'required|string|max:150',
+            'schedules.*.start_time' => 'required|date_format:H:i',
+            'schedules.*.end_time' => 'required|date_format:H:i',
+        ]);
+
+        DB::transaction(function () use ($validated) {
+            $syncData = [];
+            foreach ($validated['checkpoint_ids'] as $idx => $cpId) {
+                $syncData[$cpId] = ['sort_order' => $idx + 1];
+            }
+
+            foreach ($validated['schedules'] as $schData) {
+                $schedule = SecurityPatrolSchedule::create([
+                    'shift_id' => $validated['shift_id'] ?? null,
+                    'name' => $schData['name'],
+                    'start_time' => $schData['start_time'],
+                    'end_time' => $schData['end_time'],
+                    'checkpoints_count' => count($validated['checkpoint_ids']),
+                    'is_active' => true,
+                ]);
+
+                $schedule->checkpoints()->sync($syncData);
+            }
+        });
+
+        return redirect()->back()->with('success', count($validated['schedules']) . ' jadwal putaran patroli berhasil dibuat sekaligus.');
     }
 
     public function store(Request $request)

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Swal from 'sweetalert2';
@@ -14,6 +14,9 @@ import {
     XMarkIcon,
     CheckIcon,
     ShieldCheckIcon,
+    DocumentDuplicateIcon,
+    SparklesIcon,
+    ArrowPathIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -70,6 +73,154 @@ const openEditModal = (sch) => {
         is_active: Boolean(sch.is_active),
     };
     showModal.value = true;
+};
+
+const duplicateSchedule = (sch) => {
+    isEditing.value = false;
+    editingId.value = null;
+
+    let newName = sch.name;
+    const match = newName.match(/(Putaran|Round)\s*(\d+)/i);
+    if (match) {
+        const nextNum = parseInt(match[2], 10) + 1;
+        newName = newName.replace(/(Putaran|Round)\s*\d+/i, `${match[1]} ${nextNum}`);
+    } else {
+        newName = `${sch.name} (Salinan)`;
+    }
+
+    form.value = {
+        name: newName,
+        shift_id: sch.shift_id,
+        start_time: sch.start_time.substring(0, 5),
+        end_time: sch.end_time.substring(0, 5),
+        checkpoint_ids: sch.checkpoints && sch.checkpoints.length > 0
+            ? sch.checkpoints.map((c) => c.id)
+            : props.allCheckpoints.map((cp) => cp.id),
+        is_active: true,
+    };
+    showModal.value = true;
+};
+
+// Batch Multi-Round Generator Wizard
+const showBatchModal = ref(false);
+const isGenerating = ref(false);
+
+const batchForm = ref({
+    shift_id: props.shifts.length > 0 ? props.shifts[0].id : null,
+    rounds_count: 3,
+    round_duration_minutes: 90,
+    start_offset_minutes: 30,
+    checkpoint_ids: props.allCheckpoints.map((cp) => cp.id),
+    schedules: [],
+});
+
+const formatMinutesToTime = (totalMin) => {
+    const norm = ((totalMin % 1440) + 1440) % 1440;
+    const h = String(Math.floor(norm / 60)).padStart(2, '0');
+    const m = String(norm % 60).padStart(2, '0');
+    return `${h}:${m}`;
+};
+
+const parseTimeToMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+};
+
+const generatePreviewSchedules = () => {
+    const selectedShift = props.shifts.find((s) => s.id === batchForm.value.shift_id);
+    const shiftName = selectedShift ? selectedShift.name : 'Shift Reguler';
+    const shiftStartTime = selectedShift && selectedShift.start_time ? selectedShift.start_time.substring(0, 5) : '07:00';
+    const shiftEndTime = selectedShift && selectedShift.end_time ? selectedShift.end_time.substring(0, 5) : '15:00';
+
+    const startMin = parseTimeToMinutes(shiftStartTime);
+    const endMin = parseTimeToMinutes(shiftEndTime);
+    let totalShiftMin = endMin >= startMin ? (endMin - startMin) : (1440 - startMin + endMin);
+    if (totalShiftMin <= 0) totalShiftMin = 480; // fallback 8 hours
+
+    const count = parseInt(batchForm.value.rounds_count, 10) || 3;
+    const duration = parseInt(batchForm.value.round_duration_minutes, 10) || 90;
+    const offset = parseInt(batchForm.value.start_offset_minutes, 10) || 0;
+
+    const interval = Math.floor(totalShiftMin / count);
+    const generated = [];
+
+    const labelSuffixes = count === 2 
+        ? ['(Awal Shift)', '(Akhir Shift)']
+        : count === 3 
+        ? ['(Awal Shift)', '(Tengah Shift)', '(Akhir Shift)']
+        : count === 4
+        ? ['(Awal Shift)', '(Pagi/Siang)', '(Sore/Malam)', '(Akhir Shift)']
+        : Array.from({ length: count }, (_, i) => `(Putaran ${i + 1})`);
+
+    for (let i = 0; i < count; i++) {
+        const roundStartMin = startMin + offset + (i * interval);
+        const roundEndMin = roundStartMin + duration;
+
+        generated.push({
+            name: `${shiftName} - Putaran ${i + 1} ${labelSuffixes[i] || ''}`.trim(),
+            start_time: formatMinutesToTime(roundStartMin),
+            end_time: formatMinutesToTime(roundEndMin),
+        });
+    }
+
+    batchForm.value.schedules = generated;
+};
+
+watch(
+    () => [batchForm.value.shift_id, batchForm.value.rounds_count, batchForm.value.round_duration_minutes, batchForm.value.start_offset_minutes],
+    () => {
+        if (showBatchModal.value) {
+            generatePreviewSchedules();
+        }
+    }
+);
+
+const openBatchModal = () => {
+    batchForm.value.shift_id = props.shifts.length > 0 ? props.shifts[0].id : null;
+    batchForm.value.rounds_count = 3;
+    batchForm.value.round_duration_minutes = 90;
+    batchForm.value.start_offset_minutes = 30;
+    batchForm.value.checkpoint_ids = props.allCheckpoints.map((cp) => cp.id);
+    generatePreviewSchedules();
+    showBatchModal.value = true;
+};
+
+const toggleBatchCheckpoints = () => {
+    if (batchForm.value.checkpoint_ids.length === props.allCheckpoints.length) {
+        batchForm.value.checkpoint_ids = [];
+    } else {
+        batchForm.value.checkpoint_ids = props.allCheckpoints.map((cp) => cp.id);
+    }
+};
+
+const submitBatchForm = () => {
+    if (batchForm.value.checkpoint_ids.length === 0) {
+        Swal.fire('Perhatian', 'Pilih minimal 1 titik checkpoint untuk jadwal yang dibuat.', 'warning');
+        return;
+    }
+    if (batchForm.value.schedules.length === 0) {
+        Swal.fire('Perhatian', 'Tidak ada jadwal yang di-generate.', 'warning');
+        return;
+    }
+
+    isGenerating.value = true;
+    router.post('/security-patrol/schedules/batch-generate', {
+        shift_id: batchForm.value.shift_id,
+        checkpoint_ids: batchForm.value.checkpoint_ids,
+        schedules: batchForm.value.schedules,
+    }, {
+        onSuccess: () => {
+            showBatchModal.value = false;
+            Swal.fire('Sukses', `${batchForm.value.schedules.length} jadwal putaran patroli berhasil dibuat sekaligus!`, 'success');
+        },
+        onError: () => {
+            Swal.fire('Gagal', 'Terjadi kesalahan saat membuat jadwal putaran.', 'error');
+        },
+        onFinish: () => {
+            isGenerating.value = false;
+        }
+    });
 };
 
 const closeModal = () => {
@@ -145,7 +296,15 @@ const deleteSchedule = (sch) => {
                     </p>
                 </div>
 
-                <div class="flex items-center gap-2.5">
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button
+                        @click="openBatchModal"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-md transition shadow-sm"
+                        title="Buat 2-4 putaran dalam 1 shift secara otomatis"
+                    >
+                        <SparklesIcon class="size-4 text-purple-600 dark:text-purple-400" />
+                        🪄 Generate Multi-Putaran
+                    </button>
                     <Link
                         href="/security-patrol/active"
                         class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 rounded-md transition shadow-sm"
@@ -223,15 +382,22 @@ const deleteSchedule = (sch) => {
                         </Link>
                         <div class="flex items-center gap-1">
                             <button
+                                @click="duplicateSchedule(sch)"
+                                class="p-1.5 text-slate-400 hover:text-amber-600 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                                title="Duplikat / Salin Jadwal Ini"
+                            >
+                                <DocumentDuplicateIcon class="size-4" />
+                            </button>
+                            <button
                                 @click="openEditModal(sch)"
-                                class="p-1.5 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                                class="p-1.5 text-slate-400 hover:text-blue-600 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                                 title="Edit"
                             >
                                 <PencilSquareIcon class="size-4" />
                             </button>
                             <button
                                 @click="deleteSchedule(sch)"
-                                class="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                                class="p-1.5 text-slate-400 hover:text-rose-600 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                                 title="Hapus"
                             >
                                 <TrashIcon class="size-4" />
@@ -349,6 +515,217 @@ const deleteSchedule = (sch) => {
                             >
                                 <CheckIcon class="size-4" />
                                 {{ isEditing ? 'Simpan Perubahan' : 'Buat Jadwal' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- MODAL BATCH MULTI-ROUND GENERATOR WIZARD -->
+            <div
+                v-if="showBatchModal"
+                class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto"
+            >
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden my-6">
+                    <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-purple-50/70 to-blue-50/70 dark:from-purple-950/20 dark:to-blue-950/20">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 rounded-lg bg-purple-600 text-white shadow-sm">
+                                <SparklesIcon class="size-5" />
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                                    Wizard Generate Multi-Putaran Patroli
+                                </h3>
+                                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                    Buat 2, 3, atau 4 sesi putaran patroli dalam 1 shift secara otomatis sekaligus.
+                                </p>
+                            </div>
+                        </div>
+                        <button @click="showBatchModal = false" class="p-1.5 rounded-md hover:bg-slate-200/60 dark:hover:bg-slate-800 text-slate-500">
+                            <XMarkIcon class="size-5" />
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="submitBatchForm" class="p-5 space-y-4 text-xs">
+                        <!-- Parameter Shift & Putaran -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Pilih Shift Target *</label>
+                                <select
+                                    v-model="batchForm.shift_id"
+                                    class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                    required
+                                >
+                                    <option v-for="s in shifts" :key="s.id" :value="s.id">
+                                        {{ s.name }} ({{ s.start_time.substring(0, 5) }} - {{ s.end_time.substring(0, 5) }} WIB)
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Jumlah Putaran dalam Shift Ini *</label>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <button
+                                        type="button"
+                                        v-for="count in [2, 3, 4]"
+                                        :key="count"
+                                        @click="batchForm.rounds_count = count"
+                                        :class="[
+                                            'py-1.5 px-2 text-xs font-semibold rounded-md border text-center transition',
+                                            batchForm.rounds_count === count
+                                                ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                                        ]"
+                                    >
+                                        {{ count }}x Putaran
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Durasi Jendela per Putaran</label>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <button
+                                        type="button"
+                                        v-for="dur in [60, 90, 120]"
+                                        :key="dur"
+                                        @click="batchForm.round_duration_minutes = dur"
+                                        :class="[
+                                            'py-1.5 px-2 text-xs font-semibold rounded-md border text-center transition',
+                                            batchForm.round_duration_minutes === dur
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                                        ]"
+                                    >
+                                        {{ dur }} Menit
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Jeda Awal dari Mulai Shift</label>
+                                <select
+                                    v-model.number="batchForm.start_offset_minutes"
+                                    class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                                >
+                                    <option :value="0">Tepat saat shift mulai (+0 Menit)</option>
+                                    <option :value="30">30 Menit setelah shift mulai (Standar)</option>
+                                    <option :value="60">1 Jam setelah shift mulai</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Live Preview Table -->
+                        <div class="space-y-1.5 pt-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                    <ClockIcon class="size-4 text-purple-600 dark:text-purple-400" />
+                                    Preview Jadwal yang Akan Dibuat ({{ batchForm.schedules.length }} Putaran):
+                                </span>
+                                <button
+                                    type="button"
+                                    @click="generatePreviewSchedules"
+                                    class="inline-flex items-center gap-1 text-[11px] text-purple-600 dark:text-purple-400 hover:underline"
+                                >
+                                    <ArrowPathIcon class="size-3" /> Hitung Ulang
+                                </button>
+                            </div>
+
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/50 dark:bg-slate-800/30">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-100/80 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                                            <th class="py-2 px-3">Nama Putaran</th>
+                                            <th class="py-2 px-3 w-28">Jam Mulai</th>
+                                            <th class="py-2 px-3 w-28">Batas Selesai</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                                        <tr v-for="(sch, idx) in batchForm.schedules" :key="idx" class="hover:bg-slate-100/40 dark:hover:bg-slate-800/40">
+                                            <td class="py-2 px-3">
+                                                <input
+                                                    type="text"
+                                                    v-model="sch.name"
+                                                    required
+                                                    class="w-full px-2.5 py-1 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium text-slate-900 dark:text-white"
+                                                />
+                                            </td>
+                                            <td class="py-2 px-3">
+                                                <input
+                                                    type="time"
+                                                    v-model="sch.start_time"
+                                                    required
+                                                    class="w-full px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-slate-900 dark:text-white"
+                                                />
+                                            </td>
+                                            <td class="py-2 px-3">
+                                                <input
+                                                    type="time"
+                                                    v-model="sch.end_time"
+                                                    required
+                                                    class="w-full px-2 py-1 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-slate-900 dark:text-white"
+                                                />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p class="text-[11px] text-slate-500 italic">
+                                💡 Anda dapat menyesuaikan nama atau jam secara langsung pada kolom tabel di atas sebelum disimpan.
+                            </p>
+                        </div>
+
+                        <!-- Checkpoint Selection -->
+                        <div class="space-y-1.5 pt-1">
+                            <div class="flex items-center justify-between">
+                                <label class="block font-semibold text-slate-700 dark:text-slate-300">
+                                    Titik Pos yang Dimasukkan ke Semua Putaran Ini:
+                                </label>
+                                <button
+                                    type="button"
+                                    @click="toggleBatchCheckpoints"
+                                    class="text-blue-600 hover:underline text-[11px]"
+                                >
+                                    {{ batchForm.checkpoint_ids.length === allCheckpoints.length ? 'Batal Pilih Semua' : 'Pilih Semua' }}
+                                </button>
+                            </div>
+
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-md p-2.5 max-h-36 overflow-y-auto space-y-1.5 bg-slate-50/50 dark:bg-slate-800/40">
+                                <label
+                                    v-for="cp in allCheckpoints"
+                                    :key="cp.id"
+                                    class="flex items-center gap-2.5 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        :value="cp.id"
+                                        v-model="batchForm.checkpoint_ids"
+                                        class="rounded border-slate-300 text-purple-600 focus:ring-purple-500 size-4"
+                                    />
+                                    <span class="font-mono font-bold text-slate-800 dark:text-slate-200">{{ cp.code }}</span>
+                                    <span class="text-slate-700 dark:text-slate-300">{{ cp.name }}</span>
+                                    <span class="text-[10px] text-slate-400 ml-auto">{{ cp.area_zone }}</span>
+                                </label>
+                            </div>
+                            <span class="text-[11px] text-slate-500">{{ batchForm.checkpoint_ids.length }} pos terpilih untuk tiap putaran</span>
+                        </div>
+
+                        <!-- Footer Action -->
+                        <div class="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                            <button
+                                type="button"
+                                @click="showBatchModal = false"
+                                class="px-3.5 py-2 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="isGenerating"
+                                class="px-4 py-2 text-xs font-semibold rounded-md bg-purple-600 hover:bg-purple-700 text-white transition flex items-center gap-2 shadow-sm disabled:opacity-50"
+                            >
+                                <SparklesIcon class="size-4" />
+                                {{ isGenerating ? 'Menyimpan...' : `Generate & Simpan (${batchForm.schedules.length}) Jadwal Sekaligus` }}
                             </button>
                         </div>
                     </form>
