@@ -524,8 +524,52 @@ class AttendanceController extends Controller
                 : '⚠️ UTAMAKAN KESELAMATAN DAN KESEHATAN KERJA (K3) • ZERO ACCIDENT IS OUR TARGET • BUDAYAKAN 5R: RINGKAS, RAPI, RESIK, RAWAT, RAJIN • BEKERJA DENGAN FOKUS, DISIPLIN, DAN INTEGRITAS TINGGI'
         );
 
+        // Kiosk multi-shift schedule settings (Shift 1, Shift 2, Shift 3, Non-Shift)
+        $defaultShifts = [
+            [
+                'id' => 'shift_1',
+                'name' => 'Shift 1 (Pagi)',
+                'is_active' => true,
+                'in_start' => '06:00',
+                'in_end' => '08:30',
+                'out_start' => '14:30',
+                'out_end' => '16:00',
+            ],
+            [
+                'id' => 'shift_2',
+                'name' => 'Shift 2 (Siang / Sore)',
+                'is_active' => true,
+                'in_start' => '14:00',
+                'in_end' => '16:00',
+                'out_start' => '22:30',
+                'out_end' => '23:45',
+            ],
+            [
+                'id' => 'shift_3',
+                'name' => 'Shift 3 (Malam)',
+                'is_active' => false,
+                'in_start' => '22:00',
+                'in_end' => '23:45',
+                'out_start' => '06:30',
+                'out_end' => '08:00',
+            ],
+            [
+                'id' => 'non_shift',
+                'name' => 'Non-Shift (Reguler Office)',
+                'is_active' => true,
+                'in_start' => '07:00',
+                'in_end' => '08:45',
+                'out_start' => '16:45',
+                'out_end' => '19:00',
+            ],
+        ];
+
+        $storedShiftsJson = PayrollSetting::getByKey('kiosk_shifts_json');
+        $shifts = $storedShiftsJson ? json_decode($storedShiftsJson, true) : $defaultShifts;
+
         // Kiosk schedule settings
         $kioskSettings = [
+            'shifts' => $shifts,
             'morning_in_start' => PayrollSetting::getByKey('kiosk_morning_in_start', '07:00'),
             'morning_in_end' => PayrollSetting::getByKey('kiosk_morning_in_end', '08:30'),
             'evening_out_start' => PayrollSetting::getByKey('kiosk_evening_out_start', '16:30'),
@@ -587,7 +631,21 @@ class AttendanceController extends Controller
             'safety_hotline' => 'nullable|string',
             'safety_officer' => 'nullable|string',
             'announcements' => 'nullable|array',
+            'shifts' => 'nullable|array',
         ]);
+
+        if ($request->has('shifts')) {
+            PayrollSetting::updateOrCreate(
+                ['key' => 'kiosk_shifts_json'],
+                [
+                    'category' => 'kiosk',
+                    'label' => 'Kiosk Shifts JSON',
+                    'value' => json_encode($request->shifts),
+                    'type' => 'json',
+                    'is_active' => true,
+                ]
+            );
+        }
 
         if ($request->has('announcements')) {
             PayrollSetting::updateOrCreate(
@@ -603,7 +661,7 @@ class AttendanceController extends Controller
         }
 
         foreach ($validated as $key => $val) {
-            if ($val !== null && $key !== 'announcements') {
+            if ($val !== null && $key !== 'announcements' && $key !== 'shifts') {
                 $dbKey = 'kiosk_' . $key;
                 if ($key === 'slider_interval') $dbKey = 'kiosk_slider_interval_seconds';
                 if ($key === 'zero_accident_since') $dbKey = 'kiosk_k3_zero_accident_since';

@@ -80,23 +80,66 @@ const cooldownNotice = ref('');
 // Dynamic Greeting & Clock
 const currentTimeStr = ref('');
 const currentDateStr = ref('');
+const currentHMStr = ref('');
 const updateClock = () => {
     const now = new Date();
     currentTimeStr.value = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB';
     currentDateStr.value = now.toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    currentHMStr.value = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false });
 };
 
 // Slider and Scheduler State
 const activeSlide = ref('leaderboard'); // 'camera' | 'leaderboard'
 const sliderProgress = ref(0); // 0 - 100%
 const isPeakHour = ref(false);
+const currentPeakShiftLabel = ref('');
 const cameraManualExpiry = ref(0);
 const cameraManualRemainingSeconds = ref(0);
 let manualCountdownInterval = null;
 let sliderTicker = null;
 let sliderCountdown = 0;
 
+const defaultShiftList = [
+    {
+        id: 'shift_1',
+        name: 'Shift 1 (Pagi)',
+        is_active: true,
+        in_start: '06:00',
+        in_end: '08:30',
+        out_start: '14:30',
+        out_end: '16:00'
+    },
+    {
+        id: 'shift_2',
+        name: 'Shift 2 (Siang / Sore)',
+        is_active: true,
+        in_start: '14:00',
+        in_end: '16:00',
+        out_start: '22:30',
+        out_end: '23:45'
+    },
+    {
+        id: 'shift_3',
+        name: 'Shift 3 (Malam)',
+        is_active: false,
+        in_start: '22:00',
+        in_end: '23:45',
+        out_start: '06:30',
+        out_end: '08:00'
+    },
+    {
+        id: 'non_shift',
+        name: 'Non-Shift (Reguler Office)',
+        is_active: true,
+        in_start: '07:00',
+        in_end: '08:45',
+        out_start: '16:45',
+        out_end: '19:00'
+    }
+];
+
 const kioskSettings = ref({
+    shifts: JSON.parse(JSON.stringify(defaultShiftList)),
     morning_in_start: '07:00',
     morning_in_end: '08:30',
     evening_out_start: '16:30',
@@ -798,6 +841,123 @@ const closeCameraManual = () => {
     }
 };
 
+const isTimeInWindow = (current, start, end) => {
+    if (!start || !end) return false;
+    if (start <= end) {
+        return current >= start && current <= end;
+    } else {
+        // Cross-midnight window, e.g. 22:30 to 01:00
+        return current >= start || current <= end;
+    }
+};
+
+const getShiftCurrentPeakType = (shift, currentHM) => {
+    if (!shift || !shift.is_active) return null;
+    if (isTimeInWindow(currentHM, shift.in_start, shift.in_end)) return 'Check-in';
+    if (isTimeInWindow(currentHM, shift.out_start, shift.out_end)) return 'Check-out';
+    return null;
+};
+
+const addCustomShift = () => {
+    if (!kioskSettings.value.shifts) kioskSettings.value.shifts = [];
+    const count = kioskSettings.value.shifts.length + 1;
+    kioskSettings.value.shifts.push({
+        id: 'shift_custom_' + Date.now(),
+        name: `Shift Khusus ${count}`,
+        is_active: true,
+        in_start: '08:00',
+        in_end: '09:30',
+        out_start: '17:00',
+        out_end: '18:30'
+    });
+};
+
+const removeCustomShift = (idx) => {
+    kioskSettings.value.shifts.splice(idx, 1);
+};
+
+const applyShiftTemplate = (type) => {
+    if (type === '2shift') {
+        kioskSettings.value.shifts = [
+            {
+                id: 'shift_1',
+                name: 'Shift 1 (Pagi)',
+                is_active: true,
+                in_start: '06:00',
+                in_end: '08:30',
+                out_start: '14:30',
+                out_end: '16:00'
+            },
+            {
+                id: 'shift_2',
+                name: 'Shift 2 (Siang / Sore)',
+                is_active: true,
+                in_start: '14:00',
+                in_end: '16:00',
+                out_start: '22:30',
+                out_end: '23:45'
+            },
+            {
+                id: 'shift_3',
+                name: 'Shift 3 (Malam)',
+                is_active: false,
+                in_start: '22:00',
+                in_end: '23:45',
+                out_start: '06:30',
+                out_end: '08:00'
+            },
+            {
+                id: 'non_shift',
+                name: 'Non-Shift (Reguler Office)',
+                is_active: true,
+                in_start: '07:00',
+                in_end: '08:45',
+                out_start: '16:45',
+                out_end: '19:00'
+            }
+        ];
+    } else if (type === '3shift') {
+        kioskSettings.value.shifts = [
+            {
+                id: 'shift_1',
+                name: 'Shift 1 (Pagi)',
+                is_active: true,
+                in_start: '06:00',
+                in_end: '08:30',
+                out_start: '14:30',
+                out_end: '16:00'
+            },
+            {
+                id: 'shift_2',
+                name: 'Shift 2 (Siang / Sore)',
+                is_active: true,
+                in_start: '14:00',
+                in_end: '16:00',
+                out_start: '22:30',
+                out_end: '23:45'
+            },
+            {
+                id: 'shift_3',
+                name: 'Shift 3 (Malam)',
+                is_active: true,
+                in_start: '22:00',
+                in_end: '23:45',
+                out_start: '06:30',
+                out_end: '08:00'
+            },
+            {
+                id: 'non_shift',
+                name: 'Non-Shift (Reguler Office)',
+                is_active: true,
+                in_start: '07:00',
+                in_end: '08:45',
+                out_start: '16:45',
+                out_end: '19:00'
+            }
+        ];
+    }
+};
+
 const checkScheduleMode = () => {
     // Format jam:menit (HH:mm) sesuai zona waktu WIB / Asia/Jakarta (UTC+7)
     const currentHM = new Intl.DateTimeFormat('en-GB', {
@@ -811,12 +971,14 @@ const checkScheduleMode = () => {
 
     if (mode === 'camera_only') {
         isPeakHour.value = false;
+        currentPeakShiftLabel.value = '';
         if (!stream.value) startVideo();
         return;
     }
 
     if (mode === 'leaderboard_only') {
         isPeakHour.value = false;
+        currentPeakShiftLabel.value = '';
         if (stream.value) stopVideo();
         activeSlide.value = 'leaderboard';
         return;
@@ -824,21 +986,46 @@ const checkScheduleMode = () => {
 
     if (mode === 'announcements_only') {
         isPeakHour.value = false;
+        currentPeakShiftLabel.value = '';
         if (stream.value) stopVideo();
         activeSlide.value = 'announcements';
         return;
     }
 
-    // Auto schedule mode
-    const mStart = kioskSettings.value.morning_in_start || '07:00';
-    const mEnd = kioskSettings.value.morning_in_end || '08:30';
-    const eStart = kioskSettings.value.evening_out_start || '16:30';
-    const eEnd = kioskSettings.value.evening_out_end || '20:00';
+    // Auto schedule mode: Check all active shifts
+    let matchedShift = null;
+    let matchedType = null;
 
-    const inMorningPeak = currentHM >= mStart && currentHM <= mEnd;
-    const inEveningPeak = currentHM >= eStart && currentHM <= eEnd;
+    if (Array.isArray(kioskSettings.value.shifts) && kioskSettings.value.shifts.length > 0) {
+        for (const shift of kioskSettings.value.shifts) {
+            if (!shift.is_active) continue;
+            if (isTimeInWindow(currentHM, shift.in_start, shift.in_end)) {
+                matchedShift = shift;
+                matchedType = 'Check-in';
+                break;
+            }
+            if (isTimeInWindow(currentHM, shift.out_start, shift.out_end)) {
+                matchedShift = shift;
+                matchedType = 'Check-out';
+                break;
+            }
+        }
+    } else {
+        const mStart = kioskSettings.value.morning_in_start || '07:00';
+        const mEnd = kioskSettings.value.morning_in_end || '08:30';
+        const eStart = kioskSettings.value.evening_out_start || '16:30';
+        const eEnd = kioskSettings.value.evening_out_end || '20:00';
+        if (isTimeInWindow(currentHM, mStart, mEnd)) {
+            matchedShift = { name: 'Morning' };
+            matchedType = 'Check-in';
+        } else if (isTimeInWindow(currentHM, eStart, eEnd)) {
+            matchedShift = { name: 'Evening' };
+            matchedType = 'Check-out';
+        }
+    }
 
-    if (inMorningPeak || inEveningPeak) {
+    if (matchedShift) {
+        currentPeakShiftLabel.value = `${matchedShift.name} • ${matchedType}`;
         if (!isPeakHour.value) {
             isPeakHour.value = true;
             activeSlide.value = 'camera';
@@ -847,6 +1034,7 @@ const checkScheduleMode = () => {
             startVideo();
         }
     } else {
+        currentPeakShiftLabel.value = '';
         if (isPeakHour.value) {
             isPeakHour.value = false;
             if (cameraManualRemainingSeconds.value <= 0) {
@@ -897,8 +1085,13 @@ const switchSlide = (slide) => {
 const saveSettings = async () => {
     isSavingSettings.value = true;
     try {
+        const activeShift1 = (kioskSettings.value.shifts || []).find(s => s.id === 'shift_1' || s.is_active) || {};
         const payload = {
             ...kioskSettings.value,
+            morning_in_start: activeShift1.in_start || kioskSettings.value.morning_in_start,
+            morning_in_end: activeShift1.in_end || kioskSettings.value.morning_in_end,
+            evening_out_start: activeShift1.out_start || kioskSettings.value.evening_out_start,
+            evening_out_end: activeShift1.out_end || kioskSettings.value.evening_out_end,
             announcements: announcements.value,
             running_text: k3Form.value.running_text || runningText.value,
             safety_hotline: k3Form.value.safety_hotline,
@@ -1019,7 +1212,7 @@ const formatTimeString = (dateTime) => {
                         class="flex items-center gap-1.5 text-amber-400 font-black uppercase tracking-wider"
                     >
                         <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                        ⚡ Peak Hours (Camera Active)
+                        <span>⚡ Peak Hours: {{ currentPeakShiftLabel || 'Camera Active' }}</span>
                     </span>
                     <span 
                         v-else-if="!isPeakHour && kioskSettings.schedule_mode === 'auto' && activeSlide === 'camera'"
@@ -1405,23 +1598,39 @@ const formatTimeString = (dateTime) => {
                                     </p>
                                 </div>
 
-                                <!-- Peak Schedule Matrix Card -->
-                                <div class="mt-3 w-full max-w-[320px] p-2.5 rounded-xl bg-slate-950/70 border border-cyan-500/20 backdrop-blur flex flex-col gap-1.5 shadow-inner shrink-0 text-left">
+                                <!-- Peak Schedule Matrix Card (Multi-Shift) -->
+                                <div class="mt-3 w-full max-w-[340px] p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/25 backdrop-blur flex flex-col gap-2 shadow-inner shrink-0 text-left">
                                     <div class="flex items-center justify-between text-[8px] font-mono font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-white/5">
-                                        <span class="flex items-center gap-1 text-cyan-300 font-black">
+                                        <span class="flex items-center gap-1.5 text-cyan-300 font-black">
                                             <Radio class="w-2.5 h-2.5 text-cyan-400 animate-pulse" />
-                                            AUTOMATIC PEAK HOURS SCHEDULE
+                                            JADWAL SHIFT & PEAK HOURS
                                         </span>
                                         <span class="text-slate-500 font-bold">WIB</span>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                                        <div class="bg-cyan-950/30 border border-cyan-500/10 rounded-lg p-1.5">
-                                            <span class="text-[8px] text-cyan-400 font-black uppercase block">MORNING (CHECK-IN)</span>
-                                            <span class="text-white font-bold">{{ kioskSettings.morning_in_start || '07:00' }} - {{ kioskSettings.morning_in_end || '08:30' }}</span>
-                                        </div>
-                                        <div class="bg-indigo-950/30 border border-indigo-500/10 rounded-lg p-1.5">
-                                            <span class="text-[8px] text-indigo-400 font-black uppercase block">EVENING (CHECK-OUT)</span>
-                                            <span class="text-white font-bold">{{ kioskSettings.evening_out_start || '16:30' }} - {{ kioskSettings.evening_out_end || '20:00' }}</span>
+                                    <div class="grid grid-cols-2 gap-1.5 text-[9px] font-mono max-h-[140px] overflow-y-auto pr-0.5 custom-scrollbar">
+                                        <div 
+                                            v-for="shift in (kioskSettings.shifts || []).filter(s => s.is_active)"
+                                            :key="shift.id"
+                                            class="p-1.5 rounded-lg border transition flex flex-col gap-0.5"
+                                            :class="getShiftCurrentPeakType(shift, currentHMStr) 
+                                                ? 'bg-amber-500/15 border-amber-400/50 shadow-[0_0_10px_rgba(245,158,11,0.2)]' 
+                                                : 'bg-white/[0.03] border-white/10'"
+                                        >
+                                            <div class="flex items-center justify-between">
+                                                <span class="text-[8px] text-cyan-300 font-black uppercase truncate">{{ shift.name }}</span>
+                                                <span 
+                                                    v-if="getShiftCurrentPeakType(shift, currentHMStr)"
+                                                    class="text-[7px] px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase animate-pulse"
+                                                >
+                                                    NOW
+                                                </span>
+                                            </div>
+                                            <div class="text-[8px] text-slate-300 leading-tight">
+                                                <span class="text-cyan-400 font-bold">IN:</span> {{ shift.in_start }}-{{ shift.in_end }}
+                                            </div>
+                                            <div class="text-[8px] text-slate-300 leading-tight">
+                                                <span class="text-indigo-400 font-bold">OUT:</span> {{ shift.out_start }}-{{ shift.out_end }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2321,54 +2530,154 @@ const formatTimeString = (dateTime) => {
                                 </select>
                             </div>
 
-                            <!-- Morning Peak Hours -->
-                            <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
-                                <span class="font-black text-cyan-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
-                                    <Clock class="w-3.5 h-3.5" />
-                                    Morning Peak Hours (Check-in Camera Priority)
-                                </span>
-                                <div class="grid grid-cols-2 gap-3">
+                            <!-- Dynamic Multi-Shift Peak Hours Manager -->
+                            <div class="flex flex-col gap-3">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-white/10">
                                     <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">Start</label>
-                                        <input 
-                                            type="time" 
-                                            v-model="kioskSettings.morning_in_start"
-                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
-                                        />
+                                        <label class="font-black text-cyan-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
+                                            <Clock class="w-3.5 h-3.5" />
+                                            Jadwal Shift & Jam Puncak (Peak Hours)
+                                        </label>
+                                        <p class="text-[10px] text-slate-400 font-medium">
+                                            Kamera absensi otomatis siaga penuh pada jam masuk & jam pulang setiap shift aktif.
+                                        </p>
                                     </div>
-                                    <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">End</label>
-                                        <input 
-                                            type="time" 
-                                            v-model="kioskSettings.morning_in_end"
-                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
-                                        />
+                                    <div class="flex items-center gap-1.5 self-start sm:self-auto">
+                                        <!-- Quick Template Buttons -->
+                                        <button 
+                                            type="button"
+                                            @click="applyShiftTemplate('2shift')"
+                                            class="px-2 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 text-[10px] font-bold transition flex items-center gap-1"
+                                            title="Terapkan Template 2 Shift (Shift 1, Shift 2, Non-Shift)"
+                                        >
+                                            <span>2 Shift</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            @click="applyShiftTemplate('3shift')"
+                                            class="px-2 py-1 rounded-lg bg-white/5 hover:bg-cyan-500/20 text-slate-300 hover:text-cyan-300 border border-white/10 text-[10px] font-bold transition flex items-center gap-1"
+                                            title="Terapkan Template 3 Shift (24 Jam Penuh)"
+                                        >
+                                            <span>3 Shift</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            @click="addCustomShift"
+                                            class="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold transition flex items-center gap-1"
+                                        >
+                                            <Plus class="w-3 h-3" />
+                                            <span>Tambah Shift</span>
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- Evening Peak Hours -->
-                            <div class="p-3.5 bg-white/[0.02] border border-white/5 rounded-2xl flex flex-col gap-2">
-                                <span class="font-black text-indigo-300 uppercase tracking-wider text-[11px] flex items-center gap-2">
-                                    <Clock class="w-3.5 h-3.5" />
-                                    Evening Peak Hours (Check-out Camera Priority)
-                                </span>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">Start</label>
-                                        <input 
-                                            type="time" 
-                                            v-model="kioskSettings.evening_out_start"
-                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label class="text-[10px] text-slate-400 block mb-1">End</label>
-                                        <input 
-                                            type="time" 
-                                            v-model="kioskSettings.evening_out_end"
-                                            class="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-center focus:border-cyan-400 focus:outline-none"
-                                        />
+                                <!-- Shift Cards List -->
+                                <div class="flex flex-col gap-2.5">
+                                    <div 
+                                        v-for="(shift, idx) in (kioskSettings.shifts || [])" 
+                                        :key="shift.id || idx"
+                                        class="p-3.5 rounded-2xl border transition flex flex-col gap-3"
+                                        :class="shift.is_active 
+                                            ? 'bg-white/[0.03] border-white/10 hover:border-cyan-500/30' 
+                                            : 'bg-black/20 border-white/5 opacity-60'"
+                                    >
+                                        <!-- Shift Card Header -->
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="flex items-center gap-2.5 flex-1">
+                                                <!-- Active Toggle Switch -->
+                                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        v-model="shift.is_active" 
+                                                        class="sr-only peer"
+                                                    />
+                                                    <div class="w-8 h-4 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3.5 after:transition-all peer-checked:bg-cyan-500"></div>
+                                                </label>
+
+                                                <!-- Shift Name (Editable) -->
+                                                <input 
+                                                    type="text" 
+                                                    v-model="shift.name"
+                                                    placeholder="Nama Shift"
+                                                    class="bg-transparent border-b border-transparent hover:border-white/20 focus:border-cyan-400 text-white font-bold text-xs py-0.5 px-1 focus:outline-none transition max-w-[220px]"
+                                                />
+
+                                                <!-- Live Active Badge if currently in peak -->
+                                                <span 
+                                                    v-if="shift.is_active && getShiftCurrentPeakType(shift, currentHMStr)"
+                                                    class="px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[9px] font-black uppercase flex items-center gap-1 animate-pulse"
+                                                >
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                    Aktif Sekarang ({{ getShiftCurrentPeakType(shift, currentHMStr) }})
+                                                </span>
+                                            </div>
+
+                                            <!-- Delete Button (For custom/extra shifts) -->
+                                            <button 
+                                                v-if="(kioskSettings.shifts || []).length > 1"
+                                                type="button"
+                                                @click="removeCustomShift(idx)"
+                                                class="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                                                title="Hapus Shift"
+                                            >
+                                                <Trash2 class="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+
+                                        <!-- Shift Time Windows Grid -->
+                                        <div v-if="shift.is_active" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                            <!-- Check-in Window -->
+                                            <div class="bg-cyan-950/20 border border-cyan-500/15 rounded-xl p-2.5 flex flex-col gap-1.5">
+                                                <span class="text-[9px] font-black uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                                                    <span>Jam Masuk (Check-in Peak)</span>
+                                                    <span class="text-[8px] text-slate-500 font-normal">Kamera Standby</span>
+                                                </span>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-400 block mb-0.5">Mulai</label>
+                                                        <input 
+                                                            type="time" 
+                                                            v-model="shift.in_start"
+                                                            class="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono text-center text-xs focus:border-cyan-400 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-400 block mb-0.5">Selesai</label>
+                                                        <input 
+                                                            type="time" 
+                                                            v-model="shift.in_end"
+                                                            class="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono text-center text-xs focus:border-cyan-400 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Check-out Window -->
+                                            <div class="bg-indigo-950/20 border border-indigo-500/15 rounded-xl p-2.5 flex flex-col gap-1.5">
+                                                <span class="text-[9px] font-black uppercase tracking-wider text-indigo-400 flex items-center justify-between">
+                                                    <span>Jam Pulang (Check-out Peak)</span>
+                                                    <span class="text-[8px] text-slate-500 font-normal">Kamera Standby</span>
+                                                </span>
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-400 block mb-0.5">Mulai</label>
+                                                        <input 
+                                                            type="time" 
+                                                            v-model="shift.out_start"
+                                                            class="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono text-center text-xs focus:border-indigo-400 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-[9px] text-slate-400 block mb-0.5">Selesai</label>
+                                                        <input 
+                                                            type="time" 
+                                                            v-model="shift.out_end"
+                                                            class="w-full bg-slate-950 border border-white/10 rounded-lg px-2 py-1.5 text-white font-mono text-center text-xs focus:border-indigo-400 focus:outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
