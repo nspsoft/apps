@@ -685,7 +685,7 @@
                                 <td class="text-right">{{ number_format($payroll->basic_salary, 0, ',', '.') }}</td>
                             </tr>
                             <tr>
-                                <td>T.Makan @{{ $mealRateStr }}/Hari</td>
+                                <td>T.Makan &#64;{{ $mealRateStr }}/Hari</td>
                                 <td>:</td>
                                 <td class="text-right">{{ $tMakan > 0 ? number_format($tMakan, 0, ',', '.') : '-' }}</td>
                             </tr>

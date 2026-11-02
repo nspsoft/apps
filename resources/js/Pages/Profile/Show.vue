@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import ProfileMfaSettings from '@/Components/ProfileMfaSettings.vue';
 import {
     UserCircleIcon,
     KeyIcon,
@@ -13,6 +14,10 @@ const props = defineProps({
     mustChangePassword: {
         type: Boolean,
         default: false,
+    },
+    mfa: {
+        type: Object,
+        default: () => ({}),
     },
 });
 
@@ -623,6 +628,9 @@ const updatePassword = () => {
                     </div>
                 </form>
             </div>
+
+            <!-- Multi-Factor Authentication (WhatsApp OTP) -->
+            <ProfileMfaSettings :mfa="props.mfa" />
         </div>
     </AppLayout>
 </template>

@@ -24,6 +24,7 @@ import {
     DocumentDuplicateIcon,
     ChevronDownIcon,
     ArrowLeftIcon,
+    ExclamationTriangleIcon,
 } from '@heroicons/vue/24/outline';
 import axios from 'axios';
 
@@ -53,8 +54,19 @@ const form = useForm({
     _token: usePage().props.csrf_token,
 });
 
+const messageInput = ref(null);
 const fileInput = ref(null);
 const filePreview = ref(null);
+
+const prepareResend = (msg) => {
+    form.message = msg.message || '';
+    nextTick(() => {
+        if (messageInput.value) {
+            messageInput.value.focus();
+            messageInput.value.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+};
 
 const triggerFileSelect = () => {
     fileInput.value.click();
@@ -542,9 +554,44 @@ const startNewChat = () => {
 
                                     <p v-if="msg.message && !msg.message.startsWith('[File:')" class="whitespace-pre-wrap leading-relaxed" v-html="formatWhatsappMessage(msg.message)"></p>
                                     
-                                    <div class="mt-2 flex items-center justify-end gap-2 opacity-70">
-                                        <span class="text-[10px] font-mono">{{ formatDate(msg.created_at) }}</span>
-                                        <CheckCircleIcon v-if="msg.direction === 'outgoing'" class="h-3 w-3" />
+                                    <!-- Outgoing Failed Indicator & Manual Resend -->
+                                    <div v-if="msg.direction === 'outgoing' && msg.metadata?.delivery_success === false" class="mt-2.5 pt-2 border-t border-white/20 dark:border-rose-500/20 flex flex-wrap items-center justify-between gap-2">
+                                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-200 text-[10px] font-bold border border-rose-400/30" :title="msg.metadata?.delivery_error || 'Gagal mengirim ke WhatsApp'">
+                                            <ExclamationTriangleIcon class="h-3.5 w-3.5 shrink-0 text-amber-300" />
+                                            <span>Gagal Terkirim</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[10px] font-mono opacity-80">{{ formatDate(msg.created_at) }}</span>
+                                            <button 
+                                                type="button" 
+                                                @click="prepareResend(msg)" 
+                                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold transition shadow-sm active:scale-95 cursor-pointer"
+                                                title="Muat pesan ini ke kolom chat untuk dikirim ulang"
+                                            >
+                                                <ArrowPathIcon class="h-3 w-3" />
+                                                <span>Kirim Ulang</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div v-else class="mt-2 flex items-center justify-between gap-2">
+                                        <button 
+                                            v-if="msg.direction === 'outgoing'"
+                                            type="button" 
+                                            @click="prepareResend(msg)" 
+                                            class="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/20 hover:bg-white/30 text-[10px] text-white font-medium shadow-sm cursor-pointer"
+                                            title="Salin isi pesan ini ke kolom chat untuk dikirim ulang"
+                                        >
+                                            <ArrowPathIcon class="h-2.5 w-2.5" />
+                                            <span>Kirim Ulang</span>
+                                        </button>
+                                        <div class="flex items-center gap-1.5 ml-auto opacity-75">
+                                            <span v-if="msg.intent === 'manual_phone' || msg.metadata?.source === 'phone_manual'" class="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider bg-white/20 dark:bg-slate-700/60 px-1.5 py-0.5 rounded text-white dark:text-cyan-300 shadow-sm" title="Pesan ini dikirim langsung dari HP WhatsApp">
+                                                📱 via HP
+                                            </span>
+                                            <span class="text-[10px] font-mono">{{ formatDate(msg.created_at) }}</span>
+                                            <CheckCircleIcon v-if="msg.direction === 'outgoing'" class="h-3 w-3 text-cyan-200" />
+                                        </div>
                                     </div>
 
                                     <!-- Intent Badge for Incoming -->
@@ -628,6 +675,7 @@ const startNewChat = () => {
                                 </button>
 
                                 <input 
+                                    ref="messageInput"
                                     v-model="form.message"
                                     type="text" 
                                     placeholder="Type a message to reply manually..." 

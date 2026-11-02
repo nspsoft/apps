@@ -48,6 +48,53 @@ class WhatsappWebhookController extends Controller
         $phone = str_replace(['@s.whatsapp.net', '@c.us', '@lid'], '', $phone);
         $phone = $this->resolveLidToPhone($phone, $pushName);
 
+        // Handle outgoing message from phone sync
+        $fromMe = $request->boolean('fromMe');
+        if ($fromMe) {
+            $session = $request->input('session', 'sales');
+            $settingKey = ($session === 'hr' ? 'hr_whatsapp_sync_phone_outgoing' : ($session === 'inventory' ? 'inventory_whatsapp_sync_phone_outgoing' : 'whatsapp_sync_phone_outgoing'));
+            $isSyncEnabled = (bool) \App\Models\AppSetting::get($settingKey, false);
+
+            if (!$isSyncEnabled) {
+                return response()->json(['status' => 'ignored', 'reason' => 'phone_sync_disabled']);
+            }
+
+            // Sync outgoing message to database
+            $customer = ($session !== 'hr') ? Customer::where('phone', 'like', "%{$phone}%")->first() : null;
+            $employee = ($session === 'hr') ? \App\Models\Employee::where('phone', 'like', "%{$phone}%")->first() : null;
+
+            \App\Models\WhatsappMessage::create([
+                'phone' => $phone,
+                'direction' => 'outgoing',
+                'message' => $message ?? ($mediaUrl ? '[Media File]' : ''),
+                'intent' => 'manual_phone',
+                'is_read' => true,
+                'module' => $session ?: 'sales',
+                'metadata' => [
+                    'source' => 'phone_manual',
+                    'delivery_success' => true,
+                    'url' => $mediaUrl,
+                    'pushName' => $pushName,
+                ],
+                'customer_id' => $customer?->id,
+                'employee_id' => $employee?->id,
+            ]);
+
+            // Mark previous incoming messages as read
+            \App\Models\WhatsappMessage::where('phone', $phone)
+                ->where('direction', 'incoming')
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+
+            Cache::forget('whatsapp_unread_count');
+
+            return response()->json([
+                'status' => 'success',
+                'synced' => true,
+                'message' => 'Outgoing message from phone synced successfully.'
+            ]);
+        }
+
         try {
             // Process message and get response
             $response = $this->botService->handleIncomingMessage($phone, $message ?? '', $pushName, $mediaUrl);

@@ -245,7 +245,7 @@ class FinanceLedgerSyncTest extends TestCase
         // Credit Sales Revenue (4100) = 1,000,000
         // Debit COGS (5100) = 700,000
         // Credit Inventory (1130) = 700,000
-        $items = $salesJournal->items()->get()->keyBy(function ($item) {
+        $items = $salesJournal->items()->with('coa')->get()->keyBy(function ($item) {
             return $item->coa->code;
         });
 
@@ -270,7 +270,7 @@ class FinanceLedgerSyncTest extends TestCase
         // Verify journal items:
         // Debit Inventory (1130) = 3,000,000
         // Credit Accounts Payable (2110) = 3,000,000
-        $pItems = $purchaseJournal->items()->get()->keyBy(function ($item) {
+        $pItems = $purchaseJournal->items()->with('coa')->get()->keyBy(function ($item) {
             return $item->coa->code;
         });
 

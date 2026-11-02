@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\MfaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
 
 class AuthController extends Controller
@@ -21,18 +24,45 @@ class AuthController extends Controller
         ]);
     }
 
-    public function login(Request $request)
+    public function login(Request $request, MfaService $mfaService)
     {
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        $user = User::where('email', $credentials['email'])->first();
+
+        if ($user && Hash::check($credentials['password'], $user->password)) {
+            // Check if Multi-Factor Authentication (MFA) is active for this user
+            if ($user->mfa_enabled) {
+                if ($user->mfa_method === 'totp') {
+                    session([
+                        'mfa_user_id' => $user->id,
+                        'mfa_remember' => $request->boolean('remember'),
+                    ]);
+
+                    return redirect()->route('auth.mfa.challenge');
+                }
+
+                // Default WhatsApp MFA
+                if (!empty($user->mfa_phone)) {
+                    $mfaService->sendLoginOtp($user);
+
+                    session([
+                        'mfa_user_id' => $user->id,
+                        'mfa_remember' => $request->boolean('remember'),
+                        'mfa_last_sent_at' => now()->timestamp,
+                    ]);
+
+                    return redirect()->route('auth.mfa.challenge');
+                }
+            }
+
+            Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
 
-            $user = Auth::user();
-            if ($user->employee && \Illuminate\Support\Facades\Hash::check($user->employee->nik, $user->password)) {
+            if ($user->employee && Hash::check($user->employee->nik, $user->password)) {
                 session(['must_change_password' => true]);
             } else {
                 session()->forget('must_change_password');
@@ -54,14 +84,11 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $user = \App\Models\User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'password' => Hash::make($request->password),
         ]);
-
-        // Automatically assign a default role if needed, e.g. User or Viewer
-        // $user->assignRole('Viewer');
 
         Auth::login($user);
 

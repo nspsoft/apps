@@ -16,28 +16,42 @@ class WhatsappSettingController extends Controller
         $company = \App\Models\Company::first();
         $companyName = $company?->legal_name ?? $company?->name ?? AppSetting::get('company_full_name', 'PT. SPINDO / JICOS');
 
+        $normalize = fn($val) => ($val === 'wablas') ? 'wablas' : 'jicos_engine';
+
         $settings = [
-            'whatsapp_provider' => AppSetting::get('whatsapp_provider', 'jicos_engine'),
-            'usics_engine_server_url' => AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5050'),
-            'usics_engine_api_key' => AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'whatsapp_provider' => $normalize(AppSetting::get('whatsapp_provider', 'jicos_engine')),
+            'jicos_engine_server_url' => AppSetting::get('jicos_engine_server_url') ?: AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'jicos_engine_api_key' => AppSetting::get('jicos_engine_api_key') ?: AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'usics_engine_server_url' => AppSetting::get('jicos_engine_server_url') ?: AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'usics_engine_api_key' => AppSetting::get('jicos_engine_api_key') ?: AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026'),
             'wablas_api_token' => AppSetting::get('wablas_api_token', ''),
             'wablas_device' => AppSetting::get('wablas_device', ''),
             'wablas_server_url' => AppSetting::get('wablas_server_url', 'https://pati.wablas.com'),
             'whatsapp_bot_instruction' => (string) AppSetting::get('whatsapp_bot_instruction', "Anda adalah Customer Service Assistant {$companyName} yang ramah. Tugas Anda adalah melayani Customer dan Staff {$companyName} dengan sopan, ceria, dan membantu."),
+            'default_phone' => '6285888883258',
+            'whatsapp_mfa_module' => (string) AppSetting::get('whatsapp_mfa_module', 'hr'),
+            'whatsapp_sync_phone_outgoing' => (bool) AppSetting::get('whatsapp_sync_phone_outgoing', false),
+            'purchasing_whatsapp_sync_phone_outgoing' => (bool) AppSetting::get('purchasing_whatsapp_sync_phone_outgoing', false),
+            'inventory_whatsapp_sync_phone_outgoing' => (bool) AppSetting::get('inventory_whatsapp_sync_phone_outgoing', false),
+            'hr_whatsapp_sync_phone_outgoing' => (bool) AppSetting::get('hr_whatsapp_sync_phone_outgoing', false),
             
             // Purchasing settings
-            'purchasing_whatsapp_provider' => AppSetting::get('purchasing_whatsapp_provider', 'jicos_engine'),
-            'purchasing_usics_engine_server_url' => AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5050'),
-            'purchasing_usics_engine_api_key' => AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'purchasing_whatsapp_provider' => $normalize(AppSetting::get('purchasing_whatsapp_provider', 'jicos_engine')),
+            'purchasing_jicos_engine_server_url' => AppSetting::get('purchasing_jicos_engine_server_url') ?: AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'purchasing_jicos_engine_api_key' => AppSetting::get('purchasing_jicos_engine_api_key') ?: AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'purchasing_usics_engine_server_url' => AppSetting::get('purchasing_jicos_engine_server_url') ?: AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'purchasing_usics_engine_api_key' => AppSetting::get('purchasing_jicos_engine_api_key') ?: AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026'),
             'purchasing_wablas_api_token' => AppSetting::get('purchasing_wablas_api_token', ''),
             'purchasing_wablas_device' => AppSetting::get('purchasing_wablas_device', ''),
             'purchasing_wablas_server_url' => AppSetting::get('purchasing_wablas_server_url', 'https://pati.wablas.com'),
             'purchasing_whatsapp_bot_instruction' => (string) AppSetting::get('purchasing_whatsapp_bot_instruction', "Anda adalah Purchasing Assistant {$companyName} yang ramah dan profesional. Tugas Anda adalah melayani supplier dan vendor kami dengan memberikan informasi PO, penerimaan barang, RFQ, dan invoice tagihan."),
 
             // Inventory settings
-            'inventory_whatsapp_provider' => AppSetting::get('inventory_whatsapp_provider', 'jicos_engine'),
-            'inventory_usics_engine_server_url' => AppSetting::get('inventory_usics_engine_server_url', 'http://127.0.0.1:5050'),
-            'inventory_usics_engine_api_key' => AppSetting::get('inventory_usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'inventory_whatsapp_provider' => $normalize(AppSetting::get('inventory_whatsapp_provider', 'jicos_engine')),
+            'inventory_jicos_engine_server_url' => AppSetting::get('inventory_jicos_engine_server_url') ?: AppSetting::get('inventory_usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'inventory_jicos_engine_api_key' => AppSetting::get('inventory_jicos_engine_api_key') ?: AppSetting::get('inventory_usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'inventory_usics_engine_server_url' => AppSetting::get('inventory_jicos_engine_server_url') ?: AppSetting::get('inventory_usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'inventory_usics_engine_api_key' => AppSetting::get('inventory_jicos_engine_api_key') ?: AppSetting::get('inventory_usics_engine_api_key', 'jicos-wa-secret-2026'),
             'inventory_wablas_api_token' => AppSetting::get('inventory_wablas_api_token', ''),
             'inventory_wablas_device' => AppSetting::get('inventory_wablas_device', ''),
             'inventory_wablas_server_url' => AppSetting::get('inventory_wablas_server_url', 'https://pati.wablas.com'),
@@ -45,9 +59,11 @@ class WhatsappSettingController extends Controller
 
             // HR settings
             'hr_whatsapp_mode' => AppSetting::get('hr_whatsapp_mode', 'same_as_sales'),
-            'hr_whatsapp_provider' => AppSetting::get('hr_whatsapp_provider', 'jicos_engine'),
-            'hr_usics_engine_server_url' => AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5050'),
-            'hr_usics_engine_api_key' => AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'hr_whatsapp_provider' => $normalize(AppSetting::get('hr_whatsapp_provider', 'jicos_engine')),
+            'hr_jicos_engine_server_url' => AppSetting::get('hr_jicos_engine_server_url') ?: AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'hr_jicos_engine_api_key' => AppSetting::get('hr_jicos_engine_api_key') ?: AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026'),
+            'hr_usics_engine_server_url' => AppSetting::get('hr_jicos_engine_server_url') ?: AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5055'),
+            'hr_usics_engine_api_key' => AppSetting::get('hr_jicos_engine_api_key') ?: AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026'),
             'hr_wablas_api_token' => AppSetting::get('hr_wablas_api_token', ''),
             'hr_wablas_device' => AppSetting::get('hr_wablas_device', ''),
             'hr_wablas_server_url' => AppSetting::get('hr_wablas_server_url', 'https://pati.wablas.com'),
@@ -65,15 +81,24 @@ class WhatsappSettingController extends Controller
         $request->validate([
             // Sales rules
             'whatsapp_provider' => 'required|in:jicos_engine,usics_engine,wablas',
+            'jicos_engine_server_url' => 'nullable|url|max:255',
+            'jicos_engine_api_key' => 'nullable|string|max:500',
             'usics_engine_server_url' => 'nullable|url|max:255',
             'usics_engine_api_key' => 'nullable|string|max:500',
             'wablas_api_token' => 'nullable|string|max:500',
             'wablas_device' => 'nullable|string|max:20',
             'wablas_server_url' => 'nullable|url|max:255',
             'whatsapp_bot_instruction' => 'nullable|string',
+            'whatsapp_sync_phone_outgoing' => 'nullable|boolean',
+            'whatsapp_mfa_module' => 'nullable|string|in:hr,sales,purchasing,inventory',
+            'purchasing_whatsapp_sync_phone_outgoing' => 'nullable|boolean',
+            'inventory_whatsapp_sync_phone_outgoing' => 'nullable|boolean',
+            'hr_whatsapp_sync_phone_outgoing' => 'nullable|boolean',
 
             // Purchasing rules
             'purchasing_whatsapp_provider' => 'required|in:jicos_engine,usics_engine,wablas',
+            'purchasing_jicos_engine_server_url' => 'nullable|url|max:255',
+            'purchasing_jicos_engine_api_key' => 'nullable|string|max:500',
             'purchasing_usics_engine_server_url' => 'nullable|url|max:255',
             'purchasing_usics_engine_api_key' => 'nullable|string|max:500',
             'purchasing_wablas_api_token' => 'nullable|string|max:500',
@@ -83,6 +108,8 @@ class WhatsappSettingController extends Controller
 
             // Inventory rules
             'inventory_whatsapp_provider' => 'nullable|in:jicos_engine,usics_engine,wablas',
+            'inventory_jicos_engine_server_url' => 'nullable|url|max:255',
+            'inventory_jicos_engine_api_key' => 'nullable|string|max:500',
             'inventory_usics_engine_server_url' => 'nullable|url|max:255',
             'inventory_usics_engine_api_key' => 'nullable|string|max:500',
             'inventory_wablas_api_token' => 'nullable|string|max:500',
@@ -93,6 +120,8 @@ class WhatsappSettingController extends Controller
             // HR rules
             'hr_whatsapp_mode' => 'nullable|in:same_as_sales,dedicated',
             'hr_whatsapp_provider' => 'nullable|in:jicos_engine,usics_engine,wablas',
+            'hr_jicos_engine_server_url' => 'nullable|url|max:255',
+            'hr_jicos_engine_api_key' => 'nullable|string|max:500',
             'hr_usics_engine_server_url' => 'nullable|url|max:255',
             'hr_usics_engine_api_key' => 'nullable|string|max:500',
             'hr_wablas_api_token' => 'nullable|string|max:500',
@@ -101,27 +130,47 @@ class WhatsappSettingController extends Controller
             'hr_whatsapp_bot_instruction' => 'nullable|string',
         ]);
 
-        // Save Sales provider selection
-        AppSetting::set('whatsapp_provider', $request->whatsapp_provider, 'whatsapp', 'WhatsApp Provider');
+        // Normalize provider selections to jicos_engine
+        $saveSalesProvider = $request->whatsapp_provider === 'wablas' ? 'wablas' : 'jicos_engine';
+        $savePurchasingProvider = $request->purchasing_whatsapp_provider === 'wablas' ? 'wablas' : 'jicos_engine';
+        $saveInventoryProvider = $request->inventory_whatsapp_provider === 'wablas' ? 'wablas' : 'jicos_engine';
+        $saveHrProvider = $request->hr_whatsapp_provider === 'wablas' ? 'wablas' : 'jicos_engine';
 
-        // Save Sales JICOS WhatsApp Engine settings
-        AppSetting::set('usics_engine_server_url', $request->usics_engine_server_url ?: 'http://127.0.0.1:5050', 'whatsapp', 'JICOS WA Engine Server URL');
-        AppSetting::set('usics_engine_api_key', $request->usics_engine_api_key ?: 'jicos-wa-secret-2026', 'whatsapp', 'JICOS WA Engine API Key');
+        // Save Sales provider selection
+        AppSetting::set('whatsapp_provider', $saveSalesProvider, 'whatsapp', 'WhatsApp Provider');
+
+        // Save Sales JICOS WhatsApp Engine settings (dual-key for safety)
+        $salesUrl = $request->jicos_engine_server_url ?: $request->usics_engine_server_url ?: 'http://127.0.0.1:5055';
+        $salesKey = $request->jicos_engine_api_key ?: $request->usics_engine_api_key ?: 'jicos-wa-secret-2026';
+        AppSetting::set('jicos_engine_server_url', $salesUrl, 'whatsapp', 'JICOS WA Engine Server URL');
+        AppSetting::set('jicos_engine_api_key', $salesKey, 'whatsapp', 'JICOS WA Engine API Key');
+        AppSetting::set('usics_engine_server_url', $salesUrl, 'whatsapp', 'JICOS WA Engine Server URL');
+        AppSetting::set('usics_engine_api_key', $salesKey, 'whatsapp', 'JICOS WA Engine API Key');
 
         // Save Sales Wablas settings
         AppSetting::set('wablas_api_token', $request->wablas_api_token ?: '', 'whatsapp', 'Wablas API Token');
         AppSetting::set('wablas_device', $request->wablas_device ?: '', 'whatsapp', 'Wablas Device ID');
         AppSetting::set('wablas_server_url', $request->wablas_server_url ?: 'https://pati.wablas.com', 'whatsapp', 'Wablas Server URL');
 
+        // Save Phone Outgoing Sync Toggles
+        AppSetting::set('whatsapp_sync_phone_outgoing', $request->boolean('whatsapp_sync_phone_outgoing') ? '1' : '0', 'whatsapp', 'Sync Phone Outgoing (Sales)');
+        AppSetting::set('purchasing_whatsapp_sync_phone_outgoing', $request->boolean('purchasing_whatsapp_sync_phone_outgoing') ? '1' : '0', 'whatsapp', 'Sync Phone Outgoing (Purchasing)');
+        AppSetting::set('inventory_whatsapp_sync_phone_outgoing', $request->boolean('inventory_whatsapp_sync_phone_outgoing') ? '1' : '0', 'whatsapp', 'Sync Phone Outgoing (Inventory)');
+        AppSetting::set('hr_whatsapp_sync_phone_outgoing', $request->boolean('hr_whatsapp_sync_phone_outgoing') ? '1' : '0', 'whatsapp', 'Sync Phone Outgoing (HR)');
+
         // Save Sales AI Bot Instructions
         AppSetting::set('whatsapp_bot_instruction', $request->whatsapp_bot_instruction ?: '', 'whatsapp', 'WhatsApp Bot Personality');
 
         // Save Purchasing provider selection
-        AppSetting::set('purchasing_whatsapp_provider', $request->purchasing_whatsapp_provider, 'whatsapp', 'Purchasing WhatsApp Provider');
+        AppSetting::set('purchasing_whatsapp_provider', $savePurchasingProvider, 'whatsapp', 'Purchasing WhatsApp Provider');
 
         // Save Purchasing JICOS WhatsApp Engine settings
-        AppSetting::set('purchasing_usics_engine_server_url', $request->purchasing_usics_engine_server_url ?: 'http://127.0.0.1:5050', 'whatsapp', 'Purchasing WA Engine Server URL');
-        AppSetting::set('purchasing_usics_engine_api_key', $request->purchasing_usics_engine_api_key ?: 'jicos-wa-secret-2026', 'whatsapp', 'Purchasing WA Engine API Key');
+        $purchasingUrl = $request->purchasing_jicos_engine_server_url ?: $request->purchasing_usics_engine_server_url ?: 'http://127.0.0.1:5055';
+        $purchasingKey = $request->purchasing_jicos_engine_api_key ?: $request->purchasing_usics_engine_api_key ?: 'jicos-wa-secret-2026';
+        AppSetting::set('purchasing_jicos_engine_server_url', $purchasingUrl, 'whatsapp', 'Purchasing WA Engine Server URL');
+        AppSetting::set('purchasing_jicos_engine_api_key', $purchasingKey, 'whatsapp', 'Purchasing WA Engine API Key');
+        AppSetting::set('purchasing_usics_engine_server_url', $purchasingUrl, 'whatsapp', 'Purchasing WA Engine Server URL');
+        AppSetting::set('purchasing_usics_engine_api_key', $purchasingKey, 'whatsapp', 'Purchasing WA Engine API Key');
 
         // Save Purchasing Wablas settings
         AppSetting::set('purchasing_wablas_api_token', $request->purchasing_wablas_api_token ?: '', 'whatsapp', 'Purchasing Wablas API Token');
@@ -132,11 +181,15 @@ class WhatsappSettingController extends Controller
         AppSetting::set('purchasing_whatsapp_bot_instruction', $request->purchasing_whatsapp_bot_instruction ?: '', 'whatsapp', 'Purchasing WhatsApp Bot Personality');
 
         // Save Inventory provider selection
-        AppSetting::set('inventory_whatsapp_provider', $request->inventory_whatsapp_provider ?: 'jicos_engine', 'whatsapp', 'Inventory WhatsApp Provider');
+        AppSetting::set('inventory_whatsapp_provider', $saveInventoryProvider, 'whatsapp', 'Inventory WhatsApp Provider');
 
         // Save Inventory JICOS WhatsApp Engine settings
-        AppSetting::set('inventory_usics_engine_server_url', $request->inventory_usics_engine_server_url ?: 'http://127.0.0.1:5050', 'whatsapp', 'Inventory WA Engine Server URL');
-        AppSetting::set('inventory_usics_engine_api_key', $request->inventory_usics_engine_api_key ?: 'jicos-wa-secret-2026', 'whatsapp', 'Inventory WA Engine API Key');
+        $invUrl = $request->inventory_jicos_engine_server_url ?: $request->inventory_usics_engine_server_url ?: 'http://127.0.0.1:5055';
+        $invKey = $request->inventory_jicos_engine_api_key ?: $request->inventory_usics_engine_api_key ?: 'jicos-wa-secret-2026';
+        AppSetting::set('inventory_jicos_engine_server_url', $invUrl, 'whatsapp', 'Inventory WA Engine Server URL');
+        AppSetting::set('inventory_jicos_engine_api_key', $invKey, 'whatsapp', 'Inventory WA Engine API Key');
+        AppSetting::set('inventory_usics_engine_server_url', $invUrl, 'whatsapp', 'Inventory WA Engine Server URL');
+        AppSetting::set('inventory_usics_engine_api_key', $invKey, 'whatsapp', 'Inventory WA Engine API Key');
 
         // Save Inventory Wablas settings
         AppSetting::set('inventory_wablas_api_token', $request->inventory_wablas_api_token ?: '', 'whatsapp', 'Inventory Wablas API Token');
@@ -148,14 +201,22 @@ class WhatsappSettingController extends Controller
 
         // Save HR settings
         if ($request->has('hr_whatsapp_mode')) {
+            $hrUrl = $request->hr_jicos_engine_server_url ?: $request->hr_usics_engine_server_url ?: 'http://127.0.0.1:5055';
+            $hrKey = $request->hr_jicos_engine_api_key ?: $request->hr_usics_engine_api_key ?: 'jicos-wa-secret-2026';
             AppSetting::set('hr_whatsapp_mode', $request->hr_whatsapp_mode, 'whatsapp', 'HR WhatsApp Mode');
-            AppSetting::set('hr_whatsapp_provider', $request->hr_whatsapp_provider ?: 'jicos_engine', 'whatsapp', 'HR WhatsApp Provider');
-            AppSetting::set('hr_usics_engine_server_url', $request->hr_usics_engine_server_url ?: 'http://127.0.0.1:5050', 'whatsapp', 'HR WA Engine Server URL');
-            AppSetting::set('hr_usics_engine_api_key', $request->hr_usics_engine_api_key ?: 'jicos-wa-secret-2026', 'whatsapp', 'HR WA Engine API Key');
+            AppSetting::set('hr_whatsapp_provider', $saveHrProvider, 'whatsapp', 'HR WhatsApp Provider');
+            AppSetting::set('hr_jicos_engine_server_url', $hrUrl, 'whatsapp', 'HR WA Engine Server URL');
+            AppSetting::set('hr_jicos_engine_api_key', $hrKey, 'whatsapp', 'HR WA Engine API Key');
+            AppSetting::set('hr_usics_engine_server_url', $hrUrl, 'whatsapp', 'HR WA Engine Server URL');
+            AppSetting::set('hr_usics_engine_api_key', $hrKey, 'whatsapp', 'HR WA Engine API Key');
             AppSetting::set('hr_wablas_api_token', $request->hr_wablas_api_token ?: '', 'whatsapp', 'HR Wablas API Token');
             AppSetting::set('hr_wablas_device', $request->hr_wablas_device ?: '', 'whatsapp', 'HR Wablas Device ID');
             AppSetting::set('hr_wablas_server_url', $request->hr_wablas_server_url ?: 'https://pati.wablas.com', 'whatsapp', 'HR Wablas Server URL');
             AppSetting::set('hr_whatsapp_bot_instruction', $request->hr_whatsapp_bot_instruction ?: '', 'whatsapp', 'HR WhatsApp Bot Personality');
+        }
+
+        if ($request->has('whatsapp_mfa_module')) {
+            AppSetting::set('whatsapp_mfa_module', $request->whatsapp_mfa_module, 'whatsapp', 'Modul WhatsApp Pengirim OTP MFA');
         }
 
         return redirect()->back()->with('success', 'Konfigurasi WhatsApp berhasil diperbarui!');
@@ -166,8 +227,8 @@ class WhatsappSettingController extends Controller
      */
     public function checkEngineStatus(Request $request)
     {
-        $serverUrl = $request->query('server_url') ?: AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5050');
-        $apiKey = $request->query('api_key') ?: AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026');
+        $serverUrl = $request->query('server_url') ?: AppSetting::get('jicos_engine_server_url') ?: AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5055');
+        $apiKey = $request->query('api_key') ?: AppSetting::get('jicos_engine_api_key') ?: AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026');
         $session = $request->query('session', 'sales');
 
         $engine = app(JicosWhatsappEngineService::class)->setCredentials($apiKey, $serverUrl, $session);
@@ -182,12 +243,12 @@ class WhatsappSettingController extends Controller
     public function testConnection(Request $request)
     {
         $request->validate([
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'module' => 'nullable|string|in:sales,purchasing,inventory,hr',
         ]);
 
         $module = $request->input('module', 'sales');
-        $phone = $request->phone;
+        $phone = $request->phone ?: '6285888883258';
 
         $provider = match ($module) {
             'purchasing' => AppSetting::get('purchasing_whatsapp_provider', 'jicos_engine'),
@@ -224,8 +285,8 @@ class WhatsappSettingController extends Controller
                     $url = AppSetting::get('purchasing_wablas_server_url', 'https://pati.wablas.com');
                     $service = app(WablasService::class)->setCredentials($token, $url);
                 } else {
-                    $token = AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026');
-                    $url = AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5050');
+                    $token = AppSetting::get('purchasing_jicos_engine_api_key') ?: AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026');
+                    $url = AppSetting::get('purchasing_jicos_engine_server_url') ?: AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5055');
                     $service = app(JicosWhatsappEngineService::class)->setCredentials($token, $url, 'purchasing');
                 }
             } elseif ($module === 'inventory') {
@@ -234,8 +295,8 @@ class WhatsappSettingController extends Controller
                     $url = AppSetting::get('inventory_wablas_server_url', 'https://pati.wablas.com');
                     $service = app(WablasService::class)->setCredentials($token, $url);
                 } else {
-                    $token = AppSetting::get('inventory_usics_engine_api_key', 'jicos-wa-secret-2026');
-                    $url = AppSetting::get('inventory_usics_engine_server_url', 'http://127.0.0.1:5050');
+                    $token = AppSetting::get('inventory_jicos_engine_api_key') ?: AppSetting::get('inventory_usics_engine_api_key', 'jicos-wa-secret-2026');
+                    $url = AppSetting::get('inventory_jicos_engine_server_url') ?: AppSetting::get('inventory_usics_engine_server_url', 'http://127.0.0.1:5055');
                     $service = app(JicosWhatsappEngineService::class)->setCredentials($token, $url, 'inventory');
                 }
             } elseif ($module === 'hr') {
@@ -244,16 +305,16 @@ class WhatsappSettingController extends Controller
                     $url = AppSetting::get('hr_wablas_server_url', 'https://pati.wablas.com');
                     $service = app(WablasService::class)->setCredentials($token, $url);
                 } else {
-                    $token = AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026');
-                    $url = AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5050');
+                    $token = AppSetting::get('hr_jicos_engine_api_key') ?: AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026');
+                    $url = AppSetting::get('hr_jicos_engine_server_url') ?: AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5055');
                     $service = app(JicosWhatsappEngineService::class)->setCredentials($token, $url, 'hr');
                 }
             } else {
                 if ($provider === 'wablas') {
                     $service = app(WablasService::class);
                 } else {
-                    $token = AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026');
-                    $url = AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5050');
+                    $token = AppSetting::get('jicos_engine_api_key') ?: AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026');
+                    $url = AppSetting::get('jicos_engine_server_url') ?: AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5055');
                     $service = app(JicosWhatsappEngineService::class)->setCredentials($token, $url, 'sales');
                 }
             }

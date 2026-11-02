@@ -35,6 +35,13 @@ class User extends Authenticatable
         'supplier_id',
         'profile_photo_path',
         'signature_path',
+        'mfa_enabled',
+        'mfa_method',
+        'mfa_phone',
+        'mfa_totp_secret',
+        'mfa_otp',
+        'mfa_otp_expires_at',
+        'mfa_recovery_codes',
     ];
 
     public function supplier()
@@ -60,6 +67,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'mfa_totp_secret',
+        'mfa_otp',
+        'mfa_recovery_codes',
     ];
 
     /**
@@ -72,6 +82,10 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'mfa_enabled' => 'boolean',
+            'mfa_totp_secret' => 'encrypted',
+            'mfa_otp_expires_at' => 'datetime',
+            'mfa_recovery_codes' => 'array',
         ];
     }
 }

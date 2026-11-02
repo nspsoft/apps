@@ -14,8 +14,8 @@ class JicosWhatsappEngineService
 
     public function __construct()
     {
-        $this->serverUrl = rtrim((string) (AppSetting::get('usics_engine_server_url') ?: AppSetting::get('jicos_engine_server_url') ?: config('services.jicos_engine.url', 'http://127.0.0.1:5050')), '/');
-        $this->apiKey = (string) (AppSetting::get('usics_engine_api_key') ?: AppSetting::get('jicos_engine_api_key') ?: config('services.jicos_engine.key', 'jicos-wa-secret-2026'));
+        $this->serverUrl = rtrim((string) (AppSetting::get('jicos_engine_server_url') ?: AppSetting::get('usics_engine_server_url') ?: config('services.jicos_engine.url', 'http://127.0.0.1:5055')), '/');
+        $this->apiKey = (string) (AppSetting::get('jicos_engine_api_key') ?: AppSetting::get('usics_engine_api_key') ?: config('services.jicos_engine.key', 'jicos-wa-secret-2026'));
     }
 
     /**

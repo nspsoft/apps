@@ -22,10 +22,12 @@ import {
     ShoppingBagIcon,
     BriefcaseIcon,
     CubeIcon,
+    UserGroupIcon,
     ServerStackIcon,
     QrCodeIcon,
     ArrowTopRightOnSquareIcon,
-    ArrowPathIcon
+    ArrowPathIcon,
+    ShieldCheckIcon
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -37,14 +39,16 @@ const page = usePage();
 const showSalesKey = ref(false);
 const showPurchasingKey = ref(false);
 const showInventoryKey = ref(false);
+const showHrKey = ref(false);
 const showWablasToken = ref(false);
 const showPurchasingWablasToken = ref(false);
 const showInventoryWablasToken = ref(false);
+const showHrWablasToken = ref(false);
 const copied = ref(false);
 const activeTab = ref('sales');
 
 // Test connection state
-const testPhone = ref('');
+const testPhone = ref(props.settings?.default_phone || '6285888883258');
 const testLoading = ref(false);
 const testResult = ref(null);
 
@@ -54,7 +58,7 @@ const engineStatus = ref(null);
 
 const providers = [
     { 
-        id: 'usics_engine', 
+        id: 'jicos_engine', 
         name: 'JICOS WhatsApp Engine ⭐', 
         price: 'Self-Hosted (Gratis Seumur Hidup)',
         website: 'Local Node.js Multi-Session Gateway',
@@ -71,52 +75,74 @@ const providers = [
     },
 ];
 
+// Helper to normalize provider (defaults to our self-hosted engine)
+const normalizeProvider = (val) => (val === 'wablas' ? 'wablas' : 'jicos_engine');
+const isEngine = (val) => val === 'jicos_engine' || val === 'usics_engine';
+
 const form = useForm({
-    // Sales Bot Settings
-    whatsapp_provider: props.settings?.whatsapp_provider || 'usics_engine',
-    usics_engine_server_url: props.settings?.usics_engine_server_url || 'http://127.0.0.1:5050',
-    usics_engine_api_key: props.settings?.usics_engine_api_key || 'usics-wa-secret-2026',
+    // Sales Bot Settings (Nomor Sales & CS)
+    whatsapp_provider: normalizeProvider(props.settings?.whatsapp_provider),
+    jicos_engine_server_url: props.settings?.jicos_engine_server_url || props.settings?.usics_engine_server_url || 'http://127.0.0.1:5055',
+    jicos_engine_api_key: props.settings?.jicos_engine_api_key || props.settings?.usics_engine_api_key || 'jicos-wa-secret-2026',
     wablas_api_token: props.settings?.wablas_api_token || '',
     wablas_device: props.settings?.wablas_device || '',
     wablas_server_url: props.settings?.wablas_server_url || 'https://pati.wablas.com',
     whatsapp_bot_instruction: props.settings?.whatsapp_bot_instruction || '',
+    whatsapp_sync_phone_outgoing: Boolean(props.settings?.whatsapp_sync_phone_outgoing),
 
-    // Purchasing Bot Settings
-    purchasing_whatsapp_provider: props.settings?.purchasing_whatsapp_provider || 'usics_engine',
-    purchasing_usics_engine_server_url: props.settings?.purchasing_usics_engine_server_url || 'http://127.0.0.1:5050',
-    purchasing_usics_engine_api_key: props.settings?.purchasing_usics_engine_api_key || 'usics-wa-secret-2026',
+    // Purchasing Bot Settings (Nomor Supplier & Purchasing)
+    purchasing_whatsapp_provider: normalizeProvider(props.settings?.purchasing_whatsapp_provider),
+    purchasing_jicos_engine_server_url: props.settings?.purchasing_jicos_engine_server_url || props.settings?.purchasing_usics_engine_server_url || 'http://127.0.0.1:5055',
+    purchasing_jicos_engine_api_key: props.settings?.purchasing_jicos_engine_api_key || props.settings?.purchasing_usics_engine_api_key || 'jicos-wa-secret-2026',
     purchasing_wablas_api_token: props.settings?.purchasing_wablas_api_token || '',
     purchasing_wablas_device: props.settings?.purchasing_wablas_device || '',
     purchasing_wablas_server_url: props.settings?.purchasing_wablas_server_url || 'https://pati.wablas.com',
     purchasing_whatsapp_bot_instruction: props.settings?.purchasing_whatsapp_bot_instruction || '',
+    purchasing_whatsapp_sync_phone_outgoing: Boolean(props.settings?.purchasing_whatsapp_sync_phone_outgoing),
 
-    // Inventory Bot Settings
-    inventory_whatsapp_provider: props.settings?.inventory_whatsapp_provider || 'usics_engine',
-    inventory_usics_engine_server_url: props.settings?.inventory_usics_engine_server_url || 'http://127.0.0.1:5050',
-    inventory_usics_engine_api_key: props.settings?.inventory_usics_engine_api_key || 'usics-wa-secret-2026',
+    // Inventory Bot Settings (Nomor Gudang & Stok)
+    inventory_whatsapp_provider: normalizeProvider(props.settings?.inventory_whatsapp_provider),
+    inventory_jicos_engine_server_url: props.settings?.inventory_jicos_engine_server_url || props.settings?.inventory_usics_engine_server_url || 'http://127.0.0.1:5055',
+    inventory_jicos_engine_api_key: props.settings?.inventory_jicos_engine_api_key || props.settings?.inventory_usics_engine_api_key || 'jicos-wa-secret-2026',
     inventory_wablas_api_token: props.settings?.inventory_wablas_api_token || '',
     inventory_wablas_device: props.settings?.inventory_wablas_device || '',
     inventory_wablas_server_url: props.settings?.inventory_wablas_server_url || 'https://pati.wablas.com',
     inventory_whatsapp_bot_instruction: props.settings?.inventory_whatsapp_bot_instruction || '',
+    inventory_whatsapp_sync_phone_outgoing: Boolean(props.settings?.inventory_whatsapp_sync_phone_outgoing),
+
+    // HR Bot Settings (Nomor HR & Payroll Internal)
+    hr_whatsapp_mode: props.settings?.hr_whatsapp_mode || 'dedicated',
+    hr_whatsapp_provider: normalizeProvider(props.settings?.hr_whatsapp_provider),
+    hr_jicos_engine_server_url: props.settings?.hr_jicos_engine_server_url || props.settings?.hr_usics_engine_server_url || 'http://127.0.0.1:5055',
+    hr_jicos_engine_api_key: props.settings?.hr_jicos_engine_api_key || props.settings?.hr_usics_engine_api_key || 'jicos-wa-secret-2026',
+    hr_wablas_api_token: props.settings?.hr_wablas_api_token || '',
+    hr_wablas_device: props.settings?.hr_wablas_device || '',
+    hr_wablas_server_url: props.settings?.hr_wablas_server_url || 'https://pati.wablas.com',
+    hr_whatsapp_bot_instruction: props.settings?.hr_whatsapp_bot_instruction || '',
+    hr_whatsapp_sync_phone_outgoing: Boolean(props.settings?.hr_whatsapp_sync_phone_outgoing),
+    whatsapp_mfa_module: props.settings?.whatsapp_mfa_module || 'hr',
 });
 
 const selectedProvider = computed(() => {
-    const providerId = activeTab.value === 'purchasing'
-        ? form.purchasing_whatsapp_provider
-        : (activeTab.value === 'inventory' ? form.inventory_whatsapp_provider : form.whatsapp_provider);
-    return providers.find(p => p.id === providerId);
+    let providerId = form.whatsapp_provider;
+    if (activeTab.value === 'purchasing') providerId = form.purchasing_whatsapp_provider;
+    else if (activeTab.value === 'inventory') providerId = form.inventory_whatsapp_provider;
+    else if (activeTab.value === 'hr') providerId = form.hr_whatsapp_provider;
+    return providers.find(p => p.id === providerId || (p.id === 'jicos_engine' && isEngine(providerId)));
 });
 
 const currentEngineUrl = computed(() => {
-    if (activeTab.value === 'purchasing') return form.purchasing_usics_engine_server_url;
-    if (activeTab.value === 'inventory') return form.inventory_usics_engine_server_url;
-    return form.usics_engine_server_url;
+    if (activeTab.value === 'purchasing') return form.purchasing_jicos_engine_server_url || 'http://127.0.0.1:5055';
+    if (activeTab.value === 'inventory') return form.inventory_jicos_engine_server_url || 'http://127.0.0.1:5055';
+    if (activeTab.value === 'hr') return form.hr_jicos_engine_server_url || 'http://127.0.0.1:5055';
+    return form.jicos_engine_server_url || 'http://127.0.0.1:5055';
 });
 
 const currentEngineKey = computed(() => {
-    if (activeTab.value === 'purchasing') return form.purchasing_usics_engine_api_key;
-    if (activeTab.value === 'inventory') return form.inventory_usics_engine_api_key;
-    return form.usics_engine_api_key;
+    if (activeTab.value === 'purchasing') return form.purchasing_jicos_engine_api_key || 'jicos-wa-secret-2026';
+    if (activeTab.value === 'inventory') return form.inventory_jicos_engine_api_key || 'jicos-wa-secret-2026';
+    if (activeTab.value === 'hr') return form.hr_jicos_engine_api_key || 'jicos-wa-secret-2026';
+    return form.jicos_engine_api_key || 'jicos-wa-secret-2026';
 });
 
 const submit = () => {
@@ -132,6 +158,9 @@ const webhookUrl = computed(() => {
     }
     if (activeTab.value === 'inventory') {
         return `${base}/whatsapp-inventory/webhook`;
+    }
+    if (activeTab.value === 'hr') {
+        return `${base}/whatsapp-hr/webhook`;
     }
     return `${base}/whatsapp/webhook`;
 });
@@ -223,7 +252,7 @@ const testConnection = async () => {
                 <div>
                     <div class="flex items-center gap-2 mb-1">
                         <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                            MULTI-SESSION READY • PORT 5050
+                            MULTI-SESSION READY • PORT 5055
                         </span>
                         <span class="text-xs text-slate-500 dark:text-slate-400">Node.js Baileys Multi-Device</span>
                     </div>
@@ -232,7 +261,7 @@ const testConnection = async () => {
                         WhatsApp Gateway & AI Bot Configuration
                     </h1>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Kelola penyedia WhatsApp Gateway mandiri (Node.js) untuk multi-nomor Sales, Purchasing, dan Inventory.
+                        Kelola penyedia WhatsApp Gateway mandiri (Node.js) untuk multi-nomor terisolasi Sales, Purchasing, Inventory, dan HR & Payroll.
                     </p>
                 </div>
 
@@ -244,43 +273,55 @@ const testConnection = async () => {
                 </a>
             </div>
 
-            <!-- Tab Switcher (Sales vs Purchasing vs Inventory) -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 p-1.5 bg-slate-100 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+            <!-- Tab Switcher (Sales vs Purchasing vs Inventory vs HR) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-1.5 bg-slate-100 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800/80">
                 <button 
                     type="button"
                     @click="activeTab = 'sales'; engineStatus = null"
-                    class="py-3 px-4 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
+                    class="py-3 px-3 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
                     :class="activeTab === 'sales' 
                         ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/50 dark:border-slate-700' 
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'"
                 >
                     <BriefcaseIcon class="h-4 w-4" />
-                    Sales Assistant Bot
-                    <span class="w-2 h-2 rounded-full" :class="form.whatsapp_provider === 'usics_engine' ? 'bg-emerald-500' : 'bg-blue-500'"></span>
+                    <span>Sales Bot</span>
+                    <span class="w-2 h-2 rounded-full" :class="isEngine(form.whatsapp_provider) ? 'bg-emerald-500' : 'bg-blue-500'"></span>
                 </button>
                 <button 
                     type="button"
                     @click="activeTab = 'purchasing'; engineStatus = null"
-                    class="py-3 px-4 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
+                    class="py-3 px-3 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
                     :class="activeTab === 'purchasing' 
                         ? 'bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 shadow-sm border border-slate-200/50 dark:border-slate-700' 
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'"
                 >
                     <ShoppingBagIcon class="h-4 w-4" />
-                    Purchasing Assistant Bot
-                    <span class="w-2 h-2 rounded-full" :class="form.purchasing_whatsapp_provider === 'usics_engine' ? 'bg-purple-500' : 'bg-blue-500'"></span>
+                    <span>Purchasing Bot</span>
+                    <span class="w-2 h-2 rounded-full" :class="isEngine(form.purchasing_whatsapp_provider) ? 'bg-purple-500' : 'bg-blue-500'"></span>
                 </button>
                 <button 
                     type="button"
                     @click="activeTab = 'inventory'; engineStatus = null"
-                    class="py-3 px-4 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
+                    class="py-3 px-3 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
                     :class="activeTab === 'inventory' 
                         ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200/50 dark:border-slate-700' 
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'"
                 >
                     <CubeIcon class="h-4 w-4" />
-                    Inventory Assistant Bot
-                    <span class="w-2 h-2 rounded-full" :class="form.inventory_whatsapp_provider === 'usics_engine' ? 'bg-blue-500' : 'bg-sky-500'"></span>
+                    <span>Inventory Bot</span>
+                    <span class="w-2 h-2 rounded-full" :class="isEngine(form.inventory_whatsapp_provider) ? 'bg-blue-500' : 'bg-sky-500'"></span>
+                </button>
+                <button 
+                    type="button"
+                    @click="activeTab = 'hr'; engineStatus = null"
+                    class="py-3 px-3 rounded-xl text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-2"
+                    :class="activeTab === 'hr' 
+                        ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-sm border border-slate-200/50 dark:border-slate-700' 
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'"
+                >
+                    <UserGroupIcon class="h-4 w-4" />
+                    <span>HR & Payroll Bot</span>
+                    <span class="w-2 h-2 rounded-full" :class="isEngine(form.hr_whatsapp_provider) ? 'bg-amber-500' : 'bg-blue-500'"></span>
                 </button>
             </div>
 
@@ -303,7 +344,7 @@ const testConnection = async () => {
                                 @click="form.whatsapp_provider = provider.id"
                                 class="relative text-left p-6 rounded-2xl border transition-all duration-300"
                                 :class="[
-                                    form.whatsapp_provider === provider.id
+                                    (form.whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.whatsapp_provider)))
                                         ? 'border-emerald-500 dark:border-emerald-500 bg-emerald-500/5 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20'
                                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
                                 ]"
@@ -312,9 +353,9 @@ const testConnection = async () => {
                                     <div class="flex items-center gap-2">
                                         <div 
                                             class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
-                                            :class="form.whatsapp_provider === provider.id ? 'border-emerald-500 bg-emerald-500' : 'border-slate-400'"
+                                            :class="(form.whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.whatsapp_provider))) ? 'border-emerald-500 bg-emerald-500' : 'border-slate-400'"
                                         >
-                                            <div v-if="form.whatsapp_provider === provider.id" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                            <div v-if="form.whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.whatsapp_provider))" class="w-1.5 h-1.5 rounded-full bg-white"></div>
                                         </div>
                                         <h5 class="text-base font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
                                     </div>
@@ -331,7 +372,7 @@ const testConnection = async () => {
                     </div>
 
                     <!-- JICOS WhatsApp Engine Settings (Sales) -->
-                    <div v-if="form.whatsapp_provider === 'usics_engine'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <div v-if="isEngine(form.whatsapp_provider)" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                             <div class="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
                                 <ServerStackIcon class="h-6 w-6 shrink-0" />
@@ -382,15 +423,15 @@ const testConnection = async () => {
                             <div class="space-y-2">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
                                     <GlobeAltIcon class="h-3 w-3" />
-                                    Server URL (Port 5050)
+                                    Server URL (Port 5055)
                                 </label>
                                 <input 
-                                    v-model="form.usics_engine_server_url" 
+                                    v-model="form.jicos_engine_server_url" 
                                     type="text" 
                                     class="form-input font-mono" 
-                                    placeholder="http://127.0.0.1:5050" 
+                                    placeholder="http://127.0.0.1:5055" 
                                 />
-                                <p class="text-[10px] text-slate-500">Port 5050 dipilih agar tidak bentrok dengan server web lain.</p>
+                                <p class="text-[10px] text-slate-500">Port 5055 dipilih agar tidak bentrok dengan server web lain.</p>
                             </div>
 
                             <div class="space-y-2">
@@ -400,10 +441,10 @@ const testConnection = async () => {
                                 </label>
                                 <div class="relative">
                                     <input 
-                                        v-model="form.usics_engine_api_key" 
+                                        v-model="form.jicos_engine_api_key" 
                                         :type="showSalesKey ? 'text' : 'password'" 
                                         class="form-input pr-12 font-mono text-xs" 
-                                        placeholder="usics-wa-secret-2026" 
+                                        placeholder="jicos-wa-secret-2026" 
                                     />
                                     <button 
                                         type="button"
@@ -453,6 +494,34 @@ const testConnection = async () => {
                         </div>
                     </div>
 
+                                        <!-- Phone Manual Outgoing Sync Toggle (Sales) -->
+                    <div class="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 flex items-center justify-between gap-4 shadow-sm">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <DevicePhoneMobileIcon class="h-5 w-5 text-emerald-500" />
+                                <h5 class="text-sm font-bold text-slate-900 dark:text-white">Sinkronisasi Pesan Manual dari HP (Sales)</h5>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase" :class="form.whatsapp_sync_phone_outgoing ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'">
+                                    {{ form.whatsapp_sync_phone_outgoing ? 'Aktif' : 'Nonaktif' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Catat otomatis pesan yang Anda kirim langsung dari WhatsApp HP ke riwayat chat ERP sebagai pesan keluar (AI Bot tidak akan membalas pesan dari HP sendiri).
+                            </p>
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="form.whatsapp_sync_phone_outgoing = !form.whatsapp_sync_phone_outgoing"
+                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                            :class="form.whatsapp_sync_phone_outgoing ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'"
+                        >
+                            <span class="sr-only">Toggle Sinkronisasi Pesan HP</span>
+                            <span 
+                                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                :class="form.whatsapp_sync_phone_outgoing ? 'translate-x-5' : 'translate-x-0'"
+                            />
+                        </button>
+                    </div>
+
                     <!-- AI Bot Instruction (Sales) -->
                     <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                         <div class="flex items-center gap-2 text-purple-600 dark:text-purple-400">
@@ -486,7 +555,7 @@ const testConnection = async () => {
                                 @click="form.purchasing_whatsapp_provider = provider.id"
                                 class="relative text-left p-6 rounded-2xl border transition-all duration-300"
                                 :class="[
-                                    form.purchasing_whatsapp_provider === provider.id
+                                    (form.purchasing_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.purchasing_whatsapp_provider)))
                                         ? 'border-purple-500 dark:border-purple-500 bg-purple-500/5 dark:bg-purple-500/10 shadow-lg shadow-purple-500/10 ring-2 ring-purple-500/20'
                                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
                                 ]"
@@ -495,9 +564,9 @@ const testConnection = async () => {
                                     <div class="flex items-center gap-2">
                                         <div 
                                             class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
-                                            :class="form.purchasing_whatsapp_provider === provider.id ? 'border-purple-500 bg-purple-500' : 'border-slate-400'"
+                                            :class="(form.purchasing_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.purchasing_whatsapp_provider))) ? 'border-purple-500 bg-purple-500' : 'border-slate-400'"
                                         >
-                                            <div v-if="form.purchasing_whatsapp_provider === provider.id" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                            <div v-if="form.purchasing_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.purchasing_whatsapp_provider))" class="w-1.5 h-1.5 rounded-full bg-white"></div>
                                         </div>
                                         <h5 class="text-base font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
                                     </div>
@@ -514,7 +583,7 @@ const testConnection = async () => {
                     </div>
 
                     <!-- JICOS WhatsApp Engine Settings (Purchasing) -->
-                    <div v-if="form.purchasing_whatsapp_provider === 'usics_engine'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <div v-if="isEngine(form.purchasing_whatsapp_provider)" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
                             <div class="flex items-center gap-3 text-purple-600 dark:text-purple-400">
                                 <ServerStackIcon class="h-6 w-6 shrink-0" />
@@ -565,15 +634,15 @@ const testConnection = async () => {
                             <div class="space-y-2">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
                                     <GlobeAltIcon class="h-3 w-3" />
-                                    Server URL (Port 5050)
+                                    Server URL (Port 5055)
                                 </label>
                                 <input 
-                                    v-model="form.purchasing_usics_engine_server_url" 
+                                    v-model="form.purchasing_jicos_engine_server_url" 
                                     type="text" 
                                     class="form-input font-mono" 
-                                    placeholder="http://127.0.0.1:5050" 
+                                    placeholder="http://127.0.0.1:5055" 
                                 />
-                                <p class="text-[10px] text-slate-500">Dapat menggunakan engine yang sama (multi-session) di port 5050.</p>
+                                <p class="text-[10px] text-slate-500">Dapat menggunakan engine yang sama (multi-session) di port 5055.</p>
                             </div>
 
                             <div class="space-y-2">
@@ -583,10 +652,10 @@ const testConnection = async () => {
                                 </label>
                                 <div class="relative">
                                     <input 
-                                        v-model="form.purchasing_usics_engine_api_key" 
+                                        v-model="form.purchasing_jicos_engine_api_key" 
                                         :type="showPurchasingKey ? 'text' : 'password'" 
                                         class="form-input pr-12 font-mono text-xs" 
-                                        placeholder="usics-wa-secret-2026" 
+                                        placeholder="jicos-wa-secret-2026" 
                                     />
                                     <button 
                                         type="button"
@@ -636,6 +705,34 @@ const testConnection = async () => {
                         </div>
                     </div>
 
+                                        <!-- Phone Manual Outgoing Sync Toggle (Purchasing) -->
+                    <div class="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 flex items-center justify-between gap-4 shadow-sm">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <DevicePhoneMobileIcon class="h-5 w-5 text-purple-500" />
+                                <h5 class="text-sm font-bold text-slate-900 dark:text-white">Sinkronisasi Pesan Manual dari HP (Purchasing)</h5>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase" :class="form.purchasing_whatsapp_sync_phone_outgoing ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'">
+                                    {{ form.purchasing_whatsapp_sync_phone_outgoing ? 'Aktif' : 'Nonaktif' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Catat otomatis pesan yang Anda kirim langsung dari WhatsApp HP ke supplier ke riwayat chat ERP sebagai pesan keluar.
+                            </p>
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="form.purchasing_whatsapp_sync_phone_outgoing = !form.purchasing_whatsapp_sync_phone_outgoing"
+                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                            :class="form.purchasing_whatsapp_sync_phone_outgoing ? 'bg-purple-600' : 'bg-slate-300 dark:bg-slate-700'"
+                        >
+                            <span class="sr-only">Toggle Sinkronisasi Pesan HP</span>
+                            <span 
+                                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                :class="form.purchasing_whatsapp_sync_phone_outgoing ? 'translate-x-5' : 'translate-x-0'"
+                            />
+                        </button>
+                    </div>
+
                     <!-- AI Bot Instruction (Purchasing) -->
                     <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                         <div class="flex items-center gap-2 text-purple-600 dark:text-purple-400">
@@ -662,36 +759,42 @@ const testConnection = async () => {
                             PILIH GATEWAY PROVIDER (INVENTORY & GUDANG)
                         </label>
                         <div class="grid md:grid-cols-2 gap-4">
-                            <div 
-                                v-for="provider in providers" 
+                            <button
+                                v-for="provider in providers"
                                 :key="'inv-' + provider.id"
+                                type="button"
                                 @click="form.inventory_whatsapp_provider = provider.id"
-                                class="relative cursor-pointer rounded-2xl p-5 border-2 transition-all"
-                                :class="form.inventory_whatsapp_provider === provider.id 
-                                    ? 'border-blue-500 bg-blue-500/5 shadow-lg shadow-blue-500/10' 
-                                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'"
+                                class="relative text-left p-6 rounded-2xl border transition-all duration-300"
+                                :class="[
+                                    (form.inventory_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.inventory_whatsapp_provider)))
+                                        ? 'border-blue-500 dark:border-blue-500 bg-blue-500/5 dark:bg-blue-500/10 shadow-lg shadow-blue-500/10 ring-2 ring-blue-500/20'
+                                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
+                                ]"
                             >
-                                <span v-if="provider.recommended" class="absolute top-3 right-3 px-2 py-0.5 bg-blue-600 text-white text-[9px] font-black uppercase tracking-wider rounded-md">
-                                    REKOMENDASI
-                                </span>
-                                <div class="flex items-start gap-3">
-                                    <div class="mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0"
-                                        :class="form.inventory_whatsapp_provider === provider.id ? 'border-blue-500 bg-blue-500' : 'border-slate-300 dark:border-slate-600'"
-                                    >
-                                        <div v-if="form.inventory_whatsapp_provider === provider.id" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div 
+                                            class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                            :class="(form.inventory_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.inventory_whatsapp_provider))) ? 'border-blue-500 bg-blue-500' : 'border-slate-400'"
+                                        >
+                                            <div v-if="form.inventory_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.inventory_whatsapp_provider))" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                        </div>
+                                        <h5 class="text-base font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
                                     </div>
-                                    <div class="space-y-1">
-                                        <div class="text-sm font-black text-slate-900 dark:text-white">{{ provider.name }}</div>
-                                        <div class="text-xs text-slate-500 dark:text-slate-400">{{ provider.price }}</div>
-                                        <div class="text-[11px] text-blue-600 dark:text-blue-400 font-mono">{{ provider.website }}</div>
-                                    </div>
+                                    <span v-if="provider.recommended" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-600 text-white">
+                                        Rekomendasi
+                                    </span>
                                 </div>
-                            </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
+                                <span class="text-[11px] text-blue-600 dark:text-blue-400 mt-1 inline-block font-mono">
+                                    {{ provider.website }}
+                                </span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- USICS Engine Config (Inventory) -->
-                    <div v-if="form.inventory_whatsapp_provider === 'usics_engine'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                    <!-- JICOS Engine Config (Inventory) -->
+                    <div v-if="isEngine(form.inventory_whatsapp_provider)" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
                             <div class="flex items-center gap-3">
                                 <div class="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -744,10 +847,10 @@ const testConnection = async () => {
                             <div class="space-y-2">
                                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
                                     <GlobeAltIcon class="h-3.5 w-3.5" />
-                                    Server URL (Port 5050)
+                                    Server URL (Port 5055)
                                 </label>
-                                <input v-model="form.inventory_usics_engine_server_url" type="text" class="form-input font-mono" placeholder="http://127.0.0.1:5050" />
-                                <p class="text-[11px] text-slate-400 ml-1">Dapat menggunakan engine yang sama (multi-session) di port 5050.</p>
+                                <input v-model="form.inventory_jicos_engine_server_url" type="text" class="form-input font-mono" placeholder="http://127.0.0.1:5055" />
+                                <p class="text-[11px] text-slate-400 ml-1">Dapat menggunakan engine yang sama (multi-session) di port 5055.</p>
                             </div>
 
                             <div class="space-y-2">
@@ -757,10 +860,10 @@ const testConnection = async () => {
                                 </label>
                                 <div class="relative">
                                     <input 
-                                        v-model="form.inventory_usics_engine_api_key" 
+                                        v-model="form.inventory_jicos_engine_api_key" 
                                         :type="showInventoryKey ? 'text' : 'password'" 
                                         class="form-input pr-12 font-mono" 
-                                        placeholder="usics-wa-secret-2026" 
+                                        placeholder="jicos-wa-secret-2026" 
                                     />
                                     <button 
                                         type="button"
@@ -805,6 +908,34 @@ const testConnection = async () => {
                         </div>
                     </div>
 
+                                        <!-- Phone Manual Outgoing Sync Toggle (Inventory) -->
+                    <div class="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 flex items-center justify-between gap-4 shadow-sm">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <DevicePhoneMobileIcon class="h-5 w-5 text-blue-500" />
+                                <h5 class="text-sm font-bold text-slate-900 dark:text-white">Sinkronisasi Pesan Manual dari HP (Inventory)</h5>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase" :class="form.inventory_whatsapp_sync_phone_outgoing ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'">
+                                    {{ form.inventory_whatsapp_sync_phone_outgoing ? 'Aktif' : 'Nonaktif' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Catat otomatis pesan yang dikirim dari WhatsApp HP tim Gudang ke riwayat percakapan modul Inventory ERP.
+                            </p>
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="form.inventory_whatsapp_sync_phone_outgoing = !form.inventory_whatsapp_sync_phone_outgoing"
+                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                            :class="form.inventory_whatsapp_sync_phone_outgoing ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'"
+                        >
+                            <span class="sr-only">Toggle Sinkronisasi Pesan HP</span>
+                            <span 
+                                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                :class="form.inventory_whatsapp_sync_phone_outgoing ? 'translate-x-5' : 'translate-x-0'"
+                            />
+                        </button>
+                    </div>
+
                     <!-- AI Bot Instruction (Inventory) -->
                     <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                         <div class="flex items-center gap-2 text-blue-600 dark:text-blue-400">
@@ -820,6 +951,217 @@ const testConnection = async () => {
                     </div>
                 </div>
 
+                <!-- ========================================== -->
+                <!-- HR & PAYROLL BOT CONFIGURATION TAB         -->
+                <!-- ========================================== -->
+                <div v-show="activeTab === 'hr'" class="space-y-8">
+                    <!-- Provider Selection Cards (HR) -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                            <ServerStackIcon class="h-4 w-4" />
+                            PILIH GATEWAY PROVIDER (HR & PAYROLL)
+                        </label>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <button
+                                v-for="provider in providers"
+                                :key="'hr-' + provider.id"
+                                type="button"
+                                @click="form.hr_whatsapp_provider = provider.id"
+                                class="relative text-left p-6 rounded-2xl border transition-all duration-300"
+                                :class="[
+                                    (form.hr_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.hr_whatsapp_provider)))
+                                        ? 'border-amber-500 dark:border-amber-500 bg-amber-500/5 dark:bg-amber-500/10 shadow-lg shadow-amber-500/10 ring-2 ring-amber-500/20'
+                                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 hover:border-slate-300 dark:hover:border-slate-700'
+                                ]"
+                            >
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <div 
+                                            class="w-4 h-4 rounded-full border flex items-center justify-center transition-colors"
+                                            :class="(form.hr_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.hr_whatsapp_provider))) ? 'border-amber-500 bg-amber-500' : 'border-slate-400'"
+                                        >
+                                            <div v-if="form.hr_whatsapp_provider === provider.id || (provider.id === 'jicos_engine' && isEngine(form.hr_whatsapp_provider))" class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                        </div>
+                                        <h5 class="text-base font-bold text-slate-900 dark:text-white">{{ provider.name }}</h5>
+                                    </div>
+                                    <span v-if="provider.recommended" class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-600 text-white">
+                                        Rekomendasi
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-600 dark:text-slate-400">{{ provider.price }}</p>
+                                <span class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 inline-block font-mono">
+                                    {{ provider.website }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- JICOS WhatsApp Engine Settings (HR) -->
+                    <div v-if="isEngine(form.hr_whatsapp_provider)" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <div class="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+                                <ServerStackIcon class="h-6 w-6 shrink-0" />
+                                <div>
+                                    <h4 class="text-sm font-black uppercase tracking-widest">JICOS WhatsApp Engine (Nomor HR & Payroll)</h4>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">Sesi terisolasi khusus pengiriman slip gaji, pengumuman, dan absensi karyawan</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button 
+                                    type="button" 
+                                    @click="checkEngineStatus"
+                                    :disabled="engineChecking"
+                                    class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
+                                >
+                                    <ArrowPathIcon class="h-3.5 w-3.5" :class="{ 'animate-spin': engineChecking }" />
+                                    <span>{{ engineChecking ? 'Mengecek...' : 'Cek Status Sesi' }}</span>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    @click="openQrDashboard('hr')"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 text-white hover:bg-amber-500 transition-all shadow-md shadow-amber-500/20 active:scale-95"
+                                >
+                                    <QrCodeIcon class="h-4 w-4" />
+                                    <span>Scan QR (Nomor HR)</span>
+                                    <ArrowTopRightOnSquareIcon class="h-3.5 w-3.5 opacity-70" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Engine Status Banner (HR) -->
+                        <div v-if="engineStatus" class="p-4 rounded-xl border text-xs"
+                            :class="engineStatus.success && engineStatus.connected 
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300' 
+                                : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'"
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 font-bold">
+                                    <span class="w-2.5 h-2.5 rounded-full" :class="engineStatus.success && engineStatus.connected ? 'bg-amber-500' : 'bg-rose-500 animate-pulse'"></span>
+                                    <span>Status Sesi HR: {{ engineStatus.success ? (engineStatus.connected ? 'TERHUBUNG (ONLINE)' : 'PERLU SCAN QR') : 'OFFLINE (Pastikan engine sudah dijalankan)' }}</span>
+                                </div>
+                                <span v-if="engineStatus.phone" class="font-mono font-bold">+{{ engineStatus.phone }}</span>
+                            </div>
+                            <p v-if="engineStatus.error" class="mt-1 text-[11px] opacity-90">{{ engineStatus.error }}</p>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <GlobeAltIcon class="h-3 w-3" />
+                                    Server URL (Port 5055)
+                                </label>
+                                <input 
+                                    v-model="form.hr_jicos_engine_server_url" 
+                                    type="text" 
+                                    class="form-input font-mono" 
+                                    placeholder="http://127.0.0.1:5055" 
+                                />
+                                <p class="text-[10px] text-slate-500">Dapat menggunakan engine yang sama (multi-session) di port 5055.</p>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <KeyIcon class="h-3 w-3" />
+                                    API Secret Key (X-API-Key)
+                                </label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.hr_jicos_engine_api_key" 
+                                        :type="showHrKey ? 'text' : 'password'" 
+                                        class="form-input pr-12 font-mono text-xs" 
+                                        placeholder="jicos-wa-secret-2026" 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showHrKey = !showHrKey"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        <EyeIcon v-if="!showHrKey" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <p class="text-[10px] text-slate-500">Kunci otentikasi pengaman komunikasi antara Laravel dan Node.js.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Wablas Settings (HR) -->
+                    <div v-if="form.hr_whatsapp_provider === 'wablas'" class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+                        <div class="flex items-center gap-3 text-blue-600 dark:text-blue-400 border-b border-slate-200 dark:border-slate-800 pb-4">
+                            <DevicePhoneMobileIcon class="h-6 w-6" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Wablas Cloud Settings (HR)</h4>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas API Token</label>
+                                <div class="relative">
+                                    <input 
+                                        v-model="form.hr_wablas_api_token" 
+                                        :type="showHrWablasToken ? 'text' : 'password'" 
+                                        class="form-input pr-12" 
+                                        placeholder="Enter Wablas API Token..." 
+                                    />
+                                    <button 
+                                        type="button"
+                                        @click="showHrWablasToken = !showHrWablasToken"
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                                    >
+                                        <EyeIcon v-if="!showHrWablasToken" class="h-4 w-4" />
+                                        <EyeSlashIcon v-else class="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Wablas Server URL</label>
+                                <input v-model="form.hr_wablas_server_url" type="text" class="form-input" placeholder="https://pati.wablas.com" />
+                            </div>
+                        </div>
+                    </div>
+
+                                        <!-- Phone Manual Outgoing Sync Toggle (HR) -->
+                    <div class="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 flex items-center justify-between gap-4 shadow-sm">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <DevicePhoneMobileIcon class="h-5 w-5 text-amber-500" />
+                                <h5 class="text-sm font-bold text-slate-900 dark:text-white">Sinkronisasi Pesan Manual dari HP (HR & Payroll)</h5>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase" :class="form.hr_whatsapp_sync_phone_outgoing ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'">
+                                    {{ form.hr_whatsapp_sync_phone_outgoing ? 'Aktif' : 'Nonaktif' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Catat otomatis pesan yang dikirim dari WhatsApp HP HRD ke karyawan ke riwayat chat ERP sebagai pesan keluar.
+                            </p>
+                        </div>
+                        <button 
+                            type="button" 
+                            @click="form.hr_whatsapp_sync_phone_outgoing = !form.hr_whatsapp_sync_phone_outgoing"
+                            class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                            :class="form.hr_whatsapp_sync_phone_outgoing ? 'bg-amber-600' : 'bg-slate-300 dark:bg-slate-700'"
+                        >
+                            <span class="sr-only">Toggle Sinkronisasi Pesan HP</span>
+                            <span 
+                                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                :class="form.hr_whatsapp_sync_phone_outgoing ? 'translate-x-5' : 'translate-x-0'"
+                            />
+                        </button>
+                    </div>
+
+                    <!-- AI Bot Instruction (HR) -->
+                    <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                            <SparklesIcon class="h-5 w-5" />
+                            <h4 class="text-sm font-black uppercase tracking-widest">Instruksi AI Assistant (HR & Payroll Bot)</h4>
+                        </div>
+                        <textarea 
+                            v-model="form.hr_whatsapp_bot_instruction"
+                            rows="4"
+                            class="form-input text-xs"
+                            placeholder="Tuliskan kepribadian dan pedoman respon AI HRD bot..."
+                        ></textarea>
+                    </div>
+                </div>
+
                 <!-- Webhook Configuration & Auto-Reply -->
                 <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div class="flex items-center gap-2 text-slate-900 dark:text-white">
@@ -827,7 +1169,7 @@ const testConnection = async () => {
                         <h4 class="text-sm font-black uppercase tracking-widest">URL Webhook Masuk (Inbound Webhook)</h4>
                     </div>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                        URL ini dikonfigurasi pada file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">whatsapp-engine/.env</code> agar pesan masuk langsung diproses oleh AI Assistant USICS.
+                        URL ini dikonfigurasi pada file <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 font-mono text-[11px]">whatsapp-engine/.env</code> agar pesan masuk langsung diproses oleh AI Assistant JICOS.
                     </p>
                     <div class="flex items-center gap-2">
                         <input 
@@ -854,14 +1196,14 @@ const testConnection = async () => {
                         <h4 class="text-sm font-black uppercase tracking-widest">Uji Coba Pengiriman Pesan (Test Connection)</h4>
                     </div>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                        Kirim pesan test langsung dari modul <strong>{{ activeTab === 'sales' ? 'Sales' : 'Purchasing' }}</strong> untuk memverifikasi gateway sudah terhubung dan dapat mengirim pesan dengan lancar.
+                        Kirim pesan test langsung dari modul <strong>{{ activeTab === 'sales' ? 'Sales' : (activeTab === 'purchasing' ? 'Purchasing' : (activeTab === 'inventory' ? 'Inventory' : 'HR & Payroll')) }}</strong> untuk memverifikasi gateway sudah terhubung dan dapat mengirim pesan dengan lancar.
                     </p>
                     <div class="flex flex-col sm:flex-row gap-3">
                         <input 
                             v-model="testPhone" 
                             type="text" 
                             class="form-input flex-1 font-mono text-xs" 
-                            placeholder="Contoh: 6281234567890" 
+                            placeholder="Contoh: 6285888883258" 
                         />
                         <button 
                             type="button"
@@ -891,10 +1233,10 @@ const testConnection = async () => {
                     <div class="bg-slate-50 dark:bg-slate-900/30 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 space-y-2">
                         <h5 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                             <ServerStackIcon class="h-4 w-4 text-emerald-500" />
-                            Multi-Session Engine (Port 5050)
+                            Multi-Session Engine (Port 5055)
                         </h5>
                         <p class="text-xs text-slate-500 dark:text-slate-400">
-                            1 Server Node.js dapat mengelola nomor Sales dan Purchasing sekaligus. Bebas biaya langganan, tanpa batasan kuota pesan, dan data tersimpan aman di server internal kantor.
+                            1 Server Node.js dapat mengelola nomor Sales, Purchasing, Inventory, dan HR sekaligus secara mandiri dan terisolasi. Bebas biaya langganan, tanpa batasan kuota pesan, dan data tersimpan aman di server internal kantor.
                         </p>
                     </div>
 
@@ -906,6 +1248,47 @@ const testConnection = async () => {
                         <p class="text-xs text-slate-500 dark:text-slate-400">
                             Didukung model AI Gemini untuk menjawab katalog produk, cek status SO, membuat draft PDF penawaran otomatis, serta verifikasi invoice dan status PO supplier.
                         </p>
+                    </div>
+                </div>
+
+                <!-- Multi-Factor Authentication (WhatsApp MFA) Gateway Module Setting -->
+                <div class="bg-white dark:bg-slate-900/40 rounded-2xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex items-center gap-3 text-indigo-600 dark:text-indigo-400 border-b border-slate-200 dark:border-slate-800 pb-4">
+                        <ShieldCheckIcon class="h-6 w-6" />
+                        <div>
+                            <h4 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">Modul WhatsApp Pengirim OTP Multi-Factor Authentication (MFA)</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pilih nomor / sesi WhatsApp Gateway yang digunakan sistem untuk mengirimkan 6-digit kode OTP login.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-3 gap-3">
+                        <label class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all" :class="form.whatsapp_mfa_module === 'hr' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 ring-2 ring-amber-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-900 dark:text-white">Nomor HR & Payroll</span>
+                                <input type="radio" v-model="form.whatsapp_mfa_module" value="hr" class="text-amber-600 focus:ring-amber-500" />
+                            </div>
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Sesi: <code>hr</code> (Rekomendasi untuk internal karyawan)</span>
+                        </label>
+
+                        <label class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all" :class="form.whatsapp_mfa_module === 'sales' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-900 dark:text-white">Nomor Sales & CS</span>
+                                <input type="radio" v-model="form.whatsapp_mfa_module" value="sales" class="text-emerald-600 focus:ring-emerald-500" />
+                            </div>
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Sesi: <code>sales</code> (Nomor Customer Service utama)</span>
+                        </label>
+
+                        <label class="relative flex flex-col p-4 rounded-xl border cursor-pointer transition-all" :class="form.whatsapp_mfa_module === 'purchasing' ? 'border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-900 dark:text-white">Nomor Purchasing</span>
+                                <input type="radio" v-model="form.whatsapp_mfa_module" value="purchasing" class="text-purple-600 focus:ring-purple-500" />
+                            </div>
+                            <span class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Sesi: <code>purchasing</code> (Nomor Purchasing & Vendor)</span>
+                        </label>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg text-xs text-slate-500 dark:text-slate-400">
+                        💡 <strong>Smart Fallback Aktif:</strong> Jika nomor yang dipilih sedang tidak aktif atau terputus, sistem secara otomatis mencoba mengirimkan OTP melalui sesi aktif lainnya agar karyawan tetap dapat login tanpa hambatan.
                     </div>
                 </div>
 

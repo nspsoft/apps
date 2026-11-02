@@ -41,6 +41,7 @@ class WhatsappCenterController extends Controller
             ->selectRaw('(SELECT intent FROM whatsapp_messages wm WHERE wm.phone = whatsapp_messages.phone ORDER BY created_at DESC LIMIT 1) as last_intent')
             ->groupBy('phone', 'customer_id')
             ->orderByDesc('last_activity')
+            ->limit(100)
             ->with('customer:id,name,contact_person,profile_photo_path')
             ->get();
 
@@ -188,7 +189,7 @@ class WhatsappCenterController extends Controller
                     'delivery_success' => $result['success'],
                     'delivery_error' => $result['error'] ?? null
                 ]),
-                'customer_id' => \App\Models\Customer::where('phone', $phone)->orWhere('mobile', $phone)->value('id'),
+                'customer_id' => \App\Models\Customer::where('phone', $phone)->value('id'),
             ]);
         }
 

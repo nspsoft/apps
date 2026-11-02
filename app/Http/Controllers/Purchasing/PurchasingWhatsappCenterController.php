@@ -43,6 +43,7 @@ class PurchasingWhatsappCenterController extends Controller
             ->selectRaw('(SELECT intent FROM whatsapp_messages wm WHERE wm.phone = whatsapp_messages.phone AND wm.module = "purchasing" ORDER BY created_at DESC LIMIT 1) as last_intent')
             ->groupBy('phone', 'supplier_id')
             ->orderByDesc('last_activity')
+            ->limit(100)
             ->with('supplier:id,name,contact_person')
             ->get();
 
@@ -155,8 +156,8 @@ class PurchasingWhatsappCenterController extends Controller
             $url = AppSetting::get('purchasing_wablas_server_url', 'https://pati.wablas.com');
             $activeService = $wablas->setCredentials($token, $url);
         } else {
-            $token = AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026');
-            $url = AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5050');
+            $token = AppSetting::get('purchasing_jicos_engine_api_key') ?: AppSetting::get('purchasing_usics_engine_api_key', 'jicos-wa-secret-2026');
+            $url = AppSetting::get('purchasing_jicos_engine_server_url') ?: AppSetting::get('purchasing_usics_engine_server_url', 'http://127.0.0.1:5055');
             $activeService = $engine->setCredentials($token, $url, 'purchasing');
         }
 

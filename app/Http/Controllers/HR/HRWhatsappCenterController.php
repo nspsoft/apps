@@ -43,8 +43,8 @@ class HRWhatsappCenterController extends Controller
                 $url = AppSetting::get('hr_wablas_server_url', 'https://pati.wablas.com');
                 return $wablas->setCredentials($token, $url);
             } else {
-                $token = AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026');
-                $url = AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5050');
+                $token = AppSetting::get('hr_jicos_engine_api_key') ?: AppSetting::get('hr_usics_engine_api_key', 'jicos-wa-secret-2026');
+                $url = AppSetting::get('hr_jicos_engine_server_url') ?: AppSetting::get('hr_usics_engine_server_url', 'http://127.0.0.1:5055');
                 return $engine->setCredentials($token, $url, 'hr');
             }
         } else {
@@ -54,8 +54,8 @@ class HRWhatsappCenterController extends Controller
                 $url = AppSetting::get('wablas_server_url', 'https://pati.wablas.com');
                 return $wablas->setCredentials($token, $url);
             } else {
-                $token = AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026');
-                $url = AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5050');
+                $token = AppSetting::get('jicos_engine_api_key') ?: AppSetting::get('usics_engine_api_key', 'jicos-wa-secret-2026');
+                $url = AppSetting::get('jicos_engine_server_url') ?: AppSetting::get('usics_engine_server_url', 'http://127.0.0.1:5055');
                 return $engine->setCredentials($token, $url, 'sales');
             }
         }
@@ -74,6 +74,7 @@ class HRWhatsappCenterController extends Controller
             ->selectRaw('(SELECT intent FROM whatsapp_messages wm WHERE wm.phone = whatsapp_messages.phone AND wm.module = "hr" ORDER BY created_at DESC LIMIT 1) as last_intent')
             ->groupBy('phone', 'employee_id')
             ->orderByDesc('last_activity')
+            ->limit(100)
             ->with(['employee' => function ($q) {
                 $q->select('id', 'nik', 'full_name', 'department_id', 'position_id', 'phone', 'profile_picture')
                   ->with(['department:id,name', 'position:id,name']);

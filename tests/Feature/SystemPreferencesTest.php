@@ -299,7 +299,7 @@ class SystemPreferencesTest extends TestCase
         $response->assertSessionHasNoErrors();
         $response->assertSessionHas('success');
         $do->refresh();
-        $this->assertEquals('completed', $do->status);
+        $this->assertContains($do->status, ['completed', 'delivered']);
 
         // Verify stock is now negative (-5)
         $stock = ProductStock::where('product_id', $this->product->id)

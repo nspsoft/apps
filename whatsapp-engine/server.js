@@ -15,11 +15,11 @@ const {
 
 // Prevent crashes on transient socket disconnects or unhandled Baileys promises
 process.on('uncaughtException', (err) => {
-    console.error('[USICS WA Engine] Uncaught Exception caught (prevented crash):', err?.message || err);
+    console.error('[JICOS WA Engine] Uncaught Exception caught (prevented crash):', err?.message || err);
 });
 
 process.on('unhandledRejection', (reason) => {
-    console.error('[USICS WA Engine] Unhandled Rejection caught (prevented crash):', reason?.message || reason);
+    console.error('[JICOS WA Engine] Unhandled Rejection caught (prevented crash):', reason?.message || reason);
 });
 
 const app = express();
@@ -27,11 +27,12 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-const PORT = process.env.PORT || 5050;
-const API_KEY = process.env.API_KEY || 'usics-wa-secret-2026';
-const WEBHOOK_SALES_URL = process.env.WEBHOOK_URL || 'http://usics.test/whatsapp/webhook';
-const WEBHOOK_PURCHASING_URL = process.env.WEBHOOK_PURCHASING_URL || 'http://usics.test/whatsapp-purchasing/webhook';
-const WEBHOOK_INVENTORY_URL = process.env.WEBHOOK_INVENTORY_URL || 'http://usics.test/whatsapp-inventory/webhook';
+const PORT = process.env.PORT || 5055;
+const API_KEY = process.env.API_KEY || 'jicos-wa-secret-2026';
+const WEBHOOK_SALES_URL = process.env.WEBHOOK_URL || 'http://127.0.0.1:8000/whatsapp/webhook';
+const WEBHOOK_PURCHASING_URL = process.env.WEBHOOK_PURCHASING_URL || 'http://127.0.0.1:8000/whatsapp-purchasing/webhook';
+const WEBHOOK_INVENTORY_URL = process.env.WEBHOOK_INVENTORY_URL || 'http://127.0.0.1:8000/whatsapp-inventory/webhook';
+const WEBHOOK_HR_URL = process.env.WEBHOOK_HR_URL || 'http://127.0.0.1:8000/whatsapp-hr/webhook';
 const BASE_AUTH_DIR = path.join(__dirname, 'auth_info_baileys');
 const LID_CACHE_FILE = path.join(__dirname, 'lid_cache.json');
 
@@ -81,7 +82,8 @@ const logger = pino({ level: 'silent' });
 const SESSION_DEFS = {
     sales: { label: 'Sales & Customer Service', color: 'emerald' },
     purchasing: { label: 'Purchasing & Supplier Center', color: 'purple' },
-    inventory: { label: 'Inventory & Warehouse Center', color: 'blue' }
+    inventory: { label: 'Inventory & Warehouse Center', color: 'blue' },
+    hr: { label: 'HR & Payroll Internal', color: 'amber' }
 };
 
 const sessions = {
@@ -108,6 +110,16 @@ const sessions = {
     inventory: {
         id: 'inventory',
         label: 'Inventory & Warehouse Center',
+        sock: null,
+        qrCodeDataUrl: null,
+        rawQrCode: null,
+        status: 'disconnected',
+        connectedUser: null,
+        lastError: null
+    },
+    hr: {
+        id: 'hr',
+        label: 'HR & Payroll Internal',
         sock: null,
         qrCodeDataUrl: null,
         rawQrCode: null,
@@ -198,7 +210,7 @@ async function startSession(sessionId) {
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         const { version, isLatest } = await fetchLatestBaileysVersion();
 
-        console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] Starting with Baileys v${version.join('.')}, latest: ${isLatest}`);
+        console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] Starting with Baileys v${version.join('.')}, latest: ${isLatest}`);
 
         const msgRetryCounterCache = createMemoryCache();
 
@@ -217,10 +229,10 @@ async function startSession(sessionId) {
                     return cached;
                 }
                 return {
-                    conversation: 'Pesan dari USICS ERP'
+                    conversation: 'Pesan dari JICOS ERP'
                 };
             },
-            browser: [`USICS ERP - ${sess.label}`, 'Chrome', '124.0.0.0'],
+            browser: [`JICOS ERP - ${sess.label}`, 'Chrome', '124.0.0.0'],
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
             syncFullHistory: false
@@ -252,9 +264,9 @@ async function startSession(sessionId) {
                 sess.status = 'qr_ready';
                 try {
                     sess.qrCodeDataUrl = await qrcode.toDataURL(qr, { scale: 8, margin: 2 });
-                    console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] QR Code ready. Scan at http://localhost:${PORT}/qr?session=${sessionId}`);
+                    console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] QR Code ready. Scan at http://localhost:${PORT}/qr?session=${sessionId}`);
                 } catch (e) {
-                    console.error(`[USICS WA Engine] [${sessionId.toUpperCase()}] QR generation error:`, e);
+                    console.error(`[JICOS WA Engine] [${sessionId.toUpperCase()}] QR generation error:`, e);
                 }
             }
 
@@ -263,7 +275,7 @@ async function startSession(sessionId) {
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
                 sess.lastError = lastDisconnect?.error?.message || 'Connection closed';
 
-                console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] Closed due to:`, lastDisconnect?.error?.message, `, reconnect: ${shouldReconnect}`);
+                console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] Closed due to:`, lastDisconnect?.error?.message, `, reconnect: ${shouldReconnect}`);
 
                 if (statusCode === DisconnectReason.loggedOut) {
                     sess.status = 'disconnected';
@@ -291,10 +303,10 @@ async function startSession(sessionId) {
                 sess.rawQrCode = null;
                 sess.connectedUser = {
                     id: sock.user?.id || 'Connected',
-                    name: sock.user?.name || `USICS ${sess.label}`,
+                    name: sock.user?.name || `JICOS ${sess.label}`,
                     phone: sock.user?.id ? sock.user.id.split(':')[0] : 'Unknown'
                 };
-                console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] ✅ Connected as: +${sess.connectedUser.phone} (${sess.connectedUser.name})`);
+                console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] ✅ Connected as: +${sess.connectedUser.phone} (${sess.connectedUser.name})`);
             }
         });
 
@@ -303,8 +315,7 @@ async function startSession(sessionId) {
             if (m.type !== 'notify' && m.type !== 'append') return;
 
             for (const msg of m.messages) {
-                if (msg.key.fromMe) continue;
-
+                const isFromMe = Boolean(msg.key.fromMe);
                 const senderJid = msg.key.remoteJid;
                 if (!senderJid || senderJid.endsWith('@g.us')) continue;
 
@@ -317,37 +328,40 @@ async function startSession(sessionId) {
                 // Resolve WhatsApp LID (Privacy ID) to real phone number
                 if (senderJid.endsWith('@lid') || cleanPhone.length >= 14) {
                     if (lidCache[cleanPhone]) {
-                        console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] 🔄 Resolved LID ${cleanPhone} -> +${lidCache[cleanPhone]}`);
+                        console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] 🔄 Resolved LID ${cleanPhone} -> +${lidCache[cleanPhone]}`);
                         cleanPhone = lidCache[cleanPhone];
                     }
                 }
 
                 const pushName = msg.pushName || '';
-
                 const body = extractMessageText(msg);
 
-                console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] 📩 Inbound from +${cleanPhone} (${pushName || 'No Name'}): "${body}"`);
-
                 if (!body) {
-                    console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] ⚠️ Skipped empty or unsupported message type.`);
                     continue;
+                }
+
+                if (isFromMe) {
+                    console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] 📱 Outbound from Phone to +${cleanPhone}: "${body}"`);
+                } else {
+                    console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] 📩 Inbound from +${cleanPhone} (${pushName || 'No Name'}): "${body}"`);
                 }
 
                 // Route to appropriate webhook
                 const targetWebhook = sessionId === 'purchasing'
                     ? WEBHOOK_PURCHASING_URL
-                    : (sessionId === 'inventory' ? WEBHOOK_INVENTORY_URL : WEBHOOK_SALES_URL);
+                    : (sessionId === 'inventory' ? WEBHOOK_INVENTORY_URL : (sessionId === 'hr' ? WEBHOOK_HR_URL : WEBHOOK_SALES_URL));
 
                 if (targetWebhook) {
                     try {
                         const webhookRes = await axios.post(targetWebhook, {
                             session: sessionId,
-                            sender: cleanPhone,
+                            sender: isFromMe ? (sess.connectedUser?.phone || 'self') : cleanPhone,
                             phone: cleanPhone,
                             message: body,
+                            fromMe: isFromMe,
                             pushName: pushName,
                             timestamp: msg.messageTimestamp,
-                            source: 'usics_engine'
+                            source: 'jicos_engine'
                         }, {
                             headers: {
                                 'Content-Type': 'application/json',
@@ -355,16 +369,16 @@ async function startSession(sessionId) {
                             },
                             timeout: 10000
                         });
-                        console.log(`[USICS WA Engine] [${sessionId.toUpperCase()}] ✅ Webhook delivered to ${targetWebhook} (Status: ${webhookRes.status})`);
+                        console.log(`[JICOS WA Engine] [${sessionId.toUpperCase()}] ✅ Webhook delivered to ${targetWebhook} (Status: ${webhookRes.status})`);
                     } catch (err) {
-                        console.error(`[USICS WA Engine] [${sessionId.toUpperCase()}] ❌ Webhook delivery failed to ${targetWebhook}: ${err.message}`);
+                        console.error(`[JICOS WA Engine] [${sessionId.toUpperCase()}] ❌ Webhook delivery failed to ${targetWebhook}: ${err.message}`);
                     }
                 }
             }
         });
 
     } catch (error) {
-        console.error(`[USICS WA Engine] [${sessionId.toUpperCase()}] Init error:`, error);
+        console.error(`[JICOS WA Engine] [${sessionId.toUpperCase()}] Init error:`, error);
         sess.status = 'disconnected';
         sess.lastError = error.message;
         setTimeout(() => startSession(sessionId), 7000);
@@ -395,7 +409,7 @@ function authMiddleware(req, res, next) {
 
 app.get('/', (req, res) => {
     res.json({
-        name: 'USICS WhatsApp Engine',
+        name: 'JICOS WhatsApp Engine',
         port: PORT,
         multiSession: true,
         sessions: {
@@ -413,6 +427,11 @@ app.get('/', (req, res) => {
                 status: sessions.inventory.status,
                 phone: sessions.inventory.connectedUser?.phone || null,
                 name: sessions.inventory.connectedUser?.name || null
+            },
+            hr: {
+                status: sessions.hr.status,
+                phone: sessions.hr.connectedUser?.phone || null,
+                name: sessions.hr.connectedUser?.name || null
             }
         },
         uptime: Math.floor(process.uptime()),
@@ -436,7 +455,8 @@ app.get('/status', (req, res) => {
         allSessions: {
             sales: { status: sessions.sales.status, connected: sessions.sales.status === 'connected', phone: sessions.sales.connectedUser?.phone || null },
             purchasing: { status: sessions.purchasing.status, connected: sessions.purchasing.status === 'connected', phone: sessions.purchasing.connectedUser?.phone || null },
-            inventory: { status: sessions.inventory.status, connected: sessions.inventory.status === 'connected', phone: sessions.inventory.connectedUser?.phone || null }
+            inventory: { status: sessions.inventory.status, connected: sessions.inventory.status === 'connected', phone: sessions.inventory.connectedUser?.phone || null },
+            hr: { status: sessions.hr.status, connected: sessions.hr.status === 'connected', phone: sessions.hr.connectedUser?.phone || null }
         }
     });
 });
@@ -445,14 +465,14 @@ app.get('/status', (req, res) => {
  * Multi-Session QR Dashboard
  */
 app.get('/qr', (req, res) => {
-    const initialSession = ['purchasing', 'inventory'].includes(req.query.session) ? req.query.session : 'sales';
+    const initialSession = ['purchasing', 'inventory', 'hr'].includes(req.query.session) ? req.query.session : 'sales';
 
     const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USICS WhatsApp Engine - Multi-Device Pairing</title>
+    <title>JICOS WhatsApp Engine - Multi-Device Pairing</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -468,7 +488,7 @@ app.get('/qr', (req, res) => {
         <div class="flex items-center justify-between border-b border-slate-800 pb-4">
             <div>
                 <span class="text-[10px] font-bold tracking-widest text-emerald-400 uppercase mono">PORT ${PORT} • MULTI-SESSION</span>
-                <h1 class="text-lg font-bold text-white tracking-tight">USICS WhatsApp Engine</h1>
+                <h1 class="text-lg font-bold text-white tracking-tight">JICOS WhatsApp Engine</h1>
             </div>
             <div id="statusBadge" class="px-2.5 py-1 rounded-full text-xs font-semibold mono flex items-center gap-1.5 bg-slate-800 text-slate-400">
                 <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
@@ -476,8 +496,8 @@ app.get('/qr', (req, res) => {
             </div>
         </div>
 
-        <!-- Session Selector Tabs -->
-        <div class="grid grid-cols-3 gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+        <!-- Session Selector Tabs (4 Dedicated Modules) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
             <button 
                 id="tabSales"
                 onclick="switchSession('sales')"
@@ -501,6 +521,14 @@ app.get('/qr', (req, res) => {
             >
                 <span>📦 Inventory</span>
                 <span id="dotInventory" class="w-2 h-2 rounded-full bg-slate-400"></span>
+            </button>
+            <button 
+                id="tabHr"
+                onclick="switchSession('hr')"
+                class="py-2.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white"
+            >
+                <span>👥 HR</span>
+                <span id="dotHr" class="w-2 h-2 rounded-full bg-slate-400"></span>
             </button>
         </div>
 
@@ -530,7 +558,7 @@ app.get('/qr', (req, res) => {
             </button>
         </div>
 
-        <p class="text-center text-[10px] text-slate-500 mono">PT United Steel Center Indonesia (USC ERP)</p>
+        <p class="text-center text-[10px] text-slate-500 mono">PT JIDOKA RESULT INDONESIA (JICOS ERP)</p>
     </div>
 
     <script>
@@ -541,12 +569,14 @@ app.get('/qr', (req, res) => {
             const tabSales = document.getElementById('tabSales');
             const tabPurchasing = document.getElementById('tabPurchasing');
             const tabInventory = document.getElementById('tabInventory');
+            const tabHr = document.getElementById('tabHr');
             const instTitle = document.getElementById('instructionTitle');
 
             const baseClass = 'py-2.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-white';
             tabSales.className = baseClass;
             tabPurchasing.className = baseClass;
             tabInventory.className = baseClass;
+            tabHr.className = baseClass;
 
             if (sessionId === 'sales') {
                 tabSales.className = 'py-2.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow-sm';
@@ -554,9 +584,12 @@ app.get('/qr', (req, res) => {
             } else if (sessionId === 'purchasing') {
                 tabPurchasing.className = 'py-2.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 bg-purple-600 text-white shadow-sm';
                 instTitle.innerText = 'Cara Menghubungkan Nomor Purchasing / Vendor:';
-            } else {
+            } else if (sessionId === 'inventory') {
                 tabInventory.className = 'py-2.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 bg-blue-600 text-white shadow-sm';
                 instTitle.innerText = 'Cara Menghubungkan Nomor Inventory / Gudang:';
+            } else {
+                tabHr.className = 'py-2.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 bg-amber-600 text-white shadow-sm';
+                instTitle.innerText = 'Cara Menghubungkan Nomor HR & Payroll / Karyawan:';
             }
 
             checkStatus();
@@ -574,15 +607,17 @@ app.get('/qr', (req, res) => {
                 const dotSales = document.getElementById('dotSales');
                 const dotPurchasing = document.getElementById('dotPurchasing');
                 const dotInventory = document.getElementById('dotInventory');
+                const dotHr = document.getElementById('dotHr');
                 if (data.allSessions) {
                     dotSales.className = 'w-2 h-2 rounded-full ' + (data.allSessions.sales?.connected ? 'bg-emerald-400' : 'bg-slate-500');
                     dotPurchasing.className = 'w-2 h-2 rounded-full ' + (data.allSessions.purchasing?.connected ? 'bg-purple-400' : 'bg-slate-500');
                     dotInventory.className = 'w-2 h-2 rounded-full ' + (data.allSessions.inventory?.connected ? 'bg-blue-400' : 'bg-slate-500');
+                    dotHr.className = 'w-2 h-2 rounded-full ' + (data.allSessions.hr?.connected ? 'bg-amber-400' : 'bg-slate-500');
                 }
 
                 if (data.status === 'connected') {
-                    const activeColor = currentSession === 'sales' ? 'emerald' : (currentSession === 'purchasing' ? 'purple' : 'blue');
-                    const sessionLabel = currentSession === 'sales' ? 'Nomor Sales' : (currentSession === 'purchasing' ? 'Nomor Purchasing' : 'Nomor Inventory');
+                    const activeColor = currentSession === 'sales' ? 'emerald' : (currentSession === 'purchasing' ? 'purple' : (currentSession === 'inventory' ? 'blue' : 'amber'));
+                    const sessionLabel = currentSession === 'sales' ? 'Nomor Sales' : (currentSession === 'purchasing' ? 'Nomor Purchasing' : (currentSession === 'inventory' ? 'Nomor Inventory' : 'Nomor HR'));
                     badge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold mono flex items-center gap-1.5 bg-' + activeColor + '-950/80 text-' + activeColor + '-400 border border-' + activeColor + '-800/50';
                     badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-' + activeColor + '-400"></span>ONLINE';
                     
@@ -594,9 +629,9 @@ app.get('/qr', (req, res) => {
                             <div>
                                 <h3 class="text-base font-bold text-white">\${sessionLabel} Terhubung</h3>
                                 <p class="text-xs text-slate-400 mono mt-1">+\${data.phone || 'Terdaftar'}</p>
-                                <p class="text-[11px] text-\${activeColor}-400/80 mt-0.5">\${data.name || 'USICS Device'}</p>
+                                <p class="text-[11px] text-\${activeColor}-400/80 mt-0.5">\${data.name || 'JICOS Device'}</p>
                             </div>
-                            <p class="text-[11px] text-slate-400 max-w-xs">Gateway siap menerima dan mengirim pesan untuk modul \${currentSession.toUpperCase()}.</p>
+                            <p class="text-[11px] text-slate-400 max-w-xs">Gateway siap menerima dan mengirim pesan untuk nomor khusus \${sessionLabel}.</p>
                         </div>
                     \`;
                     logoutBtn.classList.remove('hidden');
@@ -748,7 +783,7 @@ app.post('/api/send-message', authMiddleware, async (req, res) => {
             data: { id: sent.key.id, to: jid, timestamp: sent.messageTimestamp }
         });
     } catch (err) {
-        console.error(`[USICS WA Engine] [${session}] Send error:`, err);
+        console.error(`[JICOS WA Engine] [${session}] Send error:`, err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -783,7 +818,7 @@ app.get('/api/groups', authMiddleware, async (req, res) => {
             groups
         });
     } catch (err) {
-        console.error(`[USICS WA Engine] [${sess.id}] Fetch groups error:`, err);
+        console.error(`[JICOS WA Engine] [${sess.id}] Fetch groups error:`, err);
         res.status(500).json({ success: false, groups: [], error: err.message });
     }
 });
@@ -846,7 +881,7 @@ app.post('/api/send-media', authMiddleware, async (req, res) => {
             data: { id: sent.key.id, to: jid, timestamp: sent.messageTimestamp }
         });
     } catch (err) {
-        console.error(`[USICS WA Engine] [${session}] Send media error:`, err);
+        console.error(`[JICOS WA Engine] [${session}] Send media error:`, err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -854,13 +889,14 @@ app.post('/api/send-media', authMiddleware, async (req, res) => {
 // Start Server & Connect All Sessions
 app.listen(PORT, () => {
     console.log(`=======================================================`);
-    console.log(`🚀 USICS WhatsApp Engine (Multi-Session Node.js)`);
+    console.log(`🚀 JICOS WhatsApp Engine (Multi-Session Node.js)`);
     console.log(`🌐 Server running at: http://localhost:${PORT}`);
     console.log(`📱 QR Code Dashboard: http://localhost:${PORT}/qr`);
     console.log(`🔑 Protected with API Key: ${API_KEY ? 'Yes' : 'No'}`);
-    console.log(`📦 Sessions Active: [SALES], [PURCHASING] & [INVENTORY]`);
+    console.log(`📦 Sessions Active: [SALES], [PURCHASING], [INVENTORY] & [HR]`);
     console.log(`=======================================================`);
     startSession('sales');
     startSession('purchasing');
     startSession('inventory');
+    startSession('hr');
 });

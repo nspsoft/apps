@@ -156,7 +156,11 @@ class Product extends Model
      */
     public function getTotalStockAttribute(): float
     {
-        return $this->stocks->sum('qty_on_hand');
+        if ($this->relationLoaded('stocks')) {
+            return (float) $this->stocks->sum('qty_on_hand');
+        }
+
+        return (float) $this->stocks()->sum('qty_on_hand');
     }
 
     /**
@@ -164,9 +168,13 @@ class Product extends Model
      */
     public function getAvailableStockAttribute(): float
     {
-        return $this->stocks->sum(function ($stock) {
-            return $stock->qty_on_hand - $stock->qty_reserved;
-        });
+        if ($this->relationLoaded('stocks')) {
+            return (float) $this->stocks->sum(function ($stock) {
+                return $stock->qty_on_hand - $stock->qty_reserved;
+            });
+        }
+
+        return (float) $this->stocks()->sum(\Illuminate\Support\Facades\DB::raw('qty_on_hand - qty_reserved'));
     }
 
     /**
@@ -174,7 +182,13 @@ class Product extends Model
      */
     public function getStockInWarehouse(int $warehouseId): float
     {
-        return $this->stocks
+        if ($this->relationLoaded('stocks')) {
+            return (float) $this->stocks
+                ->where('warehouse_id', $warehouseId)
+                ->sum('qty_on_hand');
+        }
+
+        return (float) $this->stocks()
             ->where('warehouse_id', $warehouseId)
             ->sum('qty_on_hand');
     }

@@ -48,6 +48,54 @@ class PurchasingWhatsappWebhookController extends Controller
         $phone = str_replace(['@s.whatsapp.net', '@c.us', '@lid'], '', $phone);
         $phone = $this->resolveLidToPhone($phone, $pushName);
 
+        // Handle outgoing message from phone sync
+        $fromMe = $request->boolean('fromMe');
+        if ($fromMe) {
+            $isSyncEnabled = (bool) \App\Models\AppSetting::get('purchasing_whatsapp_sync_phone_outgoing', false);
+
+            if (!$isSyncEnabled) {
+                return response()->json(['status' => 'ignored', 'reason' => 'phone_sync_disabled']);
+            }
+
+            // Find supplier
+            $supplier = Supplier::where('phone', 'like', "%{$phone}%")->first();
+            $supplierId = $supplier?->id;
+            if (!$supplierId) {
+                $contact = SupplierContact::where('phone', 'like', "%{$phone}%")->first();
+                $supplierId = $contact?->supplier_id;
+            }
+
+            \App\Models\WhatsappMessage::create([
+                'phone' => $phone,
+                'direction' => 'outgoing',
+                'message' => $message,
+                'intent' => 'manual_phone',
+                'is_read' => true,
+                'module' => 'purchasing',
+                'metadata' => [
+                    'source' => 'phone_manual',
+                    'delivery_success' => true,
+                    'pushName' => $pushName,
+                ],
+                'supplier_id' => $supplierId,
+            ]);
+
+            // Mark previous incoming messages as read
+            \App\Models\WhatsappMessage::module('purchasing')
+                ->where('phone', $phone)
+                ->where('direction', 'incoming')
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+
+            Cache::forget('purchasing_whatsapp_unread_count');
+
+            return response()->json([
+                'status' => 'success',
+                'synced' => true,
+                'message' => 'Purchasing outgoing message from phone synced successfully.'
+            ]);
+        }
+
         try {
             // Process message and get response
             $response = $this->botService->handleIncomingMessage($phone, $message, $pushName);

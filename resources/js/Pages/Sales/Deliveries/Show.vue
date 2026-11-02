@@ -40,8 +40,8 @@ const hasRole = (...roles) => {
 
 // Permission map per action
 const canSave = computed(() => hasRole('Sales', 'Sales Manager'));
-const canLoading = computed(() => hasRole('Warehouse Manager'));
-const canShip = computed(() => hasRole('Warehouse Manager'));
+const canLoading = computed(() => hasRole('Warehouse Manager', 'Sales Manager'));
+const canShip = computed(() => hasRole('Warehouse Manager', 'Sales Manager'));
 const canVerify = computed(() => hasRole('Sales Manager', 'Director'));
 const canReset = computed(() => hasRole()); // Super Admin only (handled by hasRole)
 const canInvoice = computed(() => hasRole('Sales', 'Sales Manager'));

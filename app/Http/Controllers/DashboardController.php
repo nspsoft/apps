@@ -197,7 +197,8 @@ class DashboardController extends Controller
 
     private function getLowStockCount(): int
     {
-        return Product::where('is_active', true)
+        return Product::with('stocks')
+            ->where('is_active', true)
             ->get()
             ->filter(fn($p) => $p->is_low_stock)
             ->count();
