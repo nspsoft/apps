@@ -200,6 +200,10 @@ const hasPermission = (permission) => {
         return auth.permissions?.includes('security_patrol.view') ||
                auth.permissions?.some(p => p.startsWith('security_patrol.'));
     }
+    if (permission === 'audit_5s.view') {
+        return auth.permissions?.includes('audit_5s.view') ||
+               auth.permissions?.some(p => p.startsWith('audit_5s.'));
+    }
     return auth.permissions?.includes(permission);
 };
 
@@ -560,6 +564,22 @@ const navigation = [
             { name: 'Patrol Summary', href: '/security-patrol/resume', icon: ClipboardDocumentListIcon, permission: 'security_patrol.resume.view' },
             { name: 'Analytics & Insights', href: '/security-patrol/analytics', icon: PresentationChartBarIcon, permission: 'security_patrol.analytics.view' },
             { name: 'Checkpoints & QR Tags', href: '/security-patrol/checkpoints', icon: MapPinIcon, permission: 'security_patrol.checkpoints.view' },
+        ]
+    },
+    {
+        name: '5S Audit',
+        href: '#',
+        icon: ClipboardDocumentCheckIcon,
+        current: false,
+        permission: 'audit_5s.view',
+        children: [
+            { name: 'Interactive Floor Map', href: '/audit-5s/floor-map', icon: MapIcon, permission: 'audit_5s.floor_map.view' },
+            { name: 'Audit Schedules', href: '/audit-5s/schedules', icon: CalendarDaysIcon, permission: 'audit_5s.schedules.view' },
+            { name: 'Audit Execution', href: '/audit-5s/audits', icon: CheckCircleIcon, permission: 'audit_5s.audits.view' },
+            { name: 'Corrective Actions (CAPA)', href: '/audit-5s/corrective-actions', icon: WrenchScrewdriverIcon, permission: 'audit_5s.corrective_actions.view' },
+            { name: 'Leaderboard & Rankings', href: '/audit-5s/leaderboard', icon: TrophyIcon, permission: 'audit_5s.leaderboard.view' },
+            { name: 'Analytics & Reports', href: '/audit-5s/analytics', icon: PresentationChartBarIcon, permission: 'audit_5s.analytics.view' },
+            { name: 'Criteria & Settings', href: '/audit-5s/settings', icon: AdjustmentsHorizontalIcon, permission: 'audit_5s.criteria.view' },
         ]
     },
     { 

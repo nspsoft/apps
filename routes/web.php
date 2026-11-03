@@ -1114,3 +1114,60 @@ Route::middleware(['auth'])->prefix('security-patrol')->name('security-patrol.')
         Route::post('checkpoints/{checkpoint}/regenerate-token', [\App\Http\Controllers\SecurityPatrol\SecurityCheckpointController::class, 'regenerateToken'])->name('checkpoints.regenerate-token');
     });
 });
+
+// 5S Workplace Audit System
+Route::middleware(['auth'])->prefix('audit-5s')->name('audit-5s.')->group(function () {
+    // 1. Interactive Floor Map
+    Route::middleware(['role_or_permission:Super Admin|audit_5s.floor_map.view|audit_5s.view'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'index'])->name('index');
+        Route::get('floor-map', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'index'])->name('floor-map');
+        Route::post('buildings', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeBuilding'])->name('buildings.store');
+        Route::post('zones', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeZone'])->name('zones.store');
+        Route::post('zones/{zone}/coordinates', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateCoordinates'])->name('zones.update-coordinates');
+        Route::delete('zones/{zone}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyZone'])->name('zones.destroy');
+    });
+
+    // 2. Audit Schedules
+    Route::middleware(['role_or_permission:Super Admin|audit_5s.schedules.view|audit_5s.view'])->group(function () {
+        Route::get('schedules', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'index'])->name('schedules.index');
+        Route::post('schedules', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'store'])->name('schedules.store');
+        Route::put('schedules/{schedule}', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'update'])->name('schedules.update');
+        Route::delete('schedules/{schedule}', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'destroy'])->name('schedules.destroy');
+    });
+
+    // 3. Audit Execution & Logs
+    Route::middleware(['role_or_permission:Super Admin|audit_5s.audits.view|audit_5s.view'])->group(function () {
+        Route::get('audits', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'index'])->name('audits.index');
+        Route::get('audits/create', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'create'])->name('audits.create');
+        Route::post('audits', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'store'])->name('audits.store');
+        Route::get('audits/{session}', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'show'])->name('audits.show');
+        Route::delete('audits/{session}', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'destroy'])->name('audits.destroy');
+    });
+
+    // 4. Corrective Actions (CAPA)
+    Route::middleware(['role_or_permission:Super Admin|audit_5s.corrective_actions.view|audit_5s.view'])->group(function () {
+        Route::get('corrective-actions', [\App\Http\Controllers\Audit5S\Audit5sCapaController::class, 'index'])->name('corrective-actions.index');
+        Route::post('corrective-actions/{finding}/remedy', [\App\Http\Controllers\Audit5S\Audit5sCapaController::class, 'submitRemediation'])->name('corrective-actions.remedy');
+        Route::post('corrective-actions/{finding}/verify', [\App\Http\Controllers\Audit5S\Audit5sCapaController::class, 'verifyRemediation'])->name('corrective-actions.verify');
+    });
+
+    // 5. Leaderboard & Rankings
+    Route::middleware(['role_or_permission:Super Admin|audit_5s.leaderboard.view|audit_5s.view'])->group(function () {
+        Route::get('leaderboard', [\App\Http\Controllers\Audit5S\Audit5sLeaderboardController::class, 'index'])->name('leaderboard.index');
+    });
+
+    // 6. Analytics & Reports
+    Route::middleware(['role_or_permission:Super Admin|audit_5s.analytics.view|audit_5s.view'])->group(function () {
+        Route::get('analytics', [\App\Http\Controllers\Audit5S\Audit5sAnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('analytics/export-excel', [\App\Http\Controllers\Audit5S\Audit5sAnalyticsController::class, 'exportExcel'])->name('analytics.export-excel');
+    });
+
+    // 7. Settings & Criteria
+    Route::middleware(['role_or_permission:Super Admin|audit_5s.criteria.view|audit_5s.view'])->group(function () {
+        Route::get('settings', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'index'])->name('settings.index');
+        Route::post('settings/checklists', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'storeChecklist'])->name('settings.checklists.store');
+        Route::put('settings/checklists/{checklist}', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'updateChecklist'])->name('settings.checklists.update');
+        Route::delete('settings/checklists/{checklist}', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'destroyChecklist'])->name('settings.checklists.destroy');
+    });
+});
+

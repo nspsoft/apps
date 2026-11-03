@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="100%" height="100%">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f1f5f9" stroke-width="1" />
+    </pattern>
+    <pattern id="safety-stripes" width="20" height="20" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="10" height="20" fill="#fef08a" />
+      <rect x="10" width="10" height="20" fill="#0f172a" />
+    </pattern>
+  </defs>
+
+  <!-- Background Base Floor -->
+  <rect width="1200" height="800" fill="#f8fafc" />
+  <rect width="1200" height="800" fill="url(#grid)" />
+
+  <!-- Outer Walls (Structural Steel Columns) -->
+  <rect x="30" y="30" width="1140" height="740" fill="#ffffff" stroke="#334155" stroke-width="6" rx="8" />
+
+  <!-- Safety Yellow Walkways / Aisles (Demarkasi K3) -->
+  <!-- Main Longitudinal Corridor -->
+  <rect x="50" y="380" width="1100" height="40" fill="#fef9c3" stroke="#eab308" stroke-width="2" stroke-dasharray="8 4" />
+  <text x="600" y="405" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#854d0e" text-anchor="middle" letter-spacing="3">MAIN SAFETY AISLE (JALUR HIJAU K3 - EVAKUASI)</text>
+
+  <!-- Cross Aisles -->
+  <rect x="380" y="50" width="30" height="700" fill="#fef9c3" stroke="#eab308" stroke-width="2" stroke-dasharray="6 3" />
+  <rect x="780" y="50" width="30" height="700" fill="#fef9c3" stroke="#eab308" stroke-width="2" stroke-dasharray="6 3" />
+
+  <!-- ZONE 1: Raw Coil Storage Bay (North-West) -->
+  <rect x="60" y="50" width="300" height="310" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" rx="6" />
+  <rect x="60" y="50" width="300" height="30" fill="#e2e8f0" rx="6" />
+  <text x="75" y="70" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#334155">BAY 1: RAW COIL STORAGE</text>
+  <!-- Steel Coils Graphic -->
+  <circle cx="120" cy="140" r="35" fill="#cbd5e1" stroke="#64748b" stroke-width="3" />
+  <circle cx="120" cy="140" r="14" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <circle cx="210" cy="140" r="35" fill="#cbd5e1" stroke="#64748b" stroke-width="3" />
+  <circle cx="210" cy="140" r="14" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <circle cx="300" cy="140" r="35" fill="#cbd5e1" stroke="#64748b" stroke-width="3" />
+  <circle cx="300" cy="140" r="14" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <circle cx="165" cy="230" r="35" fill="#cbd5e1" stroke="#64748b" stroke-width="3" />
+  <circle cx="165" cy="230" r="14" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+  <circle cx="255" cy="230" r="35" fill="#cbd5e1" stroke="#64748b" stroke-width="3" />
+  <circle cx="255" cy="230" r="14" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+
+  <!-- ZONE 2: Slitting Line & Uncoiler (North-Center) -->
+  <rect x="430" y="50" width="330" height="310" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" rx="6" />
+  <rect x="430" y="50" width="330" height="30" fill="#e2e8f0" rx="6" />
+  <text x="445" y="70" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#334155">BAY 2: SLITTING LINE &amp; SHEARING</text>
+  <rect x="450" y="110" width="120" height="60" fill="#e2e8f0" stroke="#475569" stroke-width="2" rx="4" />
+  <text x="510" y="145" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#475569" text-anchor="middle">UNCOILER M1</text>
+  <rect x="600" y="100" width="140" height="80" fill="#e2e8f0" stroke="#475569" stroke-width="2" rx="4" />
+  <text x="670" y="145" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#475569" text-anchor="middle">ROTARY SHEAR</text>
+  <rect x="460" y="210" width="270" height="90" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5" rx="4" />
+  <text x="595" y="260" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#64748b" text-anchor="middle">RECOILER &amp; STRIP ACCUMULATOR</text>
+
+  <!-- ZONE 3: Pipe Forming & ERW Welding Mill (North-East) -->
+  <rect x="830" y="50" width="320" height="310" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" rx="6" />
+  <rect x="830" y="50" width="320" height="30" fill="#e2e8f0" rx="6" />
+  <text x="845" y="70" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#334155">BAY 3: PIPE FORMING &amp; HIGH-FREQ WELDING</text>
+  <rect x="850" y="120" width="280" height="50" fill="#e2e8f0" stroke="#0284c7" stroke-width="2" rx="4" />
+  <text x="990" y="150" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#0369a1" text-anchor="middle">ROLL FORMING STANDS (1 - 6)</text>
+  <circle cx="890" cy="240" r="28" fill="#fee2e2" stroke="#dc2626" stroke-width="2" />
+  <text x="890" y="244" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#b91c1c" text-anchor="middle">H.F. WELD</text>
+  <rect x="940" y="215" width="190" height="50" fill="#e2e8f0" stroke="#475569" stroke-width="2" rx="4" />
+  <text x="1035" y="245" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#475569" text-anchor="middle">SIZING &amp; TURKS HEAD</text>
+
+  <!-- ZONE 4: Hydrostatic Testing & QC Inspection (South-West) -->
+  <rect x="60" y="440" width="300" height="310" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" rx="6" />
+  <rect x="60" y="440" width="300" height="30" fill="#e2e8f0" rx="6" />
+  <text x="75" y="460" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#334155">BAY 4: HYDROTEST &amp; NDT LAB</text>
+  <rect x="80" y="500" width="260" height="60" fill="#f0fdf4" stroke="#16a34a" stroke-width="2" rx="4" />
+  <text x="210" y="535" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#15803d" text-anchor="middle">HYDROSTATIC TEST BED (50 BAR)</text>
+  <rect x="80" y="580" width="120" height="80" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" rx="4" />
+  <text x="140" y="625" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#0369a1" text-anchor="middle">ULTRASONIC NDT</text>
+  <rect x="220" y="580" width="120" height="80" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" rx="4" />
+  <text x="280" y="625" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#b45309" text-anchor="middle">QC BENCH &amp; GAUGES</text>
+
+  <!-- ZONE 5: Mechanical Maintenance & Tooling Workshop (South-Center) -->
+  <rect x="430" y="440" width="330" height="310" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" rx="6" />
+  <rect x="430" y="440" width="330" height="30" fill="#e2e8f0" rx="6" />
+  <text x="445" y="460" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#334155">BAY 5: TOOLING &amp; MAINTENANCE WORKSHOP</text>
+  <rect x="450" y="490" width="130" height="70" fill="#f1f5f9" stroke="#475569" stroke-width="1.5" rx="4" />
+  <text x="515" y="530" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#475569" text-anchor="middle">LATHE &amp; MILLING</text>
+  <rect x="610" y="490" width="130" height="70" fill="#f1f5f9" stroke="#475569" stroke-width="1.5" rx="4" />
+  <text x="675" y="530" font-family="system-ui, sans-serif" font-size="10" font-weight="600" fill="#475569" text-anchor="middle">SHADOW BOARD TOOLS</text>
+  <rect x="450" y="580" width="290" height="80" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5" rx="4" />
+  <text x="595" y="625" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#b45309" text-anchor="middle">SPARE PARTS RACK &amp; ROLLER DIES</text>
+
+  <!-- ZONE 6: Finished Goods Pipe Bundles & Staging (South-East) -->
+  <rect x="830" y="440" width="320" height="310" fill="#f1f5f9" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" rx="6" />
+  <rect x="830" y="440" width="320" height="30" fill="#e2e8f0" rx="6" />
+  <text x="845" y="460" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#334155">BAY 6: FINISHED PIPE PACKING &amp; STAGING</text>
+  <!-- Pipe Bundles Hexagon Graphics -->
+  <rect x="860" y="500" width="260" height="35" fill="#cbd5e1" stroke="#475569" stroke-width="2" rx="3" />
+  <text x="990" y="522" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#334155" text-anchor="middle">PIPE BUNDLE STACK A (2" - 4")</text>
+  <rect x="860" y="550" width="260" height="35" fill="#cbd5e1" stroke="#475569" stroke-width="2" rx="3" />
+  <text x="990" y="572" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#334155" text-anchor="middle">PIPE BUNDLE STACK B (6" - 8")</text>
+  <rect x="860" y="600" width="260" height="35" fill="#cbd5e1" stroke="#475569" stroke-width="2" rx="3" />
+  <text x="990" y="622" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#334155" text-anchor="middle">PIPE BUNDLE STACK C (GALVANIZED)</text>
+  <!-- Overhead Crane Indicator -->
+  <line x1="840" y1="670" x2="1140" y2="670" stroke="#0ea5e9" stroke-width="4" stroke-dasharray="8 4" />
+  <text x="990" y="695" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="#0284c7" text-anchor="middle">OVERHEAD CRANE 10 TON</text>
+
+  <!-- Emergency Exits & Fire Extinguishers -->
+  <rect x="30" y="375" width="20" height="50" fill="#ef4444" rx="2" />
+  <text x="25" y="405" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#ffffff" text-anchor="middle" transform="rotate(-90 25,405)">EXIT WEST</text>
+  <rect x="1150" y="375" width="20" height="50" fill="#ef4444" rx="2" />
+  <text x="1175" y="405" font-family="system-ui, sans-serif" font-size="9" font-weight="700" fill="#ffffff" text-anchor="middle" transform="rotate(90 1175,405)">EXIT EAST</text>
+</svg>

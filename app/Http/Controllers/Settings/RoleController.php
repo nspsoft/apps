@@ -39,7 +39,7 @@ class RoleController extends Controller
                 $action = $parts[2];
                 
                 $groupedPermissions[$module]['menus'][$menu]['actions'][] = $action;
-                $groupedPermissions[$module]['menus'][$menu]['name'] = $this->prettify($menu);
+                $groupedPermissions[$module]['menus'][$menu]['name'] = $this->prettify($menu, $module);
             } else if (count($parts) === 2) {
                 // Module level: module.action
                 $action = $parts[1];
@@ -56,8 +56,21 @@ class RoleController extends Controller
         ]);
     }
 
-    private function prettify($text)
+    private function prettify($text, $module = null)
     {
+        if ($module === 'audit_5s') {
+            $auditMap = [
+                'floor_map' => 'Interactive Floor Map',
+                'schedules' => 'Audit Schedules',
+                'audits' => 'Audit Execution',
+                'corrective_actions' => 'Corrective Actions (CAPA)',
+                'leaderboard' => 'Leaderboard & Rankings',
+                'analytics' => 'Analytics & Reports',
+                'criteria' => 'Criteria & Settings',
+            ];
+            if (isset($auditMap[$text])) return $auditMap[$text];
+        }
+
         $map = [
             'sales_crm' => 'Sales & CRM',
             'purchasing' => 'Purchasing',
@@ -82,6 +95,7 @@ class RoleController extends Controller
             'resume' => 'Patrol Summary',
             'analytics' => 'Analytics & Insights',
             'checkpoints' => 'Checkpoints & QR Tags',
+            'audit_5s' => '5S Audit',
             'settings' => 'Settings'
         ];
 
