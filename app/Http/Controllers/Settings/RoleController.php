@@ -67,6 +67,13 @@ class RoleController extends Controller
             'employee_self_service' => 'Employee Self Service',
             'timeoff' => 'My Time-Off (Cuti & Izin)',
             'project_matrix' => 'Project Matrix',
+            'security_patrol' => 'Security Patrol',
+            'live_map' => 'Live Map & Monitor',
+            'schedules' => 'Sesi & Jadwal',
+            'active_patrol' => 'Patroli Aktif (Mobile)',
+            'resume' => 'Resume Patrol',
+            'analytics' => 'Grafik & Analitik',
+            'checkpoints' => 'Master Titik & Cetak QR',
             'settings' => 'Settings'
         ];
 

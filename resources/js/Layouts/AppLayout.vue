@@ -196,6 +196,10 @@ const hasPermission = (permission) => {
                auth.permissions?.includes('automated_bell.schedule_settings.view') ||
                auth.permissions?.includes('automated_bell.bell_terminal.view');
     }
+    if (permission === 'security_patrol.view') {
+        return auth.permissions?.includes('security_patrol.view') ||
+               auth.permissions?.some(p => p.startsWith('security_patrol.'));
+    }
     return auth.permissions?.includes(permission);
 };
 
@@ -548,13 +552,14 @@ const navigation = [
         href: '#',
         icon: ShieldCheckIcon,
         current: false,
+        permission: 'security_patrol.view',
         children: [
-            { name: 'Live Map & Monitor', href: '/security-patrol/map', icon: MapIcon },
-            { name: 'Sesi & Jadwal', href: '/security-patrol/schedules', icon: CalendarDaysIcon },
-            { name: 'Patroli Aktif (Mobile)', href: '/security-patrol/active', icon: ViewfinderCircleIcon },
-            { name: 'Resume Patrol', href: '/security-patrol/resume', icon: ClipboardDocumentListIcon },
-            { name: 'Grafik & Analitik', href: '/security-patrol/analytics', icon: PresentationChartBarIcon },
-            { name: 'Master Titik & Cetak QR', href: '/security-patrol/checkpoints', icon: MapPinIcon },
+            { name: 'Live Map & Monitor', href: '/security-patrol/map', icon: MapIcon, permission: 'security_patrol.live_map.view' },
+            { name: 'Sesi & Jadwal', href: '/security-patrol/schedules', icon: CalendarDaysIcon, permission: 'security_patrol.schedules.view' },
+            { name: 'Patroli Aktif (Mobile)', href: '/security-patrol/active', icon: ViewfinderCircleIcon, permission: 'security_patrol.active_patrol.view' },
+            { name: 'Resume Patrol', href: '/security-patrol/resume', icon: ClipboardDocumentListIcon, permission: 'security_patrol.resume.view' },
+            { name: 'Grafik & Analitik', href: '/security-patrol/analytics', icon: PresentationChartBarIcon, permission: 'security_patrol.analytics.view' },
+            { name: 'Master Titik & Cetak QR', href: '/security-patrol/checkpoints', icon: MapPinIcon, permission: 'security_patrol.checkpoints.view' },
         ]
     },
     { 

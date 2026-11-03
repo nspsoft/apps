@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     ClipboardDocumentListIcon,
@@ -11,6 +11,7 @@ import {
     ClockIcon,
     ShieldCheckIcon,
     EyeIcon,
+    TrashIcon,
     XMarkIcon,
     MapPinIcon,
     CameraIcon,
@@ -36,6 +37,8 @@ const props = defineProps({
     },
 });
 
+const page = usePage();
+
 const search = ref(props.filters.search || '');
 const dateFrom = ref(props.filters.date_from || '');
 const dateTo = ref(props.filters.date_to || '');
@@ -44,6 +47,48 @@ const userId = ref(props.filters.user_id || '');
 
 const selectedSession = ref(null);
 const showDetailDrawer = ref(false);
+
+// Delete Modal State
+const sessionToDelete = ref(null);
+const showDeleteModal = ref(false);
+const isDeleting = ref(false);
+
+const canDelete = computed(() => {
+    const auth = page.props.auth;
+    if (!auth) return false;
+    if (auth.roles?.includes('Super Admin')) return true;
+    return auth.permissions?.includes('security_patrol.resume.delete') ||
+           auth.permissions?.includes('security_patrol.delete');
+});
+
+const confirmDelete = (session) => {
+    sessionToDelete.value = session;
+    showDeleteModal.value = true;
+};
+
+const cancelDelete = () => {
+    if (isDeleting.value) return;
+    showDeleteModal.value = false;
+    sessionToDelete.value = null;
+};
+
+const executeDelete = () => {
+    if (!sessionToDelete.value || isDeleting.value) return;
+    isDeleting.value = true;
+    router.delete(`/security-patrol/resume/${sessionToDelete.value.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            showDeleteModal.value = false;
+            sessionToDelete.value = null;
+            if (selectedSession.value?.id === sessionToDelete.value?.id) {
+                closeDetailDrawer();
+            }
+        },
+        onFinish: () => {
+            isDeleting.value = false;
+        },
+    });
+};
 
 const applyFilters = () => {
     router.get('/security-patrol/resume', {
@@ -75,8 +120,12 @@ const closeDetailDrawer = () => {
 };
 
 const handleKeyDown = (e) => {
-    if (e.key === 'Escape' && showDetailDrawer.value) {
-        closeDetailDrawer();
+    if (e.key === 'Escape') {
+        if (showDeleteModal.value) {
+            cancelDelete();
+        } else if (showDetailDrawer.value) {
+            closeDetailDrawer();
+        }
     }
 };
 
@@ -90,7 +139,7 @@ onUnmounted(() => {
 
 const formatDuration = (seconds) => {
     if (!seconds) return '-';
-    const mins = Math.floor(seconds / 60);
+    const mins = Math.floor(Math.abs(seconds) / 60);
     return `${mins} Menit`;
 };
 
@@ -327,12 +376,23 @@ const getExcelUrl = () => {
                                     <span v-else class="text-slate-400 text-[11px]">-</span>
                                 </td>
                                 <td class="px-4 py-3 text-center">
-                                    <button
-                                        @click="openDetailDrawer(s)"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900 transition"
-                                    >
-                                        <EyeIcon class="size-3.5" /> Detail
-                                    </button>
+                                    <div class="inline-flex items-center gap-1.5 justify-center">
+                                        <button
+                                            @click="openDetailDrawer(s)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-900 transition"
+                                            title="Lihat Detail Sesi"
+                                        >
+                                            <EyeIcon class="size-3.5" /> Detail
+                                        </button>
+                                        <button
+                                            v-if="canDelete"
+                                            @click="confirmDelete(s)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 transition"
+                                            title="Hapus Sesi Patroli Ini"
+                                        >
+                                            <TrashIcon class="size-3.5" /> Hapus
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -395,14 +455,25 @@ const getExcelUrl = () => {
                                 {{ selectedSession.shift_name }} &bull; Petugas: {{ selectedSession.user?.name || '-' }}
                             </p>
                         </div>
-                        <button
-                            type="button"
-                            @click="closeDetailDrawer"
-                            class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                            title="Tutup Panel (Esc)"
-                        >
-                            <XMarkIcon class="size-5" />
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button
+                                v-if="canDelete"
+                                type="button"
+                                @click="confirmDelete(selectedSession)"
+                                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 transition"
+                                title="Hapus Sesi Patroli Ini"
+                            >
+                                <TrashIcon class="size-3.5" /> Hapus
+                            </button>
+                            <button
+                                type="button"
+                                @click="closeDetailDrawer"
+                                class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                                title="Tutup Panel (Esc)"
+                            >
+                                <XMarkIcon class="size-5" />
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Drawer Body -->
@@ -517,6 +588,76 @@ const getExcelUrl = () => {
                                     </span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL KONFIRMASI HAPUS SESI PATROLI -->
+            <div
+                v-if="showDeleteModal"
+                class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+                @click.self="cancelDelete"
+            >
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-150">
+                    <div class="p-5 space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="p-2.5 rounded-full bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 shrink-0">
+                                <TrashIcon class="size-6" />
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                                    Hapus Sesi Patroli Satpam?
+                                </h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    Tindakan ini akan mengarsipkan riwayat sesi patroli ini beserta seluruh catatan log pemindaian titik. Data dapat dipulihkan melalui database jika diperlukan.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div v-if="sessionToDelete" class="bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3 border border-slate-200 dark:border-slate-700/60 text-xs space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-500">Kode Sesi:</span>
+                                <span class="font-mono font-bold text-blue-600 dark:text-blue-400">{{ sessionToDelete.session_code }}</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-500">Tanggal:</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                                    {{ sessionToDelete.patrol_date ? new Date(sessionToDelete.patrol_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-' }}
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-500">Shift & Petugas:</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                                    {{ sessionToDelete.shift_name }} &bull; {{ sessionToDelete.user?.name || '-' }}
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-500">Capaian Pos:</span>
+                                <span class="font-semibold text-slate-800 dark:text-slate-200">
+                                    {{ sessionToDelete.completed_checkpoints }} dari {{ sessionToDelete.total_checkpoints }} Pos Selesai
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                            <button
+                                type="button"
+                                :disabled="isDeleting"
+                                @click="cancelDelete"
+                                class="px-4 py-2 text-xs font-semibold rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                :disabled="isDeleting"
+                                @click="executeDelete"
+                                class="px-4 py-2 text-xs font-semibold rounded-md bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                                <TrashIcon class="size-4" />
+                                <span>{{ isDeleting ? 'Menghapus...' : 'Ya, Hapus Sesi' }}</span>
+                            </button>
                         </div>
                     </div>
                 </div>

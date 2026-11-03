@@ -7,6 +7,7 @@ use App\Models\SecurityPatrolSession;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class SecurityPatrolResumeController extends Controller
@@ -143,5 +144,31 @@ class SecurityPatrolResumeController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Soft delete a patrol session and record activity audit log
+     */
+    public function destroy(SecurityPatrolSession $session)
+    {
+        $user = auth()->user();
+        if (!$user->hasRole('Super Admin') && !$user->can('security_patrol.resume.delete')) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki wewenang untuk menghapus sesi patroli.');
+        }
+
+        $sessionCode = $session->session_code;
+
+        DB::transaction(function () use ($session, $user, $sessionCode) {
+            $session->delete();
+
+            if (function_exists('activity')) {
+                activity()
+                    ->causedBy($user)
+                    ->performedOn($session)
+                    ->log("Menghapus sesi patroli satpam [{$sessionCode}]");
+            }
+        });
+
+        return redirect()->back()->with('success', "Sesi patroli {$sessionCode} berhasil dihapus.");
     }
 }

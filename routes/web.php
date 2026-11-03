@@ -1075,27 +1075,42 @@ Route::post('/careers/{job}/apply', [\App\Http\Controllers\CareersController::cl
 // Security Patrol & Guard Tour System
 Route::middleware(['auth'])->prefix('security-patrol')->name('security-patrol.')->group(function () {
     // 1. Live Map & Monitor
-    Route::get('/', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolMapController::class, 'index'])->name('index');
-    Route::get('map', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolMapController::class, 'index'])->name('map');
+    Route::middleware(['role_or_permission:Super Admin|security_patrol.live_map.view|security_patrol.view'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolMapController::class, 'index'])->name('index');
+        Route::get('map', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolMapController::class, 'index'])->name('map');
+    });
 
     // 2. Active Run Patrol (Mobile view & Execution API)
-    Route::get('active', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'active'])->name('active');
-    Route::post('start-session', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'startSession'])->name('start-session');
-    Route::post('scan-checkpoint', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'scanCheckpoint'])->name('scan-checkpoint');
-    Route::post('finish-session', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'finishSession'])->name('finish-session');
+    Route::middleware(['role_or_permission:Super Admin|security_patrol.active_patrol.view|security_patrol.view'])->group(function () {
+        Route::get('active', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'active'])->name('active');
+        Route::post('start-session', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'startSession'])->name('start-session');
+        Route::post('scan-checkpoint', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'scanCheckpoint'])->name('scan-checkpoint');
+        Route::post('finish-session', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolExecutionController::class, 'finishSession'])->name('finish-session');
+    });
 
-    // 3. Resume Patrol (Rekapitulasi & Log Detail)
-    Route::get('resume', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolResumeController::class, 'index'])->name('resume');
-    Route::get('resume/export-excel', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolResumeController::class, 'exportExcel'])->name('resume.export-excel');
+    // 3. Resume Patrol (Rekapitulasi, Log Detail & Hapus Sesi)
+    Route::middleware(['role_or_permission:Super Admin|security_patrol.resume.view|security_patrol.view'])->group(function () {
+        Route::get('resume', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolResumeController::class, 'index'])->name('resume');
+        Route::get('resume/export-excel', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolResumeController::class, 'exportExcel'])->name('resume.export-excel');
+        Route::delete('resume/{session}', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolResumeController::class, 'destroy'])
+            ->name('resume.destroy')
+            ->middleware('role_or_permission:Super Admin|security_patrol.resume.delete');
+    });
 
     // 4. Grafik & Analitik
-    Route::get('analytics', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolAnalyticsController::class, 'index'])->name('analytics');
+    Route::middleware(['role_or_permission:Super Admin|security_patrol.analytics.view|security_patrol.view'])->group(function () {
+        Route::get('analytics', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolAnalyticsController::class, 'index'])->name('analytics');
+    });
 
     // 5. Schedules (Sesi & Jadwal)
-    Route::post('schedules/batch-generate', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolScheduleController::class, 'batchGenerate'])->name('schedules.batch-generate');
-    Route::resource('schedules', \App\Http\Controllers\SecurityPatrol\SecurityPatrolScheduleController::class)->except(['create', 'show', 'edit']);
+    Route::middleware(['role_or_permission:Super Admin|security_patrol.schedules.view|security_patrol.view'])->group(function () {
+        Route::post('schedules/batch-generate', [\App\Http\Controllers\SecurityPatrol\SecurityPatrolScheduleController::class, 'batchGenerate'])->name('schedules.batch-generate');
+        Route::resource('schedules', \App\Http\Controllers\SecurityPatrol\SecurityPatrolScheduleController::class)->except(['create', 'show', 'edit']);
+    });
 
     // 6. Checkpoints (Master Titik & Cetak QR)
-    Route::resource('checkpoints', \App\Http\Controllers\SecurityPatrol\SecurityCheckpointController::class)->except(['create', 'show', 'edit']);
-    Route::post('checkpoints/{checkpoint}/regenerate-token', [\App\Http\Controllers\SecurityPatrol\SecurityCheckpointController::class, 'regenerateToken'])->name('checkpoints.regenerate-token');
+    Route::middleware(['role_or_permission:Super Admin|security_patrol.checkpoints.view|security_patrol.view'])->group(function () {
+        Route::resource('checkpoints', \App\Http\Controllers\SecurityPatrol\SecurityCheckpointController::class)->except(['create', 'show', 'edit']);
+        Route::post('checkpoints/{checkpoint}/regenerate-token', [\App\Http\Controllers\SecurityPatrol\SecurityCheckpointController::class, 'regenerateToken'])->name('checkpoints.regenerate-token');
+    });
 });

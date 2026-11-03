@@ -63,6 +63,9 @@ class RoleSeeder extends Seeder
             'Project Matrix' => [
                 'Projects'
             ],
+            'Security Patrol' => [
+                'Live Map', 'Schedules', 'Active Patrol', 'Resume', 'Analytics', 'Checkpoints'
+            ],
             'Settings' => [
                 'User Management', 'Roles & Permissions', 'Company Profile', 'AI Configuration', 'Document Numbering', 'Regional & Tax', 'System Preferences', 'Workflow Approval', 'Mobile Navbar', 'Import & Export', 'Database Management', 'Activity Logs'
             ]

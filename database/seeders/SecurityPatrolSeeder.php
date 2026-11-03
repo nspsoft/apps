@@ -198,7 +198,7 @@ class SecurityPatrolSeeder extends Seeder
 
                 $startTime = Carbon::parse($date->format('Y-m-d') . ' ' . $sch->start_time);
                 $endTime = $startTime->copy()->addMinutes(rand(45, 75));
-                $duration = $endTime->diffInSeconds($startTime);
+                $duration = abs($endTime->diffInSeconds($startTime));
 
                 $totalPoints = count($createdCheckpoints);
                 // On some days, 1 point might be missed to simulate realistic industrial performance
