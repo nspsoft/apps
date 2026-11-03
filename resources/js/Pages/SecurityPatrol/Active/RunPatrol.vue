@@ -19,6 +19,7 @@ import {
     ArrowPathIcon,
     FlagIcon,
     PhotoIcon,
+    BoltIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -75,6 +76,8 @@ const html5QrCode = ref(null);
 const isScanningCamera = ref(false);
 const scannedToken = ref('');
 const selectedCheckpointTarget = ref(null);
+const isTorchOn = ref(false);
+const isTorchSupported = ref(false);
 
 // Form Scan Payload
 const conditionStatus = ref('normal'); // 'normal' | 'incident'
@@ -125,6 +128,81 @@ const openScanner = (targetCp = null) => {
     }, 300);
 };
 
+const checkTorchSupport = () => {
+    isTorchSupported.value = false;
+    try {
+        const caps = html5QrCode.value?.getRunningTrackCameraCapabilities?.();
+        const torch = caps?.torchFeature?.();
+        if (torch && torch.isSupported()) {
+            isTorchSupported.value = true;
+            return;
+        }
+    } catch (_) {}
+
+    try {
+        const videoElem = document.querySelector('#qr-reader video');
+        const stream = videoElem?.srcObject;
+        const track = stream?.getVideoTracks?.()?.[0];
+        if (track && track.getCapabilities) {
+            const c = track.getCapabilities();
+            if ('torch' in c || c.fillLightMode?.includes?.('flash')) {
+                isTorchSupported.value = true;
+                return;
+            }
+        }
+    } catch (_) {}
+
+    isTorchSupported.value = true;
+};
+
+const toggleTorch = async () => {
+    const nextState = !isTorchOn.value;
+    let applied = false;
+
+    // 1. Primary approach via html5QrCode torchFeature
+    try {
+        if (html5QrCode.value) {
+            const caps = html5QrCode.value.getRunningTrackCameraCapabilities();
+            const torch = caps?.torchFeature?.();
+            if (torch && torch.isSupported()) {
+                await torch.apply(nextState);
+                isTorchOn.value = nextState;
+                applied = true;
+            }
+        }
+    } catch (e) {
+        console.warn('html5QrCode torchFeature error:', e);
+    }
+
+    // 2. Fallback approach via native MediaStreamTrack
+    if (!applied) {
+        try {
+            const videoElem = document.querySelector('#qr-reader video');
+            const stream = videoElem?.srcObject;
+            const track = stream?.getVideoTracks?.()?.[0];
+            if (track) {
+                await track.applyConstraints({
+                    advanced: [{ torch: nextState }]
+                });
+                isTorchOn.value = nextState;
+                applied = true;
+            }
+        } catch (e) {
+            console.warn('MediaStreamTrack applyConstraints torch error:', e);
+        }
+    }
+
+    if (!applied) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Lampu Flash Tidak Didukung',
+            text: 'Perangkat atau browser ini tidak mendukung kontrol lampu senter (flash) via web kamera.',
+            timer: 2500,
+            showConfirmButton: false,
+        });
+    }
+};
+
 const startQrScanner = async () => {
     try {
         const qrElement = document.getElementById('qr-reader');
@@ -132,6 +210,7 @@ const startQrScanner = async () => {
 
         html5QrCode.value = new Html5Qrcode('qr-reader');
         isScanningCamera.value = true;
+        isTorchOn.value = false;
 
         await html5QrCode.value.start(
             { facingMode: 'environment' },
@@ -148,6 +227,10 @@ const startQrScanner = async () => {
                 // ignore scanning frame errors
             }
         );
+
+        setTimeout(() => {
+            checkTorchSupport();
+        }, 500);
     } catch (err) {
         console.warn('Camera start error:', err);
         isScanningCamera.value = false;
@@ -155,6 +238,19 @@ const startQrScanner = async () => {
 };
 
 const stopQrScanner = () => {
+    if (isTorchOn.value) {
+        try {
+            const caps = html5QrCode.value?.getRunningTrackCameraCapabilities?.();
+            caps?.torchFeature?.()?.apply?.(false);
+        } catch (_) {}
+        try {
+            const videoElem = document.querySelector('#qr-reader video');
+            const track = videoElem?.srcObject?.getVideoTracks?.()?.[0];
+            track?.applyConstraints?.({ advanced: [{ torch: false }] });
+        } catch (_) {}
+        isTorchOn.value = false;
+    }
+
     if (html5QrCode.value && isScanningCamera.value) {
         html5QrCode.value.stop().then(() => {
             html5QrCode.value.clear();
@@ -491,6 +587,37 @@ const loggedCheckpointIds = computed(() => {
                         <!-- Camera Viewfinder -->
                         <div class="relative w-full aspect-square max-h-56 bg-slate-950 rounded-lg overflow-hidden flex items-center justify-center">
                             <div id="qr-reader" class="w-full h-full"></div>
+
+                            <!-- Floating Flash / Torch Toggle Button -->
+                            <button
+                                v-if="isScanningCamera"
+                                type="button"
+                                @click="toggleTorch"
+                                :class="[
+                                    'absolute top-2.5 right-2.5 z-20 px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all duration-200 cursor-pointer',
+                                    isTorchOn
+                                        ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 ring-offset-2 ring-offset-slate-950 font-bold'
+                                        : 'bg-slate-900/80 text-white border border-slate-700/80 hover:bg-slate-800'
+                                ]"
+                                :title="isTorchOn ? 'Matikan Lampu Flash' : 'Nyalakan Lampu Flash (Senter)'"
+                            >
+                                <BoltIcon class="size-3.5" :class="isTorchOn ? 'fill-current text-slate-950' : 'text-amber-400'" />
+                                <span>{{ isTorchOn ? 'Flash ON' : 'Flash OFF' }}</span>
+                            </button>
+                        </div>
+
+                        <!-- Torch Quick Action Sub-bar -->
+                        <div class="flex items-center justify-between px-0.5 text-[11px]">
+                            <span class="text-slate-500">Arahkan kamera ke QR pos</span>
+                            <button
+                                v-if="isScanningCamera"
+                                type="button"
+                                @click="toggleTorch"
+                                class="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                            >
+                                <BoltIcon class="size-3.5" />
+                                {{ isTorchOn ? '⚡ Matikan Senter' : '🔦 Ruang Gelap? Nyalakan Senter' }}
+                            </button>
                         </div>
 
                         <!-- Manual Token Input as Fallback -->
