@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Inertia\Inertia;
@@ -16,6 +17,13 @@ class RoleController extends Controller
      */
     public function index()
     {
+        if (!Permission::where('name', 'security_patrol.view')->exists()) {
+            Artisan::call('db:seed', [
+                '--class' => 'SecurityPatrolPermissionSeeder',
+                '--force' => true,
+            ]);
+        }
+
         $permissions = Permission::all();
         
         // Group permissions for the UI

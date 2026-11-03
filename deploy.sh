@@ -26,6 +26,7 @@ git reset --hard origin/main
 composer install --no-dev --optimize-autoloader
 
 $PHP_BIN artisan migrate --force
+$PHP_BIN artisan db:seed --class=SecurityPatrolPermissionSeeder --force || true
 $PHP_BIN artisan hr:sync-october-payroll --force || true
 # $PHP_BIN artisan purchase-order:fix-creator
 
