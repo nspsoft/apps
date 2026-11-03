@@ -118,6 +118,38 @@ class Audit5sFloorMapController extends Controller
             ->with('success', "Building {$building->name} added successfully.");
     }
 
+    public function updateBuilding(Request $request, Audit5sBuilding $building)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:audit_5s_buildings,code,' . $building->id,
+            'description' => 'nullable|string',
+            'floor_plan_image' => 'nullable|image|max:5120',
+        ]);
+
+        if ($request->hasFile('floor_plan_image')) {
+            $path = $request->file('floor_plan_image')->store('5s-floor-plans', 'public');
+            $validated['floor_plan_image'] = $path;
+        }
+
+        $building->update($validated);
+
+        return redirect()->back()->with('success', "Building {$building->name} updated successfully.");
+    }
+
+    public function destroyBuilding(Audit5sBuilding $building)
+    {
+        $name = $building->name;
+        // Soft delete all zones in this building
+        $building->zones()->delete();
+        $building->delete();
+
+        $firstBuilding = Audit5sBuilding::first();
+
+        return redirect()->route('audit-5s.floor-map', $firstBuilding ? ['building_id' => $firstBuilding->id] : [])
+            ->with('success', "Building {$name} and its zones removed successfully.");
+    }
+
     public function destroyZone(Audit5sZone $zone)
     {
         $name = $zone->name;

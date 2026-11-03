@@ -1080,11 +1080,11 @@ onUnmounted(() => {
             class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300 print:hidden"
             :class="collapsed ? 'lg:w-20' : 'lg:w-64'"
         >
-            <div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 border-r border-white/5 transition-all duration-300 relative">
+            <div class="flex grow flex-col h-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 border-r border-white/5 transition-all duration-300 relative">
                 <!-- Sidebar Branding Glow -->
                 <div class="absolute top-0 right-0 w-[150px] h-[150px] bg-cyan-500/5 rounded-full blur-[60px] pointer-events-none"></div>
                 <div class="absolute bottom-0 left-0 w-[150px] h-[150px] bg-blue-500/5 rounded-full blur-[60px] pointer-events-none"></div>
-                <div class="flex h-16 shrink-0 items-center border-b border-white/5 transition-all duration-300 relative overflow-hidden" :class="collapsed ? 'justify-center px-0' : 'px-6'">
+                <div class="flex h-16 shrink-0 items-center border-b border-white/5 transition-all duration-300 relative overflow-hidden z-20 bg-slate-950/90 backdrop-blur-md" :class="collapsed ? 'justify-center px-0' : 'px-6'">
                     <!-- Neon Line at bottom of header -->
                     <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-30"></div>
                     
@@ -1098,7 +1098,8 @@ onUnmounted(() => {
                         </div>
                     </div>
                 </div>
-                <nav class="flex flex-1 flex-col px-4">
+                <div class="flex-1 overflow-y-auto py-3">
+                    <nav class="flex flex-col px-4">
                     <ul class="space-y-1">
                         <li v-for="item in filteredNavigation" :key="item.name">
                             <template v-if="item.children">
@@ -1210,7 +1211,8 @@ onUnmounted(() => {
                         </li>
                     </ul>
                 </nav>
-                <div class="border-t border-white/5 p-4" :class="collapsed ? 'flex justify-center' : ''">
+                </div>
+                <div class="border-t border-white/5 p-4 shrink-0 bg-slate-950/80 backdrop-blur-md" :class="collapsed ? 'flex justify-center' : ''">
                     <div class="flex items-center gap-3 rounded-xl bg-slate-900 border border-white/5 p-3 transition-all duration-300 shadow-sm" :class="collapsed ? 'justify-center px-0 bg-transparent border-0 shadow-none' : ''">
                         <img 
                             v-if="$page.props.auth.user?.profile_photo_path" 

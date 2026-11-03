@@ -20,7 +20,8 @@ class Audit5sExecutionController extends Controller
     public function index(Request $request)
     {
         $query = Audit5sSession::with([
-            'zone:id,name,code,building_id,pic_employee_id,pic_name',
+            'zone:id,name,code,building_id,pic_employee_id',
+            'zone.picEmployee:id,nik,full_name,profile_picture',
             'zone.building:id,name,code',
             'auditor:id,name,email',
         ])->withCount(['findings', 'ratings']);

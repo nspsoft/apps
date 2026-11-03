@@ -48,7 +48,8 @@ const props = defineProps({
 const selectedZone = ref(null);
 const isDrawerOpen = ref(false);
 const isAddZoneModalOpen = ref(false);
-const isAddBuildingModalOpen = ref(false);
+const isBuildingModalOpen = ref(false);
+const buildingModalMode = ref('create'); // 'create' or 'edit'
 const pinPlacementMode = ref(false);
 const pendingCoords = ref({ x: 50, y: 50 });
 const zoomLevel = ref(1);
@@ -69,6 +70,7 @@ const zoneForm = useForm({
 
 // Building Form
 const buildingForm = useForm({
+    id: null,
     name: '',
     code: '',
     description: '',
@@ -204,14 +206,55 @@ const deleteZone = (zone) => {
     });
 };
 
-// Save Building
+// Building Modal Actions
+const openAddBuildingModal = () => {
+    buildingModalMode.value = 'create';
+    buildingForm.reset();
+    buildingForm.id = null;
+    isBuildingModalOpen.value = true;
+};
+
+const openEditBuildingModal = (building) => {
+    buildingModalMode.value = 'edit';
+    buildingForm.reset();
+    buildingForm.id = building.id;
+    buildingForm.name = building.name;
+    buildingForm.code = building.code;
+    buildingForm.description = building.description || '';
+    buildingForm.floor_plan_image = null;
+    isBuildingModalOpen.value = true;
+};
+
+// Save / Update Building
 const submitBuilding = () => {
-    buildingForm.post(route('audit-5s.buildings.store'), {
+    if (buildingModalMode.value === 'create') {
+        buildingForm.post(route('audit-5s.buildings.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isBuildingModalOpen.value = false;
+                buildingForm.reset();
+            },
+        });
+    } else {
+        buildingForm.transform((data) => ({
+            ...data,
+            _method: 'PUT',
+        })).post(route('audit-5s.buildings.update', buildingForm.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isBuildingModalOpen.value = false;
+                buildingForm.reset();
+            },
+        });
+    }
+};
+
+// Delete Building
+const deleteBuilding = (building) => {
+    if (!confirm(`Are you sure you want to delete building "${building.name}" and all its zones? This action cannot be undone.`)) return;
+
+    router.delete(route('audit-5s.buildings.destroy', building.id), {
         preserveScroll: true,
-        onSuccess: () => {
-            isAddBuildingModalOpen.value = false;
-            buildingForm.reset();
-        },
     });
 };
 </script>
@@ -266,7 +309,7 @@ const submitBuilding = () => {
                     <!-- Add Building Button -->
                     <button
                         type="button"
-                        @click="isAddBuildingModalOpen = true"
+                        @click="openAddBuildingModal()"
                         class="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition"
                     >
                         <BuildingOffice2Icon class="size-4" />
@@ -316,25 +359,50 @@ const submitBuilding = () => {
             </div>
 
             <!-- Building Selector Tabs -->
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800">
-                <button
-                    v-for="b in buildings"
-                    :key="b.id"
-                    type="button"
-                    @click="switchBuilding(b.id)"
-                    :class="[
-                        'inline-flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition border-b-2 whitespace-nowrap',
-                        currentBuilding?.id === b.id
-                            ? 'border-blue-600 text-blue-600 bg-blue-50/50 dark:border-blue-500 dark:text-blue-400 dark:bg-blue-950/30'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300'
-                    ]"
-                >
-                    <BuildingOffice2Icon class="size-4" />
-                    <span>{{ b.name }}</span>
-                    <span class="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                        {{ b.zones_count ?? 0 }} zones
-                    </span>
-                </button>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-1">
+                <div class="flex items-center gap-2 overflow-x-auto">
+                    <button
+                        v-for="b in buildings"
+                        :key="b.id"
+                        type="button"
+                        @click="switchBuilding(b.id)"
+                        :class="[
+                            'inline-flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition border-b-2 whitespace-nowrap',
+                            currentBuilding?.id === b.id
+                                ? 'border-blue-600 text-blue-600 bg-blue-50/50 dark:border-blue-500 dark:text-blue-400 dark:bg-blue-950/30'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:text-slate-400 dark:hover:text-slate-300'
+                        ]"
+                    >
+                        <BuildingOffice2Icon class="size-4" />
+                        <span>{{ b.name }}</span>
+                        <span class="ml-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {{ b.zones_count ?? 0 }} zones
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Active Building Action Buttons (Edit / Delete) -->
+                <div v-if="currentBuilding" class="flex items-center gap-2 shrink-0">
+                    <button
+                        type="button"
+                        @click="openEditBuildingModal(currentBuilding)"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 border border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700 shadow-sm transition"
+                        title="Edit facility name, code, or floor plan layout"
+                    >
+                        <PencilSquareIcon class="size-3.5 text-slate-500 dark:text-slate-400" />
+                        <span>Edit Facility</span>
+                    </button>
+                    <button
+                        v-if="buildings.length > 1"
+                        type="button"
+                        @click="deleteBuilding(currentBuilding)"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 border border-rose-200 hover:bg-rose-50 dark:bg-slate-800 dark:text-rose-400 dark:border-rose-900/60 dark:hover:bg-rose-950/40 shadow-sm transition"
+                        title="Delete this facility and its zones"
+                    >
+                        <TrashIcon class="size-3.5" />
+                        <span>Delete</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Pin Placement Alert -->
@@ -739,16 +807,18 @@ const submitBuilding = () => {
                 </div>
             </div>
 
-            <!-- Modal: Add Building -->
+            <!-- Modal: Add / Edit Building -->
             <div
-                v-if="isAddBuildingModalOpen"
+                v-if="isBuildingModalOpen"
                 class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
-                @click.self="isAddBuildingModalOpen = false"
+                @click.self="isBuildingModalOpen = false"
             >
                 <div class="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Add Factory Building / Facility</h3>
-                        <button type="button" @click="isAddBuildingModalOpen = false" class="text-slate-400 hover:text-slate-600">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+                            {{ buildingModalMode === 'edit' ? 'Edit Factory Building / Facility' : 'Add Factory Building / Facility' }}
+                        </h3>
+                        <button type="button" @click="isBuildingModalOpen = false" class="text-slate-400 hover:text-slate-600">
                             <XMarkIcon class="size-5" />
                         </button>
                     </div>
@@ -760,18 +830,18 @@ const submitBuilding = () => {
                                 v-model="buildingForm.code"
                                 type="text"
                                 required
-                                placeholder="e.g. PLANT-2"
+                                placeholder="e.g. BLD-01"
                                 class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
                             />
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Building Name *</label>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Building / Plant Name *</label>
                             <input
                                 v-model="buildingForm.name"
                                 type="text"
                                 required
-                                placeholder="e.g. Pipe Manufacturing Plant 2"
+                                placeholder="e.g. Jidoka Main Production Facility"
                                 class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
                             />
                         </div>
@@ -800,7 +870,7 @@ const submitBuilding = () => {
                         <div class="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
                             <button
                                 type="button"
-                                @click="isAddBuildingModalOpen = false"
+                                @click="isBuildingModalOpen = false"
                                 class="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                             >
                                 Cancel
@@ -810,7 +880,7 @@ const submitBuilding = () => {
                                 :disabled="buildingForm.processing"
                                 class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
                             >
-                                Save Building
+                                {{ buildingModalMode === 'edit' ? 'Update Building' : 'Save Building' }}
                             </button>
                         </div>
                     </form>

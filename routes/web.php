@@ -1122,6 +1122,8 @@ Route::middleware(['auth'])->prefix('audit-5s')->name('audit-5s.')->group(functi
         Route::get('/', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'index'])->name('index');
         Route::get('floor-map', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'index'])->name('floor-map');
         Route::post('buildings', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeBuilding'])->name('buildings.store');
+        Route::put('buildings/{building}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateBuilding'])->name('buildings.update');
+        Route::delete('buildings/{building}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyBuilding'])->name('buildings.destroy');
         Route::post('zones', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeZone'])->name('zones.store');
         Route::post('zones/{zone}/coordinates', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateCoordinates'])->name('zones.update-coordinates');
         Route::delete('zones/{zone}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyZone'])->name('zones.destroy');

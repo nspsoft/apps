@@ -17,7 +17,8 @@ class Audit5sCapaController extends Controller
         $query = Audit5sFinding::with([
             'session:id,session_code,audit_date,auditor_id',
             'session.auditor:id,name',
-            'zone:id,name,code,building_id,pic_name',
+            'zone:id,name,code,building_id,pic_employee_id',
+            'zone.picEmployee:id,nik,full_name',
             'zone.building:id,name,code',
             'remediatedBy:id,name',
             'verifiedBy:id,name',

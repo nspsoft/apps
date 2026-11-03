@@ -42,7 +42,12 @@ class Audit5sZone extends Model
         'is_active' => 'boolean',
     ];
 
-    protected $appends = ['pic_photo_url', 'last_score', 'last_grade', 'last_audit_date'];
+    protected $appends = ['pic_photo_url', 'last_score', 'last_grade', 'last_audit_date', 'pic_name'];
+
+    public function getPicNameAttribute(): ?string
+    {
+        return $this->picEmployee?->full_name;
+    }
 
     public function getLastScoreAttribute(): ?float
     {

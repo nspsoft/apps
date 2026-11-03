@@ -29,15 +29,15 @@ class Audit5sLeaderboardController extends Controller
         }
 
         // Zones with an audit score
-        $allZones = (clone $query)->orderByDesc('last_score')->get();
+        $allZones = (clone $query)->orderByDesc('latest_score')->get();
 
         // Separate Top 3 for podium
         $top3 = $allZones->take(3);
 
         // Department ranking summary
         $deptRankings = Audit5sZone::select('department_id')
-            ->selectRaw('AVG(last_score) as avg_score, COUNT(*) as total_zones')
-            ->whereNotNull('last_score')
+            ->selectRaw('AVG(latest_score) as avg_score, COUNT(*) as total_zones')
+            ->whereNotNull('latest_score')
             ->whereNotNull('department_id')
             ->groupBy('department_id')
             ->orderByDesc('avg_score')
@@ -57,10 +57,10 @@ class Audit5sLeaderboardController extends Controller
 
         $stats = [
             'total_zones' => $allZones->count(),
-            'green_zones' => $allZones->where('last_score', '>=', 90)->count(),
-            'yellow_zones' => $allZones->whereBetween('last_score', [70, 89.99])->count(),
-            'red_zones' => $allZones->where('last_score', '<', 70)->whereNotNull('last_score')->count(),
-            'unaudited' => $allZones->whereNull('last_score')->count(),
+            'green_zones' => $allZones->where('latest_score', '>=', 90)->count(),
+            'yellow_zones' => $allZones->whereBetween('latest_score', [70, 89.99])->count(),
+            'red_zones' => $allZones->where('latest_score', '<', 70)->whereNotNull('latest_score')->count(),
+            'unaudited' => $allZones->whereNull('latest_score')->count(),
         ];
 
         return Inertia::render('Audit5S/Leaderboard/Index', [
