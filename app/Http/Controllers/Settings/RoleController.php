@@ -77,11 +77,11 @@ class RoleController extends Controller
             'project_matrix' => 'Project Matrix',
             'security_patrol' => 'Security Patrol',
             'live_map' => 'Live Map & Monitor',
-            'schedules' => 'Sesi & Jadwal',
-            'active_patrol' => 'Patroli Aktif (Mobile)',
-            'resume' => 'Resume Patrol',
-            'analytics' => 'Grafik & Analitik',
-            'checkpoints' => 'Master Titik & Cetak QR',
+            'schedules' => 'Patrol Schedules',
+            'active_patrol' => 'Active Patrol (Mobile)',
+            'resume' => 'Patrol Summary',
+            'analytics' => 'Analytics & Insights',
+            'checkpoints' => 'Checkpoints & QR Tags',
             'settings' => 'Settings'
         ];
 

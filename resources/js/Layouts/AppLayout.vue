@@ -555,11 +555,11 @@ const navigation = [
         permission: 'security_patrol.view',
         children: [
             { name: 'Live Map & Monitor', href: '/security-patrol/map', icon: MapIcon, permission: 'security_patrol.live_map.view' },
-            { name: 'Sesi & Jadwal', href: '/security-patrol/schedules', icon: CalendarDaysIcon, permission: 'security_patrol.schedules.view' },
-            { name: 'Patroli Aktif (Mobile)', href: '/security-patrol/active', icon: ViewfinderCircleIcon, permission: 'security_patrol.active_patrol.view' },
-            { name: 'Resume Patrol', href: '/security-patrol/resume', icon: ClipboardDocumentListIcon, permission: 'security_patrol.resume.view' },
-            { name: 'Grafik & Analitik', href: '/security-patrol/analytics', icon: PresentationChartBarIcon, permission: 'security_patrol.analytics.view' },
-            { name: 'Master Titik & Cetak QR', href: '/security-patrol/checkpoints', icon: MapPinIcon, permission: 'security_patrol.checkpoints.view' },
+            { name: 'Patrol Schedules', href: '/security-patrol/schedules', icon: CalendarDaysIcon, permission: 'security_patrol.schedules.view' },
+            { name: 'Active Patrol (Mobile)', href: '/security-patrol/active', icon: ViewfinderCircleIcon, permission: 'security_patrol.active_patrol.view' },
+            { name: 'Patrol Summary', href: '/security-patrol/resume', icon: ClipboardDocumentListIcon, permission: 'security_patrol.resume.view' },
+            { name: 'Analytics & Insights', href: '/security-patrol/analytics', icon: PresentationChartBarIcon, permission: 'security_patrol.analytics.view' },
+            { name: 'Checkpoints & QR Tags', href: '/security-patrol/checkpoints', icon: MapPinIcon, permission: 'security_patrol.checkpoints.view' },
         ]
     },
     { 
