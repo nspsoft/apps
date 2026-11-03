@@ -24,6 +24,13 @@ class RoleController extends Controller
             ]);
         }
 
+        if (!Permission::where('name', 'audit_5s.view')->exists()) {
+            Artisan::call('db:seed', [
+                '--class' => 'Audit5sPermissionSeeder',
+                '--force' => true,
+            ]);
+        }
+
         $permissions = Permission::all();
         
         // Group permissions for the UI
