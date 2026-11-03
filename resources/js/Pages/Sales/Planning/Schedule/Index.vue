@@ -40,6 +40,11 @@ const flashMessage = ref(null);
 const flashType = ref('success');
 
 const page = usePage();
+const userRoles = computed(() => page.props.auth?.roles || []);
+const hasRole = (...roles) => {
+    if (userRoles.value.includes('Super Admin')) return true;
+    return roles.some(r => userRoles.value.includes(r));
+};
 
 // Watch for flash messages from Inertia
 watch(() => page.props.flash, (flash) => {
@@ -336,6 +341,7 @@ const handleResetData = () => {
                             Import Excel
                         </button>
                         <button 
+                            v-if="hasRole('Sales Manager')"
                             @click="handleResetData"
                             class="hidden md:flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md hover:shadow-lg"
                         >

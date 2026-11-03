@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ref, computed } from 'vue';
 import {
@@ -26,6 +26,14 @@ const props = defineProps({
     emeteraiEnabled: Boolean,
     paymentMethods: Object,
 });
+
+// ─── ROLE-BASED ACCESS CONTROL ───
+const page = usePage();
+const userRoles = computed(() => page.props.auth?.roles || []);
+const hasRole = (...roles) => {
+    if (userRoles.value.includes('Super Admin')) return true;
+    return roles.some(r => userRoles.value.includes(r));
+};
 
 const isNxShoji = computed(() => {
     const name = (props.invoice?.customer?.name || props.invoice?.sales_order?.customer?.name || '').toUpperCase();
@@ -193,7 +201,7 @@ const getStatusBadge = (status) => {
                     </Link>
 
                     <button 
-                        v-if="invoice.status === 'draft'"
+                        v-if="invoice.status === 'draft' && hasRole('Finance', 'Finance Manager', 'Sales Manager')"
                         @click="confirmInvoice"
                         class="flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-500/20"
                     >
@@ -202,7 +210,7 @@ const getStatusBadge = (status) => {
                     </button>
 
                     <button 
-                        v-if="invoice.status !== 'draft' && invoice.balance > 0"
+                        v-if="invoice.status !== 'draft' && invoice.balance > 0 && hasRole('Finance', 'Finance Manager')"
                         @click="openPaymentModal"
                         class="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
                     >
@@ -220,7 +228,7 @@ const getStatusBadge = (status) => {
                     </a>
 
                     <button 
-                        v-if="invoice.status === 'issued'"
+                        v-if="invoice.status === 'issued' && hasRole('Finance Manager')"
                         @click="confirmRevise"
                         class="flex items-center gap-2 rounded-xl bg-amber-600 px-6 py-2.5 text-sm font-bold text-slate-900 dark:text-white hover:bg-amber-500 transition-colors shadow-lg shadow-amber-500/20"
                     >
@@ -230,7 +238,7 @@ const getStatusBadge = (status) => {
 
                     <!-- e-Meterai Stamp Button -->
                     <button 
-                        v-if="emeteraiEnabled && invoice.status !== 'draft' && invoice.total >= 5000000 && !invoice.emeterai_serial"
+                        v-if="emeteraiEnabled && invoice.status !== 'draft' && invoice.total >= 5000000 && !invoice.emeterai_serial && hasRole('Finance', 'Finance Manager')"
                         @click="stampEmeterai"
                         :disabled="emeteraiForm.processing"
                         class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-indigo-700 px-6 py-2.5 text-sm font-bold text-white hover:from-blue-600 hover:to-indigo-600 transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50"
@@ -375,6 +383,7 @@ const getStatusBadge = (status) => {
                                         </td>
                                         <td class="px-6 py-4 text-right">
                                             <button 
+                                                v-if="hasRole('Finance Manager')"
                                                 @click="deletePayment(payment.id)"
                                                 class="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all"
                                                 title="Delete Payment"

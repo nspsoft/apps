@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     ArrowLeftIcon,
@@ -23,8 +23,17 @@ const props = defineProps({
     products: Array,
 });
 
+// ─── ROLE-BASED ACCESS CONTROL ───
+const page = usePage();
+const userRoles = computed(() => page.props.auth?.roles || []);
+const hasRole = (...roles) => {
+    if (userRoles.value.includes('Super Admin')) return true;
+    return roles.some(r => userRoles.value.includes(r));
+};
+
 // ─── canEditPrice ───
 const canEditPrice = computed(() => {
+    if (!hasRole('Sales Manager', 'Finance Manager')) return false;
     if (!props.salesOrder || props.salesOrder.status === 'cancelled') return false;
 
     const invoices = props.salesOrder.invoices ?? [];
@@ -89,6 +98,7 @@ const submitPriceRevision = (itemId) => {
 // ─── Replace Product ───
 // Kondisi: item belum pernah dikirim (qty_delivered=0), belum di-reserve di DO aktif, belum diinvoice
 const canReplaceProduct = (item) => {
+    if (!hasRole('Sales Manager')) return false;
     if (!props.salesOrder || props.salesOrder.status === 'cancelled') return false;
     return (
         parseFloat(item.qty_delivered ?? 0) === 0 &&
@@ -263,7 +273,7 @@ const cancelOrder = () => {
                         Edit Order
                     </Link>
                     <button
-                        v-if="!['delivered', 'cancelled'].includes(salesOrder.status)"
+                        v-if="!['delivered', 'cancelled'].includes(salesOrder.status) && hasRole('Sales Manager', 'Director')"
                         @click="cancelOrder"
                         class="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-500 transition-colors shadow-lg shadow-red-500/20"
                     >
@@ -580,7 +590,7 @@ const cancelOrder = () => {
                                         @keyup.esc="cancelEditingPo"
                                     />
                                     <button
-                                        v-if="!isEditingPo && salesOrder.status !== 'cancelled'"
+                                        v-if="!isEditingPo && salesOrder.status !== 'cancelled' && hasRole('Sales', 'Sales Manager')"
                                         @click="startEditingPo"
                                         class="p-1 rounded-md text-blue-500 hover:bg-blue-500/10 transition-all cursor-pointer"
                                         title="Edit PO"

@@ -18,9 +18,11 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\SalesOrderExport;
 use App\Imports\SalesOrderImport;
 use App\Exports\Template\SalesOrderTemplateExport;
+use App\Traits\AuthorizesRoleOrPermission;
 
 class SalesOrderController extends Controller
 {
+    use AuthorizesRoleOrPermission;
     public function index(Request $request): Response
     {
         $query = SalesOrder::with(['customer', 'warehouse', 'createdBy'])
@@ -362,6 +364,8 @@ class SalesOrderController extends Controller
 
     public function confirm(SalesOrder $order)
     {
+        $this->authorizeRoles(['Sales Manager', 'Director']);
+
         if ($order->status !== 'draft') {
             return back()->with('error', 'Only draft orders can be confirmed.');
         }
@@ -380,6 +384,8 @@ class SalesOrderController extends Controller
 
     public function bulkConfirm(Request $request)
     {
+        $this->authorizeRoles(['Sales Manager', 'Director']);
+
         $request->validate([
             'ids' => 'required|array|min:1',
             'ids.*' => 'exists:sales_orders,id',
@@ -413,6 +419,8 @@ class SalesOrderController extends Controller
 
     public function cancel(SalesOrder $order)
     {
+        $this->authorizeRoles(['Sales Manager', 'Director']);
+
         if (in_array($order->status, ['delivered', 'cancelled'])) {
             return back()->with('error', 'This order cannot be cancelled.');
         }
@@ -424,6 +432,8 @@ class SalesOrderController extends Controller
 
     public function destroy(SalesOrder $order)
     {
+        $this->authorizeRoles(['Sales Manager']);
+
         if ($order->status !== 'draft') {
             return back()->with('error', 'Only draft orders can be deleted.');
         }
@@ -469,6 +479,8 @@ class SalesOrderController extends Controller
 
     public function updateItemPrice(Request $request, \App\Models\SalesOrderItem $item)
     {
+        $this->authorizeRoles(['Sales Manager', 'Finance Manager']);
+
         $validated = $request->validate([
             'unit_price' => 'required|numeric|min:0',
             'reason' => 'nullable|string|max:255',
@@ -538,6 +550,8 @@ class SalesOrderController extends Controller
 
     public function replaceItemProduct(Request $request, \App\Models\SalesOrderItem $item)
     {
+        $this->authorizeRoles(['Sales Manager']);
+
         $validated = $request->validate([
             'new_product_id' => 'required|exists:products,id',
             'new_unit_price'  => 'nullable|numeric|min:0',
@@ -703,6 +717,8 @@ class SalesOrderController extends Controller
 
     public function updatePo(Request $request, SalesOrder $order)
     {
+        $this->authorizeRoles(['Sales', 'Sales Manager']);
+
         $validated = $request->validate([
             'customer_po_number' => \App\Models\AppSetting::get('require_po_number', false) ? 'required|string|max:50' : 'nullable|string|max:50',
         ]);

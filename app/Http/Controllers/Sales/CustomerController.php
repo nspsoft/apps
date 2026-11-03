@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Sales;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Traits\AuthorizesRoleOrPermission;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
+    use AuthorizesRoleOrPermission;
     public function index(Request $request): Response
     {
         $query = Customer::query()
@@ -291,6 +293,8 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer)
     {
+        $this->authorizeRoles(['Sales Manager'], 'Unauthorized: Only Sales Manager or Super Admin can delete customer records.');
+
         if ($customer->salesOrders()->exists()) {
             return back()->with('error', 'Cannot delete customer with existing orders.');
         }

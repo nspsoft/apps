@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { ref, watch, computed } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
     PlusIcon,
@@ -24,11 +24,19 @@ import {
 import debounce from 'lodash/debounce';
 import MapPicker from '@/Components/MapPicker.vue';
 
+
 const props = defineProps({
     customers: Object,
     filters: Object,
     customerTypes: Array,
 });
+
+const page = usePage();
+const userRoles = computed(() => page.props.auth?.roles || []);
+const hasRole = (...roles) => {
+    if (userRoles.value.includes('Super Admin')) return true;
+    return roles.some(r => userRoles.value.includes(r));
+};
 
 const search = ref(props.filters.search || '');
 const selectedType = ref(props.filters.type || '');
@@ -399,6 +407,7 @@ const openMap = (address, city) => {
                                 <PencilSquareIcon class="h-4 w-4" />
                             </Link>
                             <button
+                                v-if="hasRole('Sales Manager')"
                                 @click="deleteCustomer(customer)"
                                 class="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 dark:bg-slate-800 transition-colors"
                             >

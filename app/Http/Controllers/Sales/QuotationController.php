@@ -16,9 +16,12 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\QuotationExport;
 use App\Imports\QuotationImport;
 use App\Exports\Template\QuotationTemplateExport;
+use App\Traits\AuthorizesRoleOrPermission;
 
 class QuotationController extends Controller
 {
+    use AuthorizesRoleOrPermission;
+
     public function index(Request $request): Response
     {
         $query = Quotation::with(['customer', 'createdBy'])
@@ -131,6 +134,8 @@ class QuotationController extends Controller
 
     public function submitForApproval(Quotation $quotation)
     {
+        $this->authorizeRoles(['Sales', 'Sales Manager']);
+
         if ($quotation->status !== 'draft') {
             return back()->with('error', 'Only draft quotations can be submitted for approval.');
         }
@@ -223,6 +228,8 @@ class QuotationController extends Controller
 
     public function accept(Quotation $quotation)
     {
+        $this->authorizeRoles(['Sales Manager', 'Director']);
+
         DB::transaction(function () use ($quotation) {
             $quotation->update(['status' => 'accepted']);
             
@@ -265,12 +272,16 @@ class QuotationController extends Controller
 
     public function reject(Quotation $quotation)
     {
+        $this->authorizeRoles(['Sales Manager', 'Director']);
+
         $quotation->update(['status' => 'rejected']);
         return back()->with('success', 'Quotation rejected.');
     }
 
     public function convertToSO(Quotation $quotation)
     {
+        $this->authorizeRoles(['Sales', 'Sales Manager']);
+
         if ($quotation->status !== 'accepted') {
             return back()->with('error', 'Only accepted quotations can be converted to Sales Order.');
         }
@@ -335,6 +346,8 @@ class QuotationController extends Controller
     }
     public function destroy(Quotation $quotation)
     {
+        $this->authorizeRoles(['Sales', 'Sales Manager']);
+
         if ($quotation->status !== 'draft') {
             return back()->with('error', 'Only draft quotations can be deleted.');
         }

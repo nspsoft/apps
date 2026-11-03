@@ -16,9 +16,12 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Traits\AuthorizesRoleOrPermission;
 
 class SalesReturnController extends Controller
 {
+    use AuthorizesRoleOrPermission;
+
     public function index(Request $request): Response
     {
         $sort = $request->input('sort', 'id');
@@ -201,6 +204,8 @@ class SalesReturnController extends Controller
 
     public function confirm(SalesReturn $salesReturn)
     {
+        $this->authorizeRoles(['Warehouse Manager', 'Sales Manager']);
+
         if ($salesReturn->status !== 'draft') {
             return back()->with('error', 'Only draft returns can be confirmed.');
         }

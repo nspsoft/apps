@@ -15,9 +15,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Models\DeliveryOrder;
 use App\Models\DeliveryOrderItem;
+use App\Traits\AuthorizesRoleOrPermission;
 
 class DeliveryScheduleController extends Controller
 {
+    use AuthorizesRoleOrPermission;
     public function index(Request $request)
     {
         $sort = $request->input('sort', 'delivery_date');
@@ -842,6 +844,8 @@ class DeliveryScheduleController extends Controller
 
     public function resetData(Request $request)
     {
+        $this->authorizeRoles(['Sales Manager']);
+
         try {
             DeliverySchedule::query()->delete();
             return back()->with('success', 'Semua data Delivery Schedule berhasil di-reset.');

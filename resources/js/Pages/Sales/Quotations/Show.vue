@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { ArrowLeftIcon, PrinterIcon, PaperAirplaneIcon, CheckCircleIcon, DocumentTextIcon, PencilSquareIcon, XCircleIcon, ShieldCheckIcon
 } from '@heroicons/vue/24/outline';
@@ -10,6 +10,14 @@ import ApprovalChain from '@/Components/ApprovalChain.vue';
 const props = defineProps({
     quotation: Object,
 });
+
+// ─── ROLE-BASED ACCESS CONTROL ───
+const page = usePage();
+const userRoles = computed(() => page.props.auth?.roles || []);
+const hasRole = (...roles) => {
+    if (userRoles.value.includes('Super Admin')) return true;
+    return roles.some(r => userRoles.value.includes(r));
+};
 
 const localHasNoWorkflow = ref(false);
 
@@ -82,19 +90,22 @@ const canSendDirectly = computed(() => props.quotation.status === 'draft' && (!p
                         <PencilSquareIcon class="h-4 w-4" /> Edit
                     </Link>
                     
-                    <button v-if="canSubmitForApproval" @click="submitForApproval" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20">
+                    <button v-if="canSubmitForApproval && hasRole('Sales', 'Sales Manager')" @click="submitForApproval" class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20">
                         <ShieldCheckIcon class="h-4 w-4" /> Submit for Approval
                     </button>
                     
-                    <button v-if="canSendDirectly" @click="sendQuotation" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">
+                    <button v-if="canSendDirectly && hasRole('Sales', 'Sales Manager')" @click="sendQuotation" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500">
                         <PaperAirplaneIcon class="h-4 w-4" /> Send directly to Customer
                     </button>
                     
-                    <button v-if="quotation.status === 'sent'" @click="acceptQuotation" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white hover:bg-emerald-500">
+                    <button v-if="quotation.status === 'sent' && hasRole('Sales Manager', 'Director')" @click="acceptQuotation" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white hover:bg-emerald-500">
                         <CheckCircleIcon class="h-4 w-4" /> Accept
                     </button>
-                    <button v-if="quotation.status === 'sent'" @click="rejectQuotation" class="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white hover:bg-red-500">
+                    <button v-if="quotation.status === 'sent' && hasRole('Sales Manager', 'Director')" @click="rejectQuotation" class="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-slate-900 dark:text-white hover:bg-red-500">
                         <XCircleIcon class="h-4 w-4" /> Reject
+                    </button>
+                    <button v-if="quotation.status === 'accepted' && hasRole('Sales', 'Sales Manager')" @click="convertToSO" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 shadow-lg shadow-blue-500/20">
+                        <DocumentTextIcon class="h-4 w-4" /> Convert to SO
                     </button>
                 </div>
             </div>

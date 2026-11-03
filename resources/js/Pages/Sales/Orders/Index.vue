@@ -71,6 +71,11 @@ const flashMessage = ref(null);
 const flashType = ref('success');
 
 const page = usePage();
+const userRoles = computed(() => page.props.auth?.roles || []);
+const hasRole = (...roles) => {
+    if (userRoles.value.includes('Super Admin')) return true;
+    return roles.some(r => userRoles.value.includes(r));
+};
 
 watch(() => page.props.flash, (flash) => {
     if (flash?.success) {
@@ -388,6 +393,7 @@ const calculateWidth = (value, total) => {
                         Batal Pilih
                     </button>
                     <button 
+                        v-if="hasRole('Sales Manager', 'Director')"
                         @click="bulkConfirm" 
                         :disabled="bulkConfirming"
                         class="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-500 disabled:opacity-50 transition-all shadow-sm"
@@ -666,7 +672,7 @@ const calculateWidth = (value, total) => {
                                         <PencilSquareIcon class="h-4 w-4" />
                                     </Link>
                                     <button
-                                        v-if="so.status === 'draft'"
+                                        v-if="so.status === 'draft' && hasRole('Sales Manager')"
                                         @click="deleteSO(so)"
                                         class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                                     >

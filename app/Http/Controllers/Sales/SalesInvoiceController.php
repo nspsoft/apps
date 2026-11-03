@@ -13,9 +13,11 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\SalesInvoiceExport;
 use App\Imports\SalesInvoiceImport;
 use App\Exports\Template\SalesInvoiceTemplateExport;
+use App\Traits\AuthorizesRoleOrPermission;
 
 class SalesInvoiceController extends Controller
 {
+    use AuthorizesRoleOrPermission;
     public function index(Request $request): Response
     {
         $query = SalesInvoice::with(['salesOrder.customer'])
@@ -146,6 +148,8 @@ class SalesInvoiceController extends Controller
 
     public function confirm(SalesInvoice $salesInvoice)
     {
+        $this->authorizeRoles(['Finance', 'Finance Manager', 'Sales Manager']);
+
         if ($salesInvoice->status !== 'draft') {
             return back()->with('error', 'Only draft invoices can be confirmed.');
         }
@@ -157,6 +161,8 @@ class SalesInvoiceController extends Controller
 
     public function revise(SalesInvoice $salesInvoice)
     {
+        $this->authorizeRoles(['Finance Manager']);
+
         if ($salesInvoice->status !== 'issued') {
             return back()->with('error', 'Only issued invoices can be revised.');
         }
@@ -185,6 +191,8 @@ class SalesInvoiceController extends Controller
 
     public function updateTaxAmount(Request $request, SalesInvoice $salesInvoice)
     {
+        $this->authorizeRoles(['Finance Manager']);
+
         if ($salesInvoice->status !== 'draft') {
             return back()->with('error', 'Only draft invoices can be edited.');
         }
@@ -207,6 +215,8 @@ class SalesInvoiceController extends Controller
 
     public function recordPayment(Request $request, SalesInvoice $salesInvoice)
     {
+        $this->authorizeRoles(['Finance', 'Finance Manager']);
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1|max:'.ceil($salesInvoice->balance),
             'payment_date' => 'required|date',
@@ -253,6 +263,8 @@ class SalesInvoiceController extends Controller
 
     public function deletePayment(SalesInvoice $salesInvoice, \App\Models\SalesPayment $payment)
     {
+        $this->authorizeRoles(['Finance Manager']);
+
         try {
             \DB::transaction(function () use ($salesInvoice, $payment) {
                 // Delete attachment if exists
@@ -276,6 +288,8 @@ class SalesInvoiceController extends Controller
 
     public function destroy(SalesInvoice $salesInvoice)
     {
+        $this->authorizeRoles(['Finance Manager']);
+
         if ($salesInvoice->status !== 'draft') {
             return back()->with('error', 'Only draft invoices can be deleted.');
         }
@@ -363,6 +377,8 @@ class SalesInvoiceController extends Controller
      */
     public function stampEmeterai(SalesInvoice $salesInvoice)
     {
+        $this->authorizeRoles(['Finance', 'Finance Manager']);
+
         // Validation guards
         if ($salesInvoice->status === 'draft') {
             return back()->with('error', 'Invoice draft tidak bisa dibubuhkan e-Meterai.');

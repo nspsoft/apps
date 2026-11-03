@@ -20,9 +20,11 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DeliveryOrderExport;
 use App\Imports\DeliveryOrderImport;
 use App\Exports\Template\DeliveryOrderTemplateExport;
+use App\Traits\AuthorizesRoleOrPermission;
 
 class DeliveryOrderController extends Controller
 {
+    use AuthorizesRoleOrPermission;
     public function index(Request $request): Response
     {
         $query = DeliveryOrder::with(['salesOrder' => function($q) {
@@ -789,6 +791,8 @@ class DeliveryOrderController extends Controller
 
     public function complete(DeliveryOrder $deliveryOrder)
     {
+        $this->authorizeRoles(['Sales Manager', 'Director']);
+
         if ($deliveryOrder->status === DeliveryOrder::STATUS_COMPLETED) {
             return back()->with('error', 'Delivery Order is already completed.');
         }
@@ -825,6 +829,13 @@ class DeliveryOrderController extends Controller
 
         $newStatus = $validated['status'];
         $oldStatus = $deliveryOrder->status;
+
+        // Role-Based Authorization Guards
+        if ($newStatus === DeliveryOrder::STATUS_DRAFT) {
+            $this->authorizeRoles(['Sales Manager'], 'Akses ditolak: Hanya Sales Manager atau Super Admin yang berwenang merevisi Surat Jalan ke status Draft.');
+        } elseif (in_array($newStatus, [DeliveryOrder::STATUS_PICKING, DeliveryOrder::STATUS_PACKED, DeliveryOrder::STATUS_SHIPPED, DeliveryOrder::STATUS_DELIVERED])) {
+            $this->authorizeRoles(['Warehouse Manager', 'Sales Manager']);
+        }
 
         // Logic restrictions
         if ($newStatus === DeliveryOrder::STATUS_COMPLETED) {
@@ -1631,6 +1642,8 @@ class DeliveryOrderController extends Controller
 
     public function destroy(DeliveryOrder $deliveryOrder)
     {
+        $this->authorizeRoles(['Sales Manager', 'Warehouse Manager']);
+
         if ($deliveryOrder->status !== 'draft') {
             return back()->with('error', 'Hanya Delivery Order berstatus Draft yang dapat dihapus.');
         }
@@ -1657,6 +1670,8 @@ class DeliveryOrderController extends Controller
 
     public function disburseTravelAllowance(Request $request, $shipmentNumber)
     {
+        $this->authorizeRoles(['Finance', 'Finance Manager', 'Sales Manager', 'Director']);
+
         DeliveryOrder::where('shipment_number', $shipmentNumber)
             ->where('travel_allowance_status', 'requested')
             ->update(['travel_allowance_status' => 'paid']);
@@ -1666,6 +1681,8 @@ class DeliveryOrderController extends Controller
 
     public function reassignSoForm(DeliveryOrder $deliveryOrder)
     {
+        $this->authorizeRoles(['Sales Manager', 'Warehouse Manager']);
+
         if (!in_array($deliveryOrder->status, ['completed', 'delivered', 'shipped'])) {
             return redirect()->route('sales.deliveries.show', $deliveryOrder->id)
                 ->with('error', 'Hanya Surat Jalan yang berstatus Shipped, Delivered, atau Completed yang dapat dipindahkan.');
@@ -1728,6 +1745,8 @@ class DeliveryOrderController extends Controller
 
     public function reassignSo(Request $request, DeliveryOrder $deliveryOrder)
     {
+        $this->authorizeRoles(['Sales Manager', 'Warehouse Manager']);
+
         if (!in_array($deliveryOrder->status, ['completed', 'delivered', 'shipped'])) {
             return back()->with('error', 'Hanya Surat Jalan yang berstatus Shipped, Delivered, atau Completed yang dapat dipindahkan.');
         }
