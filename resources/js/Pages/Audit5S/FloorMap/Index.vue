@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import {
@@ -19,6 +19,8 @@ import {
     ArrowTopRightOnSquareIcon,
     AdjustmentsHorizontalIcon,
     MagnifyingGlassIcon,
+    ArrowsPointingOutIcon,
+    CursorArrowRaysIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -53,6 +55,19 @@ const buildingModalMode = ref('create'); // 'create' or 'edit'
 const pinPlacementMode = ref(false);
 const pendingCoords = ref({ x: 50, y: 50 });
 const zoomLevel = ref(1);
+
+// Interactive Drag & Drop State
+const mapContainerRef = ref(null);
+const localZonePositions = ref({});
+const isMoveModeActive = ref(false);
+const draggedZone = ref(null);
+const isDragging = ref(false);
+const hasDragged = ref(false);
+const isSavingCoords = ref(false);
+const repositioningZone = ref(null);
+const toastMessage = ref('');
+let toastTimeout = null;
+let dragStartMouse = { x: 0, y: 0 };
 
 // Zone Form
 const zoneForm = useForm({
@@ -130,21 +145,247 @@ const getGradeBadge = (grade) => {
     }
 };
 
+// Show Toast Helper
+const showToast = (msg) => {
+    toastMessage.value = msg;
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toastMessage.value = '';
+    }, 3500);
+};
+
+// Toggle Move Pins Mode
+const toggleMoveMode = () => {
+    isMoveModeActive.value = !isMoveModeActive.value;
+    if (isMoveModeActive.value) {
+        pinPlacementMode.value = false;
+        repositioningZone.value = null;
+    }
+};
+
+// Coordinate getter (combines live dragged positions and server records)
+const getZoneCoords = (zone) => {
+    if (localZonePositions.value[zone.id]) {
+        return localZonePositions.value[zone.id];
+    }
+    return {
+        x: Number(zone.map_x_percent) || 50,
+        y: Number(zone.map_y_percent) || 50,
+    };
+};
+
+// Mouse Drag Events
+const onPinMouseDown = (event, zone) => {
+    if (event.button !== 0) return; // Only left click
+    if (pinPlacementMode.value || repositioningZone.value) return;
+
+    draggedZone.value = zone;
+    hasDragged.value = false;
+    dragStartMouse = { x: event.clientX, y: event.clientY };
+
+    window.addEventListener('mousemove', onWindowMouseMove);
+    window.addEventListener('mouseup', onWindowMouseUp);
+};
+
+const onWindowMouseMove = (event) => {
+    if (!draggedZone.value) return;
+
+    const dx = event.clientX - dragStartMouse.x;
+    const dy = event.clientY - dragStartMouse.y;
+
+    if (!hasDragged.value && Math.hypot(dx, dy) > 4) {
+        hasDragged.value = true;
+        isDragging.value = true;
+    }
+
+    if (hasDragged.value && mapContainerRef.value) {
+        const rect = mapContainerRef.value.getBoundingClientRect();
+        let x = ((event.clientX - rect.left) / rect.width) * 100;
+        let y = ((event.clientY - rect.top) / rect.height) * 100;
+
+        x = Math.max(1, Math.min(99, Math.round(x * 100) / 100));
+        y = Math.max(1, Math.min(99, Math.round(y * 100) / 100));
+
+        localZonePositions.value[draggedZone.value.id] = { x, y };
+    }
+};
+
+const onWindowMouseUp = () => {
+    window.removeEventListener('mousemove', onWindowMouseMove);
+    window.removeEventListener('mouseup', onWindowMouseUp);
+
+    if (hasDragged.value && draggedZone.value) {
+        const targetZone = draggedZone.value;
+        const newCoords = localZonePositions.value[targetZone.id];
+
+        if (newCoords) {
+            isSavingCoords.value = true;
+            router.post(
+                route('audit-5s.zones.update-coordinates', targetZone.id),
+                {
+                    map_x_percent: newCoords.x,
+                    map_y_percent: newCoords.y,
+                },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        isSavingCoords.value = false;
+                        showToast(`Posisi pin ${targetZone.name} (${newCoords.x}%, ${newCoords.y}%) berhasil disimpan.`);
+                    },
+                    onError: () => {
+                        isSavingCoords.value = false;
+                    },
+                }
+            );
+        }
+
+        setTimeout(() => {
+            isDragging.value = false;
+            hasDragged.value = false;
+            draggedZone.value = null;
+        }, 100);
+    } else {
+        draggedZone.value = null;
+        isDragging.value = false;
+        hasDragged.value = false;
+    }
+};
+
+// Touch Drag Support (Tablets/Mobile)
+const onPinTouchStart = (event, zone) => {
+    if (pinPlacementMode.value || repositioningZone.value || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    draggedZone.value = zone;
+    hasDragged.value = false;
+    dragStartMouse = { x: touch.clientX, y: touch.clientY };
+
+    window.addEventListener('touchmove', onWindowTouchMove, { passive: false });
+    window.addEventListener('touchend', onWindowTouchEnd);
+};
+
+const onWindowTouchMove = (event) => {
+    if (!draggedZone.value || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - dragStartMouse.x;
+    const dy = touch.clientY - dragStartMouse.y;
+
+    if (!hasDragged.value && Math.hypot(dx, dy) > 4) {
+        hasDragged.value = true;
+        isDragging.value = true;
+    }
+
+    if (hasDragged.value && mapContainerRef.value) {
+        event.preventDefault();
+        const rect = mapContainerRef.value.getBoundingClientRect();
+        let x = ((touch.clientX - rect.left) / rect.width) * 100;
+        let y = ((touch.clientY - rect.top) / rect.height) * 100;
+
+        x = Math.max(1, Math.min(99, Math.round(x * 100) / 100));
+        y = Math.max(1, Math.min(99, Math.round(y * 100) / 100));
+
+        localZonePositions.value[draggedZone.value.id] = { x, y };
+    }
+};
+
+const onWindowTouchEnd = () => {
+    window.removeEventListener('touchmove', onWindowTouchMove);
+    window.removeEventListener('touchend', onWindowTouchEnd);
+
+    if (hasDragged.value && draggedZone.value) {
+        const targetZone = draggedZone.value;
+        const newCoords = localZonePositions.value[targetZone.id];
+
+        if (newCoords) {
+            isSavingCoords.value = true;
+            router.post(
+                route('audit-5s.zones.update-coordinates', targetZone.id),
+                {
+                    map_x_percent: newCoords.x,
+                    map_y_percent: newCoords.y,
+                },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        isSavingCoords.value = false;
+                        showToast(`Posisi pin ${targetZone.name} (${newCoords.x}%, ${newCoords.y}%) berhasil disimpan.`);
+                    },
+                    onError: () => {
+                        isSavingCoords.value = false;
+                    },
+                }
+            );
+        }
+
+        setTimeout(() => {
+            isDragging.value = false;
+            hasDragged.value = false;
+            draggedZone.value = null;
+        }, 100);
+    } else {
+        draggedZone.value = null;
+        isDragging.value = false;
+        hasDragged.value = false;
+    }
+};
+
+// Handle Pin Click (Open Drawer)
+const handlePinClick = (zone) => {
+    if (hasDragged.value || isDragging.value) return;
+    openZoneDrawer(zone);
+};
+
 // Handle Click on Floor Map
 const onMapClick = (event) => {
-    if (!pinPlacementMode.value) return;
+    if (!mapContainerRef.value) return;
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 100;
-    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    const rect = mapContainerRef.value.getBoundingClientRect();
+    const x = Math.max(1, Math.min(99, Math.round(((event.clientX - rect.left) / rect.width) * 10000) / 100));
+    const y = Math.max(1, Math.min(99, Math.round(((event.clientY - rect.top) / rect.height) * 10000) / 100));
 
-    pendingCoords.value = {
-        x: Math.round(x * 100) / 100,
-        y: Math.round(y * 100) / 100,
-    };
+    // Repositioning a specific zone
+    if (repositioningZone.value) {
+        const target = repositioningZone.value;
+        localZonePositions.value[target.id] = { x, y };
+        const savedZone = target;
+        repositioningZone.value = null;
 
-    openAddZoneModal(null, pendingCoords.value);
+        isSavingCoords.value = true;
+        router.post(
+            route('audit-5s.zones.update-coordinates', savedZone.id),
+            {
+                map_x_percent: x,
+                map_y_percent: y,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    isSavingCoords.value = false;
+                    showToast(`Posisi pin ${savedZone.name} berhasil dipindahkan ke (${x}%, ${y}%).`);
+                },
+                onError: () => {
+                    isSavingCoords.value = false;
+                },
+            }
+        );
+        return;
+    }
+
+    if (pinPlacementMode.value) {
+        pendingCoords.value = { x, y };
+        openAddZoneModal(null, pendingCoords.value);
+        pinPlacementMode.value = false;
+    }
+};
+
+// Start Repositioning from Drawer
+const startRepositioning = (zone) => {
+    isDrawerOpen.value = false;
+    repositioningZone.value = zone;
     pinPlacementMode.value = false;
+    isMoveModeActive.value = false;
 };
 
 // Open Zone Detail Drawer
@@ -257,6 +498,14 @@ const deleteBuilding = (building) => {
         preserveScroll: true,
     });
 };
+
+onUnmounted(() => {
+    window.removeEventListener('mousemove', onWindowMouseMove);
+    window.removeEventListener('mouseup', onWindowMouseUp);
+    window.removeEventListener('touchmove', onWindowTouchMove);
+    window.removeEventListener('touchend', onWindowTouchEnd);
+    if (toastTimeout) clearTimeout(toastTimeout);
+});
 </script>
 
 <template>
@@ -281,10 +530,26 @@ const deleteBuilding = (building) => {
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
+                    <!-- Move / Drag Pin Mode Toggle -->
+                    <button
+                        type="button"
+                        @click="toggleMoveMode"
+                        :class="[
+                            'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition shadow-sm border',
+                            isMoveModeActive
+                                ? 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-300 shadow-amber-500/20 animate-pulse'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700'
+                        ]"
+                        title="Aktifkan mode seret dan geser pin di peta denah"
+                    >
+                        <ArrowsPointingOutIcon class="size-4" />
+                        <span>{{ isMoveModeActive ? 'Selesai Geser' : 'Geser Posisi Pin' }}</span>
+                    </button>
+
                     <!-- Pin Placement Toggle -->
                     <button
                         type="button"
-                        @click="pinPlacementMode = !pinPlacementMode"
+                        @click="pinPlacementMode = !pinPlacementMode; isMoveModeActive = false; repositioningZone = null;"
                         :class="[
                             'inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition shadow-sm border',
                             pinPlacementMode
@@ -405,13 +670,53 @@ const deleteBuilding = (building) => {
                 </div>
             </div>
 
+            <!-- Mode Geser Pin Alert -->
+            <div v-if="isMoveModeActive" class="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/40">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <ArrowsPointingOutIcon class="size-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <div>
+                            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">Mode Geser Pin Aktif</p>
+                            <p class="text-xs text-amber-700 dark:text-amber-300">Klik dan seret (drag & drop) pin mana saja langsung di atas denah untuk memindahkan lokasinya. Koordinat otomatis tersimpan saat pin dilepas.</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        @click="isMoveModeActive = false"
+                        class="text-xs font-semibold text-amber-800 underline dark:text-amber-300 hover:text-amber-900"
+                    >
+                        Selesai
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reposition Single Pin Alert -->
+            <div v-if="repositioningZone" class="rounded-lg border border-blue-300 bg-blue-50 p-4 dark:border-blue-900/60 dark:bg-blue-950/40">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <CursorArrowRaysIcon class="size-5 text-blue-600 dark:text-blue-400 shrink-0 animate-pulse" />
+                        <div>
+                            <p class="text-sm font-semibold text-blue-900 dark:text-blue-200">Pindahkan Posisi Pin: {{ repositioningZone.name }} ({{ repositioningZone.code }})</p>
+                            <p class="text-xs text-blue-700 dark:text-blue-300">Klik titik lokasi baru di atas gambar denah di bawah untuk menempatkan pin zona ini.</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        @click="repositioningZone = null"
+                        class="text-xs font-semibold text-blue-800 underline dark:text-blue-300 hover:text-blue-900"
+                    >
+                        Batalkan
+                    </button>
+                </div>
+            </div>
+
             <!-- Pin Placement Alert -->
             <div v-if="pinPlacementMode" class="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/40">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <ExclamationTriangleIcon class="size-5 text-amber-600 dark:text-amber-400 shrink-0" />
                         <div>
-                            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">Mode Penempatan Pin Aktif</p>
+                            <p class="text-sm font-semibold text-amber-900 dark:text-amber-200">Mode Penempatan Pin Baru Aktif</p>
                             <p class="text-xs text-amber-700 dark:text-amber-300">Klik pada titik manapun di atas peta layout pabrik di bawah untuk menetapkan koordinat zona baru.</p>
                         </div>
                     </div>
@@ -473,12 +778,40 @@ const deleteBuilding = (building) => {
                 </div>
 
                 <!-- Map Viewport -->
-                <div class="overflow-auto min-h-[500px] max-h-[750px] p-4 flex items-center justify-center">
+                <div class="overflow-auto min-h-[500px] max-h-[750px] p-4 flex items-center justify-center relative">
+                    <!-- Toast Notification Pill -->
+                    <Transition
+                        enter-active-class="transition ease-out duration-200"
+                        enter-from-class="opacity-0 translate-y-3"
+                        enter-to-class="opacity-100 translate-y-0"
+                        leave-active-class="transition ease-in duration-150"
+                        leave-from-class="opacity-100 translate-y-0"
+                        leave-to-class="opacity-0 translate-y-3"
+                    >
+                        <div
+                            v-if="toastMessage"
+                            class="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 rounded-lg bg-emerald-600/95 px-4 py-2 text-xs font-semibold text-white shadow-2xl backdrop-blur-md border border-emerald-400/40 pointer-events-none"
+                        >
+                            <CheckCircleIcon class="size-4 text-emerald-200 shrink-0" />
+                            <span>{{ toastMessage }}</span>
+                        </div>
+                    </Transition>
+
+                    <!-- Saving indicator banner -->
                     <div
+                        v-if="isSavingCoords"
+                        class="absolute top-4 left-1/2 -translate-x-1/2 z-30 inline-flex items-center gap-2 rounded-full bg-slate-900/90 px-3.5 py-1 text-xs font-medium text-slate-200 shadow-xl border border-slate-700 pointer-events-none"
+                    >
+                        <span class="size-2 rounded-full bg-blue-500 animate-ping"></span>
+                        <span>Menyimpan posisi pin...</span>
+                    </div>
+
+                    <div
+                        ref="mapContainerRef"
                         class="relative transition-transform duration-200 origin-top-left"
                         :style="{
                             transform: `scale(${zoomLevel})`,
-                            cursor: pinPlacementMode ? 'crosshair' : 'default',
+                            cursor: (pinPlacementMode || repositioningZone) ? 'crosshair' : (isMoveModeActive ? 'grab' : 'default'),
                         }"
                         @click="onMapClick"
                     >
@@ -493,17 +826,35 @@ const deleteBuilding = (building) => {
                         <div
                             v-for="zone in zones"
                             :key="zone.id"
-                            class="absolute z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+                            class="absolute z-10 -translate-x-1/2 -translate-y-1/2 select-none group touch-none"
+                            :class="[
+                                (isMoveModeActive || isDragging) ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                                draggedZone?.id === zone.id ? 'z-40 scale-110 !cursor-grabbing' : ''
+                            ]"
                             :style="{
-                                left: `${zone.map_x_percent}%`,
-                                top: `${zone.map_y_percent}%`,
+                                left: `${getZoneCoords(zone).x}%`,
+                                top: `${getZoneCoords(zone).y}%`,
+                                transition: (draggedZone?.id === zone.id && isDragging) ? 'none' : 'left 0.15s ease-out, top 0.15s ease-out',
                             }"
-                            @click.stop="openZoneDrawer(zone)"
+                            @mousedown="onPinMouseDown($event, zone)"
+                            @touchstart="onPinTouchStart($event, zone)"
+                            @click.stop="handlePinClick(zone)"
                         >
+                            <!-- Live Coordinate Pill while Dragging -->
+                            <div
+                                v-if="draggedZone?.id === zone.id && isDragging"
+                                class="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-slate-950/95 text-white font-mono text-[10px] font-bold px-2 py-0.5 shadow-2xl border border-cyan-500/50 whitespace-nowrap pointer-events-none z-50 flex items-center gap-1.5"
+                            >
+                                <span class="size-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                                <span>X: {{ getZoneCoords(zone).x }}%</span>
+                                <span class="text-slate-500">•</span>
+                                <span>Y: {{ getZoneCoords(zone).y }}%</span>
+                            </div>
+
                             <!-- Ping indicator for Red / Attention zones -->
                             <span
                                 v-if="zone.last_grade === 'D'"
-                                class="absolute -top-1 -right-1 flex size-3"
+                                class="absolute -top-1 -right-1 flex size-3 pointer-events-none"
                             >
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                                 <span class="relative inline-flex rounded-full size-3 bg-rose-500"></span>
@@ -513,22 +864,29 @@ const deleteBuilding = (building) => {
                             <div
                                 :class="[
                                     'flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-xs font-bold tracking-tight shadow-lg transition-transform hover:scale-110 ring-2',
-                                    getPinColor(zone.last_grade)
+                                    getPinColor(zone.last_grade),
+                                    isMoveModeActive ? 'ring-amber-400 border-dashed animate-pulse ring-offset-1 ring-offset-slate-900' : '',
+                                    draggedZone?.id === zone.id && isDragging ? 'ring-4 ring-cyan-400 shadow-2xl shadow-cyan-500/50 scale-110' : ''
                                 ]"
                             >
+                                <ArrowsPointingOutIcon v-if="isMoveModeActive" class="size-3 shrink-0" />
                                 <span>{{ zone.code }}</span>
                                 <span v-if="zone.last_grade" class="rounded bg-black/25 px-1 text-[10px] uppercase">
                                     {{ zone.last_grade }}
                                 </span>
                             </div>
 
-                            <!-- Tooltip on hover -->
-                            <div class="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 group-hover:flex flex-col items-center z-30 pointer-events-none">
+                            <!-- Tooltip on hover (only when not dragging) -->
+                            <div v-if="!isDragging" class="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 group-hover:flex flex-col items-center z-30 pointer-events-none">
                                 <div class="rounded-md bg-slate-900 px-2.5 py-1 text-center text-xs font-medium text-white shadow-xl whitespace-nowrap">
                                     <p class="font-semibold">{{ zone.name }}</p>
                                     <p class="text-[10px] text-slate-300">PIC: {{ zone.pic_name || 'Unassigned' }}</p>
                                     <p v-if="zone.last_score" class="text-[10px] text-emerald-300 font-bold">
                                         Score: {{ zone.last_score }}% (Grade {{ zone.last_grade }})
+                                    </p>
+                                    <p class="text-[9px] text-cyan-300/90 mt-0.5 flex items-center justify-center gap-1">
+                                        <ArrowsPointingOutIcon class="size-3 inline" />
+                                        <span>Seret (drag) untuk geser posisi</span>
                                     </p>
                                 </div>
                                 <div class="size-1.5 rotate-45 bg-slate-900"></div>
@@ -628,11 +986,22 @@ const deleteBuilding = (building) => {
                         </div>
 
                         <!-- Coordinates Info -->
-                        <div class="rounded-lg border border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-800 flex justify-between items-center">
-                            <span>Pin Coordinates:</span>
-                            <span class="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                                X: {{ selectedZone.map_x_percent }}% | Y: {{ selectedZone.map_y_percent }}%
-                            </span>
+                        <div class="rounded-lg border border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+                            <div>
+                                <span class="font-medium text-slate-600 dark:text-slate-400">Koordinat Pin:</span>
+                                <span class="ml-1.5 font-mono font-bold text-slate-900 dark:text-white">
+                                    X: {{ getZoneCoords(selectedZone).x }}% • Y: {{ getZoneCoords(selectedZone).y }}%
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                @click="startRepositioning(selectedZone)"
+                                class="inline-flex items-center gap-1 rounded bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 shadow-sm transition"
+                                title="Klik lokasi baru di denah untuk memindahkan pin"
+                            >
+                                <ArrowsPointingOutIcon class="size-3.5" />
+                                <span>Pindah di Peta</span>
+                            </button>
                         </div>
                     </div>
 
