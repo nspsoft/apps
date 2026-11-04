@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Audit5sBuilding;
 use App\Models\Audit5sZone;
 use App\Models\Department;
+use App\Models\SafetyAccidentTracker;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +72,7 @@ class Audit5sLeaderboardController extends Controller
             'departments' => $departments,
             'filters' => $request->only(['building_id', 'department_id']),
             'stats' => $stats,
+            'safetyTracker' => SafetyAccidentTracker::getCurrent(),
         ]);
     }
 }

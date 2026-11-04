@@ -21,6 +21,10 @@ import {
     MagnifyingGlassIcon,
     ArrowsPointingOutIcon,
     CursorArrowRaysIcon,
+    ShieldCheckIcon,
+    FireIcon,
+    ArrowRightOnRectangleIcon,
+    PlusCircleIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -33,6 +37,10 @@ const props = defineProps({
         default: () => null,
     },
     zones: {
+        type: Array,
+        default: () => [],
+    },
+    safetyDevices: {
         type: Array,
         default: () => [],
     },
@@ -336,6 +344,175 @@ const handlePinClick = (zone) => {
     openZoneDrawer(zone);
 };
 
+// Safety Device State & Logic
+const layerFilter = ref('all'); // 'all', 'zones', 'safety'
+const isAddDeviceModalOpen = ref(false);
+const isDeviceDrawerOpen = ref(false);
+const selectedDevice = ref(null);
+const localDevicePositions = ref({});
+const draggedDevice = ref(null);
+
+const deviceForm = useForm({
+    id: null,
+    building_id: props.currentBuilding?.id ?? '',
+    zone_id: '',
+    device_type: 'APAR',
+    code: '',
+    name: '',
+    map_x_percent: 50,
+    map_y_percent: 50,
+    inspection_status: 'Normal',
+    expiration_date: '',
+    notes: '',
+});
+
+const getDeviceCoords = (device) => {
+    if (localDevicePositions.value[device.id]) {
+        return localDevicePositions.value[device.id];
+    }
+    return {
+        x: Number(device.map_x_percent) || 50,
+        y: Number(device.map_y_percent) || 50,
+    };
+};
+
+const getDeviceIcon = (type) => {
+    switch (type) {
+        case 'APAR': return FireIcon;
+        case 'P3K': return PlusIcon;
+        case 'Emergency_Exit': return ArrowRightOnRectangleIcon;
+        default: return ShieldCheckIcon;
+    }
+};
+
+const getDeviceColor = (type, status) => {
+    if (status === 'Expired' || status === 'Damaged') {
+        return 'bg-rose-700 border-rose-400 text-white ring-rose-500 shadow-rose-900/50';
+    }
+    if (status === 'Needs Refill') {
+        return 'bg-amber-600 border-amber-300 text-white ring-amber-400 shadow-amber-900/50';
+    }
+    switch (type) {
+        case 'APAR': return 'bg-red-600 border-red-300 text-white ring-red-400 shadow-red-900/50';
+        case 'P3K': return 'bg-emerald-600 border-emerald-300 text-white ring-emerald-400 shadow-emerald-900/50';
+        case 'Emergency_Exit': return 'bg-teal-600 border-teal-300 text-white ring-teal-400 shadow-teal-900/50';
+        case 'Hydrant': return 'bg-orange-600 border-orange-300 text-white ring-orange-400 shadow-orange-900/50';
+        default: return 'bg-indigo-600 border-indigo-300 text-white ring-indigo-400 shadow-indigo-900/50';
+    }
+};
+
+const openAddDeviceModal = () => {
+    deviceForm.reset();
+    deviceForm.building_id = props.currentBuilding?.id ?? '';
+    deviceForm.map_x_percent = 50;
+    deviceForm.map_y_percent = 50;
+    isAddDeviceModalOpen.value = true;
+};
+
+const openDeviceDrawer = (device) => {
+    selectedDevice.value = device;
+    isDeviceDrawerOpen.value = true;
+};
+
+const submitDevice = () => {
+    deviceForm.post(route('safety-5s.devices.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isAddDeviceModalOpen.value = false;
+            deviceForm.reset();
+            showToast('Alat K3 berhasil ditambahkan ke denah.');
+        },
+    });
+};
+
+const deleteDevice = (device) => {
+    if (confirm(`Yakin ingin menghapus titik alat keselamatan ${device.name} (${device.code})?`)) {
+        router.delete(route('safety-5s.devices.destroy', device.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                isDeviceDrawerOpen.value = false;
+                selectedDevice.value = null;
+                showToast(`Alat keselamatan ${device.code} berhasil dihapus.`);
+            },
+        });
+    }
+};
+
+// Device Pin Mouse Drag
+const onDeviceMouseDown = (event, device) => {
+    if (event.button !== 0) return;
+    draggedDevice.value = device;
+    hasDragged.value = false;
+    dragStartMouse = { x: event.clientX, y: event.clientY };
+
+    window.addEventListener('mousemove', onDeviceMouseMove);
+    window.addEventListener('mouseup', onDeviceMouseUp);
+};
+
+const onDeviceMouseMove = (event) => {
+    if (!draggedDevice.value) return;
+    const dx = event.clientX - dragStartMouse.x;
+    const dy = event.clientY - dragStartMouse.y;
+
+    if (!hasDragged.value && Math.hypot(dx, dy) > 4) {
+        hasDragged.value = true;
+        isDragging.value = true;
+    }
+
+    if (hasDragged.value && mapContainerRef.value) {
+        const rect = mapContainerRef.value.getBoundingClientRect();
+        let x = ((event.clientX - rect.left) / rect.width) * 100;
+        let y = ((event.clientY - rect.top) / rect.height) * 100;
+
+        x = Math.max(1, Math.min(99, Math.round(x * 100) / 100));
+        y = Math.max(1, Math.min(99, Math.round(y * 100) / 100));
+
+        localDevicePositions.value[draggedDevice.value.id] = { x, y };
+    }
+};
+
+const onDeviceMouseUp = () => {
+    window.removeEventListener('mousemove', onDeviceMouseMove);
+    window.removeEventListener('mouseup', onDeviceMouseUp);
+
+    if (hasDragged.value && draggedDevice.value) {
+        const targetDevice = draggedDevice.value;
+        const newCoords = localDevicePositions.value[targetDevice.id];
+
+        if (newCoords) {
+            isSavingCoords.value = true;
+            router.post(
+                route('safety-5s.devices.update-coordinates', targetDevice.id),
+                {
+                    map_x_percent: newCoords.x,
+                    map_y_percent: newCoords.y,
+                },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        isSavingCoords.value = false;
+                        showToast(`Posisi alat K3 ${targetDevice.code} (${newCoords.x}%, ${newCoords.y}%) berhasil disimpan.`);
+                    },
+                    onError: () => {
+                        isSavingCoords.value = false;
+                    },
+                }
+            );
+        }
+
+        setTimeout(() => {
+            isDragging.value = false;
+            hasDragged.value = false;
+            draggedDevice.value = null;
+        }, 100);
+    } else {
+        draggedDevice.value = null;
+        isDragging.value = false;
+        hasDragged.value = false;
+    }
+};
+
 // Handle Click on Floor Map
 const onMapClick = (event) => {
     if (!mapContainerRef.value) return;
@@ -571,6 +748,16 @@ onUnmounted(() => {
                         <span>New Zone</span>
                     </button>
 
+                    <!-- Add Safety Device Modal Button -->
+                    <button
+                        type="button"
+                        @click="openAddDeviceModal()"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-medium text-rose-700 border border-rose-200 hover:bg-rose-50 dark:bg-slate-800 dark:text-rose-400 dark:border-rose-900/60 dark:hover:bg-rose-950/40 shadow-sm transition"
+                    >
+                        <ShieldCheckIcon class="size-4 text-rose-600 dark:text-rose-400" />
+                        <span>Add Safety Point</span>
+                    </button>
+
                     <!-- Add Building Button -->
                     <button
                         type="button"
@@ -759,6 +946,47 @@ onUnmounted(() => {
                     >
                         Reset
                     </button>
+
+                    <!-- Layer Toggles -->
+                    <div class="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1"></div>
+                    <div class="flex items-center gap-1">
+                        <button
+                            type="button"
+                            @click="layerFilter = 'all'"
+                            :class="[
+                                'px-2 py-0.5 text-xs rounded transition',
+                                layerFilter === 'all'
+                                    ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            ]"
+                        >
+                            All
+                        </button>
+                        <button
+                            type="button"
+                            @click="layerFilter = 'zones'"
+                            :class="[
+                                'px-2 py-0.5 text-xs rounded transition',
+                                layerFilter === 'zones'
+                                    ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            ]"
+                        >
+                            5S ({{ zones.length }})
+                        </button>
+                        <button
+                            type="button"
+                            @click="layerFilter = 'safety'"
+                            :class="[
+                                'px-2 py-0.5 text-xs rounded transition',
+                                layerFilter === 'safety'
+                                    ? 'bg-rose-600 text-white font-semibold shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            ]"
+                        >
+                            K3 ({{ safetyDevices.length }})
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Legend Pill -->
@@ -822,76 +1050,129 @@ onUnmounted(() => {
                             class="max-w-[1200px] w-full select-none rounded-lg shadow-inner pointer-events-none"
                         />
 
-                        <!-- Hotspot Pins -->
-                        <div
-                            v-for="zone in zones"
-                            :key="zone.id"
-                            class="absolute z-10 -translate-x-1/2 -translate-y-1/2 select-none group touch-none"
-                            :class="[
-                                (isMoveModeActive || isDragging) ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
-                                draggedZone?.id === zone.id ? 'z-40 scale-110 !cursor-grabbing' : ''
-                            ]"
-                            :style="{
-                                left: `${getZoneCoords(zone).x}%`,
-                                top: `${getZoneCoords(zone).y}%`,
-                                transition: (draggedZone?.id === zone.id && isDragging) ? 'none' : 'left 0.15s ease-out, top 0.15s ease-out',
-                            }"
-                            @mousedown="onPinMouseDown($event, zone)"
-                            @touchstart="onPinTouchStart($event, zone)"
-                            @click.stop="handlePinClick(zone)"
-                        >
-                            <!-- Live Coordinate Pill while Dragging -->
+                        <!-- Hotspot Pins: 5S Zones -->
+                        <template v-if="layerFilter === 'all' || layerFilter === 'zones'">
                             <div
-                                v-if="draggedZone?.id === zone.id && isDragging"
-                                class="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-slate-950/95 text-white font-mono text-[10px] font-bold px-2 py-0.5 shadow-2xl border border-cyan-500/50 whitespace-nowrap pointer-events-none z-50 flex items-center gap-1.5"
-                            >
-                                <span class="size-1.5 rounded-full bg-cyan-400 animate-ping"></span>
-                                <span>X: {{ getZoneCoords(zone).x }}%</span>
-                                <span class="text-slate-500">•</span>
-                                <span>Y: {{ getZoneCoords(zone).y }}%</span>
-                            </div>
-
-                            <!-- Ping indicator for Red / Attention zones -->
-                            <span
-                                v-if="zone.last_grade === 'D'"
-                                class="absolute -top-1 -right-1 flex size-3 pointer-events-none"
-                            >
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                <span class="relative inline-flex rounded-full size-3 bg-rose-500"></span>
-                            </span>
-
-                            <!-- Pin Badge -->
-                            <div
+                                v-for="zone in zones"
+                                :key="'zone-' + zone.id"
+                                class="absolute z-10 -translate-x-1/2 -translate-y-1/2 select-none group touch-none"
                                 :class="[
-                                    'flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-xs font-bold tracking-tight shadow-lg transition-transform hover:scale-110 ring-2',
-                                    getPinColor(zone.last_grade),
-                                    isMoveModeActive ? 'ring-amber-400 border-dashed animate-pulse ring-offset-1 ring-offset-slate-900' : '',
-                                    draggedZone?.id === zone.id && isDragging ? 'ring-4 ring-cyan-400 shadow-2xl shadow-cyan-500/50 scale-110' : ''
+                                    (isMoveModeActive || isDragging) ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
+                                    draggedZone?.id === zone.id ? 'z-40 scale-110 !cursor-grabbing' : ''
                                 ]"
+                                :style="{
+                                    left: `${getZoneCoords(zone).x}%`,
+                                    top: `${getZoneCoords(zone).y}%`,
+                                    transition: (draggedZone?.id === zone.id && isDragging) ? 'none' : 'left 0.15s ease-out, top 0.15s ease-out',
+                                }"
+                                @mousedown="onPinMouseDown($event, zone)"
+                                @touchstart="onPinTouchStart($event, zone)"
+                                @click.stop="handlePinClick(zone)"
                             >
-                                <ArrowsPointingOutIcon v-if="isMoveModeActive" class="size-3 shrink-0" />
-                                <span>{{ zone.code }}</span>
-                                <span v-if="zone.last_grade" class="rounded bg-black/25 px-1 text-[10px] uppercase">
-                                    {{ zone.last_grade }}
-                                </span>
-                            </div>
-
-                            <!-- Tooltip on hover (only when not dragging) -->
-                            <div v-if="!isDragging" class="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 group-hover:flex flex-col items-center z-30 pointer-events-none">
-                                <div class="rounded-md bg-slate-900 px-2.5 py-1 text-center text-xs font-medium text-white shadow-xl whitespace-nowrap">
-                                    <p class="font-semibold">{{ zone.name }}</p>
-                                    <p class="text-[10px] text-slate-300">PIC: {{ zone.pic_name || 'Unassigned' }}</p>
-                                    <p v-if="zone.last_score" class="text-[10px] text-emerald-300 font-bold">
-                                        Score: {{ zone.last_score }}% (Grade {{ zone.last_grade }})
-                                    </p>
-                                    <p class="text-[9px] text-cyan-300/90 mt-0.5 flex items-center justify-center gap-1">
-                                        <ArrowsPointingOutIcon class="size-3 inline" />
-                                        <span>Seret (drag) untuk geser posisi</span>
-                                    </p>
+                                <!-- Live Coordinate Pill while Dragging -->
+                                <div
+                                    v-if="draggedZone?.id === zone.id && isDragging"
+                                    class="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-slate-950/95 text-white font-mono text-[10px] font-bold px-2 py-0.5 shadow-2xl border border-cyan-500/50 whitespace-nowrap pointer-events-none z-50 flex items-center gap-1.5"
+                                >
+                                    <span class="size-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                                    <span>X: {{ getZoneCoords(zone).x }}%</span>
+                                    <span class="text-slate-500">•</span>
+                                    <span>Y: {{ getZoneCoords(zone).y }}%</span>
                                 </div>
-                                <div class="size-1.5 rotate-45 bg-slate-900"></div>
+
+                                <!-- Ping indicator for Red / Attention zones -->
+                                <span
+                                    v-if="zone.last_grade === 'D'"
+                                    class="absolute -top-1 -right-1 flex size-3 pointer-events-none"
+                                >
+                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                    <span class="relative inline-flex rounded-full size-3 bg-rose-500"></span>
+                                </span>
+
+                                <!-- Pin Badge -->
+                                <div
+                                    :class="[
+                                        'flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-xs font-bold tracking-tight shadow-lg transition-transform hover:scale-110 ring-2',
+                                        getPinColor(zone.last_grade),
+                                        isMoveModeActive ? 'ring-amber-400 border-dashed animate-pulse ring-offset-1 ring-offset-slate-900' : '',
+                                        draggedZone?.id === zone.id && isDragging ? 'ring-4 ring-cyan-400 shadow-2xl shadow-cyan-500/50 scale-110' : ''
+                                    ]"
+                                >
+                                    <ArrowsPointingOutIcon v-if="isMoveModeActive" class="size-3 shrink-0" />
+                                    <span>{{ zone.code }}</span>
+                                    <span v-if="zone.last_grade" class="rounded bg-black/25 px-1 text-[10px] uppercase">
+                                        {{ zone.last_grade }}
+                                    </span>
+                                </div>
+
+                                <!-- Tooltip on hover (only when not dragging) -->
+                                <div v-if="!isDragging" class="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 group-hover:flex flex-col items-center z-30 pointer-events-none">
+                                    <div class="rounded-md bg-slate-900 px-2.5 py-1 text-center text-xs font-medium text-white shadow-xl whitespace-nowrap">
+                                        <p class="font-semibold">{{ zone.name }}</p>
+                                        <p class="text-[10px] text-slate-300">PIC: {{ zone.pic_name || 'Unassigned' }}</p>
+                                        <p v-if="zone.last_score" class="text-[10px] text-emerald-300 font-bold">
+                                            Score: {{ zone.last_score }}% (Grade {{ zone.last_grade }})
+                                        </p>
+                                        <p class="text-[9px] text-cyan-300/90 mt-0.5 flex items-center justify-center gap-1">
+                                            <ArrowsPointingOutIcon class="size-3 inline" />
+                                            <span>Seret (drag) untuk geser posisi</span>
+                                        </p>
+                                    </div>
+                                    <div class="size-1.5 rotate-45 bg-slate-900"></div>
+                                </div>
                             </div>
-                        </div>
+                        </template>
+
+                        <!-- Hotspot Pins: Safety Devices (APAR, P3K, Emergency Exits) -->
+                        <template v-if="layerFilter === 'all' || layerFilter === 'safety'">
+                            <div
+                                v-for="device in safetyDevices"
+                                :key="'device-' + device.id"
+                                class="absolute z-20 -translate-x-1/2 -translate-y-1/2 select-none group touch-none cursor-pointer"
+                                :style="{
+                                    left: `${getDeviceCoords(device).x}%`,
+                                    top: `${getDeviceCoords(device).y}%`,
+                                    transition: (draggedDevice?.id === device.id && isDragging) ? 'none' : 'left 0.15s ease-out, top 0.15s ease-out',
+                                }"
+                                @mousedown="onDeviceMouseDown($event, device)"
+                                @click.stop="openDeviceDrawer(device)"
+                            >
+                                <!-- Live Coordinate Pill while Dragging -->
+                                <div
+                                    v-if="draggedDevice?.id === device.id && isDragging"
+                                    class="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-slate-950/95 text-white font-mono text-[10px] font-bold px-2 py-0.5 shadow-2xl border border-rose-500 whitespace-nowrap pointer-events-none z-50 flex items-center gap-1.5"
+                                >
+                                    <span class="size-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                                    <span>{{ device.code }} &bull; X: {{ getDeviceCoords(device).x }}% Y: {{ getDeviceCoords(device).y }}%</span>
+                                </div>
+
+                                <!-- Device Pin Badge -->
+                                <div
+                                    :class="[
+                                        'flex items-center gap-1 rounded-full border-2 px-2 py-0.5 text-[11px] font-bold tracking-tight shadow-md transition-transform hover:scale-110 ring-2',
+                                        getDeviceColor(device.device_type, device.inspection_status),
+                                        draggedDevice?.id === device.id && isDragging ? 'ring-4 ring-rose-400 scale-110' : ''
+                                    ]"
+                                >
+                                    <component :is="getDeviceIcon(device.device_type)" class="size-3 shrink-0" />
+                                    <span>{{ device.code }}</span>
+                                </div>
+
+                                <!-- Tooltip on hover -->
+                                <div v-if="!isDragging" class="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 group-hover:flex flex-col items-center z-30 pointer-events-none">
+                                    <div class="rounded-md bg-slate-900/95 px-2.5 py-1 text-center shadow-xl border border-slate-700 whitespace-nowrap">
+                                        <p class="text-xs font-semibold text-white">{{ device.name }}</p>
+                                        <p class="text-[10px] text-slate-300">Status: {{ device.inspection_status }} &bull; {{ device.device_type }}</p>
+                                        <p v-if="device.expiration_date" class="text-[9px] text-amber-300">Exp: {{ device.expiration_date }}</p>
+                                        <p class="text-[9px] text-rose-300/90 mt-0.5 flex items-center justify-center gap-1">
+                                            <ArrowsPointingOutIcon class="size-3 inline" />
+                                            <span>Seret (drag) untuk geser posisi</span>
+                                        </p>
+                                    </div>
+                                    <div class="size-1.5 rotate-45 bg-slate-900"></div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -1250,6 +1531,220 @@ onUnmounted(() => {
                                 class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
                             >
                                 {{ buildingModalMode === 'edit' ? 'Update Building' : 'Save Building' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Slide-over Drawer: Safety Device Point Details -->
+            <div
+                v-if="isDeviceDrawerOpen && selectedDevice"
+                class="fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-sm transition-opacity"
+                @click.self="isDeviceDrawerOpen = false"
+            >
+                <div class="absolute inset-y-0 right-0 max-w-sm w-full bg-white dark:bg-slate-900 shadow-2xl p-6 overflow-y-auto flex flex-col justify-between border-l border-slate-200 dark:border-slate-800">
+                    <div class="space-y-6">
+                        <!-- Drawer Header -->
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+                            <div>
+                                <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-white" :class="getDeviceColor(selectedDevice.device_type, selectedDevice.inspection_status)">
+                                    <component :is="getDeviceIcon(selectedDevice.device_type)" class="size-3.5" />
+                                    {{ selectedDevice.device_type.replace('_', ' ') }}
+                                </span>
+                                <h3 class="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                                    {{ selectedDevice.name }}
+                                </h3>
+                                <p class="text-xs text-slate-500 font-mono">{{ selectedDevice.code }} &bull; {{ currentBuilding?.name }}</p>
+                            </div>
+                            <button
+                                type="button"
+                                @click="isDeviceDrawerOpen = false"
+                                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+                            >
+                                <XMarkIcon class="size-5" />
+                            </button>
+                        </div>
+
+                        <!-- Status & Health Card -->
+                        <div class="rounded-lg border p-4 shadow-sm bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-slate-500">Inspection Status:</span>
+                                <span
+                                    class="px-2.5 py-0.5 rounded-full text-xs font-bold"
+                                    :class="selectedDevice.inspection_status === 'Normal' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300'"
+                                >
+                                    {{ selectedDevice.inspection_status }}
+                                </span>
+                            </div>
+
+                            <div v-if="selectedDevice.expiration_date" class="flex items-center justify-between text-xs">
+                                <span class="text-slate-500">Expiration Date:</span>
+                                <span class="font-medium text-slate-900 dark:text-white">{{ selectedDevice.expiration_date }}</span>
+                            </div>
+
+                            <div v-if="selectedDevice.zone" class="flex items-center justify-between text-xs">
+                                <span class="text-slate-500">Located in Zone:</span>
+                                <span class="font-medium text-blue-600 dark:text-blue-400">{{ selectedDevice.zone.name }}</span>
+                            </div>
+
+                            <div class="flex items-center justify-between text-xs">
+                                <span class="text-slate-500">Map Coordinates:</span>
+                                <span class="font-mono text-slate-600 dark:text-slate-300">X: {{ selectedDevice.map_x_percent }}% &bull; Y: {{ selectedDevice.map_y_percent }}%</span>
+                            </div>
+                        </div>
+
+                        <!-- Notes if present -->
+                        <div v-if="selectedDevice.notes" class="text-xs text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 p-3 rounded border border-slate-200 dark:border-slate-700">
+                            <strong>Notes:</strong> {{ selectedDevice.notes }}
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <button
+                            type="button"
+                            @click="deleteDevice(selectedDevice)"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 rounded-md transition"
+                        >
+                            <TrashIcon class="size-4" />
+                            <span>Delete Safety Point</span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="isDeviceDrawerOpen = false"
+                            class="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Add Safety Device Point -->
+            <div
+                v-if="isAddDeviceModalOpen"
+                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                @click.self="isAddDeviceModalOpen = false"
+            >
+                <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <ShieldCheckIcon class="size-5 text-rose-600" />
+                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">
+                                Add Safety Device Point (K3)
+                            </h3>
+                        </div>
+                        <button type="button" @click="isAddDeviceModalOpen = false" class="text-slate-400 hover:text-slate-600">
+                            <XMarkIcon class="size-5" />
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="submitDevice" class="mt-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Device Type *</label>
+                                <select
+                                    v-model="deviceForm.device_type"
+                                    required
+                                    class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                                >
+                                    <option value="APAR">APAR (Fire Extinguisher)</option>
+                                    <option value="P3K">Kotak P3K (First Aid)</option>
+                                    <option value="Emergency_Exit">Emergency Exit (Pintu Darurat)</option>
+                                    <option value="Hydrant">Hydrant Box</option>
+                                    <option value="Eyewash">Emergency Eyewash</option>
+                                    <option value="Spill_Kit">Chemical Spill Kit</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Device Code *</label>
+                                <input
+                                    v-model="deviceForm.code"
+                                    type="text"
+                                    required
+                                    placeholder="e.g. APAR-01, P3K-02"
+                                    class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Device Name / Label *</label>
+                            <input
+                                v-model="deviceForm.name"
+                                type="text"
+                                required
+                                placeholder="e.g. APAR Powder 6kg Bay 1 Tiang C3"
+                                class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                            />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Associated Zone</label>
+                                <select
+                                    v-model="deviceForm.zone_id"
+                                    class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                                >
+                                    <option value="">-- No Specific Zone --</option>
+                                    <option v-for="z in zones" :key="z.id" :value="z.id">
+                                        {{ z.code }} - {{ z.name }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Inspection Status</label>
+                                <select
+                                    v-model="deviceForm.inspection_status"
+                                    class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                                >
+                                    <option value="Normal">Normal / Ready</option>
+                                    <option value="Expired">Expired</option>
+                                    <option value="Needs Refill">Needs Refill</option>
+                                    <option value="Damaged">Damaged / Defect</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Expiration Date (Optional)</label>
+                                <input
+                                    v-model="deviceForm.expiration_date"
+                                    type="date"
+                                    class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                                />
+                            </div>
+                            <div class="flex items-center gap-2 pt-5 text-xs text-slate-500">
+                                <span>Default Pin Pos: 50%, 50% (Dapat digeser bebas di denah)</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Notes (Optional)</label>
+                            <textarea
+                                v-model="deviceForm.notes"
+                                rows="2"
+                                placeholder="Specific inspection reminders, serial number, vendor..."
+                                class="mt-1 w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                            ></textarea>
+                        </div>
+
+                        <div class="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-800">
+                            <button
+                                type="button"
+                                @click="isAddDeviceModalOpen = false"
+                                class="rounded-lg px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="deviceForm.processing"
+                                class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 disabled:opacity-50"
+                            >
+                                {{ deviceForm.processing ? 'Saving...' : 'Add Safety Point' }}
                             </button>
                         </div>
                     </form>

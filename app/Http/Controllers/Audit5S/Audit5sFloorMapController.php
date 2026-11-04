@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Audit5S;
 use App\Http\Controllers\Controller;
 use App\Models\Audit5sBuilding;
 use App\Models\Audit5sZone;
+use App\Models\SafetyDevicePoint;
 use App\Models\Employee;
 use App\Models\Department;
 use Illuminate\Http\Request;
@@ -24,10 +25,16 @@ class Audit5sFloorMapController extends Controller
         $currentBuilding = $buildings->firstWhere('id', $selectedBuildingId) ?? $buildings->first();
 
         $zones = [];
+        $safetyDevices = [];
         if ($currentBuilding) {
             $zones = Audit5sZone::where('building_id', $currentBuilding->id)
                 ->with(['department:id,name', 'picEmployee:id,nik,full_name,profile_picture,phone,section'])
                 ->orderBy('name')
+                ->get();
+
+            $safetyDevices = SafetyDevicePoint::where('building_id', $currentBuilding->id)
+                ->with(['zone:id,name,code'])
+                ->orderBy('code')
                 ->get();
         }
 
@@ -45,6 +52,7 @@ class Audit5sFloorMapController extends Controller
             'buildings' => $buildings,
             'currentBuilding' => $currentBuilding,
             'zones' => $zones,
+            'safetyDevices' => $safetyDevices,
             'employees' => $employees,
             'departments' => $departments,
         ]);
@@ -156,5 +164,59 @@ class Audit5sFloorMapController extends Controller
         $zone->delete();
 
         return redirect()->back()->with('success', "Zone {$name} removed successfully.");
+    }
+
+    public function storeDevicePoint(Request $request)
+    {
+        $validated = $request->validate([
+            'id' => 'nullable|exists:safety_device_points,id',
+            'building_id' => 'required|exists:audit_5s_buildings,id',
+            'zone_id' => 'nullable|exists:audit_5s_zones,id',
+            'device_type' => 'required|string',
+            'code' => 'required|string|max:50',
+            'name' => 'required|string|max:255',
+            'map_x_percent' => 'required|numeric|min:0|max:100',
+            'map_y_percent' => 'required|numeric|min:0|max:100',
+            'inspection_status' => 'required|string',
+            'last_checked_at' => 'nullable|date',
+            'expiration_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+        ]);
+
+        $validated['created_by'] = auth()->id();
+
+        if (!empty($validated['id'])) {
+            $device = SafetyDevicePoint::findOrFail($validated['id']);
+            $device->update($validated);
+            $message = "Safety Device {$device->name} updated successfully.";
+        } else {
+            $device = SafetyDevicePoint::create($validated);
+            $message = "Safety Device {$device->name} created successfully.";
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function updateDeviceCoordinates(Request $request, SafetyDevicePoint $device)
+    {
+        $request->validate([
+            'map_x_percent' => 'required|numeric|min:0|max:100',
+            'map_y_percent' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $device->update([
+            'map_x_percent' => $request->map_x_percent,
+            'map_y_percent' => $request->map_y_percent,
+        ]);
+
+        return redirect()->back()->with('success', "Posisi pin alat keselamatan {$device->name} berhasil disimpan.");
+    }
+
+    public function destroyDevicePoint(SafetyDevicePoint $device)
+    {
+        $name = $device->name;
+        $device->delete();
+
+        return redirect()->back()->with('success', "Safety Device {$name} removed successfully.");
     }
 }

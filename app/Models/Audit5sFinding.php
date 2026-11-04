@@ -17,6 +17,10 @@ class Audit5sFinding extends Model
     protected $fillable = [
         'session_id',
         'zone_id',
+        'category',
+        'risk_level',
+        'hazard_report_id',
+        'safety_inspection_id',
         'pillar',
         'description',
         'before_photo_path',
@@ -58,6 +62,16 @@ class Audit5sFinding extends Model
     public function zone()
     {
         return $this->belongsTo(Audit5sZone::class, 'zone_id');
+    }
+
+    public function hazardReport()
+    {
+        return $this->belongsTo(SafetyHazardReport::class, 'hazard_report_id');
+    }
+
+    public function safetyInspection()
+    {
+        return $this->belongsTo(SafetyInspection::class, 'safety_inspection_id');
     }
 
     public function remediatedBy()

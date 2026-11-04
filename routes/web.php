@@ -1115,7 +1115,87 @@ Route::middleware(['auth'])->prefix('security-patrol')->name('security-patrol.')
     });
 });
 
-// 5S Workplace Audit System
+// Safety & 5S Integrated Workplace Safety and 5S System
+Route::middleware(['auth'])->prefix('safety-5s')->name('safety-5s.')->group(function () {
+    // 1. Interactive Floor Map & Safety Devices
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.floor_map.view|safety_5s.view|audit_5s.floor_map.view|audit_5s.view'])->group(function () {
+        Route::get('/', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'index'])->name('index');
+        Route::get('floor-map', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'index'])->name('floor-map');
+        Route::post('buildings', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeBuilding'])->name('buildings.store');
+        Route::put('buildings/{building}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateBuilding'])->name('buildings.update');
+        Route::delete('buildings/{building}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyBuilding'])->name('buildings.destroy');
+        Route::post('zones', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeZone'])->name('zones.store');
+        Route::post('zones/{zone}/coordinates', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateCoordinates'])->name('zones.update-coordinates');
+        Route::delete('zones/{zone}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyZone'])->name('zones.destroy');
+
+        // Safety Device Points (APAR, P3K, Emergency Exit)
+        Route::post('devices', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeDevicePoint'])->name('devices.store');
+        Route::post('devices/{device}/coordinates', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateDeviceCoordinates'])->name('devices.update-coordinates');
+        Route::delete('devices/{device}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyDevicePoint'])->name('devices.destroy');
+    });
+
+    // 2. Safety Inspections (Checklists: APAR, APD, Electrical, Machine Guarding, Chemical)
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.inspections.view|safety_5s.view|audit_5s.view'])->group(function () {
+        Route::get('inspections', [\App\Http\Controllers\Audit5S\SafetyInspectionController::class, 'index'])->name('inspections.index');
+        Route::get('inspections/create', [\App\Http\Controllers\Audit5S\SafetyInspectionController::class, 'create'])->name('inspections.create');
+        Route::post('inspections', [\App\Http\Controllers\Audit5S\SafetyInspectionController::class, 'store'])->name('inspections.store');
+        Route::get('inspections/{inspection}', [\App\Http\Controllers\Audit5S\SafetyInspectionController::class, 'show'])->name('inspections.show');
+    });
+
+    // 3. Safety Hazard & Near-Miss Reports
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.hazards.view|safety_5s.view|audit_5s.view'])->group(function () {
+        Route::get('hazard-reports', [\App\Http\Controllers\Audit5S\SafetyHazardReportController::class, 'index'])->name('hazard-reports.index');
+        Route::get('hazard-reports/create', [\App\Http\Controllers\Audit5S\SafetyHazardReportController::class, 'create'])->name('hazard-reports.create');
+        Route::post('hazard-reports', [\App\Http\Controllers\Audit5S\SafetyHazardReportController::class, 'store'])->name('hazard-reports.store');
+        Route::post('hazard-reports/{hazardReport}/resolve', [\App\Http\Controllers\Audit5S\SafetyHazardReportController::class, 'resolve'])->name('hazard-reports.resolve');
+        Route::post('hazard-reports/{hazardReport}/verify', [\App\Http\Controllers\Audit5S\SafetyHazardReportController::class, 'verify'])->name('hazard-reports.verify');
+    });
+
+    // 4. 5S Audit Execution
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.audits.view|safety_5s.view|audit_5s.audits.view|audit_5s.view'])->group(function () {
+        Route::get('audits', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'index'])->name('audits.index');
+        Route::get('audits/create', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'create'])->name('audits.create');
+        Route::post('audits', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'store'])->name('audits.store');
+        Route::get('audits/{session}', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'show'])->name('audits.show');
+        Route::delete('audits/{session}', [\App\Http\Controllers\Audit5S\Audit5sExecutionController::class, 'destroy'])->name('audits.destroy');
+    });
+
+    // 5. Schedules
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.schedules.view|safety_5s.view|audit_5s.schedules.view|audit_5s.view'])->group(function () {
+        Route::get('schedules', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'index'])->name('schedules.index');
+        Route::post('schedules', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'store'])->name('schedules.store');
+        Route::put('schedules/{schedule}', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'update'])->name('schedules.update');
+        Route::delete('schedules/{schedule}', [\App\Http\Controllers\Audit5S\Audit5sScheduleController::class, 'destroy'])->name('schedules.destroy');
+    });
+
+    // 6. Unified Corrective Actions (CAPA)
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.corrective_actions.view|safety_5s.view|audit_5s.corrective_actions.view|audit_5s.view'])->group(function () {
+        Route::get('corrective-actions', [\App\Http\Controllers\Audit5S\Audit5sCapaController::class, 'index'])->name('corrective-actions.index');
+        Route::post('corrective-actions/{finding}/remedy', [\App\Http\Controllers\Audit5S\Audit5sCapaController::class, 'submitRemediation'])->name('corrective-actions.remedy');
+        Route::post('corrective-actions/{finding}/verify', [\App\Http\Controllers\Audit5S\Audit5sCapaController::class, 'verifyRemediation'])->name('corrective-actions.verify');
+    });
+
+    // 7. Leaderboard & Safety Rank
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.leaderboard.view|safety_5s.view|audit_5s.leaderboard.view|audit_5s.view'])->group(function () {
+        Route::get('leaderboard', [\App\Http\Controllers\Audit5S\Audit5sLeaderboardController::class, 'index'])->name('leaderboard.index');
+    });
+
+    // 8. Analytics & Safety Metrics
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.analytics.view|safety_5s.view|audit_5s.analytics.view|audit_5s.view'])->group(function () {
+        Route::get('analytics', [\App\Http\Controllers\Audit5S\Audit5sAnalyticsController::class, 'index'])->name('analytics.index');
+        Route::get('analytics/export-excel', [\App\Http\Controllers\Audit5S\Audit5sAnalyticsController::class, 'exportExcel'])->name('analytics.export-excel');
+    });
+
+    // 9. Settings & Criteria
+    Route::middleware(['role_or_permission:Super Admin|safety_5s.criteria.view|safety_5s.view|audit_5s.criteria.view|audit_5s.view'])->group(function () {
+        Route::get('settings', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'index'])->name('settings.index');
+        Route::post('settings/checklists', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'storeChecklist'])->name('settings.checklists.store');
+        Route::put('settings/checklists/{checklist}', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'updateChecklist'])->name('settings.checklists.update');
+        Route::delete('settings/checklists/{checklist}', [\App\Http\Controllers\Audit5S\Audit5sSettingController::class, 'destroyChecklist'])->name('settings.checklists.destroy');
+    });
+});
+
+// Backward-compatible 5S Workplace Audit System aliases
 Route::middleware(['auth'])->prefix('audit-5s')->name('audit-5s.')->group(function () {
     // 1. Interactive Floor Map
     Route::middleware(['role_or_permission:Super Admin|audit_5s.floor_map.view|audit_5s.view'])->group(function () {
@@ -1127,6 +1207,10 @@ Route::middleware(['auth'])->prefix('audit-5s')->name('audit-5s.')->group(functi
         Route::post('zones', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeZone'])->name('zones.store');
         Route::post('zones/{zone}/coordinates', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateCoordinates'])->name('zones.update-coordinates');
         Route::delete('zones/{zone}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyZone'])->name('zones.destroy');
+
+        Route::post('devices', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'storeDevicePoint'])->name('devices.store');
+        Route::post('devices/{device}/coordinates', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'updateDeviceCoordinates'])->name('devices.update-coordinates');
+        Route::delete('devices/{device}', [\App\Http\Controllers\Audit5S\Audit5sFloorMapController::class, 'destroyDevicePoint'])->name('devices.destroy');
     });
 
     // 2. Audit Schedules

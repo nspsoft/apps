@@ -57,13 +57,22 @@ const verifyForm = useForm({
 
 // Filter state
 const search = ref(props.filters.search || '');
+const categoryFilter = ref(props.filters.category || 'all');
+const riskFilter = ref(props.filters.risk_level || 'all');
 const statusFilter = ref(props.filters.status || '');
 const pillarFilter = ref(props.filters.pillar || '');
 const buildingFilter = ref(props.filters.building_id || '');
 const redTagFilter = ref(props.filters.is_red_tag || '');
 
+const setCategoryTab = (cat) => {
+    categoryFilter.value = cat;
+    applyFilters();
+};
+
 const applyFilters = () => {
-    router.get(route('audit-5s.corrective-actions.index'), {
+    router.get(route('safety-5s.corrective-actions.index'), {
+        category: categoryFilter.value !== 'all' ? categoryFilter.value : undefined,
+        risk_level: riskFilter.value !== 'all' ? riskFilter.value : undefined,
         search: search.value || undefined,
         status: statusFilter.value || undefined,
         pillar: pillarFilter.value || undefined,
@@ -74,11 +83,13 @@ const applyFilters = () => {
 
 const resetFilters = () => {
     search.value = '';
+    categoryFilter.value = 'all';
+    riskFilter.value = 'all';
     statusFilter.value = '';
     pillarFilter.value = '';
     buildingFilter.value = '';
     redTagFilter.value = '';
-    router.get(route('audit-5s.corrective-actions.index'));
+    router.get(route('safety-5s.corrective-actions.index'));
 };
 
 // Remediation modal open
@@ -98,7 +109,7 @@ const handleAfterPhoto = (event) => {
 };
 
 const submitRemediation = () => {
-    remedyForm.post(route('audit-5s.corrective-actions.remedy', selectedFinding.value.id), {
+    remedyForm.post(route('safety-5s.corrective-actions.remedy', selectedFinding.value.id), {
         forceFormData: true,
         onSuccess: () => {
             isRemedyModalOpen.value = false;
@@ -116,7 +127,7 @@ const openVerifyModal = (finding) => {
 };
 
 const submitVerification = () => {
-    verifyForm.post(route('audit-5s.corrective-actions.verify', selectedFinding.value.id), {
+    verifyForm.post(route('safety-5s.corrective-actions.verify', selectedFinding.value.id), {
         onSuccess: () => {
             isVerifyModalOpen.value = false;
             verifyForm.reset();
@@ -187,6 +198,43 @@ const getStatusBadge = (status) => {
                 </div>
             </div>
 
+            <!-- Category Tabs -->
+            <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-1">
+                <button
+                    type="button"
+                    class="px-4 py-2 text-sm font-semibold rounded-md transition duration-150 flex items-center gap-2"
+                    :class="categoryFilter === 'all' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                    @click="setCategoryTab('all')"
+                >
+                    <span>All Action Items</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-xs" :class="categoryFilter === 'all' ? 'bg-blue-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'">
+                        {{ stats.total || 0 }}
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    class="px-4 py-2 text-sm font-semibold rounded-md transition duration-150 flex items-center gap-2"
+                    :class="categoryFilter === '5s' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                    @click="setCategoryTab('5s')"
+                >
+                    <span>5S Workplace Findings</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-xs" :class="categoryFilter === '5s' ? 'bg-blue-700 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'">
+                        {{ stats.count_5s || 0 }}
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    class="px-4 py-2 text-sm font-semibold rounded-md transition duration-150 flex items-center gap-2"
+                    :class="categoryFilter === 'safety' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                    @click="setCategoryTab('safety')"
+                >
+                    <span>Safety & Hazards</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-xs" :class="categoryFilter === 'safety' ? 'bg-rose-700 text-white' : 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300'">
+                        {{ stats.count_safety || 0 }}
+                    </span>
+                </button>
+            </div>
+
             <!-- Filter Controls -->
             <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-6">
@@ -217,6 +265,20 @@ const getStatusBadge = (status) => {
 
                     <div>
                         <select
+                            v-model="riskFilter"
+                            @change="applyFilters"
+                            class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
+                        >
+                            <option value="all">All Risk Levels</option>
+                            <option value="Critical">Critical Risk</option>
+                            <option value="High">High Risk</option>
+                            <option value="Medium">Medium Risk</option>
+                            <option value="Low">Low Risk</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <select
                             v-model="pillarFilter"
                             @change="applyFilters"
                             class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
@@ -227,17 +289,6 @@ const getStatusBadge = (status) => {
                             <option value="Shine">3S - Shine</option>
                             <option value="Standardize">4S - Standardize</option>
                             <option value="Sustain">5S - Sustain</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <select
-                            v-model="redTagFilter"
-                            @change="applyFilters"
-                            class="w-full rounded-md border-slate-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
-                        >
-                            <option value="">Red Tag Status</option>
-                            <option value="1">Red Tags Only</option>
                         </select>
                     </div>
 
@@ -271,7 +322,29 @@ const getStatusBadge = (status) => {
                         <!-- Left Info -->
                         <div class="space-y-2 flex-1">
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="rounded bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
+                                <span
+                                    v-if="finding.category === 'safety'"
+                                    class="rounded bg-rose-100 dark:bg-rose-950/60 px-2 py-0.5 text-xs font-bold text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                                >
+                                    Safety Hazard
+                                </span>
+                                <span
+                                    v-if="finding.risk_level"
+                                    class="rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border"
+                                    :class="finding.risk_level === 'Critical' ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-400' : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-400'"
+                                >
+                                    {{ finding.risk_level }} Risk
+                                </span>
+                                <span
+                                    v-if="finding.hazard_report"
+                                    class="rounded bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-mono text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                                >
+                                    #{{ finding.hazard_report.ticket_number }}
+                                </span>
+                                <span
+                                    v-if="finding.category !== 'safety'"
+                                    class="rounded bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-800 dark:bg-blue-900/60 dark:text-blue-300"
+                                >
                                     {{ finding.pillar }}
                                 </span>
                                 <span

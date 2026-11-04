@@ -20,9 +20,19 @@ class Audit5sCapaController extends Controller
             'zone:id,name,code,building_id,pic_employee_id',
             'zone.picEmployee:id,nik,full_name',
             'zone.building:id,name,code',
+            'hazardReport:id,ticket_number,hazard_type,risk_level',
+            'safetyInspection:id,inspection_number,overall_score',
             'remediatedBy:id,name',
             'verifiedBy:id,name',
         ]);
+
+        if ($request->filled('category') && $request->category !== 'all') {
+            $query->where('category', $request->category);
+        }
+
+        if ($request->filled('risk_level') && $request->risk_level !== 'all') {
+            $query->where('risk_level', $request->risk_level);
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -71,12 +81,14 @@ class Audit5sCapaController extends Controller
             'overdue' => Audit5sFinding::whereIn('status', ['Open', 'In Progress'])
                 ->where('due_date', '<', now()->toDateString())
                 ->count(),
+            'count_5s' => Audit5sFinding::where('category', '5s')->count(),
+            'count_safety' => Audit5sFinding::where('category', 'safety')->count(),
         ];
 
         return Inertia::render('Audit5S/CAPA/Index', [
             'findings' => $findings,
             'buildings' => $buildings,
-            'filters' => $request->only(['status', 'pillar', 'building_id', 'zone_id', 'is_red_tag', 'search']),
+            'filters' => $request->only(['category', 'risk_level', 'status', 'pillar', 'building_id', 'zone_id', 'is_red_tag', 'search']),
             'stats' => $stats,
         ]);
     }

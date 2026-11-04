@@ -12,6 +12,8 @@ import {
     ExclamationTriangleIcon,
     ArrowTrendingUpIcon,
     AdjustmentsHorizontalIcon,
+    ShieldCheckIcon,
+    FireIcon,
 } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
@@ -43,13 +45,17 @@ const props = defineProps({
         type: Object,
         default: () => ({}),
     },
+    safetyTracker: {
+        type: Object,
+        default: () => null,
+    },
 });
 
 const buildingFilter = ref(props.filters.building_id || '');
 const departmentFilter = ref(props.filters.department_id || '');
 
 const applyFilters = () => {
-    router.get(route('audit-5s.leaderboard.index'), {
+    router.get(route('safety-5s.leaderboard.index'), {
         building_id: buildingFilter.value || undefined,
         department_id: departmentFilter.value || undefined,
     }, { preserveState: true, replace: true });
@@ -58,7 +64,7 @@ const applyFilters = () => {
 const resetFilters = () => {
     buildingFilter.value = '';
     departmentFilter.value = '';
-    router.get(route('audit-5s.leaderboard.index'));
+    router.get(route('safety-5s.leaderboard.index'));
 };
 
 const getGradeBadge = (grade) => {
@@ -77,6 +83,58 @@ const getGradeBadge = (grade) => {
         <Head title="5S Leaderboard & Rankings" />
 
         <div class="space-y-6">
+            <!-- Days Without Accident (Safety Milestone Widget) -->
+            <div class="rounded-xl border border-emerald-300 dark:border-emerald-800 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-5 shadow-sm dark:bg-slate-900">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="flex items-center gap-3.5">
+                        <div class="p-3 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-700 dark:text-emerald-400 shrink-0">
+                            <ShieldCheckIcon class="size-8" />
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
+                                    Zero LTI Milestone
+                                </span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">
+                                    {{ safetyTracker?.company_name || 'PT Jidoka Result Indonesia' }}
+                                </span>
+                            </div>
+                            <h2 class="text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+                                K3 Safety Milestone & Accident Tracker
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                Baseline sejak: {{ safetyTracker?.last_incident_date || '01 Jan 2026' }} &bull; Zero Lost Time Injury Record
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="text-left sm:text-right shrink-0">
+                        <div class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                            Hari Tanpa Kecelakaan Kerja
+                        </div>
+                        <div class="text-3xl sm:text-4xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                            {{ safetyTracker?.days_safe ?? 308 }} <span class="text-base font-bold text-slate-600 dark:text-slate-400">Hari</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            Target Tahunan: {{ safetyTracker?.target_safe_days || 365 }} Hari
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mt-4 pt-3 border-t border-emerald-200/60 dark:border-emerald-900/50 flex items-center gap-3">
+                    <div class="flex-1 bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div
+                            class="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                            :style="{ width: `${Math.min(100, Math.round(((safetyTracker?.days_safe || 308) / (safetyTracker?.target_safe_days || 365)) * 100))}%` }"
+                        ></div>
+                    </div>
+                    <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
+                        {{ Math.min(100, Math.round(((safetyTracker?.days_safe || 308) / (safetyTracker?.target_safe_days || 365)) * 100)) }}% Safe Target Reached
+                    </span>
+                </div>
+            </div>
+
             <!-- Header -->
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -85,7 +143,7 @@ const getGradeBadge = (grade) => {
                             Gamification & Recognition
                         </span>
                         <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                            5S Leaderboard & Workplace Rankings
+                            Safety & 5S Leaderboard
                         </h1>
                     </div>
                     <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">

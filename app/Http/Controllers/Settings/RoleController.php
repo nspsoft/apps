@@ -65,15 +65,17 @@ class RoleController extends Controller
 
     private function prettify($text, $module = null)
     {
-        if ($module === 'audit_5s') {
+        if ($module === 'safety_5s' || $module === 'audit_5s') {
             $auditMap = [
                 'floor_map' => 'Interactive Floor Map',
-                'schedules' => 'Audit Schedules',
-                'audits' => 'Audit Execution',
+                'inspections' => 'Safety Inspections',
+                'audits' => '5S Audit Execution',
+                'hazard_reports' => 'Hazard & Near-Miss',
                 'corrective_actions' => 'Corrective Actions (CAPA)',
-                'leaderboard' => 'Leaderboard & Rankings',
-                'analytics' => 'Analytics & Reports',
-                'criteria' => 'Criteria & Settings',
+                'leaderboard' => 'Leaderboard & Safety Rank',
+                'analytics' => 'Analytics & Safety Metrics',
+                'settings' => 'Standards & Settings',
+                'criteria' => 'Standards & Settings',
             ];
             if (isset($auditMap[$text])) return $auditMap[$text];
         }
@@ -102,7 +104,8 @@ class RoleController extends Controller
             'resume' => 'Patrol Summary',
             'analytics' => 'Analytics & Insights',
             'checkpoints' => 'Checkpoints & QR Tags',
-            'audit_5s' => '5S Audit',
+            'safety_5s' => 'Safety & 5S',
+            'audit_5s' => 'Safety & 5S',
             'settings' => 'Settings'
         ];
 
