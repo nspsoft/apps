@@ -475,7 +475,7 @@ const getStatusBadge = (status) => {
             <!-- Modal: Submit Remediation (After Photo + Notes) -->
             <div
                 v-if="isRemedyModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isRemedyModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -541,7 +541,7 @@ const getStatusBadge = (status) => {
             <!-- Modal: Verify Remediation (Approve / Reject) -->
             <div
                 v-if="isVerifyModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isVerifyModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -631,7 +631,7 @@ const getStatusBadge = (status) => {
             <!-- Image Zoom Modal -->
             <div
                 v-if="isImagePreviewModalOpen"
-                class="fixed inset-0 z-50 overflow-hidden bg-slate-950/80 backdrop-blur-sm p-4 flex items-center justify-center cursor-pointer"
+                class="fixed inset-0 z-[100] overflow-hidden bg-slate-950/80 backdrop-blur-sm p-4 flex items-center justify-center cursor-pointer"
                 @click="isImagePreviewModalOpen = false"
             >
                 <div class="max-w-3xl max-h-[85vh] overflow-hidden rounded-xl bg-black shadow-2xl relative">

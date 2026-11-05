@@ -359,7 +359,7 @@ const deleteItem = (item) => {
             <!-- Modal: Add Checklist -->
             <div
                 v-if="isAddModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isAddModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -465,7 +465,7 @@ const deleteItem = (item) => {
             <!-- Modal: Edit Checklist -->
             <div
                 v-if="isEditModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isEditModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -569,7 +569,7 @@ const deleteItem = (item) => {
             <!-- Modal: Add / Edit Building -->
             <div
                 v-if="isBuildingModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isBuildingModalOpen = false"
             >
                 <div class="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">

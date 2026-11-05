@@ -343,7 +343,7 @@ const getStatusBadge = (status) => {
             <!-- Modal: Create Schedule -->
             <div
                 v-if="isCreateModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isCreateModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -448,7 +448,7 @@ const getStatusBadge = (status) => {
             <!-- Modal: Edit Schedule -->
             <div
                 v-if="isEditModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isEditModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">

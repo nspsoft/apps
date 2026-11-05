@@ -351,6 +351,7 @@ const isDeviceDrawerOpen = ref(false);
 const selectedDevice = ref(null);
 const localDevicePositions = ref({});
 const draggedDevice = ref(null);
+const repositioningDevice = ref(null);
 
 const deviceForm = useForm({
     id: null,
@@ -403,10 +404,43 @@ const getDeviceColor = (type, status) => {
 
 const openAddDeviceModal = () => {
     deviceForm.reset();
+    deviceForm.id = null;
     deviceForm.building_id = props.currentBuilding?.id ?? '';
+    deviceForm.device_type = 'APAR';
+    deviceForm.code = '';
+    deviceForm.name = '';
+    deviceForm.zone_id = '';
+    deviceForm.inspection_status = 'Normal';
+    deviceForm.expiration_date = '';
+    deviceForm.notes = '';
     deviceForm.map_x_percent = 50;
     deviceForm.map_y_percent = 50;
     isAddDeviceModalOpen.value = true;
+};
+
+const openEditDeviceModal = (device) => {
+    deviceForm.clearErrors();
+    deviceForm.id = device.id;
+    deviceForm.building_id = device.building_id || (props.currentBuilding?.id ?? '');
+    deviceForm.zone_id = device.zone_id || '';
+    deviceForm.device_type = device.device_type || 'APAR';
+    deviceForm.code = device.code || '';
+    deviceForm.name = device.name || '';
+    deviceForm.map_x_percent = Number(device.map_x_percent) || 50;
+    deviceForm.map_y_percent = Number(device.map_y_percent) || 50;
+    deviceForm.inspection_status = device.inspection_status || 'Normal';
+    deviceForm.expiration_date = device.expiration_date ? String(device.expiration_date).substring(0, 10) : '';
+    deviceForm.notes = device.notes || '';
+    isDeviceDrawerOpen.value = false;
+    isAddDeviceModalOpen.value = true;
+};
+
+const startRepositioningDevice = (device) => {
+    isDeviceDrawerOpen.value = false;
+    repositioningDevice.value = device;
+    repositioningZone.value = null;
+    pinPlacementMode.value = false;
+    isMoveModeActive.value = false;
 };
 
 const openDeviceDrawer = (device) => {
@@ -414,13 +448,23 @@ const openDeviceDrawer = (device) => {
     isDeviceDrawerOpen.value = true;
 };
 
+const handleDevicePinClick = (device) => {
+    if (hasDragged.value || isDragging.value) return;
+    openDeviceDrawer(device);
+};
+
 const submitDevice = () => {
+    const isEdit = !!deviceForm.id;
     deviceForm.post(route('safety-5s.devices.store'), {
         preserveScroll: true,
         onSuccess: () => {
             isAddDeviceModalOpen.value = false;
             deviceForm.reset();
-            showToast('Alat K3 berhasil ditambahkan ke denah.');
+            showToast(isEdit ? 'Data titik alat K3 berhasil diperbarui.' : 'Alat K3 berhasil ditambahkan ke denah.');
+            if (isEdit && selectedDevice.value) {
+                isDeviceDrawerOpen.value = false;
+                selectedDevice.value = null;
+            }
         },
     });
 };
@@ -513,6 +557,85 @@ const onDeviceMouseUp = () => {
     }
 };
 
+// Device Touch Drag Support (Tablets/Mobile)
+let dragDeviceStartMouse = { x: 0, y: 0 };
+const onDeviceTouchStart = (event, device) => {
+    if (repositioningDevice.value || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    draggedDevice.value = device;
+    hasDragged.value = false;
+    dragDeviceStartMouse = { x: touch.clientX, y: touch.clientY };
+
+    window.addEventListener('touchmove', onDeviceTouchMove, { passive: false });
+    window.addEventListener('touchend', onDeviceTouchEnd);
+};
+
+const onDeviceTouchMove = (event) => {
+    if (!draggedDevice.value || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - dragDeviceStartMouse.x;
+    const dy = touch.clientY - dragDeviceStartMouse.y;
+
+    if (!hasDragged.value && Math.hypot(dx, dy) > 4) {
+        hasDragged.value = true;
+        isDragging.value = true;
+    }
+
+    if (hasDragged.value && mapContainerRef.value) {
+        event.preventDefault();
+        const rect = mapContainerRef.value.getBoundingClientRect();
+        let x = ((touch.clientX - rect.left) / rect.width) * 100;
+        let y = ((touch.clientY - rect.top) / rect.height) * 100;
+
+        x = Math.max(1, Math.min(99, Math.round(x * 100) / 100));
+        y = Math.max(1, Math.min(99, Math.round(y * 100) / 100));
+
+        localDevicePositions.value[draggedDevice.value.id] = { x, y };
+    }
+};
+
+const onDeviceTouchEnd = () => {
+    window.removeEventListener('touchmove', onDeviceTouchMove);
+    window.removeEventListener('touchend', onDeviceTouchEnd);
+
+    if (hasDragged.value && draggedDevice.value) {
+        const targetDevice = draggedDevice.value;
+        const newCoords = localDevicePositions.value[targetDevice.id];
+
+        if (newCoords) {
+            isSavingCoords.value = true;
+            router.post(
+                route('safety-5s.devices.update-coordinates', targetDevice.id),
+                {
+                    map_x_percent: newCoords.x,
+                    map_y_percent: newCoords.y,
+                },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onSuccess: () => {
+                        isSavingCoords.value = false;
+                        showToast(`Posisi alat K3 ${targetDevice.code} (${newCoords.x}%, ${newCoords.y}%) berhasil disimpan.`);
+                    },
+                    onError: () => {
+                        isSavingCoords.value = false;
+                    },
+                }
+            );
+        }
+
+        setTimeout(() => {
+            isDragging.value = false;
+            hasDragged.value = false;
+            draggedDevice.value = null;
+        }, 100);
+    } else {
+        draggedDevice.value = null;
+        isDragging.value = false;
+        hasDragged.value = false;
+    }
+};
+
 // Handle Click on Floor Map
 const onMapClick = (event) => {
     if (!mapContainerRef.value) return;
@@ -520,6 +643,35 @@ const onMapClick = (event) => {
     const rect = mapContainerRef.value.getBoundingClientRect();
     const x = Math.max(1, Math.min(99, Math.round(((event.clientX - rect.left) / rect.width) * 10000) / 100));
     const y = Math.max(1, Math.min(99, Math.round(((event.clientY - rect.top) / rect.height) * 10000) / 100));
+
+    // Repositioning a specific safety device
+    if (repositioningDevice.value) {
+        const target = repositioningDevice.value;
+        localDevicePositions.value[target.id] = { x, y };
+        const savedDevice = target;
+        repositioningDevice.value = null;
+
+        isSavingCoords.value = true;
+        router.post(
+            route('safety-5s.devices.update-coordinates', savedDevice.id),
+            {
+                map_x_percent: x,
+                map_y_percent: y,
+            },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: () => {
+                    isSavingCoords.value = false;
+                    showToast(`Posisi alat K3 ${savedDevice.code} berhasil dipindahkan ke (${x}%, ${y}%).`);
+                },
+                onError: () => {
+                    isSavingCoords.value = false;
+                },
+            }
+        );
+        return;
+    }
 
     // Repositioning a specific zone
     if (repositioningZone.value) {
@@ -561,6 +713,7 @@ const onMapClick = (event) => {
 const startRepositioning = (zone) => {
     isDrawerOpen.value = false;
     repositioningZone.value = zone;
+    repositioningDevice.value = null;
     pinPlacementMode.value = false;
     isMoveModeActive.value = false;
 };
@@ -681,6 +834,8 @@ onUnmounted(() => {
     window.removeEventListener('mouseup', onWindowMouseUp);
     window.removeEventListener('touchmove', onWindowTouchMove);
     window.removeEventListener('touchend', onWindowTouchEnd);
+    window.removeEventListener('touchmove', onDeviceTouchMove);
+    window.removeEventListener('touchend', onDeviceTouchEnd);
     if (toastTimeout) clearTimeout(toastTimeout);
 });
 </script>
@@ -897,6 +1052,26 @@ onUnmounted(() => {
                 </div>
             </div>
 
+            <!-- Reposition Single Safety Device Alert -->
+            <div v-if="repositioningDevice" class="rounded-lg border border-rose-300 bg-rose-50 p-4 dark:border-rose-900/60 dark:bg-rose-950/40">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <CursorArrowRaysIcon class="size-5 text-rose-600 dark:text-rose-400 shrink-0 animate-pulse" />
+                        <div>
+                            <p class="text-sm font-semibold text-rose-900 dark:text-rose-200">Pindahkan Posisi Alat K3: {{ repositioningDevice.name }} ({{ repositioningDevice.code }})</p>
+                            <p class="text-xs text-rose-700 dark:text-rose-300">Klik titik lokasi baru di atas gambar denah di bawah untuk menempatkan alat keselamatan ini.</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        @click="repositioningDevice = null"
+                        class="text-xs font-semibold text-rose-800 underline dark:text-rose-300 hover:text-rose-900"
+                    >
+                        Batalkan
+                    </button>
+                </div>
+            </div>
+
             <!-- Pin Placement Alert -->
             <div v-if="pinPlacementMode" class="rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/40">
                 <div class="flex items-center justify-between">
@@ -1039,7 +1214,7 @@ onUnmounted(() => {
                         class="relative transition-transform duration-200 origin-top-left"
                         :style="{
                             transform: `scale(${zoomLevel})`,
-                            cursor: (pinPlacementMode || repositioningZone) ? 'crosshair' : (isMoveModeActive ? 'grab' : 'default'),
+                            cursor: (pinPlacementMode || repositioningZone || repositioningDevice) ? 'crosshair' : (isMoveModeActive ? 'grab' : 'default'),
                         }"
                         @click="onMapClick"
                     >
@@ -1135,7 +1310,8 @@ onUnmounted(() => {
                                     transition: (draggedDevice?.id === device.id && isDragging) ? 'none' : 'left 0.15s ease-out, top 0.15s ease-out',
                                 }"
                                 @mousedown="onDeviceMouseDown($event, device)"
-                                @click.stop="openDeviceDrawer(device)"
+                                @touchstart="onDeviceTouchStart($event, device)"
+                                @click.stop="handleDevicePinClick(device)"
                             >
                                 <!-- Live Coordinate Pill while Dragging -->
                                 <div
@@ -1180,7 +1356,7 @@ onUnmounted(() => {
             <!-- Slide-over Drawer: PIC Employee Card & Zone Details -->
             <div
                 v-if="isDrawerOpen && selectedZone"
-                class="fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-sm transition-opacity"
+                class="fixed inset-0 z-[100] overflow-hidden bg-slate-900/50 backdrop-blur-sm transition-opacity"
                 @click.self="isDrawerOpen = false"
             >
                 <div class="absolute inset-y-0 right-0 max-w-md w-full bg-white dark:bg-slate-900 shadow-2xl p-6 overflow-y-auto flex flex-col justify-between border-l border-slate-200 dark:border-slate-800">
@@ -1321,7 +1497,7 @@ onUnmounted(() => {
             <!-- Modal: Add / Edit Zone -->
             <div
                 v-if="isAddZoneModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isAddZoneModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -1460,7 +1636,7 @@ onUnmounted(() => {
             <!-- Modal: Add / Edit Building -->
             <div
                 v-if="isBuildingModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isBuildingModalOpen = false"
             >
                 <div class="w-full max-w-md rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -1540,30 +1716,41 @@ onUnmounted(() => {
             <!-- Slide-over Drawer: Safety Device Point Details -->
             <div
                 v-if="isDeviceDrawerOpen && selectedDevice"
-                class="fixed inset-0 z-50 overflow-hidden bg-slate-900/50 backdrop-blur-sm transition-opacity"
+                class="fixed inset-0 z-[100] overflow-hidden bg-slate-900/50 backdrop-blur-sm transition-opacity"
                 @click.self="isDeviceDrawerOpen = false"
             >
                 <div class="absolute inset-y-0 right-0 max-w-sm w-full bg-white dark:bg-slate-900 shadow-2xl p-6 overflow-y-auto flex flex-col justify-between border-l border-slate-200 dark:border-slate-800">
                     <div class="space-y-6">
                         <!-- Drawer Header -->
                         <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
-                            <div>
+                            <div class="min-w-0 flex-1 pr-2">
                                 <span class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-white" :class="getDeviceColor(selectedDevice.device_type, selectedDevice.inspection_status)">
                                     <component :is="getDeviceIcon(selectedDevice.device_type)" class="size-3.5" />
                                     {{ selectedDevice.device_type.replace('_', ' ') }}
                                 </span>
-                                <h3 class="mt-2 text-lg font-bold text-slate-900 dark:text-white">
+                                <h3 class="mt-2 text-lg font-bold text-slate-900 dark:text-white truncate">
                                     {{ selectedDevice.name }}
                                 </h3>
                                 <p class="text-xs text-slate-500 font-mono">{{ selectedDevice.code }} &bull; {{ currentBuilding?.name }}</p>
                             </div>
-                            <button
-                                type="button"
-                                @click="isDeviceDrawerOpen = false"
-                                class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
-                            >
-                                <XMarkIcon class="size-5" />
-                            </button>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button
+                                    type="button"
+                                    @click="openEditDeviceModal(selectedDevice)"
+                                    class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition"
+                                    title="Edit Titik K3"
+                                >
+                                    <PencilSquareIcon class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="isDeviceDrawerOpen = false"
+                                    class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 transition"
+                                    title="Tutup"
+                                >
+                                    <XMarkIcon class="size-5" />
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Status & Health Card -->
@@ -1590,8 +1777,27 @@ onUnmounted(() => {
 
                             <div class="flex items-center justify-between text-xs">
                                 <span class="text-slate-500">Map Coordinates:</span>
-                                <span class="font-mono text-slate-600 dark:text-slate-300">X: {{ selectedDevice.map_x_percent }}% &bull; Y: {{ selectedDevice.map_y_percent }}%</span>
+                                <span class="font-mono text-slate-600 dark:text-slate-300">X: {{ getDeviceCoords(selectedDevice).x }}% &bull; Y: {{ getDeviceCoords(selectedDevice).y }}%</span>
                             </div>
+                        </div>
+
+                        <!-- Coordinates Info & Reposition Button -->
+                        <div class="rounded-lg border border-slate-200 p-3 text-xs text-slate-500 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+                            <div>
+                                <span class="font-medium text-slate-600 dark:text-slate-400">Koordinat Pin:</span>
+                                <span class="ml-1.5 font-mono font-bold text-slate-900 dark:text-white">
+                                    X: {{ getDeviceCoords(selectedDevice).x }}% &bull; Y: {{ getDeviceCoords(selectedDevice).y }}%
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                @click="startRepositioningDevice(selectedDevice)"
+                                class="inline-flex items-center gap-1 rounded bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800 shadow-sm transition"
+                                title="Klik lokasi baru di denah untuk memindahkan pin"
+                            >
+                                <ArrowsPointingOutIcon class="size-3.5" />
+                                <span>Pindah di Peta</span>
+                            </button>
                         </div>
 
                         <!-- Notes if present -->
@@ -1601,30 +1807,40 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Footer Actions -->
-                    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                        <button
-                            type="button"
-                            @click="deleteDevice(selectedDevice)"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 rounded-md transition"
-                        >
-                            <TrashIcon class="size-4" />
-                            <span>Delete Safety Point</span>
-                        </button>
+                    <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                @click="openEditDeviceModal(selectedDevice)"
+                                class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition"
+                            >
+                                <PencilSquareIcon class="size-4" />
+                                <span>Edit Titik K3</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="deleteDevice(selectedDevice)"
+                                class="inline-flex items-center justify-center rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-medium text-rose-600 shadow-sm hover:bg-rose-50 dark:border-rose-900/60 dark:bg-slate-800 dark:text-rose-400 transition"
+                                title="Hapus Titik K3"
+                            >
+                                <TrashIcon class="size-4" />
+                            </button>
+                        </div>
                         <button
                             type="button"
                             @click="isDeviceDrawerOpen = false"
-                            class="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md"
+                            class="w-full py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition"
                         >
-                            Close
+                            Tutup
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Modal: Add Safety Device Point -->
+            <!-- Modal: Add / Edit Safety Device Point -->
             <div
                 v-if="isAddDeviceModalOpen"
-                class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
+                class="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/50 backdrop-blur-sm p-4 flex items-center justify-center"
                 @click.self="isAddDeviceModalOpen = false"
             >
                 <div class="w-full max-w-lg rounded-xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-200 dark:border-slate-800">
@@ -1632,7 +1848,7 @@ onUnmounted(() => {
                         <div class="flex items-center gap-2">
                             <ShieldCheckIcon class="size-5 text-rose-600" />
                             <h3 class="text-lg font-bold text-slate-900 dark:text-white">
-                                Add Safety Device Point (K3)
+                                {{ deviceForm.id ? `Edit Titik Alat K3 (${deviceForm.code})` : 'Tambah Titik Alat K3' }}
                             </h3>
                         </div>
                         <button type="button" @click="isAddDeviceModalOpen = false" class="text-slate-400 hover:text-slate-600">
@@ -1709,6 +1925,33 @@ onUnmounted(() => {
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">X Position (%) *</label>
+                                <input
+                                    v-model.number="deviceForm.map_x_percent"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    required
+                                    class="mt-1 w-full rounded-md border-slate-300 text-sm font-mono shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Y Position (%) *</label>
+                                <input
+                                    v-model.number="deviceForm.map_y_percent"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    max="100"
+                                    required
+                                    class="mt-1 w-full rounded-md border-slate-300 text-sm font-mono shadow-sm focus:border-rose-500 focus:ring-rose-500 dark:bg-slate-800 dark:border-slate-700"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
                                 <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">Expiration Date (Optional)</label>
                                 <input
                                     v-model="deviceForm.expiration_date"
@@ -1717,7 +1960,7 @@ onUnmounted(() => {
                                 />
                             </div>
                             <div class="flex items-center gap-2 pt-5 text-xs text-slate-500">
-                                <span>Default Pin Pos: 50%, 50% (Dapat digeser bebas di denah)</span>
+                                <span>Posisi pin juga dapat digeser langsung di denah.</span>
                             </div>
                         </div>
 
@@ -1744,7 +1987,7 @@ onUnmounted(() => {
                                 :disabled="deviceForm.processing"
                                 class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-rose-500 disabled:opacity-50"
                             >
-                                {{ deviceForm.processing ? 'Saving...' : 'Add Safety Point' }}
+                                {{ deviceForm.processing ? 'Menyimpan...' : (deviceForm.id ? 'Simpan Perubahan' : 'Tambah Titik K3') }}
                             </button>
                         </div>
                     </form>
